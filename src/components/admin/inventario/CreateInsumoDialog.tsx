@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Loader2, X, PackagePlus } from "lucide-react";
-import { Categoria } from "@/types/supabase.types";
+import { Categoria } from "@/types/database";
 import { toast } from "sonner";
 
 interface Props {

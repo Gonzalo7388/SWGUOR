@@ -125,6 +125,43 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
     }
   };
 
+  const handleSubmit = async (formData: any) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/pedidos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente_id: formData.cliente_id,
+          metodo_pago: formData.metodo_pago,
+          subtotal: formData.subtotal,
+          impuesto: formData.impuesto,
+          total: formData.total,
+          // Los productos deben enviarse como un array de objetos
+          productos: formData.items.map((item: any) => ({
+            id: item.producto_id,
+            cantidad: item.cantidad,
+            precio: item.precio_unitario, // Tu API espera 'item.precio'
+          })),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Error al crear el pedido");
+      }
+
+      toast.success("¡Pedido creado y stock actualizado!");
+      onSuccess(); // Recarga la lista de pedidos
+      onClose();   // Cierra el modal
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col rounded-3xl p-0 border-none">

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { Usuario } from '@/types/supabase.types';
+import { Usuario } from '@/types/database';
 import { useRouter } from 'next/navigation';
 
 // Interfaces

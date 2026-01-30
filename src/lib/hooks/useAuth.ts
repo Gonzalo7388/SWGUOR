@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Usuario } from '@/types/auth.types';
+import type { Usuario } from '@/types/auth';
 
 export function useAuth() {
   const [user, setUser] = useState<Usuario | null>(null);

@@ -5,7 +5,7 @@ import { Plus, Search, Users, ShieldCheck, RefreshCw, UserCheck, Loader2, Shield
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UsuariosTable } from "@/components/admin/usuarios/UsuarioTable";
-import { Database } from "@/types/supabase.types";
+import { Database } from "@/types/database";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 

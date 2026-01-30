@@ -3,7 +3,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { Database, InventarioInsert, InventarioUpdate } from '@/types/supabase.types'
+import { Database, InventarioInsert, InventarioUpdate } from '@/types/database'
 
 async function getSupabase() {
   const cookieStore = await cookies()

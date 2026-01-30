@@ -1,6 +1,6 @@
 'use client'
 
-import { Inventario } from '@/types/supabase.types'
+import { Inventario } from '@/types/database'
 import { AlertTriangle, Package, BarChart3 } from 'lucide-react'
 
 interface Props {

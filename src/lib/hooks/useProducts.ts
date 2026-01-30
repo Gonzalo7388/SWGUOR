@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Producto } from '@/types/supabase.types';
+import type { Producto } from '@/types/database';
 
 interface UseProductsOptions {
   categoriaId?: number;

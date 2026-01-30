@@ -44,7 +44,7 @@ export default function CarruselHeroi() {
   const anterior = () => setActual((prev) => (prev - 1 + DIAPOSITIVAS.length) % DIAPOSITIVAS.length);
 
   return (
-    <div className="relative w-full h-96 md:h-[500px] overflow-hidden rounded-lg md:rounded-2xl">
+    <div className="relative w-full h-96 md:h-125 overflow-hidden rounded-lg md:rounded-2xl">
       {/* Diapositivas */}
       {DIAPOSITIVAS.map((diapositiva, indice) => (
         <div

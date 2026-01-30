@@ -41,24 +41,26 @@ export default function PedidosPage() {
   const loadPedidos = useCallback(async () => {
     setLoading(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select("*, clientes(nombre, apellido)")
-        .order("created_at", { ascending: false });
+      // LLAMADA A LA API
+      const response = await fetch("/api/admin/pedidos"); 
+      const res = await response.json();
+      
+      if (!response.ok) throw new Error(res.error || "Falla en API");
 
-      if (error) throw error;
-      const res = data || [];
       setPedidos(res);
 
-      setStats({
-        total: res.length,
-        pendientes: res.filter((p: any) => p.estado === "pendiente").length,
-        completados: res.filter((p: any) => p.estado === "completado").length,
-        cancelados: res.filter((p: any) => p.estado === "cancelado").length
-      });
-    } catch (err) {
-      toast.error("Error al sincronizar pedidos");
+      setTimeout(() => {
+        setStats({
+          total: res.length,
+          pendientes: res.filter((p: any) => p.estado?.toUpperCase() === "PENDIENTE").length,
+          completados: res.filter((p: any) => p.estado?.toUpperCase() === "COMPLETADO").length,
+          cancelados: res.filter((p: any) => p.estado?.toUpperCase() === "CANCELADO").length
+        });
+      }, 0);
+
+    } catch (err: any) {
+      toast.error("Error: " + err.message);
+
     } finally {
       setLoading(false);
     }
@@ -91,6 +93,8 @@ export default function PedidosPage() {
   };
 
   const filteredPedidos = useMemo(() => {
+    if (pedidos.length === 0) return [];
+
     return pedidos.filter((p: any) => {
       const clienteNombre = `${p.clientes?.nombre} ${p.clientes?.apellido}`.toLowerCase();
       const matchSearch = clienteNombre.includes(searchTerm.toLowerCase()) || p.id.toString().includes(searchTerm);

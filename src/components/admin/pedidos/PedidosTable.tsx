@@ -87,10 +87,10 @@ export default function PedidosTable({ data, onView, onCancel, onUpdateStatus }:
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700 text-[13px] uppercase tracking-tight">
-                          {pedido.clientes?.nombre} {pedido.clientes?.apellido}
+                          Empresa: {pedido.clientes?.razon_social || "Sin Nombre"}
                         </span>
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                          DNI/RUC: {pedido.clientes?.dni_ruc || 'Sin Identificación'}
+                          RUC: {pedido.clientes?.ruc || "Sin RUC"}
                         </span>
                       </div>
                     </div>

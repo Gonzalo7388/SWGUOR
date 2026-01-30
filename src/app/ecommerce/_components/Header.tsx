@@ -37,7 +37,7 @@ export default function Encabezado() {
           {/* Encabezado Escritorio */}
           <div className="hidden md:flex items-center justify-between gap-8">
             {/* Logo */}
-            <Link href="/ecommerce" className="flex-shrink-0">
+            <Link href="/ecommerce" className="shrink-0">
               <div className="text-2xl font-bold text-gray-900">
                 <span className="text-red-600">SWGUOR</span>
               </div>
@@ -45,7 +45,7 @@ export default function Encabezado() {
             </Link>
 
             {/* Barra de Búsqueda */}
-            <div className="flex-grow max-w-md">
+            <div className="grow max-w-md">
               <div className="relative">
                 <input
                   type="text"

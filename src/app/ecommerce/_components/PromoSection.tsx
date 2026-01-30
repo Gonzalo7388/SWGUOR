@@ -6,7 +6,7 @@ export default function SeccionPromo() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Promo 1 */}
-          <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg p-6 md:p-8 text-white relative overflow-hidden">
+          <div className="bg-linear-to-br from-blue-400 to-blue-600 rounded-lg p-6 md:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <h3 className="text-2xl md:text-3xl font-bold mb-2 relative z-10">
               Liquidación
@@ -20,7 +20,7 @@ export default function SeccionPromo() {
           </div>
 
           {/* Promo 2 */}
-          <div className="bg-gradient-to-br from-red-400 to-red-600 rounded-lg p-6 md:p-8 text-white relative overflow-hidden">
+          <div className="bg-linear-to-br from-red-400 to-red-600 rounded-lg p-6 md:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <h3 className="text-2xl md:text-3xl font-bold mb-2 relative z-10">
               2x1 en Accesorios
@@ -34,7 +34,7 @@ export default function SeccionPromo() {
           </div>
 
           {/* Promo 3 */}
-          <div className="bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg p-6 md:p-8 text-white relative overflow-hidden">
+          <div className="bg-linear-to-br from-purple-400 to-purple-600 rounded-lg p-6 md:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <h3 className="text-2xl md:text-3xl font-bold mb-2 relative z-10">
               Envío Gratis

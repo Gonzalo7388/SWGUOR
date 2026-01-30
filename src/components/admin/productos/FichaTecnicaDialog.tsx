@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import type { Producto } from "@/types/supabase.types";
+import type { Producto } from "@/types/database";
 
 interface FichaTecnicaProps {
   isOpen: boolean;

@@ -5,51 +5,56 @@ export async function GET() {
   const supabase = await createClient();
 
   try {
-    // 1. Consulta de pedidos usando los nombres de columna reales de tu tabla
+    // Traemos pedidos con fecha_entrega para medir puntualidad
     const { data: pedidos, error } = await supabase
       .from('pedidos')
-      .select('fecha_pedido, total, estado');
+      .select('fecha_pedido, fecha_entrega, total, estado, cliente_id');
+
+    // Traemos stock crítico
+    const { data: productos } = await supabase
+      .from('productos')
+      .select('nombre, stock')
+      .lte('stock', 50); // Ajustar según necesidad textil
 
     if (error) throw error;
 
-    // --- PROCESAMIENTO PARA GRÁFICA DE VENTAS MENSUALES ---
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    
-    // Inicializamos los últimos 6 meses con valor 0 para que la gráfica no se vea vacía
-    const ventasMensuales = meses.map(mes => ({ name: mes, ventas: 0 }));
+    const ventasMensuales = meses.map(mes => ({ name: mes, ventas: 0, pedidos: 0 }));
 
-    pedidos?.forEach((pedido) => {
-      const fecha = new Date(pedido.fecha_pedido);
+    let pedidosAtrasados = 0;
+    const hoy = new Date();
+
+    pedidos?.forEach((p) => {
+      const fecha = new Date(p.fecha_pedido);
       const mesIndex = fecha.getMonth();
-      // Solo sumamos al total si el pedido no está cancelado (opcional, según tu lógica)
-      if (pedido.estado !== 'CANCELADO') {
-        ventasMensuales[mesIndex].ventas += Number(pedido.total) || 0;
+      
+      if (p.estado !== 'CANCELADO') {
+        ventasMensuales[mesIndex].ventas += Number(p.total) || 0;
+        ventasMensuales[mesIndex].pedidos += 1;
+      }
+
+      // Lógica de cumplimiento: si está pendiente y pasó la fecha de entrega
+      if (p.estado === 'PENDIENTE' && p.fecha_entrega && new Date(p.fecha_entrega) < hoy) {
+        pedidosAtrasados++;
       }
     });
 
-    // --- PROCESAMIENTO PARA GRÁFICA CIRCULAR (ESTADOS) ---
-    // Usamos los estados exactos de tu base de datos: 'PENDIENTE', 'COMPLETADO', 'CANCELADO'
-    const estadosData = [
-      { name: 'Pendientes', value: pedidos?.filter(p => p.estado === 'PENDIENTE').length || 0, color: '#f97316' },
-      { name: 'Completados', value: pedidos?.filter(p => p.estado === 'COMPLETADO').length || 0, color: '#10b981' },
-      { name: 'Cancelados', value: pedidos?.filter(p => p.estado === 'CANCELADO').length || 0, color: '#ef4444' },
-    ];
-
-    // --- RESUMEN GENERAL ---
-    const summary = {
-      totalVentas: pedidos?.reduce((acc, p) => acc + (Number(p.total) || 0), 0) || 0,
-      totalPedidos: pedidos?.length || 0,
-      pendientes: pedidos?.filter(p => p.estado === 'PENDIENTE').length || 0
-    };
-
     return NextResponse.json({
-      summary,
+      summary: {
+        totalVentas: pedidos?.reduce((acc, p) => acc + (Number(p.total) || 0), 0) || 0,
+        totalPedidos: pedidos?.length || 0,
+        pendientes: pedidos?.filter(p => p.estado === 'PENDIENTE').length || 0,
+        atrasados: pedidosAtrasados, // MÉTRICA CRÍTICA PARA TEXTIL
+        stockCritico: productos?.length || 0
+      },
       ventasMensuales,
-      estadosData
+      estadosData: [
+        { name: 'En Corte', value: pedidos?.filter(p => p.estado === 'CORTE').length || 0, color: '#f59e0b' },
+        { name: 'En Confección', value: pedidos?.filter(p => p.estado === 'CONFECCION').length || 0, color: '#3b82f6' },
+        { name: 'Completados', value: pedidos?.filter(p => p.estado === 'COMPLETADO').length || 0, color: '#10b981' },
+      ]
     });
-
   } catch (error) {
-    console.error('Error en Stats:', error);
-    return NextResponse.json({ error: 'Error al procesar los datos' }, { status: 500 });
+    return NextResponse.json({ error: 'Error' }, { status: 500 });
   }
 }

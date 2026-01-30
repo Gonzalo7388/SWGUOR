@@ -8,7 +8,7 @@ export default function DistribucionEcommerce({ children }: { children: ReactNod
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Encabezado />
-      <main className="flex-grow">
+      <main className="grow">
         {children}
       </main>
       <PiePagina />

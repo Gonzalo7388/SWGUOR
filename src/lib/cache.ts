@@ -1,5 +1,5 @@
 // lib/cache.ts
-import type { Database } from "@/types/supabase.types";
+import type { Database } from "@/types/database";
 
 /**
  * Sistema de caché en memoria con soporte para TTL (Time To Live)

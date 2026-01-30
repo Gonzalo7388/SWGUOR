@@ -6,7 +6,7 @@ import {
   Edit2, Trash2, Package, BarChart3, Tag, Lock, 
   FileText, Paperclip, CheckCircle2 
 } from "lucide-react";
-import type { Producto, Categoria } from "@/types/supabase.types";
+import type { Producto, Categoria } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 

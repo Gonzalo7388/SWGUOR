@@ -12,7 +12,7 @@ import {
   Crown
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Usuario } from '@/types/supabase.types';
+import type { Usuario } from '@/types/database';
 import { LucideIcon } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 

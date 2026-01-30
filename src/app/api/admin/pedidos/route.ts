@@ -1,6 +1,31 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+// GET: Obtener todos los pedidos con sus clientes
+export async function GET() {
+  const supabase = await createClient();
+  
+  try {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select(`
+        *,
+        clientes (
+          razon_social
+        )
+      `)
+      .order('fecha_pedido', { ascending: false });
+
+    if (error) throw error;
+
+    // Retornamos los datos para que el Frontend los reciba
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('Error en GET Pedidos:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 // POST: Crear un nuevo pedido con detalles y actualizar stock
 export async function POST(req: Request) {
   const supabase = await createClient();

@@ -3,7 +3,7 @@
 import { Edit, Trash2, CheckCircle, XCircle, Tag, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Categoria } from "@/types/supabase.types";
+import type { Categoria } from "@/types/database";
 
 interface Props {
   data: Categoria[];

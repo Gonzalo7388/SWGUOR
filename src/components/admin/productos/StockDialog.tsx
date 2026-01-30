@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Producto } from "@/types/supabase.types";
+import type { Producto } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

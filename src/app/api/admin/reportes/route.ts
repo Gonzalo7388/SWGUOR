@@ -7,48 +7,54 @@ export async function GET(request: Request) {
   
   const supabase = await createClient();
 
-  // 1. Definir rangos de tiempo (Actual vs Anterior)
   const ahora = new Date();
   const inicioPeriodoActual = new Date();
   inicioPeriodoActual.setDate(ahora.getDate() - days);
 
   const inicioPeriodoAnterior = new Date();
-  inicioPeriodoAnterior.setDate(inicioPeriodoActual.getDate() - days);
+  inicioPeriodoAnterior.setDate(inicioPeriodoActual.getDate() - (days * 2)); // Corregido: 2 periodos atrás
 
   try {
-    // 2. Obtener todos los pedidos pagados desde el inicio del periodo anterior
+    // 1. Obtener Pedidos
+    // Nota: Eliminé 'estado_pago' porque no está en tu CSV actual. 
+    // Si la agregas luego a Supabase, puedes reincorporarla.
     const { data: todosLosPedidos, error: errorPedidos } = await supabase
       .from("pedidos")
-      .select("total, created_at")
-      .gte("created_at", inicioPeriodoAnterior.toISOString())
-      .eq("estado_pago", "pagado");
+      .select("total, created_at, estado")
+      .gte("created_at", inicioPeriodoAnterior.toISOString());
 
     if (errorPedidos) throw errorPedidos;
+    if (!todosLosPedidos) return NextResponse.json({ error: "No hay datos" }, { status: 404 });
 
-    // 3. Separar pedidos por periodos
+    // 2. Separar pedidos por periodos (Basado en 'estado' != 'CANCELADO')
     const pedidosActuales = todosLosPedidos.filter(p => 
-      new Date(p.created_at) >= inicioPeriodoActual
+      new Date(p.created_at) >= inicioPeriodoActual && p.estado !== 'CANCELADO'
     );
     const pedidosAnteriores = todosLosPedidos.filter(p => 
       new Date(p.created_at) >= inicioPeriodoAnterior && 
-      new Date(p.created_at) < inicioPeriodoActual
+      new Date(p.created_at) < inicioPeriodoActual &&
+      p.estado !== 'CANCELADO'
     );
 
-    // 4. Calcular métricas financieras y crecimiento
-    const totalActual = pedidosActuales.reduce((acc, p) => acc + (p.total || 0), 0);
-    const totalAnterior = pedidosAnteriores.reduce((acc, p) => acc + (p.total || 0), 0);
+    // 3. MÉTRICA: PRODUCCIÓN EN CURSO (Basado en tus roles: cortador, diseñador, etc.)
+    // Incluimos estados que NO sean completado ni cancelado
+    const estadosProduccion = ['PENDIENTE', 'DISEÑANDO', 'CORTANDO', 'EN_TALLER', 'LISTO'];
+    const produccionEnCurso = todosLosPedidos
+      .filter(p => estadosProduccion.includes(p.estado))
+      .reduce((acc: number, p) => acc + (Number(p.total) || 0), 0);
 
-    let porcentajeCrecimiento = 0;
-    if (totalAnterior > 0) {
-      porcentajeCrecimiento = ((totalActual - totalAnterior) / totalAnterior) * 100;
-    } else {
-      porcentajeCrecimiento = totalActual > 0 ? 100 : 0;
-    }
+    // 4. Calcular métricas financieras
+    const totalActual = pedidosActuales.reduce((acc: number, p) => acc + (Number(p.total) || 0), 0);
+    const totalAnterior = pedidosAnteriores.reduce((acc: number, p) => acc + (Number(p.total) || 0), 0);
 
-    // 5. Agrupar Ventas por Día (Gráfico de Líneas)
-    const ventasPorDiaMap = pedidosActuales.reduce((acc: any, curr) => {
+    let porcentajeCrecimiento = totalAnterior > 0 
+      ? ((totalActual - totalAnterior) / totalAnterior) * 100 
+      : (totalActual > 0 ? 100 : 0);
+
+    // 5. Ventas por Día (Gráfico)
+    const ventasPorDiaMap = pedidosActuales.reduce((acc: Record<string, number>, curr) => {
       const fecha = new Date(curr.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
-      acc[fecha] = (acc[fecha] || 0) + curr.total;
+      acc[fecha] = (acc[fecha] || 0) + (Number(curr.total) || 0);
       return acc;
     }, {});
 
@@ -57,47 +63,46 @@ export async function GET(request: Request) {
       ventas: ventasPorDiaMap[fecha]
     }));
 
-    // 6. Obtener Clientes Nuevos del periodo actual
-    const { count: totalClientes, error: errorClientes } = await supabase
-      .from("clientes")
-      .select("*", { count: 'exact', head: true })
-      .gte("created_at", inicioPeriodoActual.toISOString());
-
-    // 7. Ventas por Categoría (Gráfico Circular)
-    const { data: catData, error: errorCat } = await supabase
+    // 6. Detalles para Pareto y Tallas (Con manejo de errores para relaciones vacías)
+    const { data: detData, error: errorDet } = await supabase
       .from("detalles_pedido")
       .select(`
         cantidad,
+        talla,
         productos (
-          categorias (
-            nombre
-          )
+          precio,
+          categorias ( nombre )
         )
       `)
       .gte("created_at", inicioPeriodoActual.toISOString());
 
-    const catMap = catData?.reduce((acc: any, curr: any) => {
-      const catName = curr.productos?.categorias?.nombre || "Otros";
-      acc[catName] = (acc[catName] || 0) + (curr.cantidad || 0);
-      return acc;
-    }, {});
+    const paretoMap: Record<string, number> = {};
+    const tallasMap: Record<string, number> = {};
 
-    const ventasPorCategoria = Object.keys(catMap || {}).map(name => ({
-      name,
-      value: catMap[name]
-    }));
+    detData?.forEach((d: any) => {
+      // Pareto: Si no hay categoría, usamos "General"
+      const catName = d.productos?.categorias?.nombre || "General";
+      const monto = (Number(d.cantidad) || 0) * (Number(d.productos?.precio) || 0);
+      paretoMap[catName] = (paretoMap[catName] || 0) + monto;
 
-    // 8. Respuesta final consolidada
+      // Tallas
+      if (d.talla) {
+        tallasMap[d.talla] = (tallasMap[d.talla] || 0) + (Number(d.cantidad) || 0);
+      }
+    });
+
+    // 7. Respuesta consolidada (Asegurando que nada sea undefined)
     return NextResponse.json({
       metrics: {
-        total: totalActual,
-        pedidos: pedidosActuales.length,
-        clientes: totalClientes || 0,
-        crecimiento: Math.round(porcentajeCrecimiento),
-        totalAnterior: totalAnterior
+        total: totalActual || 0,
+        pedidos: pedidosActuales.length || 0,
+        crecimiento: Math.round(porcentajeCrecimiento) || 0,
+        produccionEnCurso: produccionEnCurso || 0,
+        clientes: new Set(pedidosActuales.map((p:any) => p.cliente_id)).size // Calculado al vuelo
       },
-      ventasPorDia,
-      ventasPorCategoria
+      ventasPorDia: ventasPorDia.length > 0 ? ventasPorDia : [{fecha: 'Sin datos', ventas: 0}],
+      ventasPorCategoria: Object.entries(paretoMap).map(([name, value]) => ({ name, value })),
+      concentracionTallas: Object.entries(tallasMap).map(([name, value]) => ({ name, value }))
     });
 
   } catch (error: any) {

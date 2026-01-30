@@ -1,7 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase'; 
-import { Usuario } from '@/types/supabase.types';
+import { Usuario } from '@/types/database';
 
 interface AppPermissions {
   [resource: string]: string[];

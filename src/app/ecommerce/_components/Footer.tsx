@@ -16,7 +16,7 @@ export default function PiePagina() {
               <input
                 type="email"
                 placeholder="Tu correo"
-                className="flex-grow px-4 py-2 rounded text-gray-900 focus:outline-none"
+                className="grow px-4 py-2 rounded text-gray-900 focus:outline-none"
               />
               <button className="bg-gray-900 hover:bg-gray-800 px-6 py-2 rounded font-medium transition">
                 Suscribir

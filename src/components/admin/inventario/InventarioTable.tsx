@@ -1,7 +1,7 @@
 "use client";
 
 import { Edit2, Trash2, Layers, Loader2 } from "lucide-react";
-import { Inventario } from "@/types/supabase.types";
+import { Inventario } from "@/types/database";
 import { Button } from "@/components/ui/button";
 
 interface InventarioTableProps {
