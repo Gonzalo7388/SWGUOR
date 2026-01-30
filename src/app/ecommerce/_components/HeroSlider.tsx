@@ -3,93 +3,93 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const SLIDES = [
+const DIAPOSITIVAS = [
   {
     id: 1,
-    title: 'Colección de Verano 2026',
-    subtitle: 'Descubre nuestros nuevos diseños',
-    discount: '-40%',
-    image: 'bg-gradient-to-r from-pink-400 to-pink-600',
-    cta: 'Comprar Ahora',
+    titulo: 'Colección de Verano 2026',
+    subtitulo: 'Descubre nuestros nuevos diseños',
+    descuento: '-40%',
+    imagen: 'bg-gradient-to-r from-pink-400 to-pink-600',
+    llamada: 'Comprar Ahora',
   },
   {
     id: 2,
-    title: 'Promoción Flash',
-    subtitle: 'Hoy: Todo en Vestidos con 50% de descuento',
-    discount: '-50%',
-    image: 'bg-gradient-to-r from-purple-400 to-purple-600',
-    cta: 'Ver Ofertas',
+    titulo: 'Promoción Flash',
+    subtitulo: 'Hoy: Todo en Vestidos con 50% de descuento',
+    descuento: '-50%',
+    imagen: 'bg-gradient-to-r from-purple-400 to-purple-600',
+    llamada: 'Ver Ofertas',
   },
   {
     id: 3,
-    title: 'Prendas Exclusivas',
-    subtitle: 'Diseños únicos para ti',
-    discount: '-30%',
-    image: 'bg-gradient-to-r from-red-400 to-red-600',
-    cta: 'Explorar',
+    titulo: 'Prendas Exclusivas',
+    subtitulo: 'Diseños únicos para ti',
+    descuento: '-30%',
+    imagen: 'bg-gradient-to-r from-red-400 to-red-600',
+    llamada: 'Explorar',
   },
 ];
 
-export default function HeroSlider() {
-  const [current, setCurrent] = useState(0);
+export default function CarruselHeroi() {
+  const [actual, setActual] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % SLIDES.length);
+    const temporizador = setInterval(() => {
+      setActual((prev) => (prev + 1) % DIAPOSITIVAS.length);
     }, 5000);
-    return () => clearInterval(timer);
+    return () => clearInterval(temporizador);
   }, []);
 
-  const next = () => setCurrent((prev) => (prev + 1) % SLIDES.length);
-  const prev = () => setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+  const siguiente = () => setActual((prev) => (prev + 1) % DIAPOSITIVAS.length);
+  const anterior = () => setActual((prev) => (prev - 1 + DIAPOSITIVAS.length) % DIAPOSITIVAS.length);
 
   return (
     <div className="relative w-full h-96 md:h-[500px] overflow-hidden rounded-lg md:rounded-2xl">
-      {/* Slides */}
-      {SLIDES.map((slide, index) => (
+      {/* Diapositivas */}
+      {DIAPOSITIVAS.map((diapositiva, indice) => (
         <div
-          key={slide.id}
+          key={diapositiva.id}
           className={`absolute w-full h-full transition-opacity duration-1000 ease-in-out ${
-            index === current ? 'opacity-100' : 'opacity-0'
+            indice === actual ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <div className={`w-full h-full ${slide.image} flex items-center justify-center`}>
+          <div className={`w-full h-full ${diapositiva.imagen} flex items-center justify-center`}>
             <div className="text-center text-white px-4">
               <div className="inline-block bg-white text-red-600 px-4 py-1 rounded-full text-sm font-bold mb-4">
-                {slide.discount}
+                {diapositiva.descuento}
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold mb-2">{slide.title}</h1>
-              <p className="text-lg md:text-xl mb-6 opacity-90">{slide.subtitle}</p>
+              <h1 className="text-3xl md:text-5xl font-bold mb-2">{diapositiva.titulo}</h1>
+              <p className="text-lg md:text-xl mb-6 opacity-90">{diapositiva.subtitulo}</p>
               <button className="bg-white text-red-600 px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition">
-                {slide.cta}
+                {diapositiva.llamada}
               </button>
             </div>
           </div>
         </div>
       ))}
 
-      {/* Navigation Buttons */}
+      {/* Botones de Navegación */}
       <button
-        onClick={prev}
+        onClick={anterior}
         className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white p-2 rounded-full transition"
       >
         <ChevronLeft className="text-gray-900" size={24} />
       </button>
       <button
-        onClick={next}
+        onClick={siguiente}
         className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white p-2 rounded-full transition"
       >
         <ChevronRight className="text-gray-900" size={24} />
       </button>
 
-      {/* Indicators */}
+      {/* Indicadores */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {SLIDES.map((_, index) => (
+        {DIAPOSITIVAS.map((_, indice) => (
           <button
-            key={index}
-            onClick={() => setCurrent(index)}
+            key={indice}
+            onClick={() => setActual(indice)}
             className={`w-3 h-3 rounded-full transition ${
-              index === current ? 'bg-white' : 'bg-white/50'
+              indice === actual ? 'bg-white' : 'bg-white/50'
             }`}
           />
         ))}

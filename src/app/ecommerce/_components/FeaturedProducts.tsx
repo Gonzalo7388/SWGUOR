@@ -3,7 +3,7 @@
 import { Heart } from 'lucide-react';
 import { useState } from 'react';
 
-const FEATURED_PRODUCTS = [
+const PRODUCTOS_DESTACADOS = [
   {
     id: 1,
     name: 'Vestido Floral Premium',
@@ -94,11 +94,11 @@ const FEATURED_PRODUCTS = [
   },
 ];
 
-function ProductCard({ product }: { product: typeof FEATURED_PRODUCTS[0] }) {
-  const [isFavorite, setIsFavorite] = useState(false);
+function TarjetaProducto({ producto }: { producto: typeof PRODUCTOS_DESTACADOS[0] }) {
+  const [esFavorito, setEsFavorito] = useState(false);
 
-  const discount = Math.round(
-    ((product.oldPrice - product.price) / product.oldPrice) * 100
+  const descuento = Math.round(
+    ((producto.oldPrice - producto.price) / producto.oldPrice) * 100
   );
 
   return (
@@ -106,34 +106,34 @@ function ProductCard({ product }: { product: typeof FEATURED_PRODUCTS[0] }) {
       <div className="relative rounded-lg overflow-hidden mb-3">
         {/* Product Image */}
         <div
-          className={`${product.image} aspect-square flex items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:shadow-xl`}
+          className={`${producto.image} aspect-square flex items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:shadow-xl`}
         >
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
 
-          {/* Badges */}
+          {/* Insignias */}
           <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-            {discount > 0 && (
+            {descuento > 0 && (
               <span className="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                -{discount}%
+                -{descuento}%
               </span>
             )}
             <span className="bg-black/70 text-white px-2 py-1 rounded text-xs font-bold">
-              {product.badge}
+              {producto.badge}
             </span>
           </div>
 
-          {/* Favorite Button */}
+          {/* Botón Favorito */}
           <button
-            onClick={() => setIsFavorite(!isFavorite)}
+            onClick={() => setEsFavorito(!esFavorito)}
             className="absolute top-3 right-3 bg-white p-2 rounded-full hover:bg-gray-100 transition shadow-md"
           >
             <Heart
               size={20}
-              className={isFavorite ? 'fill-red-600 text-red-600' : 'text-gray-600'}
+              className={esFavorito ? 'fill-red-600 text-red-600' : 'text-gray-600'}
             />
           </button>
 
-          {/* Quick Actions */}
+          {/* Acciones Rápidas */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
             <button className="bg-white text-gray-900 px-6 py-2 rounded-lg font-bold hover:bg-red-600 hover:text-white transition">
               Ver Más
@@ -144,36 +144,36 @@ function ProductCard({ product }: { product: typeof FEATURED_PRODUCTS[0] }) {
           </div>
         </div>
 
-        {/* Product Info */}
+        {/* Información Producto */}
         <h3 className="font-bold text-gray-900 text-sm md:text-base group-hover:text-red-600 transition">
-          {product.name}
+          {producto.name}
         </h3>
-        <p className="text-xs text-gray-500 mb-2">{product.color}</p>
+        <p className="text-xs text-gray-500 mb-2">{producto.color}</p>
 
-        {/* Rating */}
+        {/* Calificación */}
         <div className="flex items-center gap-1 mb-2">
           <div className="flex gap-0.5">
             {[...Array(5)].map((_, i) => (
               <span
                 key={i}
                 className={`text-lg ${
-                  i < Math.floor(product.rating) ? '⭐' : '☆'
+                  i < Math.floor(producto.rating) ? '⭐' : '☆'
                 }`}
               >
               </span>
             ))}
           </div>
-          <span className="text-xs text-gray-600">({product.reviews})</span>
+          <span className="text-xs text-gray-600">({producto.reviews})</span>
         </div>
 
-        {/* Price */}
+        {/* Precio */}
         <div className="flex items-center gap-2">
           <span className="text-lg md:text-xl font-bold text-red-600">
-            ${product.price}
+            ${producto.price}
           </span>
-          {product.oldPrice > product.price && (
+          {producto.oldPrice > producto.price && (
             <span className="text-sm line-through text-gray-400">
-              ${product.oldPrice}
+              ${producto.oldPrice}
             </span>
           )}
         </div>
@@ -182,7 +182,7 @@ function ProductCard({ product }: { product: typeof FEATURED_PRODUCTS[0] }) {
   );
 }
 
-export default function FeaturedProducts() {
+export default function ProductosDestacados() {
   return (
     <section className="py-12 md:py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -199,8 +199,8 @@ export default function FeaturedProducts() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 md:gap-6">
-          {FEATURED_PRODUCTS.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {PRODUCTOS_DESTACADOS.map((producto) => (
+            <TarjetaProducto key={producto.id} producto={producto} />
           ))}
         </div>
       </div>

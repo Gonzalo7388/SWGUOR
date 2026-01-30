@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { Facebook, Instagram, Twitter, Mail } from 'lucide-react';
 
-export default function Footer() {
+export default function PiePagina() {
   return (
     <footer className="bg-gray-900 text-gray-300 mt-16">
-      {/* Newsletter Section */}
+      {/* Sección Newsletter */}
       <div className="bg-red-600 text-white py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="max-w-md">
-            <h3 className="text-xl font-bold mb-2">Suscríbete a nuestro Newsletter</h3>
+            <h3 className="text-xl font-bold mb-2">Suscríbete a nuestro Boletín</h3>
             <p className="text-sm mb-4">Recibe ofertas exclusivas y descuentos especiales</p>
             <div className="flex gap-2">
               <input
@@ -26,12 +26,12 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Main Footer */}
+      {/* Pie Principal */}
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* About */}
+          {/* Acerca de */}
           <div>
-            <h4 className="text-white font-bold mb-4">Sobre SWGUOR</h4>
+            <h4 className="text-white font-bold mb-4">Acerca de SWGUOR</h4>
             <p className="text-sm text-gray-400">
               Somos una empresa especializada en ropa de moda para mujeres, con productos de calidad y a los mejores precios.
             </p>
@@ -48,7 +48,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Categories */}
+          {/* Categorías */}
           <div>
             <h4 className="text-white font-bold mb-4">Categorías</h4>
             <ul className="space-y-2 text-sm">
@@ -60,7 +60,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Customer Service */}
+          {/* Servicio al Cliente */}
           <div>
             <h4 className="text-white font-bold mb-4">Servicio al Cliente</h4>
             <ul className="space-y-2 text-sm">
@@ -68,11 +68,11 @@ export default function Footer() {
               <li><Link href="#" className="hover:text-red-600 transition">Preguntas Frecuentes</Link></li>
               <li><Link href="#" className="hover:text-red-600 transition">Política de Devoluciones</Link></li>
               <li><Link href="#" className="hover:text-red-600 transition">Envíos</Link></li>
-              <li><Link href="#" className="hover:text-red-600 transition">Rastrear Orden</Link></li>
+              <li><Link href="#" className="hover:text-red-600 transition">Rastrear Pedido</Link></li>
             </ul>
           </div>
 
-          {/* Info */}
+          {/* Información */}
           <div>
             <h4 className="text-white font-bold mb-4">Información</h4>
             <ul className="space-y-2 text-sm">
@@ -86,11 +86,11 @@ export default function Footer() {
 
         <hr className="border-gray-700 my-8" />
 
-        {/* Bottom */}
+        {/* Pie */}
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
           <p>&copy; 2026 SWGUOR. Todos los derechos reservados.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <span>Formas de pago:</span>
+            <span>Métodos de pago:</span>
             <div className="flex gap-2">
               <span>💳 Tarjeta</span>
               <span>📱 Transferencia</span>

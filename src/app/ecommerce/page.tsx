@@ -1,37 +1,37 @@
 'use client';
 
-import HeroSlider from './_components/HeroSlider';
-import CategoryShowcase from './_components/CategoryShowcase';
-import FeaturedProducts from './_components/FeaturedProducts';
-import PromoSection from './_components/PromoSection';
-import BenefitsSection from './_components/BenefitsSection';
+import CarruselHeroi from './_components/HeroSlider';
+import MuestraCategoria from './_components/CategoryShowcase';
+import ProductosDestacados from './_components/FeaturedProducts';
+import SeccionPromo from './_components/PromoSection';
+import SeccionBeneficios from './_components/BenefitsSection';
 
-export default function EcommercePage() {
+export default function PaginaEcommerce() {
   return (
     <div className="space-y-0">
-      {/* Hero Slider */}
+      {/* Carrusel Heroi */}
       <section className="px-4 py-8 md:py-12 max-w-7xl mx-auto w-full">
-        <HeroSlider />
+        <CarruselHeroi />
       </section>
 
-      {/* Categories */}
+      {/* Categorías */}
       <section className="border-t border-gray-200">
-        <CategoryShowcase />
+        <MuestraCategoria />
       </section>
 
-      {/* Promotions */}
+      {/* Promociones */}
       <section className="border-t border-gray-200">
-        <PromoSection />
+        <SeccionPromo />
       </section>
 
-      {/* Featured Products */}
+      {/* Productos Destacados */}
       <section className="border-t border-gray-200">
-        <FeaturedProducts />
+        <ProductosDestacados />
       </section>
 
-      {/* Benefits */}
+      {/* Beneficios */}
       <section className="border-t border-gray-200">
-        <BenefitsSection />
+        <SeccionBeneficios />
       </section>
     </div>
   );

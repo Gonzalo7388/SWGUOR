@@ -1,6 +1,6 @@
 'use client';
 
-export default function PromoSection() {
+export default function SeccionPromo() {
   return (
     <section className="py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4">
