@@ -224,8 +224,14 @@ const filteredNavItems = useMemo(() => {
               <div className="bg-white/60 p-2.5 pr-3 rounded-2xl border border-amber-100/40 flex items-center gap-3 transition-all duration-300 hover:bg-white hover:shadow-md hover:border-rose-200 cursor-pointer">
                 
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold shrink-0 shadow-sm transition-transform group-hover:scale-105">
-                  {usuario.nombre_completo.charAt(0)}
+                <div className="relative w-9 h-9 rounded-xl bg-rose-500 overflow-hidden shadow-md">
+                  {usuario.avatar_url ? (
+                    <img src={usuario.avatar_url} className="w-full h-full object-cover" alt="Perfil" />
+                  ) : (
+                    <span className="flex items-center justify-center h-full text-white font-bold">
+                      {usuario.nombre_completo?.charAt(0)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Contenedor de Textos */}

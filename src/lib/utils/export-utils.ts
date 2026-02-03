@@ -279,3 +279,104 @@ export const prepareCategoriasForExcel = (categorias: any[]) => {
     'Fecha de Creación': new Date(c.created_at).toLocaleDateString('es-PE'),
   }));
 };
+
+export const exportVentasDetailedPDF = async (ventas: any[], config: PDFExportConfig) => {
+  if (ventas.length === 0) return;
+
+  const doc = new jsPDF({ 
+    orientation: 'landscape', 
+    unit: 'mm', 
+    format: 'a4' 
+  }); // Landscape para más detalle
+  const startY = await drawHeaderWithLogo(doc, config.title, config.subtitle);
+
+  // 1. Preparar datos y cálculos de resumen
+  let totalRecaudado = 0;
+  let totalImpuestos = 0;
+  const metodosPago: Record<string, number> = {};
+
+  const body = ventas.map(v => {
+    const total = Number(v.total) || 0;
+    const impuesto = Number(v.impuestos) || 0;
+    const subtotal = Number(v.subtotal) || (total-impuesto);
+    const metodo = (v.ordenes?.metodo_pago || 'Efectivo').toUpperCase();
+
+    // Acumular totales para el resumen
+    totalRecaudado += total;
+    totalImpuestos += impuesto;
+    metodosPago[metodo] = (metodosPago[metodo] || 0) + total;
+
+    return [
+      v.numero_comprobante || `ORD-${v.orden_id}`,
+      v.ordenes?.clientes?.razon_social || "PÚBLICO GENERAL",
+      new Date(v.created_at).toLocaleDateString('es-PE'),
+      metodo,
+      v.ordenes?.estado?.toUpperCase() || 'PAGADO',
+      formatCurrency(Number(subtotal)),
+      formatCurrency(impuesto),
+      formatCurrency(total)
+    ];
+  });
+
+  const headers = [["COMPROBANTE", "CLIENTE", "RUC", "FECHA", "MÉTODO", "ESTADO", "SUBTOTAL", "IGV", "TOTAL"]];
+
+  // 2. Generar la tabla principal
+  autoTable(doc, {
+    head: headers,
+    body: body,
+    startY: startY,
+    styles: { 
+      fontSize: 8, 
+      cellPadding: 3, 
+      overflow: 'linebreak',
+      halign: 'center' 
+    },
+    headStyles: { fillColor: [219, 39, 119], textColor: 255 },
+    columnStyles: {
+      1: { halign: 'left', cellWidth: 'auto' }, // El nombre del cliente crece según espacio
+      7: { halign: 'right', fontStyle: 'bold' }  // Total a la derecha
+    },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    margin: { left: 14, right: 14 } // Márgenes consistentes con el logo
+  });
+  
+  // 3. Añadir Cuadro de Resumen al final
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const pageWidth = doc.internal.pageSize.width;
+  const margin = 14;
+
+  // Dibujar caja de resumen
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(pageWidth - 85, finalY, 70, 40, 3, 3, 'F');
+  
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.text("RESUMEN DE CAJA", pageWidth - 80, finalY + 8);
+  
+  doc.setFontSize(8);
+  doc.text(`Total Bruto:`, pageWidth - 80, finalY + 18);
+  doc.text(formatCurrency(totalRecaudado - totalImpuestos), pageWidth - 30, finalY + 18, { align: 'right' });
+  
+  doc.text(`Total Impuestos:`, pageWidth - 80, finalY + 24);
+  doc.text(formatCurrency(totalImpuestos), pageWidth - 30, finalY + 24, { align: 'right' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(219, 39, 119); // Rosa GUOR
+  doc.setFont('helvetica', 'bold');
+  doc.text(`TOTAL NETO:`, pageWidth - 80, finalY + 34);
+  doc.text(formatCurrency(totalRecaudado), pageWidth - 30, finalY + 34, { align: 'right' });
+
+  // 4. Detalle por Métodos de Pago (Opcional, a la izquierda)
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  doc.setFontSize(8);
+  let metodoY = finalY + 8;
+  doc.text("DESGLOSE POR MÉTODO:", margin, metodoY);
+  
+  Object.entries(metodosPago).forEach(([metodo, monto]) => {
+    metodoY += 6;
+    doc.text(`${metodo}: ${formatCurrency(monto)}`, margin + 2, metodoY);
+  });
+
+  doc.save(`${config.filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+};

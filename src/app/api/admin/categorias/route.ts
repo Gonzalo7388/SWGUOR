@@ -9,18 +9,23 @@ export async function GET() {
     const { data, error } = await supabase
       .from('categorias')
       .select('id, nombre, descripcion, activo')
-      .eq('activo', true) // Solo traemos las que están listas para usar
+      .eq('activo', true)
       .order('nombre', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching categorias:', error);
+      throw error;
+    }
 
+    console.log(`Successfully fetched ${data?.length || 0} categorias`);
     return NextResponse.json(data);
   } catch (error: any) {
+    console.error('Failed to fetch categorias:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST: Crear una nueva categoría (por si quieres gestionarlas después)
+// POST: Crear una nueva categoría
 export async function POST(req: Request) {
   const supabase = await createClient();
   
@@ -42,8 +47,10 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
+    console.log('Successfully created categoria:', data[0].nombre);
     return NextResponse.json(data[0], { status: 201 });
   } catch (error: any) {
+    console.error('Failed to create categoria:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -65,8 +72,10 @@ export async function DELETE(req: Request) {
 
     if (error) throw error;
 
+    console.log('Successfully deleted categoria:', id);
     return NextResponse.json({ message: 'Eliminado correctamente' });
   } catch (error: any) {
+    console.error('Failed to delete categoria:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

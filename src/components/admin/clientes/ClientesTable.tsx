@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Trash2, Mail, Phone, User, ShieldCheck, ShieldAlert, Hash } from "lucide-react";
+import { Edit2, Trash2, Mail, Phone, User, ShieldCheck, ShieldAlert, Hash, Ban, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,8 +18,23 @@ export default function ClientesTable({
   onToggleStatus 
 }: ClientesTableProps) {
 
-  // Determinamos si debemos mostrar la columna de acciones
   const showActions = !!onEdit || !!onDelete || !!onToggleStatus;
+
+  // Función auxiliar para determinar el estilo del Badge según el Enum de tu DB
+  const getStatusStyles = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'activo':
+        return "bg-emerald-50 text-emerald-600 border-emerald-100";
+      case 'inactivo':
+        return "bg-orange-50 text-orange-600 border-orange-100";
+      case 'suspendido':
+        return "bg-red-50 text-red-600 border-red-100";
+      case 'potencial':
+        return "bg-blue-50 text-blue-600 border-blue-100";
+      default:
+        return "bg-slate-50 text-slate-500 border-slate-100";
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -49,28 +64,29 @@ export default function ClientesTable({
             ) : (
               data.map((c) => (
                 <tr key={c.id} className="group transition-all duration-200">
+                  {/* Cliente / Empresa */}
                   <td className="bg-white border-y border-l border-slate-100 py-5 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
                     <div className="flex items-center gap-4">
-                      <div className="h-11 w-11 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center border border-pink-100 group-hover:scale-110 transition-transform duration-300">
+                      <div className={`h-11 w-11 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 
+                        ${c.activo === 'activo' ? 'bg-pink-50 text-pink-600 border-pink-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
                         <User className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none">
+                        <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none truncate max-w-50">
                           {c.razon_social}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <span className="bg-slate-100 text-slate-500 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                            ID: {c.id}
-                          </span>
+                        <div className="text-[10px] text-slate-400 mt-1 font-medium truncate max-w-45">
+                          {c.direccion || 'Sin dirección'}
                         </div>
                       </div>
                     </div>
                   </td>
 
+                  {/* Contacto */}
                   <td className="bg-white border-y border-slate-100 py-5 px-6 shadow-sm group-hover:shadow-md transition-all">
                     <div className="flex flex-col gap-1">
                       <span className="flex items-center gap-2 text-[13px] font-bold text-slate-600">
-                        <Mail className="w-3.5 h-3.5 text-slate-300"/> {c.email}
+                        <Mail className="w-3.5 h-3.5 text-slate-300"/> {c.email || '---'}
                       </span>
                       <span className="flex items-center gap-2 text-[12px] font-medium text-slate-400">
                         <Phone className="w-3.5 h-3.5 text-slate-300"/> {c.telefono || '---'}
@@ -78,6 +94,7 @@ export default function ClientesTable({
                     </div>
                   </td>
 
+                  {/* Documento (RUC) */}
                   <td className="bg-white border-y border-slate-100 py-5 px-6 shadow-sm group-hover:shadow-md transition-all">
                     <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                       <Hash size={14} className="text-slate-400" />
@@ -85,16 +102,14 @@ export default function ClientesTable({
                     </div>
                   </td>
 
+                  {/* Estado (Badge Dinámico) */}
                   <td className={`bg-white border-y border-slate-100 text-center shadow-sm group-hover:shadow-md transition-all ${!showActions ? 'rounded-r-2xl border-r' : ''}`}>
-                    <Badge className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase ${
-                      c.activo 
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                        : 'bg-orange-50 text-orange-600 border-orange-100'
-                    }`} variant="outline">
-                      {c.activo ? "ACTIVO" : "INACTIVO"}
+                    <Badge className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase transition-colors ${getStatusStyles(c.activo)}`} variant="outline">
+                      {c.activo || "S/E"}
                     </Badge>
                   </td>
 
+                  {/* Acciones */}
                   {showActions && (
                     <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm group-hover:shadow-md transition-all">
                       <div className="flex justify-end items-center gap-2">
@@ -104,13 +119,13 @@ export default function ClientesTable({
                             size="icon" 
                             onClick={() => onToggleStatus(c)}
                             className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${
-                              c.activo 
+                              c.activo === 'activo' 
                                 ? 'text-slate-400 hover:text-orange-600 hover:bg-orange-50 hover:border-orange-200' 
                                 : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'
                             }`}
-                            title={c.activo ? "Desactivar" : "Activar"}
+                            title={c.activo === 'activo' ? "Desactivar" : "Activar"}
                           >
-                            {c.activo ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
+                            {c.activo === 'activo' ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
                           </Button>
                         )}
                         

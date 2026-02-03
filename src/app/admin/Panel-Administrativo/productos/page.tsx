@@ -49,21 +49,31 @@ export default function ProductosPage() {
     setLoading(true);
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch('/api/admin/productos').then(res => res.ok ? res.json() : []),
-        fetch('/api/admin/categorias').then(res => res.ok ? res.json() : [])
+        fetch('/api/admin/productos'),
+        fetch('/api/admin/categorias')
       ]);
+
+      const prodData = prodRes.ok ? await prodRes.json() : [];
+      const catData = catRes.ok ? await catRes.json() : [];
       
-      setProductos(Array.isArray(prodRes) ? prodRes : []);
-      setCategorias(Array.isArray(catRes) ? catRes : []);
+      setProductos(Array.isArray(prodData) ? prodData : []);
+      setCategorias(Array.isArray(catData) ? catData : []);
 
     } catch (err: any) {
-      console.error("Error GUOR Sync:", err);
+      console.error("Error loading data:", err);
       toast.error("Error de sincronización");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    if (!authLoading && can('view', 'productos')) {
+      loadData();
+    }
+  }, [authLoading, can, loadData]);
+
+  // Calcular stats cuando cambien los datos
   useEffect(() => { 
     if (productos.length > 0) {
       setStats({

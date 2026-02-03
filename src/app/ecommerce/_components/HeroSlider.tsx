@@ -9,7 +9,7 @@ const DIAPOSITIVAS = [
     titulo: 'Colección de Verano 2026',
     subtitulo: 'Descubre nuestros nuevos diseños',
     descuento: '-40%',
-    imagen: 'bg-gradient-to-r from-pink-400 to-pink-600',
+    imagen: 'bg-linear-to-r from-pink-400 to-pink-600',
     llamada: 'Comprar Ahora',
   },
   {
@@ -17,7 +17,7 @@ const DIAPOSITIVAS = [
     titulo: 'Promoción Flash',
     subtitulo: 'Hoy: Todo en Vestidos con 50% de descuento',
     descuento: '-50%',
-    imagen: 'bg-gradient-to-r from-purple-400 to-purple-600',
+    imagen: 'bg-linear-to-r from-purple-400 to-purple-600',
     llamada: 'Ver Ofertas',
   },
   {
@@ -25,7 +25,7 @@ const DIAPOSITIVAS = [
     titulo: 'Prendas Exclusivas',
     subtitulo: 'Diseños únicos para ti',
     descuento: '-30%',
-    imagen: 'bg-gradient-to-r from-red-400 to-red-600',
+    imagen: 'bg-linear-to-r from-red-400 to-red-600',
     llamada: 'Explorar',
   },
 ];

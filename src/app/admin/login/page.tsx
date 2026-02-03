@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { LogIn, AlertCircle, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import { ESTADOS_USUARIO, ERROR_MESSAGES } from "@/lib/auth/constants";
+import { ERROR_MESSAGES } from "@/lib/auth/constants";
 import { ADMIN_ROUTES } from "@/lib/constants/admin";
+import { RolUsuario, EstadoUsuario } from '@/types/database';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,60 +17,65 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Optimización: Pre-carga la ruta del dashboard para que el acceso sea instantáneo
   useEffect(() => {
     router.prefetch(ADMIN_ROUTES.DASHBOARD);
   }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
-
     setIsLoading(true);
     setError("");
 
     try {
       const supabase = getSupabaseBrowserClient();
 
-      // 1. Autenticación rápida
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // 1. Auth con Supabase
+      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
 
-      if (authError) {
-        setError(authError.status === 400 ? ERROR_MESSAGES.INVALID_CREDENTIALS : "Error de conexión");
+      if (authError || !user) {
+        setError(authError?.status === 400 ? ERROR_MESSAGES.INVALID_CREDENTIALS : "Error de conexión");
         setIsLoading(false);
         return;
       }
 
-      // 2. Validación de usuario y estado optimizada
-      const { data: usuario, error: usuarioError } = await supabase
-        .from('usuarios')
-        .select('rol, estado')
-        .eq('auth_id', authData.user?.id)
-        .maybeSingle();
+      // 2. Consulta con tipo explícito usando auth_id
+      type UsuarioLogin = {
+        id: number;
+        rol: RolUsuario;
+        estado: EstadoUsuario;
+      };
 
-      if (usuarioError || !usuario) {
+      const { data: usuarioData, error: dbError } = await supabase
+        .from('usuarios')
+        .select('id, rol, estado')
+        .eq('auth_id', user.id)
+        .maybeSingle<UsuarioLogin>();
+
+      if (dbError || !usuarioData) {
         await supabase.auth.signOut();
         setError(ERROR_MESSAGES.USER_NOT_FOUND);
         setIsLoading(false);
         return;
       }
 
-      // 3. Validación de estado (Inmune a tildes o espacios)
-      const estadoNormalizado = usuario.estado?.toString().toUpperCase().trim();
-      if (estadoNormalizado !== ESTADOS_USUARIO.ACTIVO) {
+      // 3. Validación de estado (comparación case-insensitive)
+      const estadoNormalizado = usuarioData.estado.toLowerCase().trim();
+
+      if (estadoNormalizado !== 'activo') {
         await supabase.auth.signOut();
         setError(ERROR_MESSAGES.INACTIVE_USER);
         setIsLoading(false);
         return;
       }
 
-      // 4. Salto directo al Panel
+      // 4. Redirigir al dashboard (sin actualizar ultimo_acceso para evitar errores de tipado)
       router.replace(ADMIN_ROUTES.DASHBOARD);
 
-    } catch (err: any) {
+    } catch (err) {
+      console.error("Error en login:", err);
       setError(ERROR_MESSAGES.UNEXPECTED_ERROR);
       setIsLoading(false);
     }
@@ -77,19 +83,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen relative bg-gray-50 flex flex-col items-center justify-center p-4">
-      {/* Fondo original */}
       <div className="absolute inset-0 z-0">
         <Image 
           src="/costura.webp"
           alt="Background"
           fill
           priority
+          quality={75}
           className="object-cover opacity-15 pointer-events-none"
         />
       </div>
       
       <div className="relative z-10 w-full max-w-md">
-        {/* Header con tu diseño original */}
         <div className="mb-8 text-center flex flex-col items-center">
           <div className="flex items-center gap-3">
              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-r from-red-500 to-pink-600 shadow-lg">
@@ -104,7 +109,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Card de Login con bordes suaves originales */}
         <div className="bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-8">
             <div className="mb-6">
@@ -113,7 +117,6 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
-              {/* Email */}
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700 ml-1">Email Corporativo</label>
                 <input
@@ -128,7 +131,6 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Contraseña */}
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-700 ml-1">Contraseña</label>
                 <div className="relative">
@@ -152,7 +154,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Botón con tu gradiente original */}
               <button 
                 type="submit" 
                 disabled={isLoading}
@@ -166,7 +167,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Error */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mt-4 flex items-center gap-3 animate-in fade-in duration-300">
                 <AlertCircle className="w-5 h-5 shrink-0" />
@@ -174,7 +174,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Soporte */}
             <div className="mt-8 pt-6 border-t border-gray-50 text-center">
               <div className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors cursor-help">
                 <Mail size={16} />

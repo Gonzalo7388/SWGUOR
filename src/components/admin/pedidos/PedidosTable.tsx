@@ -8,36 +8,42 @@ import { Badge } from "@/components/ui/badge";
 interface PedidosTableProps {
   data: any[];
   onView: (pedido: any) => void;
-  onCancel?: (pedido: any) => void; // Opcional: Solo si tiene permiso 'delete'
-  onUpdateStatus?: (pedido: any) => void; // Opcional: Solo si tiene permiso 'edit'
+  onCancel?: (pedido: any) => void;
+  onUpdateStatus?: (pedido: any) => void; 
 }
 
 export default function PedidosTable({ data, onView, onCancel, onUpdateStatus }: PedidosTableProps) {
   
   const getStatusBadge = (status: string) => {
-    const styles: any = {
-      pendiente: "bg-orange-50 text-orange-600 border-orange-100",
-      completado: "bg-emerald-50 text-emerald-600 border-emerald-100",
-      cancelado: "bg-rose-50 text-rose-600 border-rose-100",
-      en_envio: "bg-blue-50 text-blue-600 border-blue-100",
-    };
-
-    const label: any = {
-      pendiente: "Pendiente",
-      completado: "Entregado",
-      cancelado: "Cancelado",
-      en_envio: "En Camino",
-    };
-
-    return (
-      <Badge 
-        className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase ${styles[status] || styles.pendiente}`}
-        variant="outline"
-      >
-        {label[status] || status}
-      </Badge>
-    );
+  const styles: any = {
+    solicitud: "bg-blue-50 text-blue-600 border-blue-100",
+    cotizado: "bg-purple-50 text-purple-600 border-purple-100",
+    aprobado: "bg-orange-50 text-orange-600 border-orange-100",
+    pagado: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    en_proceso: "bg-pink-50 text-pink-600 border-pink-100",
+    finalizado: "bg-slate-50 text-slate-600 border-slate-100",
+    cancelado: "bg-rose-50 text-rose-600 border-rose-100",
   };
+
+  const label: any = {
+    solicitud: "Solicitud",
+    cotizado: "Cotizado",
+    aprobado: "Aprobado",
+    pagado: "Pagado",
+    en_proceso: "En Taller",
+    finalizado: "Completado",
+    cancelado: "Anulado",
+  };
+
+  return (
+    <Badge 
+      className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase ${styles[status] || "bg-gray-50 text-gray-500"}`}
+      variant="outline"
+    >
+      {label[status] || status}
+    </Badge>
+  );
+};
 
   return (
     <div className="space-y-4">
@@ -87,10 +93,10 @@ export default function PedidosTable({ data, onView, onCancel, onUpdateStatus }:
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700 text-[13px] uppercase tracking-tight">
-                          Empresa: {pedido.clientes?.razon_social || "Sin Nombre"}
+                          Empresa: {pedido.clientes?.razon_social || "CLIENTE NO IDENTIFICADO"}
                         </span>
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                          RUC: {pedido.clientes?.ruc || "Sin RUC"}
+                          RUC: {pedido.clientes?.ruc || "---"}
                         </span>
                       </div>
                     </div>

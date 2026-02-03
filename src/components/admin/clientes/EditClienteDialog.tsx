@@ -1,49 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Edit3 } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export default function EditClienteDialog({ isOpen, onClose, cliente, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(cliente?.activo || "activo");
+
+  useEffect(() => {
+    if (cliente?.activo) setStatus(cliente.activo);
+  }, [cliente, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
     const formData = new FormData(e.currentTarget);
+    const supabase = getSupabaseBrowserClient();
     
-    // Construimos el objeto con los campos reales de tu tabla 'clientes'
     const updatedData = {
-      id: cliente.id, // El ID es vital para el WHERE en la API
       razon_social: formData.get("razon_social"),
       ruc: formData.get("ruc"),
       telefono: formData.get("telefono"),
       email: formData.get("email"),
       direccion: formData.get("direccion"),
+      activo: status,
     };
 
     try {
-      // LLAMADA A LA API CON MÉTODO PATCH
-      const response = await fetch('/api/admin/clientes', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData),
-      });
+      const { error } = await (supabase.from("clientes") as any)
+        .update(updatedData)
+        .eq("id", cliente.id);
 
-      const result = await response.json();
-
-      if (!response.ok) throw new Error(result.error || "Error al actualizar");
-
-      toast.success("Datos actualizados correctamente");
+      if (error) throw error;
+      toast.success("Cambios guardados");
       onSuccess();
       onClose();
     } catch (err: any) {
-      toast.error(err.message || "No se pudo actualizar el cliente");
+      toast.error("Error al actualizar");
     } finally {
       setLoading(false);
     }
@@ -51,80 +57,101 @@ export default function EditClienteDialog({ isOpen, onClose, cliente, onSuccess 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-106.25 rounded-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-            <Edit3 className="text-pink-600 w-5 h-5" /> Editar Cliente
-          </DialogTitle>
+      {/* max-w-lg y rounded-[2rem] para imitar el diálogo de Inventario */}
+      <DialogContent className="max-w-lg rounded-[2.5rem] p-10 border-none shadow-2xl overflow-hidden">
+        <DialogHeader className="flex flex-col items-center text-center">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-pink-50 rounded-lg text-pink-600">
+              <Edit3 size={20} strokeWidth={3} />
+            </div>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-800">
+              Editar Cliente
+            </DialogTitle>
+          </div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+            Solo los campos de información comercial son editables.
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="razon_social" className="text-xs font-bold uppercase text-gray-500">
-              Razón Social / Nombre
-            </Label>
+        <form onSubmit={handleSubmit} className="space-y-5 mt-6">
+          {/* Razón Social */}
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-tighter text-slate-400 ml-1">Nombre Comercial</Label>
             <Input 
-              id="razon_social" 
               name="razon_social" 
-              required 
               defaultValue={cliente?.razon_social}
-              className="rounded-xl border-gray-200"
+              className="h-11 rounded-xl border-slate-100 bg-slate-50/50 focus:bg-white px-4 font-bold text-slate-700"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ruc" className="text-xs font-bold uppercase text-gray-500">DNI / RUC</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-tighter text-slate-400 ml-1">DNI / RUC</Label>
               <Input
-                id="ruc"
                 name="ruc"
                 defaultValue={cliente?.ruc}
-                className="rounded-xl border-gray-200"
+                className="h-11 rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="telefono" className="text-xs font-bold uppercase text-gray-500">Teléfono</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-tighter text-slate-400 ml-1">Teléfono</Label>
               <Input
-                id="telefono"
                 name="telefono"
                 defaultValue={cliente?.telefono}
-                className="rounded-xl border-gray-200"
+                className="h-11 rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-xs font-bold uppercase text-gray-500">Correo Electrónico</Label>
+          {/* Estado de Cuenta - Estilo Select idéntico a Inventario */}
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-tighter text-slate-400 ml-1">Estado de Cuenta</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-600">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-100 shadow-xl">
+                <SelectItem value="activo" className="font-bold py-2">Activo</SelectItem>
+                <SelectItem value="inactivo" className="font-bold py-2">Inactivo</SelectItem>
+                <SelectItem value="suspendido" className="font-bold py-2">Suspendido</SelectItem>
+                <SelectItem value="potencial" className="font-bold py-2">Potencial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-tighter text-slate-400 ml-1">Correo Electrónico</Label>
             <Input
-              id="email"
               name="email"
               type="email"
-              required
               defaultValue={cliente?.email}
-              className="rounded-xl border-gray-200"
+              className="h-11 rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="direccion" className="text-xs font-bold uppercase text-gray-500">Dirección</Label>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-tighter text-slate-400 ml-1">Dirección</Label>
             <Input
-              id="direccion"
               name="direccion"
               defaultValue={cliente?.direccion}
-              className="rounded-xl border-gray-200"
+              className="h-11 rounded-xl border-slate-100 bg-slate-50/50 font-bold text-slate-700"
             />
           </div>
 
-          <DialogFooter className="pt-4 gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl">
-              Cancelar
-            </Button>
+          <DialogFooter className="pt-6 flex flex-row items-center justify-center gap-4">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="text-[12px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Descartar
+            </button>
             <Button 
               type="submit" 
               disabled={loading} 
-              className="bg-pink-600 hover:bg-pink-700 text-white rounded-xl px-8 font-bold"
+              className="bg-pink-600 hover:bg-pink-700 text-white rounded-full h-11 px-10 font-black uppercase text-[11px] shadow-lg shadow-pink-200"
             >
-              {loading ? "Guardando..." : "Actualizar Cliente"}
+              {loading ? "Sincronizando..." : "Guardar Cambios"}
             </Button>
           </DialogFooter>
         </form>

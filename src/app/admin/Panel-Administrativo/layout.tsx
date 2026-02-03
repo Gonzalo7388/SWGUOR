@@ -2,8 +2,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import AdminSidebar from '@/components/admin/layout/AdminSidebar';
-import AdminHeader from '@/components/admin/layout/AdminHeader';
+import RealtimeLayoutWrapper from '@/components/admin/layout/RealtimeLayoutWrapper';
 
 export default async function PanelAdministrativoLayout({
   children,
@@ -58,15 +57,10 @@ export default async function PanelAdministrativoLayout({
     redirect('/admin/login?error=cuenta_inactiva');
   }
 
+  
   return (
-    <div className="flex h-screen overflow-hidden">
-      <AdminSidebar usuario={usuario} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader usuario={usuario} />
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 lg:p-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <RealtimeLayoutWrapper initialUsuario={usuario}>
+      {children}
+    </RealtimeLayoutWrapper>
   );
 }

@@ -1,19 +1,19 @@
 "use client";
 
-import { Mail, ShieldCheck, Edit, Trash2, ShieldAlert } from "lucide-react";
+import { Mail, Edit, Trash2, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // 1. Definimos la interfaz para los props
-interface UsuariosTableProps {
+interface Props {
   usuarios: any[];
   onEdit?: (user: any) => void;
   onDelete?: (user: any) => void;
   onToggleStatus?: (user: any) => void;
 }
 
-export function UsuariosTable({ usuarios, onEdit, onDelete, onToggleStatus }: UsuariosTableProps) {
+export function UsuariosTable({ usuarios, onEdit, onDelete, onToggleStatus }: Props) {
   
   // 2. Verificamos si hay alguna acción permitida para mostrar la columna
   const showActions = !!onEdit || !!onDelete || !!onToggleStatus;
@@ -115,3 +115,5 @@ export function UsuariosTable({ usuarios, onEdit, onDelete, onToggleStatus }: Us
     </div>
   );
 }
+
+export default UsuariosTable;

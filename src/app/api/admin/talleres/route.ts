@@ -1,30 +1,30 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-// GET: Obtener todos los productos con sus categorías
+// GET: Obtener todos los talleres
 export async function GET() {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
 
+  try {
     const { data, error } = await supabase
-      .from('productos')
-      .select('*, categorias(nombre)')
+      .from('talleres')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching productos:', error);
+      console.error('Error fetching talleres:', error);
       throw error;
     }
 
-    console.log(`Successfully fetched ${data?.length || 0} productos`);
+    console.log(`Successfully fetched ${data?.length || 0} talleres`);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Failed to fetch productos:', error.message);
+    console.error('Failed to fetch talleres:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST: Crear un nuevo producto
+// POST: Crear un nuevo taller
 export async function POST(req: Request) {
   const supabase = await createClient();
   
@@ -32,36 +32,36 @@ export async function POST(req: Request) {
     const body = await req.json();
     
     // Validación básica de campos obligatorios
-    if (!body.nombre || !body.sku || !body.precio) {
+    if (!body.nombre || !body.ruc || !body.contacto || !body.telefono || !body.direccion) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
     const { data, error } = await supabase
-      .from('productos')
+      .from('talleres')
       .insert([{
         nombre: body.nombre,
-        sku: body.sku,
-        descripcion: body.descripcion,
-        precio: body.precio,
-        stock: body.stock || 0,
-        stock_minimo: body.stock_minimo || 5,
-        categoria_id: body.categoria_id,
-        imagen_url: body.imagen_url,
-        activo: true
+        ruc: body.ruc,
+        contacto: body.contacto,
+        telefono: body.telefono,
+        email: body.email || null,
+        direccion: body.direccion,
+        especialidad: body.especialidad || null,
+        estado: body.estado || 'activo',
+        updated_at: body.updated_at || new Date().toISOString()
       }])
       .select();
 
     if (error) throw error;
 
-    console.log('Successfully created producto:', data[0].sku);
+    console.log('Successfully created taller:', data[0].nombre);
     return NextResponse.json(data[0], { status: 201 });
   } catch (error: any) {
-    console.error('Failed to create producto:', error.message);
+    console.error('Failed to create taller:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// PATCH/PUT: Para actualizaciones rápidas (como el stock)
+// PATCH: Actualizar un taller
 export async function PATCH(req: Request) {
   const supabase = await createClient();
   
@@ -74,23 +74,26 @@ export async function PATCH(req: Request) {
     if (!id) return NextResponse.json({ error: 'ID no proporcionado' }, { status: 400 });
 
     const { data, error } = await supabase
-      .from('productos')
-      .update(body)
+      .from('talleres')
+      .update({
+        ...body,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select();
 
     if (error) throw error;
     
-    console.log('Successfully updated producto:', id);
+    console.log('Successfully updated taller:', id);
     return NextResponse.json(data[0]);
 
   } catch (error: any) {
-    console.error('Failed to update producto:', error.message);
+    console.error('Failed to update taller:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// DELETE: Eliminar un producto por ID
+// DELETE: Eliminar un taller por ID
 export async function DELETE(req: Request) {
   const supabase = await createClient();
   
@@ -101,16 +104,16 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     const { error } = await supabase
-      .from('productos')
+      .from('talleres')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
 
-    console.log('Successfully deleted producto:', id);
+    console.log('Successfully deleted taller:', id);
     return NextResponse.json({ message: 'Eliminado correctamente' });
   } catch (error: any) {
-    console.error('Failed to delete producto:', error.message);
+    console.error('Failed to delete taller:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

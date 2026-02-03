@@ -2,9 +2,11 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Database } from '@/types/database'; 
 
 // Cliente singleton para el navegador con tipos integrados
-let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
+export type SupabaseClientTyped = ReturnType<typeof createBrowserClient<Database>>;
 
-export function getSupabaseBrowserClient() {
+let supabaseClient: SupabaseClientTyped | null = null;
+
+export function getSupabaseBrowserClient(): SupabaseClientTyped {
   if (!supabaseClient) {
     supabaseClient = createBrowserClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -1,127 +1,66 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-// GET: Obtener todos los pedidos con sus clientes
+// GET: Obtener la lista de producción (Lo que el taller debe fabricar)
 export async function GET() {
   const supabase = await createClient();
   
   try {
+    // CAMBIO CLAVE: Consultamos 'ordenes' directamente para la cabecera del pedido
     const { data, error } = await supabase
-      .from('pedidos')
+      .from('ordenes')
       .select(`
-        *,
+        id,
+        estado,
+        total,
+        created_at,
+        metodo_pago,
         clientes (
-          razon_social
+          razon_social,
+          ruc
+        ),
+        detalles:detalles_orden (
+          id,
+          cantidad,
+          talla,
+          color,
+          productos (nombre)
         )
       `)
-      .order('fecha_pedido', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    // Retornamos los datos para que el Frontend los reciba
-    return NextResponse.json(data);
+    // Retornamos los pedidos. Cada pedido ahora contiene su lista de productos dentro.
+    return NextResponse.json(data || []);
   } catch (error: any) {
-    console.error('Error en GET Pedidos:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-// POST: Crear un nuevo pedido con detalles y actualizar stock
+  
+// POST: Asignar una tarea de producción a un miembro del taller
 export async function POST(req: Request) {
   const supabase = await createClient();
   
   try {
     const body = await req.json();
-    const { cliente_id, productos, metodo_pago, subtotal, impuesto, total } = body;
+    const { detalle_orden_id, asignado_a, tarea_tipo } = body; 
+    // tarea_tipo podría ser: 'corte', 'confección', 'acabado'
 
-    // 1. Iniciar la inserción del pedido principal
-    
-    const { data: pedido, error: pedidoError } = await supabase
-      .from('pedidos')
+    const { data, error } = await supabase
+      .from('confecciones') // Usamos tu tabla de confecciones vista en el panel
       .insert([{
-        cliente_id,
-        metodo_pago,
-        subtotal,
-        impuesto,
-        total,
-        estado: 'PENDIENTE',
-        fecha_pedido: new Date().toISOString()
+        detalle_id: detalle_orden_id,
+        usuario_asignado_id: asignado_a,
+        tipo: tarea_tipo,
+        estado: 'pendiente',
+        fecha_inicio: new Date().toISOString()
       }])
       .select()
       .single();
 
-    if (pedidoError) throw pedidoError;
-
-    // 2. Insertar detalles del pedido y actualizar stock
-    for (const item of productos) {
-      
-      // A. Insertar en detalles_pedido
-      const { error: detalleError } = await supabase
-        .from('detalles_pedido')
-        .insert([{
-          pedido_id: pedido.id,
-          producto_id: item.id,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio,
-          subtotal: item.precio * item.cantidad
-        }]);
-
-      if (detalleError) throw detalleError;
-
-      // B. DESCUENTO DE STOCK (Lógica crucial)
-      const { error: stockError } = await supabase.rpc('restar_stock', {
-        producto_id_param: item.id,
-        cantidad_param: item.cantidad
-      });
-
-      if (stockError) throw stockError;
-    }
-
-    return NextResponse.json(pedido, { status: 201 });
-
-  } catch (error: any) {
-    console.error('Error en Pedidos:', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-// PATH: Cancelar un pedido (marcar como 'cancelado')
-export async function PATCH(req: Request) {
-  const supabase = await createClient();
-  
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-
-    // 1. Obtener los detalles del pedido ANTES de cancelar para saber qué devolver al stock
-    const { data: detalles, error: errorDetalles } = await supabase
-      .from('detalles_pedido')
-      .select('producto_id, cantidad')
-      .eq('pedido_id', id);
-
-    if (errorDetalles) throw errorDetalles;
-
-    // 2. Cambiar el estado del pedido a CANCELADO
-    const { error: errorPedido } = await supabase
-      .from('pedidos')
-      .update({ estado: 'CANCELADO' })
-      .eq('id', id);
-
-    if (errorPedido) throw errorPedido;
-
-    // 3. Devolver el stock de cada producto
-    if (detalles) {
-      for (const item of detalles) {
-        await supabase.rpc('sumar_stock', {
-          producto_id_param: item.producto_id,
-          cantidad_param: item.cantidad
-        });
-      }
-    }
-
-    return NextResponse.json({ message: 'Pedido cancelado y stock restaurado' });
+    if (error) throw error;
+    return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -1,282 +1,222 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Users, UserPlus, Building2, FileText, Package, 
-  TrendingUp, Download, Settings, BarChart3, ShoppingCart, 
-  AlertCircle, ArrowRight, ShieldCheck
+  Users, TrendingUp, ShoppingCart, 
+  Package, Trophy, ArrowUpRight 
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
-import { usePermissions } from '@/lib/hooks/usePermissions';
-import { useRouter } from 'next/navigation';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, AreaChart, Area, Cell
+} from 'recharts';
+import { Venta, Inventario } from '@/types/database';
 
-interface ActividadReciente {
-  action: string;
-  user: string;
-  time: string;
-  rol: string;
-  type: 'success' | 'info' | 'warning';
-}
+// Imports de tus componentes
+import RecentOrdersTable from './widgets/RecentOrdersTable';
+import StockAlertCard from './widgets/StockAlertCard';
 
-interface PedidoData {
-  total: number | string | null;
-}
-
-interface StatsState {
-  usuarios: number;
-  clientes: number;
-  talleres: number;
-  pedidosActivos: number;
-  productosInventario: number;
-  ventasMes: string;
-  productosConFicha: number; 
-  totalProductos: number;
-}
-
-// Función para asignar colores según el rol
-const getRoleBadgeColor = (rol: string) => {
-  const roles: Record<string, string> = {
-    administrador: 'bg-slate-900 text-white shadow-sm',
-    recepcionista: 'bg-blue-600 text-white shadow-sm',
-    diseñador: 'bg-rose-600 text-white shadow-sm',
-    cortador: 'bg-orange-600 text-white shadow-sm',
-    ayudante: 'bg-emerald-600 text-white shadow-sm',
-    representante_taller: 'bg-violet-700 text-white shadow-sm'
-  };
-  return roles[rol.toLowerCase()] || 'bg-gray-100 text-gray-600';
-};
-
-export default function AdminDashboard({ usuario }: { usuario: any }) {
-  const router = useRouter();
-  const { can, isLoading: permissionsLoading } = usePermissions();
-  const [stats, setStats] = useState<StatsState & { stockBajo: number }> ({
-    usuarios: 0, clientes: 0, talleres: 0, pedidosActivos: 0,
-    productosInventario: 0, ventasMes: 'S/ 0.00', productosConFicha: 0,
-    totalProductos: 0, stockBajo: 0
+export default function AdminDashboard() {
+  const [isMounted, setIsMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [timeFilter, setTimeFilter] = useState('30');
+  
+  const [stats, setStats] = useState({
+    totalVentas: 0,
+    totalClientes: 0,
+    stockBajo: 0,
+    pedidosNuevos: 0
   });
 
-  const [recentActivity, setRecentActivity] = useState<ActividadReciente[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [salesChart, setSalesChart] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [criticalStock, setCriticalStock] = useState<Inventario[]>([]);
 
-  const getTimeAgo = useCallback((date: string): string => {
-    if (!date) return 'Sin registros';
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'Ahora';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `${days}d`;
-  }, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
-  // 1. FUNCIÓN PARA ACTUALIZAR MI PROPIO ACCESO (FRONTEND)
-  const updateMyLastAccess = useCallback(async () => {
-    const supabase = getSupabaseBrowserClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      await supabase
-        .from('usuarios')
-        .update({ ultimo_acceso: new Date().toISOString() })
-        .eq('id', session.user.id);
-    }
-  }, []);
-
-
-  const fetchDashboardData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const supabase = getSupabaseBrowserClient();
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+      
+      // Llamada a la API que modificamos anteriormente
+      const response = await fetch(`/api/admin/dashboard?days=${timeFilter}`);
+      const data = await response.json();
 
-      const [
-        { count: userCount },
-        { count: clientCount },
-        { count: workshopCount },
-        { count: orderCount },
-        { count: productCount },
-        { data: lowStockData },
-        { data: salesData },
-        { data: fichasData },
-        { data: accessData }
-      ] = await Promise.all([
-        supabase.from('usuarios').select('id', { count: 'exact'}),
-        supabase.from('clientes').select('id', { count: 'exact'}),
-        supabase.from('talleres').select('id', { count: 'exact'}),
-        supabase.from('pedidos').select('id', { count: 'exact', head: false }).neq('estado', 'completado'),
-        supabase.from('productos').select('id', { count: 'exact'}),
-        supabase.from('productos').select('id').lte('stock', 400),
-        supabase.from('pedidos').select('total').gte('created_at', startOfMonth.toISOString()),
-        supabase.from('productos').select('ficha_url'),
-        supabase.from('usuarios').select('nombre_completo, email, ultimo_acceso, created_at, rol').order('ultimo_acceso', { ascending: false, nullsFirst: false }).limit(5)
-      ]);
+      if (data.error) throw new Error(data.error);
 
+      // 1. SINCRONIZACIÓN DE KPIs: Usamos los nombres exactos de la respuesta del servidor
       setStats({
-        usuarios: userCount || 0,
-        clientes: clientCount || 0,
-        talleres: workshopCount || 0,
-        pedidosActivos: orderCount || 0,
-        productosInventario: productCount || 0,
-        stockBajo: lowStockData?.length || 0,
-        ventasMes: `S/ ${(salesData as PedidoData[] | null)?.reduce((sum, p) => sum + (Number(p.total) || 0), 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
-        productosConFicha: (fichasData as any[])?.filter(p => p.ficha_url).length || 0,
-        totalProductos: productCount || 0 
-      });
+          totalVentas: Number(data.kpis.total_ventas) || 0,
+          totalClientes: Number(data.kpis.total_clientes) || 0,
+          stockBajo: Number(data.kpis.stock_alerta) || 0,
+          pedidosNuevos: Number(data.kpis.nuevas_ordenes) || 0
+        });
 
-      if (accessData) {
-        
-        setRecentActivity((accessData as any[]).map((u) => {
-          const fechaAMostrar = u.ultimo_acceso || u.created_at;
+      // 2. PROCESAMIENTO DE GRÁFICA DE INGRESOS
+      const groupedSales = (data.chartIngresos || []).reduce((acc: any, curr: any) => {
+        const date = new Date(curr.created_at).toLocaleDateString('es-PE', { 
+          day: '2-digit', 
+          month: 'short' 
+        });
+        const found = acc.find((item: any) => item.date === date);
+        if (found) { 
+          found.monto += Number(curr.total); 
+        } else { 
+          acc.push({ date, monto: Number(curr.total) });
+        }
+        return acc;
+      }, []);
+      
+      setSalesChart(groupedSales);
 
-          return {
-            action: u.ultimo_acceso ? 'Última conexión' : 'Usuario registrado',
-            user: u.nombre_completo || u.email.split('@')[0],
-            rol: u.rol || 'Sin rol',
-            time: getTimeAgo(fechaAMostrar),
-            type: 'success'
-          };
-        }));
-      }
-    } catch (error) {
-      console.error('Error dashboard:', error);
+      // 3. PROCESAMIENTO DE TOP PRODUCTOS
+      const colors = ['#f43f5e', '#fb923c', '#38bdf8', '#818cf8', '#2dd4bf'];
+      const productsData = (data.chartProductos || []).map((p: any, index: number) => ({
+        name: p.productos?.nombre || 'Producto', // Acceso correcto al objeto anidado
+        sales: p.cantidad,
+        color: colors[index % colors.length]
+      }));
+      setTopProducts(productsData);
+
+      // 4. DATOS DE TABLAS Y WIDGETS (Vienen directos de la nueva API)
+      setRecentOrders(data.recentOrders || []);
+      setCriticalStock(data.criticalStock || []);
+
+    } catch (error: any) {
+      console.error("Error cargando Dashboard:", error.message);
     } finally {
       setLoading(false);
     }
-  }, [getTimeAgo]);
+  }, [timeFilter]);
 
-// 2. EFECTO INICIAL: ACTUALIZAR ACCESO Y LUEGO CARGAR TODO
-  useEffect(() => {
-    const init = async () => {
-      await updateMyLastAccess();
-      await fetchDashboardData(); 
-    };
-    init();
-  }, [updateMyLastAccess, fetchDashboardData]);
+  useEffect(() => { if (isMounted) fetchData(); }, [isMounted, fetchData]);
 
-  // ... (useMemo para quickActions y modules se mantienen igual)
-  const quickActions = useMemo(() => [
-    { icon: UserPlus, label: 'Nuevo Usuario', color: 'bg-blue-600', path: '/admin/Panel-Administrativo/usuarios', show: can('create', 'usuarios') },
-    { icon: Building2, label: 'Registrar Taller', color: 'bg-violet-600', path: '/admin/Panel-Administrativo/talleres', show: can('create', 'talleres') },
-    { icon: Download, label: 'Reporte Excel', color: 'bg-amber-600', path: '', show: can('export', 'reportes') },
-  ].filter(a => a.show), [can]);
-
-  const modules = useMemo(() => [
-    { icon: Users, title: 'Usuarios', count: stats.usuarios, color: 'text-blue-600', bgColor: 'bg-blue-50', path: '/admin/Panel-Administrativo/usuarios', show: can('view', 'usuarios') },
-    { icon: Users, title: 'Clientes', count: stats.clientes, color: 'text-emerald-600', bgColor: 'bg-emerald-50', path: '/admin/Panel-Administrativo/clientes', show: can('view', 'clientes') },
-    { icon: Building2, title: 'Talleres', count: stats.talleres, color: 'text-violet-600', bgColor: 'bg-violet-50', path: '/admin/Panel-Administrativo/talleres', show: can('view', 'talleres') },
-    { icon: ShoppingCart, title: 'Pedidos Activos', count: stats.pedidosActivos, color: 'text-orange-600', bgColor: 'bg-orange-50', path: '/admin/Panel-Administrativo/pedidos', show: can('view', 'pedidos') },
-    { icon: Package, title: 'Inventario Total', count: stats.productosInventario, color: 'text-indigo-600', bgColor: 'bg-indigo-50', path: '/admin/Panel-Administrativo/productos', show: can('view', 'inventario') },
-    { icon: TrendingUp, title: 'Ingresos Mensuales', count: stats.ventasMes, color: 'text-pink-600', bgColor: 'bg-pink-50', path: '', show: can('view', 'reportes') },
-  ].filter(m => m.show), [stats, can]);
-
-  if (permissionsLoading || loading) return <LoadingDashboard />;
+  // Prevenir desajustes de hidratación en Next.js
+  if (!isMounted) return null;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      
-      {/* TÍTULO BIENVENIDA */}
-      <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase">
-        Bienvenido, <span>{usuario?.nombre_completo?.split(' ')[0] || "Usuario"}</span>
-      </h1>
-
-      {/* ACCIONES RÁPIDAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickActions.map((action, idx) => (
-          <button key={idx} onClick={() => router.push(action.path)} className={`${action.color} text-white p-4 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col gap-3 group`}>
-            <action.icon className="w-5 h-5 opacity-80 group-hover:scale-110 transition-transform" />
-            <span className="font-bold text-xs uppercase tracking-wider">{action.label}</span>
-          </button>
-        ))}
+    <div className="space-y-8 p-6 bg-slate-50 min-h-screen">
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Control Maestro</h1>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Panel de Inteligencia GUOR</p>
+        </div>
+        <div className="flex bg-white shadow-sm border p-1 rounded-2xl">
+          {['7', '30', '90'].map(d => (
+            <button key={d} onClick={() => setTimeFilter(d)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${timeFilter === d ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}>
+              {d} Días
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* MÓDULOS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {modules.map((module, idx) => (
-          <button key={idx} onClick={() => router.push(module.path)} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative text-left">
-            <div className={`${module.bgColor} w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:rotate-6 transition-transform`}>
-              <module.icon className={`w-6 h-6 ${module.color}`} />
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <KpiCard title="Ventas Totales" value={`S/ ${stats.totalVentas}`} icon={<TrendingUp />} color="rose" />
+        <KpiCard title="Clientes" value={stats.totalClientes} icon={<Users />} color="blue" />
+        <KpiCard title="Stock Alerta" value={stats.stockBajo} icon={<Package />} color="orange" isAlert={stats.stockBajo > 0} />
+        <KpiCard title="Nuevas Órdenes" value={stats.pedidosNuevos} icon={<ShoppingCart />} color="emerald" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* GRÁFICA DE VENTAS */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="font-black uppercase text-slate-800">Flujo de Ingresos</h3>
+            <div className="flex items-center gap-2 text-emerald-500 font-bold text-xs bg-emerald-50 px-3 py-1 rounded-full">
+              <ArrowUpRight size={14} />
+              <span>Actualizado</span>
             </div>
-            <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{module.title}</h3>
-            <p className="text-3xl font-black text-slate-900 tracking-tighter mt-1">{module.count}</p>
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
-        {/* HISTORIAL ACTUALIZADO */}
-        <CardContainer title="Historial de Acceso" icon={<ShieldCheck className="text-slate-400" />}>
-          <div className="space-y-4">
-            {recentActivity.map((activity, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center font-black text-white text-sm shadow-md">
-                    {activity.user[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-black text-slate-900 uppercase leading-none mb-2">{activity.user}</p>
-                    <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider ${getRoleBadgeColor(activity.rol)}`}>
-                      {activity.rol.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-[9px] text-slate-400 font-black uppercase mb-1">Última Actividad</p>
-                  <span className={`text-[11px] font-black px-3 py-1 rounded-lg shadow-sm border ${activity.time === 'AHORA' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-900 border-slate-200'}`}>
-                    {activity.time}
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
-        </CardContainer>
-
-        <CardContainer title="Operatividad Taller" icon={<BarChart3 className="text-slate-400" />}>
-          <div className="space-y-6 pt-2">
-            <ProgressBar label="Eficiencia Producción" value={88} color="bg-rose-500" />
-            <ProgressBar label="Cumplimiento Entregas" value={94} color="bg-emerald-500" />
-            <ProgressBar label="Capacidad Logística" value={72} color="bg-indigo-500" />
+          <div className="h-72 w-full">
+            {loading ? (
+              <div className="h-full w-full flex items-center justify-center bg-slate-50 rounded-2xl animate-pulse text-slate-400 font-bold text-xs uppercase">Calculando Gráfica...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesChart}>
+                  <defs>
+                    <linearGradient id="colorMonto" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                  <YAxis hide domain={['auto', 'auto']} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="monto" stroke="#f43f5e" strokeWidth={4} fill="url(#colorMonto)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
-        </CardContainer>
+        </div>
+
+        {/* GRÁFICA DE PRODUCTOS */}
+        <div className="bg-slate-900 p-8 rounded-[3rem] shadow-2xl text-white">
+          <div className="flex items-center gap-2 mb-8">
+            <Trophy className="text-yellow-400" size={20} />
+            <h3 className="font-black uppercase tracking-tighter">Top Productos</h3>
+          </div>
+          <div className="h-64 w-full">
+            {loading ? (
+               <div className="h-full flex items-center justify-center text-slate-500 font-bold text-xs uppercase italic">Analizando Inventario...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topProducts} layout="vertical" margin={{ left: -20 }}>
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} width={80} />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} content={<CustomTooltip dark />} />
+                  <Bar dataKey="sales" radius={[0, 10, 10, 0]} barSize={20}>
+                    {topProducts.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* WIDGETS */}
+        <div className="lg:col-span-1">
+          <StockAlertCard items={criticalStock} />
+        </div>
+
+        <div className="lg:col-span-2">
+          <RecentOrdersTable orders={recentOrders} />
+        </div>
       </div>
     </div>
   );
 }
 
-// Sub-componentes (CardContainer, ProgressBar, LoadingDashboard) se mantienen igual...
-function CardContainer({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+// Sub-componentes
+function KpiCard({ title, value, icon, color, isAlert }: any) {
+  const colors: any = { 
+    rose: 'bg-rose-50 text-rose-600', 
+    blue: 'bg-blue-50 text-blue-600', 
+    emerald: 'bg-emerald-50 text-emerald-600', 
+    orange: 'bg-orange-50 text-orange-600' 
+  };
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-black text-gray-900 tracking-tight">{title}</h2>
-        {icon}
-      </div>
-      {children}
+    <div className={`bg-white p-6 rounded-4xl border-2 transition-all ${isAlert ? 'border-orange-200 shadow-lg shadow-orange-100' : 'border-transparent shadow-sm'}`}>
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${colors[color]}`}>{icon}</div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+      <p className="text-2xl font-black text-slate-900">{value}</p>
     </div>
   );
 }
 
-function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm font-bold">
-        <span className="text-gray-600">{label}</span>
-        <span className={color.replace('bg-', 'text-')}>{value}%</span>
+const CustomTooltip = ({ active, payload, label, dark }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className={`${dark ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'} p-3 rounded-xl shadow-2xl text-[10px] font-bold uppercase`}>
+        <p className="mb-1 opacity-60">{label}</p>
+        <p className="text-sm">{dark ? `${payload[0].value} Unidades` : `S/ ${payload[0].value.toLocaleString()}`}</p>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-        <div className={`${color} h-full rounded-full transition-all duration-1000`} style={{ width: `${value}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function LoadingDashboard() {
-  return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="h-16 w-16 rounded-full border-4 border-pink-50 border-t-pink-600 animate-spin mb-4" />
-      <p className="font-black text-gray-900 text-lg uppercase tracking-tighter">Sincronizando GUOR...</p>
-    </div>
-  );
-}
+    );
+  }
+  return null;
+};

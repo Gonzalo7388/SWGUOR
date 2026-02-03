@@ -1,7 +1,6 @@
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase'; 
-import { Usuario } from '@/types/database';
+import { Usuario, RolUsuario, EstadoUsuario } from '@/types/database';
 
 interface AppPermissions {
   [resource: string]: string[];
@@ -66,11 +65,18 @@ export function usePermissions() {
         return;
       }
 
+      type UsuarioPermissions = {
+        id: number;
+        nombre_completo: string;
+        rol: RolUsuario;
+        estado: EstadoUsuario;
+      };
+
       const { data: userData, error } = await supabase
         .from('usuarios')
         .select('id, nombre_completo, rol, estado')
         .eq('auth_id', session.user.id)
-        .maybeSingle();
+        .maybeSingle<UsuarioPermissions>();
 
       if (error || !userData || userData.estado?.toLowerCase() !== 'activo') {
         setUsuario(null);

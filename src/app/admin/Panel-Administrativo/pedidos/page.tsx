@@ -38,10 +38,10 @@ export default function PedidosPage() {
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, pendientes: 0, completados: 0, cancelados: 0 });
 
-  const loadPedidos = useCallback(async () => {
+const loadPedidos = useCallback(async () => {
     setLoading(true);
     try {
-      // LLAMADA A LA API
+      // Llamamos a la API
       const response = await fetch("/api/admin/pedidos"); 
       const res = await response.json();
       
@@ -49,18 +49,19 @@ export default function PedidosPage() {
 
       setPedidos(res);
 
-      setTimeout(() => {
-        setStats({
-          total: res.length,
-          pendientes: res.filter((p: any) => p.estado?.toUpperCase() === "PENDIENTE").length,
-          completados: res.filter((p: any) => p.estado?.toUpperCase() === "COMPLETADO").length,
-          cancelados: res.filter((p: any) => p.estado?.toUpperCase() === "CANCELADO").length
-        });
-      }, 0);
+      setStats({
+        total: res.length,
+        pendientes: res.filter((p: any) => 
+          p.estado?.toLowerCase() === "solicitado" || p.estado?.toLowerCase() === "pendiente"
+        ).length,
+        completados: res.filter((p: any) => 
+          p.estado?.toLowerCase() === "finalizado" || p.estado?.toLowerCase() === "entregado"
+        ).length,
+        cancelados: res.filter((p: any) => p.estado?.toLowerCase() === "cancelado").length
+      });
 
     } catch (err: any) {
-      toast.error("Error: " + err.message);
-
+      toast.error("Error de sincronización: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -72,32 +73,15 @@ export default function PedidosPage() {
     }
   }, [loadPedidos, authLoading, can]);
 
-  const handleExport = () => {
-    if (filteredPedidos.length === 0) {
-      toast.error("No hay datos para exportar");
-      return;
-    }
-    const dataToExport = filteredPedidos.map(p => ({
-      "N° Pedido": p.id,
-      "Fecha": new Date(p.created_at).toLocaleDateString(),
-      "Cliente": `${p.clientes?.nombre} ${p.clientes?.apellido}`,
-      "Total": p.total,
-      "Estado": p.estado.toUpperCase(),
-      "Método Pago": p.metodo_pago || 'No especificado'
-    }));
-
-    exportToExcel(dataToExport, { 
-      filename: `Pedidos_GUOR_${new Date().toISOString().split('T')[0]}` 
-    });
-    toast.success("Excel generado correctamente");
-  };
-
   const filteredPedidos = useMemo(() => {
     if (pedidos.length === 0) return [];
 
     return pedidos.filter((p: any) => {
-      const clienteNombre = `${p.clientes?.nombre} ${p.clientes?.apellido}`.toLowerCase();
-      const matchSearch = clienteNombre.includes(searchTerm.toLowerCase()) || p.id.toString().includes(searchTerm);
+      // Accedemos a clientes.razon_social que ya viene en el JSON
+      const clienteNombre = (p.clientes?.razon_social || "Venta Directa").toLowerCase();
+      const matchSearch = clienteNombre.includes(searchTerm.toLowerCase()) || 
+                          p.id.toString().includes(searchTerm);
+      
       const matchStatus = statusFilter === "todos" || p.estado === statusFilter;
       
       let matchDate = true;
@@ -110,6 +94,26 @@ export default function PedidosPage() {
       return matchSearch && matchStatus && matchDate;
     });
   }, [pedidos, searchTerm, statusFilter, dateFilter]);
+
+  const handleExport = () => {
+    if (filteredPedidos.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+    const dataToExport = filteredPedidos.map(p => ({
+      "N° Pedido": p.id,
+      "Fecha": new Date(p.created_at).toLocaleDateString(),
+      "Cliente": p.clientes?.razon_social || 'Desconocido',
+      "Total": p.total,
+      "Estado": p.estado.toUpperCase(),
+      "Método Pago": p.metodo_pago || 'No especificado'
+    }));
+
+    exportToExcel(dataToExport, { 
+      filename: `Pedidos_GUOR_${new Date().toISOString().split('T')[0]}` 
+    });
+    toast.success("Excel generado correctamente");
+  };
 
   const totalPages = Math.ceil(filteredPedidos.length / pageSize);
   const paginatedData = filteredPedidos.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -157,7 +161,7 @@ export default function PedidosPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard 
-            title="TOTAL VENTAS" 
+            title="TOTAL PEDIDOS" 
             value={stats.total} 
             icon={<ShoppingBag className="w-6 h-6" />} 
             isActive={statusFilter === "todos"} 

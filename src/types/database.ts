@@ -9,16 +9,24 @@ export type Json =
 /**
  * Enums de la Base de Datos
  */
-export type EstadoPedido = 'PENDIENTE' | 'CORTE' | 'COSTURA' | 'ACABADO' | 'COMPLETADO' | 'CANCELADO'
-export type EstadoConfeccion = 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO' | 'CON_OBSERVACIONES' | 'RECHAZADA'
-export type EstadoCotizacion = 'PENDIENTE' | 'ENVIADA' | 'ACEPTADA' | 'RECHAZADA' | 'VENCIDA'
-export type EstadoDespacho = 'PENDIENTE' | 'EMPAQUETADO' | 'EN_TRANSITO' | 'ENTREGADO' | 'DEVUELTO'
+export type EstadoPedido = 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado'
+export type EstadoConfeccion = 'pendiente' | 'en_proceso' | 'completado' 
+export type EstadoDespacho = 'pendiente' | 'en_ruta' | 'entregado'
 export type EstadoProducto = 'activo' | 'inactivo' | 'agotado'
-export type EstadoTaller = 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO'
-export type PrioridadPedido = 'BAJA' | 'NORMAL' | 'ALTA' | 'URGENTE'
+export type EstadoTaller = 'activo' | 'inactivo' | 'suspendido'
+export type PrioridadPedido = 'baja' | 'normal' | 'alta' | 'urgente'
+
+// ⭐ ACTUALIZADO: Rol es un ENUM con estos valores exactos
 export type RolUsuario = 'administrador' | 'cortador' | 'diseñador' | 'recepcionista' | 'ayudante' | 'representante_taller'
+
+// ⭐ ACTUALIZADO: Estado es un ENUM con estos valores exactos
 export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido'
-export type EstadoOrden = 'SOLICITUD' | 'COTIZADO' | 'APROBADO' | 'PAGADO' | 'EN_PRODUCCION' | 'FINALIZADO' | 'CANCELADO'
+
+export type EstadoOrden = 'solicitado' | 'cotizado' | 'aprobado' | 'pagado' | 'en_proceso' | 'finalizado' | 'cancelado'
+export type EstadoCliente = 'activo' | 'inactivo' | 'suspendido' | 'potencial'
+export type EstadoCategoria = 'activo' | 'inactivo'
+export type TipoComprobante = 'boleta' | 'factura' | 'nota_venta'
+export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'transferencia_bcp' | 'transferencia_interbank' | 'tarjeta'
 
 /**
  * Schema de la Base de Datos
@@ -33,7 +41,7 @@ export interface Database {
           id: number
           nombre: string
           descripcion: string | null
-          activo: boolean
+          activo: EstadoCategoria
           created_at: string
           updated_at: string
         }
@@ -41,15 +49,15 @@ export interface Database {
           id?: number
           nombre: string
           descripcion?: string | null
-          activo?: boolean
+          activo?: EstadoCategoria
           created_at?: string
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           id?: number
           nombre?: string
           descripcion?: string | null
-          activo?: boolean
+          activo?: EstadoCategoria
           created_at?: string
           updated_at?: string
         }
@@ -64,7 +72,7 @@ export interface Database {
           email: string | null
           telefono: number | null
           direccion: string | null
-          activo: boolean | null
+          activo: EstadoCliente | null
           created_at: string
           updated_at: string
           auth_id: string | null
@@ -76,7 +84,7 @@ export interface Database {
           email?: string | null
           telefono?: number | null
           direccion?: string | null
-          activo?: boolean | null
+          activo?: EstadoCliente | null
           created_at?: string
           updated_at?: string
           auth_id?: string | null
@@ -87,7 +95,7 @@ export interface Database {
           email?: string | null
           telefono?: number | null
           direccion?: string | null
-          activo?: boolean | null
+          activo?: EstadoCliente | null
           created_at?: string
           updated_at?: string
           auth_id?: string | null
@@ -116,7 +124,7 @@ export interface Database {
           fecha_fin?: string | null
           observaciones?: string | null
           created_at?: string
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           id?: number
@@ -151,7 +159,7 @@ export interface Database {
           created_at?: string
           direccion_entrega: string
           fecha_entrega?: string | null
-          updated_at: string
+          updated_at?: string
           usuario_id: number
           estado?: EstadoDespacho
         }
@@ -193,7 +201,7 @@ export interface Database {
           producto_id?: number | null
           cantidad_usada?: number | null
           created_at?: string
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           nombre?: string
@@ -236,33 +244,71 @@ export interface Database {
         }
       }
 
-      // Tabla: ordenes
+      // Tabla: ordenes (El encabezado)
       ordenes: {
         Row: {
           id: string
-          cliente_id: string | null
+          cliente_id: number
           total: number
           estado: EstadoOrden
-          metodo_pago: string | null
+          metodo_pago: MetodoPago | null
           created_at: string
           updated_at: string
           user_id: string
         }
         Insert: {
           id?: string
-          cliente_id?: string | null
+          cliente_id: number
           total: number
           estado?: EstadoOrden
-          metodo_pago?: string | null
+          metodo_pago?: MetodoPago | null
+          user_id: string
           created_at?: string
           updated_at?: string
-          user_id: string
         }
         Update: {
+          id?: string
+          cliente_id?: number
           total?: number
           estado?: EstadoOrden
-          metodo_pago?: string | null
+          metodo_pago?: MetodoPago | null
+          user_id?: string
+          created_at?: string
           updated_at?: string
+        }
+      }
+
+      // Tabla: detalles_orden
+      detalles_orden: {
+        Row: {
+          id: number
+          orden_id: string
+          producto_id: number
+          cantidad: number
+          precio_unitario: number
+          subtotal: number
+          talla: string
+          color: string | null
+        }
+        Insert: {
+          id?: never
+          orden_id: string
+          producto_id: number
+          cantidad: number
+          precio_unitario: number
+          subtotal?: number
+          talla: string
+          color?: string | null
+        }
+        Update: {
+          id?: number
+          orden_id?: string
+          producto_id?: number
+          cantidad?: number
+          precio_unitario?: number
+          subtotal?: number
+          talla?: string
+          color?: string | null
         }
       }
 
@@ -328,7 +374,7 @@ export interface Database {
           precio: number
           stock?: number
           stock_minimo?: number
-          updated_at: string
+          updated_at?: string
           estado?: EstadoProducto
           sku: string
           ficha_url?: string | null
@@ -370,7 +416,7 @@ export interface Database {
           telefono: string
           email?: string | null
           created_at?: string
-          updated_at: string
+          updated_at?: string
           ruc: string
           contacto: string
           especialidad?: string | null
@@ -391,7 +437,7 @@ export interface Database {
         }
       }
 
-      // Tabla: usuarios
+      // Tabla: usuarios  
       usuarios: {
         Row: {
           id: number
@@ -405,19 +451,21 @@ export interface Database {
           auth_id: string | null
           ultimo_acceso: string | null
           created_by: string | null
+          avatar_url: string | null
         }
         Insert: {
-          id?: number
+          id?: never
           email: string
           nombre_completo: string
           telefono?: string | null
           estado?: EstadoUsuario
           rol?: RolUsuario
           created_at?: string
-          updated_at: string
+          updated_at?: string
           auth_id?: string | null
           ultimo_acceso?: string | null
           created_by?: string | null
+          avatar_url?: string | null
         }
         Update: {
           id?: number
@@ -431,6 +479,7 @@ export interface Database {
           auth_id?: string | null
           ultimo_acceso?: string | null
           created_by?: string | null
+          avatar_url?: string | null
         }
       }
 
@@ -439,23 +488,38 @@ export interface Database {
         Row: {
           id: number
           orden_id: string
+          vendedor_id: number
           subtotal: number
           impuestos: number
           total: number
-          metodo_pago: string
+          metodo_pago: MetodoPago
+          tipo_comprobante: TipoComprobante
+          numero_comprobante: string | null
           created_at: string
         }
         Insert: {
           id?: never
           orden_id: string
+          vendedor_id: number
           subtotal: number
           impuestos: number
           total: number
-          metodo_pago: string
+          metodo_pago: MetodoPago
+          tipo_comprobante: TipoComprobante
+          numero_comprobante?: string | null
           created_at?: string
         }
         Update: {
-          // Generalmente no se actualiza
+          id?: number
+          orden_id?: string
+          vendedor_id?: number
+          subtotal?: number
+          impuestos?: number
+          total?: number
+          metodo_pago?: MetodoPago
+          tipo_comprobante?: TipoComprobante
+          numero_comprobante?: string | null
+          created_at?: string
         }
       }
     }
@@ -466,15 +530,19 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
-      EstadoPedido: EstadoPedido
-      EstadoConfeccion: EstadoConfeccion
-      EstadoDespacho: EstadoDespacho
-      EstadoProducto: EstadoProducto
-      EstadoTaller: EstadoTaller
-      PrioridadPedido: PrioridadPedido
-      RolUsuario: RolUsuario
-      EstadoUsuario: EstadoUsuario
-      EstadoOrden: EstadoOrden
+      estado_pedido: EstadoPedido
+      estado_confeccion: EstadoConfeccion
+      estado_despacho: EstadoDespacho
+      estado_producto: EstadoProducto
+      estado_taller: EstadoTaller
+      prioridad_pedido: PrioridadPedido
+      rol: RolUsuario
+      estado_usuario: EstadoUsuario
+      estado_orden: EstadoOrden
+      estado_cliente: EstadoCliente
+      estado_categoria: EstadoCategoria
+      tipo_comprobante: TipoComprobante
+      metodo_pago: MetodoPago
     }
   }
 }
@@ -494,6 +562,7 @@ export type Taller = Database['public']['Tables']['talleres']['Row']
 export type Usuario = Database['public']['Tables']['usuarios']['Row']
 export type Orden = Database['public']['Tables']['ordenes']['Row']
 export type Venta = Database['public']['Tables']['ventas']['Row']
+export type DetalleOrden = Database['public']['Tables']['detalles_orden']['Row']
 
 /**
  * Tipos para inserts
@@ -510,6 +579,7 @@ export type TallerInsert = Database['public']['Tables']['talleres']['Insert']
 export type UsuarioInsert = Database['public']['Tables']['usuarios']['Insert']
 export type OrdenInsert = Database['public']['Tables']['ordenes']['Insert']
 export type VentaInsert = Database['public']['Tables']['ventas']['Insert']
+export type DetalleOrdenInsert = Database['public']['Tables']['detalles_orden']['Insert']
 
 /**
  * Tipos para updates
@@ -525,6 +595,8 @@ export type ProductoUpdate = Database['public']['Tables']['productos']['Update']
 export type TallerUpdate = Database['public']['Tables']['talleres']['Update']
 export type UsuarioUpdate = Database['public']['Tables']['usuarios']['Update']
 export type OrdenUpdate = Database['public']['Tables']['ordenes']['Update']
+export type VentaUpdate = Database['public']['Tables']['ventas']['Update']
+export type DetalleOrdenUpdate = Database['public']['Tables']['detalles_orden']['Update']
 
 /**
  * Tipo extendido para Inventario
