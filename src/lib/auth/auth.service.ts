@@ -56,7 +56,7 @@ async function fetchUserByAuthId(authId: string): Promise<Usuario | null> {
   try {
     const { data, error } = await getSupabaseBrowserClient()
       .from('usuarios')
-      .select('id, auth_id, rol, estado, nombre, email, ultimo_acceso')
+      .select('id, auth_id, rol, estado, nombre_completo, email, ultimo_acceso')
       .eq('auth_id', authId)
       .maybeSingle();
 
@@ -65,7 +65,7 @@ async function fetchUserByAuthId(authId: string): Promise<Usuario | null> {
       return null;
     }
 
-    return data as Usuario;
+    return (data || null) as Usuario | null;
   } catch (err) {
     console.error('[Auth] Unexpected error fetching user:', err);
     return null;
@@ -77,7 +77,7 @@ async function fetchUserByAuthId(authId: string): Promise<Usuario | null> {
  */
 async function updateLastAccess(userId: number): Promise<void> {
   try {
-    await getSupabaseBrowserClient()
+    await (getSupabaseBrowserClient() as any)
       .from('usuarios')
       .update({ ultimo_acceso: new Date().toISOString() })
       .eq('id', userId);

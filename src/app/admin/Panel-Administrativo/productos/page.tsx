@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { useProducts } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -24,9 +25,8 @@ const FichaTecnicaDialog = dynamic(() => import("@/components/admin/productos/Fi
 
 export default function ProductosPage() {
   const { can, isLoading: authLoading, usuario } = usePermissions();
-  const [productos, setProductos] = useState<any[]>([]);
+  const { productos, loading: productosLoading, error: productosError, refetch } = useProducts();
   const [categorias, setCategorias] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedProducto, setSelectedProducto] = useState<any | null>(null);
@@ -45,33 +45,22 @@ export default function ProductosPage() {
   return rolActual === 'diseñador' || rolActual === 'administrador';
 }, [usuario]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadCategorias = useCallback(async () => {
     try {
-      const [prodRes, catRes] = await Promise.all([
-        fetch('/api/admin/productos'),
-        fetch('/api/admin/categorias')
-      ]);
-
-      const prodData = prodRes.ok ? await prodRes.json() : [];
-      const catData = catRes.ok ? await catRes.json() : [];
-      
-      setProductos(Array.isArray(prodData) ? prodData : []);
+      const res = await fetch('/api/admin/categorias');
+      const catData = res.ok ? await res.json() : [];
       setCategorias(Array.isArray(catData) ? catData : []);
-
-    } catch (err: any) {
-      console.error("Error loading data:", err);
-      toast.error("Error de sincronización");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("Error loading categorías:", err);
     }
   }, []);
 
   useEffect(() => {
     if (!authLoading && can('view', 'productos')) {
-      loadData();
+      loadCategorias();
+      refetch();
     }
-  }, [authLoading, can, loadData]);
+  }, [authLoading]);
 
   // Calcular stats cuando cambien los datos
   useEffect(() => { 
@@ -101,13 +90,13 @@ export default function ProductosPage() {
       "Precio": p.precio,
       "Estado": p.stock === 0 ? "Agotado" : p.stock <= (p.stock_minimo || 5) ? "Bajo Stock" : "Disponible"
     }));
-    exportToExcel(dataToExport, { filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}` });
+    exportToExcel(dataToExport as any, { filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}` });
     toast.success("Excel generado correctamente");
   };
 
   const handleExportPDF = () => {
     if (filteredProducts.length === 0) return toast.error("No hay datos para exportar");
-    exportToPDF(filteredProducts, categorias, { 
+    exportToPDF(filteredProducts as any, categorias, { 
       title: "REPORTE DE INVENTARIO - Modas y Estilos GUOR", 
       filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}`
     });
@@ -203,13 +192,13 @@ export default function ProductosPage() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="h-11 border-gray-200" onClick={loadData}>
-            <RefreshCw className={`w-4 h-4 ${loading && 'animate-spin'}`} />
+          <Button variant="outline" className="h-11 border-gray-200" onClick={refetch}>
+            <RefreshCw className={`w-4 h-4 ${productosLoading && 'animate-spin'}`} />
           </Button>
         </div>
 
         {/* Tabla y Paginación */}
-        {loading ? (
+        {productosLoading ? (
           <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
             <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
             <p className="text-gray-400 text-sm font-bold uppercase">Sincronizando...</p>
@@ -249,26 +238,26 @@ export default function ProductosPage() {
 
       {/* Modales */}
       {isCreateOpen && (
-        <CreateProductoDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={loadData} categorias={categorias} />
+        <CreateProductoDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={refetch} categorias={categorias} />
       )}
 
       {selectedProducto && (
         <>
           {dialogMode === "edit" && (
-            <EditProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={loadData} categorias={categorias} />
+            <EditProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} categorias={categorias} />
           )}
           {dialogMode === "delete" && (
-            <DeleteProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={loadData} />
+            <DeleteProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} />
           )}
           {dialogMode === "stock" && (
-            <StockDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={loadData} />
+            <StockDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} />
           )}
           {dialogMode === "ficha" && (
             <FichaTecnicaDialog 
             isOpen={true} 
             producto={selectedProducto} 
             onClose={() => {setDialogMode(null); setSelectedProducto(null);}} 
-            onSuccess={loadData} 
+            onSuccess={refetch} 
             canUpload={canManageFichas} 
             />
             )}

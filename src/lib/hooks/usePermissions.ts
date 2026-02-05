@@ -16,6 +16,7 @@ const ROLE_PERMISSIONS: { [role: string]: AppPermissions } = {
     talleres: ['view', 'create','export'],
     ventas: ['view', 'export'],
     reportes: ['view', 'export'],
+    configuracion: ['view', 'edit'],
   },
   representante_taller: {
     productos: ['view', 'export'], 
@@ -30,7 +31,7 @@ const ROLE_PERMISSIONS: { [role: string]: AppPermissions } = {
     pagos: ['view', 'create'],
     cotizaciones: ['view', 'create'],
   },
-  diseñador: {
+  disenador: {
     productos: ['view', 'create', 'edit'], 
     confecciones: ['view', 'create', 'edit'], 
     pedidos: ['view'],
@@ -54,6 +55,12 @@ export function usePermissions() {
 
   const fetchUserPermissions = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
+
+    const standardize = (text: string) => 
+      text.toLowerCase()
+          .trim()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
     
     try {
       // getSession es mucho más rápido que getUser porque usa la caché local
@@ -85,8 +92,10 @@ export function usePermissions() {
       }
 
       setUsuario(userData as Usuario);
-      // Normalizamos el rol para evitar errores de tildes o mayúsculas
-      const roleKey = userData.rol?.toLowerCase().trim() || '';
+         
+      const rawRole = userData.rol || '';
+      const roleKey = standardize(rawRole);
+
       setPermissions(ROLE_PERMISSIONS[roleKey] || {});
 
     } catch (error) {

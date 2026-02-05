@@ -126,38 +126,47 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
 
     setUploadingId(productoId);
     const uploadPromise = async () => {
-      const supabase = getSupabaseBrowserClient();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${productoId}-${Date.now()}.${fileExt}`;
-      const filePath = `fichas/${fileName}`;
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${productoId}-${Date.now()}.${fileExt}`;
+        const filePath = `fichas/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from('productos').upload(filePath, file);
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage.from('productos').upload(filePath, file);
+        if (uploadError) throw new Error(uploadError.message);
 
-      const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(filePath);
-      const { error: updateError } = await supabase.from('productos').update({ ficha_url: publicUrl }).eq('id', productoId);
-      if (updateError) throw updateError;
+        const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(filePath);
+        const { error: updateError } = await (supabase as any).from('productos').update({ ficha_url: publicUrl }).eq('id', productoId);
+        if (updateError) throw new Error(updateError.message);
 
-      await fetchDashboardData();
+        await fetchDashboardData();
+      } finally {
+        setUploadingId(null);
+      }
     };
 
     toast.promise(uploadPromise(), {
       loading: 'Subiendo ficha...',
-      success: 'Ficha actualizada',
-      error: (err) => { setUploadingId(null); return `Error: ${err.message}`; },
-      finally: () => setUploadingId(null)
+      success: 'Ficha actualizada correctamente',
+      error: (err: any) => `Error: ${err.message || 'Error desconocido'}`
     });
   };
 
   const handleViewFile = async (productoId: number) => {
-    const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase.from('productos').select('ficha_url').eq('id', productoId).single();
-    if (data?.ficha_url) window.open(data.ficha_url, '_blank');
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await (supabase as any).from('productos').select('ficha_url').eq('id', productoId).single();
+      if (error) throw error;
+      if (data?.ficha_url) window.open(data.ficha_url, '_blank');
+      else toast.error('Ficha no disponible');
+    } catch (error: any) {
+      toast.error('Error al abrir ficha', { description: error.message });
+    }
   };
 
   if (permissionsLoading || loading) return <LoadingDashboard />;
 
-return (
+  return (
     <div className="space-y-8 animate-in fade-in duration-500 p-4 bg-slate-50/50">
       
       {/* Botones de Acción Superior - CORREGIDO: Más anchos y altos */}
@@ -178,10 +187,10 @@ return (
 
       {/* Cards de Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-  <StatCard label="Catálogo" value={stats.productosActivos} icon={<Package />} color="text-blue-600" bgColor="bg-blue-50" />
-  <StatCard label="Pendientes" value={stats.fichasPendientes} icon={<FileText />} color="text-rose-600" bgColor="bg-rose-50" />
-  <StatCard label="En Cola" value={stats.pedidosAsignados} icon={<ShoppingCart />} color="text-amber-600" bgColor="bg-amber-50" />
-  <StatCard label="Listos" value={stats.diseñosCompletados} icon={<CheckCircle />} color="text-emerald-600" bgColor="bg-emerald-50" />
+        <StatCard label="Catálogo" value={stats.productosActivos} icon={<Package />} color="text-blue-600" bgColor="bg-blue-50" />
+        <StatCard label="Pendientes" value={stats.fichasPendientes} icon={<FileText />} color="text-rose-600" bgColor="bg-rose-50" />
+        <StatCard label="En Cola" value={stats.pedidosAsignados} icon={<ShoppingCart />} color="text-amber-600" bgColor="bg-amber-50" />
+        <StatCard label="Listos" value={stats.diseñosCompletados} icon={<CheckCircle />} color="text-emerald-600" bgColor="bg-emerald-50" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -282,7 +291,15 @@ return (
 }
 // --- SUB-COMPONENTES AUXILIARES ---
 
-function StatCard({ label, value, icon, color, bgColor }: any) {
+interface StatCardProps {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+}
+
+function StatCard({ label, value, icon, color, bgColor }: StatCardProps) {
   return (
     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all cursor-default">
       {/* Icono contenido en un cuadro fijo para evitar deformación */}
@@ -303,7 +320,7 @@ function StatCard({ label, value, icon, color, bgColor }: any) {
   );
 }
 
-function QuickActionBtn({ icon: Icon, label, color, onClick }: any) {
+function QuickActionBtn({ icon: Icon, label, color, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; color: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

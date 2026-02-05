@@ -14,6 +14,7 @@ import { Venta, Inventario } from '@/types/database';
 // Imports de tus componentes
 import RecentOrdersTable from './widgets/RecentOrdersTable';
 import StockAlertCard from './widgets/StockAlertCard';
+import DashboardCharts from './DashboardCharts';
 
 export default function AdminDashboard() {
   const [isMounted, setIsMounted] = useState(false);
@@ -220,3 +221,12 @@ const CustomTooltip = ({ active, payload, label, dark }: any) => {
   }
   return null;
 };
+
+export function AdminDashboardWithCharts() {
+  return (
+    <div className="space-y-8">
+      <AdminDashboard />
+      <DashboardCharts />
+    </div>
+  );
+}

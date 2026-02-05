@@ -90,6 +90,7 @@ model categorias {
   updated_at  DateTime   @default(now()) @updatedAt
   
   productos   productos[]
+  inventario  inventario[]
 
   @@map("categorias")
 }
@@ -260,15 +261,20 @@ model despachos {
 
 model inventario {
   id               BigInt             @id @default(autoincrement())
+  sku              String?            @unique
   nombre           String
   tipo             String
-  unidad_medida    String
-  stock_actual     Int
-  stock_minimo     Int
+  unidad_medida    String             @default("unidades")
+  stock_actual     Int                @default(0)
+  stock_minimo     Int                @default(10)
+  costo_unitario   Decimal?           @db.Decimal(10, 2)
+  precio_venta     Decimal?           @db.Decimal(10, 2)
+  categoria_id     BigInt?
   producto_id      BigInt?
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   
+  categoria        categorias?        @relation(fields: [categoria_id], references: [id])
   producto         productos?         @relation(fields: [producto_id], references: [id])
   lista_materiales lista_materiales[]
 

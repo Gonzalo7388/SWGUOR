@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -8,59 +8,106 @@ import { Badge } from "@/components/ui/badge";
 import { XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
-export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }: any) {
-  const [detalles, setDetalles] = useState<any[]>([]);
+interface DetalleVenta {
+  id: number;
+  venta_id: number;
+  producto_id: number;
+  cantidad: number;
+  precio_unitario: number;
+  producto?: {
+    nombre: string;
+  };
+}
+
+interface Venta {
+  id: number;
+  codigo_pedido: string;
+  estado_pedido: string;
+  total: string | number;
+}
+
+interface VentaDetalleDialogProps {
+  venta: Venta | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+}
+
+export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }: VentaDetalleDialogProps) {
+  const [detalles, setDetalles] = useState<DetalleVenta[]>([]);
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDetalle = useCallback(async () => {
+    if (!venta?.id) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error: queryError } = await supabase
+        .from("detalles_ventas")
+        .select(`*, producto:producto_id(nombre)`)
+        .eq("venta_id", venta.id);
+      
+      if (queryError) {
+        console.error('[VentaDetalleDialog] Error loading detalles:', queryError);
+        setError("Error al cargar los detalles");
+        return;
+      }
+
+      setDetalles((data || []) as DetalleVenta[]);
+    } catch (err: any) {
+      console.error('[VentaDetalleDialog] Unexpected error:', err);
+      setError("Error inesperado al cargar detalles");
+    } finally {
+      setLoading(false);
+    }
+  }, [venta?.id]);
 
   useEffect(() => {
     if (isOpen && venta?.id) {
       loadDetalle();
     }
-  }, [isOpen, venta]);
-
-  const loadDetalle = async () => {
-    setLoading(true);
-    const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase
-      .from("detalles_ventas")
-      .select(`*, producto:producto_id(nombre)`)
-      .eq("venta_id", venta.id);
-    
-    setDetalles(data || []);
-    setLoading(false);
-  };
+  }, [isOpen, venta?.id, loadDetalle]);
 
   const handleCancelarVenta = async () => {
     const confirmar = confirm("¿Estás seguro de cancelar esta venta? Esta acción devolverá los productos al stock.");
     if (!confirmar) return;
+
+    if (!venta) return;
 
     setCancelling(true);
     const supabase = getSupabaseBrowserClient();
 
     try {
       // 1. Actualizar el estado de la venta
-      const { error: errorVenta } = await supabase
+      const { error: errorVenta } = await (supabase as any)
         .from("ventas")
         .update({ estado_pedido: "cancelado" })
         .eq("id", venta.id);
 
-      if (errorVenta) throw errorVenta;
+      if (errorVenta) throw new Error(errorVenta.message);
 
-      // 2. Devolver stock (Solo si la venta NO estaba ya cancelada)
-      // Usamos la función RPC que creamos anteriormente pero para SUMAR
+      // 2. Devolver stock para cada artículo
       for (const item of detalles) {
-        await supabase.rpc('increment_stock', { 
+        const { error: rpcError } = await (supabase as any).rpc('increment_stock', { 
           row_id: item.producto_id, 
           quantity: item.cantidad 
         });
+
+        if (rpcError) {
+          console.error('[VentaDetalleDialog] RPC error for product:', item.producto_id, rpcError);
+        }
       }
 
       toast.success("Venta cancelada e inventario actualizado");
-      onUpdate(); // Recargar la tabla principal
+      onUpdate();
       onClose();
-    } catch (error) {
-      toast.error("Error al cancelar la venta");
+    } catch (err: any) {
+      console.error('[VentaDetalleDialog] Error cancelling venta:', err);
+      toast.error(err.message || "Error al cancelar la venta");
     } finally {
       setCancelling(false);
     }
@@ -81,11 +128,22 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
         </DialogHeader>
         
         <div className="py-4 space-y-6">
+          {/* Mostrar errores si existen */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
           {/* Listado de Productos */}
           <div className="space-y-3">
             <h4 className="font-semibold text-gray-700">Artículos del Pedido</h4>
             {loading ? (
               <div className="flex justify-center py-4"><Loader2 className="animate-spin text-pink-600" /></div>
+            ) : detalles.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-4 border text-center text-gray-500 text-sm">
+                No hay detalles disponibles
+              </div>
             ) : (
               <div className="bg-gray-50 rounded-lg p-4 border space-y-2">
                 {detalles.map((item) => (

@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, Users, Clock, CheckCircle } from "lucide-react";
+import { ShoppingCart, Users, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import DashboardCharts from "./DashboardCharts";
 
 type Usuario = {
   id: string | number;
@@ -15,88 +15,82 @@ type Usuario = {
 
 export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }) {
   return (
-   <div className="min-h-screen bg-gray-50">
-      {/* Contenedor principal con padding generoso */}
-      <div className="container mx-auto px-8 py-8 max-w-7xl">
-        {/* Header con más espacio */}
-        <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Dashboard de Recepción
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Gestión de pedidos y atención al cliente
-        </p>
+    <div className="space-y-8 p-6 bg-slate-50 min-h-screen">
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestión de Recepción</h1>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Pedidos y atención al cliente</p>
+        </div>
       </div>
 
-      {/* KPIs para recepcionista */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Pendientes</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-gray-600">Requieren atención</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Hoy</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-gray-600">Registrados hoy</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Clientes Nuevos</CardTitle>
-            <Users className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-gray-600">Esta semana</p>
-          </CardContent>
-        </Card>
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <KpiCard 
+          title="Pendientes" 
+          value="8" 
+          icon={<Clock />} 
+          color="orange" 
+        />
+        <KpiCard 
+          title="Pedidos Hoy" 
+          value="12" 
+          icon={<ShoppingCart />} 
+          color="blue" 
+        />
+        <KpiCard 
+          title="Clientes Nuevos" 
+          value="5" 
+          icon={<Users />} 
+          color="emerald" 
+        />
       </div>
 
-      {/* Acciones rápidas */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Acciones Rápidas</CardTitle>
-          <CardDescription>Tareas comunes del día a día</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <Link href="/dashboard/pedidos/nuevo">
-            <Button className="w-full" size="lg">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Nuevo Pedido
-            </Button>
-          </Link>
-          <Link href="/dashboard/clientes/nuevo">
-            <Button variant="outline" className="w-full" size="lg">
-              <Users className="mr-2 h-4 w-4" />
-              Registrar Cliente
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Acciones rápidas */}
+        <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
+          <h3 className="font-black uppercase text-slate-800 mb-6">Acciones Rápidas</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Link href="/dashboard/pedidos/nuevo">
+              <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold uppercase" size="lg">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Nuevo Pedido
+              </Button>
+            </Link>
+            <Link href="/dashboard/clientes/nuevo">
+              <Button variant="outline" className="w-full font-bold uppercase border-slate-200" size="lg">
+                <Users className="mr-2 h-4 w-4" />
+                Registrar Cliente
+              </Button>
+            </Link>
+          </div>
+        </div>
 
-      {/* Pedidos pendientes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pedidos Pendientes de Confirmación</CardTitle>
-          <CardDescription>Pedidos que requieren tu atención</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-500">No hay pedidos pendientes</p>
-        </CardContent>
-      </Card>
+        {/* Pedidos pendientes */}
+        <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
+          <h3 className="font-black uppercase text-slate-800 mb-6">Pendientes de Confirmación</h3>
+          <p className="text-sm text-slate-400">No hay pedidos pendientes</p>
+        </div>
+
+        {/* Gráficas */}
+        <DashboardCharts />
+      </div>
     </div>
-  </div>
+  );
+}
+
+function KpiCard({ title, value, icon, color, isAlert }: any) {
+  const colors: any = { 
+    rose: 'bg-rose-50 text-rose-600', 
+    blue: 'bg-blue-50 text-blue-600', 
+    emerald: 'bg-emerald-50 text-emerald-600', 
+    orange: 'bg-orange-50 text-orange-600' 
+  };
+  return (
+    <div className={`bg-white p-6 rounded-4xl border-2 transition-all ${isAlert ? 'border-rose-200 shadow-lg shadow-rose-100' : 'border-transparent shadow-sm'}`}>
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${colors[color]}`}>{icon}</div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+      <p className="text-2xl font-black text-slate-900">{value}</p>
+    </div>
   );
 }

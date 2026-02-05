@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Scissors, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import DashboardCharts from "./DashboardCharts";
 
 type Usuario = {
   id: string | number;
@@ -13,67 +13,64 @@ type Usuario = {
 
 export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Contenedor principal con padding generoso */}
-      <div className="container mx-auto px-8 py-8 max-w-7xl">
-        {/* Header con más espacio */}
-        <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Dashboard de Corte
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Gestión de tareas de corte y producción
-        </p>
-      </div>
-      {/* KPIs para cortador */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Cortes Pendientes</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">15</div>
-            <p className="text-xs text-gray-600">Piezas por cortar</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Completados Hoy</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-gray-600">Piezas cortadas</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Urgentes</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-gray-600">Prioridad alta</p>
-          </CardContent>
-        </Card>
+    <div className="space-y-8 p-6 bg-slate-50 min-h-screen">
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Centro de Corte</h1>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Gestión de tareas de corte y producción</p>
+        </div>
       </div>
 
-    {/* Sección de tareas asignadas */}
-     <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Mis Tareas de Corte</CardTitle>
-            <CardDescription>Pedidos asignados para corte</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">No hay tareas asignadas</p>
-          </CardContent>
-        </Card>
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <KpiCard 
+          title="Cortes Pendientes" 
+          value="15" 
+          icon={<Clock />} 
+          color="orange" 
+        />
+        <KpiCard 
+          title="Completados Hoy" 
+          value="23" 
+          icon={<CheckCircle />} 
+          color="emerald" 
+        />
+        <KpiCard 
+          title="Urgentes" 
+          value="3" 
+          icon={<AlertCircle />} 
+          color="rose" 
+          isAlert={true}
+        />
       </div>
+
+      {/* Sección de tareas asignadas */}
+      <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-black uppercase text-slate-800">Mis Tareas de Corte</h3>
+        </div>
+        <p className="text-sm text-slate-400">No hay tareas asignadas</p>
+      </div>
+
+      {/* Gráficas */}
+      <DashboardCharts />
     </div>
-  </div>
+  );
+}
+
+function KpiCard({ title, value, icon, color, isAlert }: any) {
+  const colors: any = { 
+    rose: 'bg-rose-50 text-rose-600', 
+    blue: 'bg-blue-50 text-blue-600', 
+    emerald: 'bg-emerald-50 text-emerald-600', 
+    orange: 'bg-orange-50 text-orange-600' 
+  };
+  return (
+    <div className={`bg-white p-6 rounded-4xl border-2 transition-all ${isAlert ? 'border-rose-200 shadow-lg shadow-rose-100' : 'border-transparent shadow-sm'}`}>
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${colors[color]}`}>{icon}</div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+      <p className="text-2xl font-black text-slate-900">{value}</p>
+    </div>
   );
 }

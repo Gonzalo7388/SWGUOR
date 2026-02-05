@@ -1,19 +1,22 @@
-import { createClient } from '@/lib/supabase/server';
+import { obtenerProductos as obtenerProductosHelper, crearProducto, actualizarProducto, eliminarProducto, calcularMargen } from '@/lib/helpers/products-helpers';
 import { NextResponse } from 'next/server';
 
-// GET: Obtener todos los productos con sus categorías
-export async function GET() {
+// GET: Obtener todos los productos con filtros
+export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
+    const { searchParams } = new URL(req.url);
+    
+    const filtros = {
+      categoria_id: searchParams.get('categoria_id') ? parseInt(searchParams.get('categoria_id')!) : undefined,
+      estado: searchParams.get('estado') as any,
+      busqueda: searchParams.get('busqueda') || undefined
+    };
 
-    const { data, error } = await supabase
-      .from('productos')
-      .select('*, categorias(nombre)')
-      .order('created_at', { ascending: false });
+    const { data, error } = await obtenerProductosHelper(filtros);
 
     if (error) {
       console.error('Error fetching productos:', error);
-      throw error;
+      throw new Error(error);
     }
 
     console.log(`Successfully fetched ${data?.length || 0} productos`);
@@ -26,35 +29,36 @@ export async function GET() {
 
 // POST: Crear un nuevo producto
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  
   try {
     const body = await req.json();
     
     // Validación básica de campos obligatorios
     if (!body.nombre || !body.sku || !body.precio) {
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+      return NextResponse.json({ error: 'Faltan campos obligatorios: nombre, sku, precio' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('productos')
-      .insert([{
-        nombre: body.nombre,
-        sku: body.sku,
-        descripcion: body.descripcion,
-        precio: body.precio,
-        stock: body.stock || 0,
-        stock_minimo: body.stock_minimo || 5,
-        categoria_id: body.categoria_id,
-        imagen_url: body.imagen_url,
-        activo: true
-      }])
-      .select();
+    const { data, error } = await crearProducto({
+      nombre: body.nombre,
+      sku: body.sku,
+      descripcion: body.descripcion,
+      precio: body.precio,
+      stock: body.stock || 0,
+      stock_minimo: body.stock_minimo || 5,
+      categoria_id: body.categoria_id,
+      imagen: body.imagen_url || body.imagen,
+      estado: 'activo'
+    });
 
-    if (error) throw error;
+    if (error) throw new Error(error);
 
-    console.log('Successfully created producto:', data[0].sku);
-    return NextResponse.json(data[0], { status: 201 });
+    // Calcular margen si se proporciona costo
+    let margen = null;
+    if (body.costo_unitario) {
+      margen = calcularMargen(body.costo_unitario, body.precio);
+    }
+
+    console.log('Successfully created producto:', body.sku);
+    return NextResponse.json({ ...data, margen }, { status: 201 });
   } catch (error: any) {
     console.error('Failed to create producto:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -63,26 +67,20 @@ export async function POST(req: Request) {
 
 // PATCH/PUT: Para actualizaciones rápidas (como el stock)
 export async function PATCH(req: Request) {
-  const supabase = await createClient();
-  
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
-    const body = await req.json();
-
     if (!id) return NextResponse.json({ error: 'ID no proporcionado' }, { status: 400 });
 
-    const { data, error } = await supabase
-      .from('productos')
-      .update(body)
-      .eq('id', id)
-      .select();
+    const body = await req.json();
 
-    if (error) throw error;
+    const { data, error } = await actualizarProducto(parseInt(id), body);
+
+    if (error) throw new Error(error);
     
     console.log('Successfully updated producto:', id);
-    return NextResponse.json(data[0]);
+    return NextResponse.json(data);
 
   } catch (error: any) {
     console.error('Failed to update producto:', error.message);
@@ -92,20 +90,15 @@ export async function PATCH(req: Request) {
 
 // DELETE: Eliminar un producto por ID
 export async function DELETE(req: Request) {
-  const supabase = await createClient();
-  
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    const { error } = await supabase
-      .from('productos')
-      .delete()
-      .eq('id', id);
+    const { error } = await eliminarProducto(parseInt(id));
 
-    if (error) throw error;
+    if (error) throw new Error(error);
 
     console.log('Successfully deleted producto:', id);
     return NextResponse.json({ message: 'Eliminado correctamente' });

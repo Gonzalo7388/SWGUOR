@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   FileSpreadsheet, Plus, Search, ShoppingBag, RefreshCw, 
-  Clock, CheckCircle2, XCircle, Filter, Loader2, ShieldAlert,
+  Clock, CheckCircle2, XCircle, Loader2, ShieldAlert,
   ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +13,8 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { exportToExcel } from "@/lib/utils/export-utils";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { useOrdenes } from "@/lib/hooks/useOrders";
+import { ESTADOS_ORDEN } from "@/lib/constants/estados";
 
 // Importaciones Dinámicas
 const PedidosTable = dynamic(() => import("@/components/admin/pedidos/PedidosTable"));
@@ -23,8 +24,7 @@ const CancelPedidoDialog = dynamic(() => import("@/components/admin/pedidos/Canc
 
 export default function PedidosPage() {
   const { can, isLoading: authLoading } = usePermissions();
-  const [pedidos, setPedidos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { ordenes, cargando: ordenesLoading, error: ordenesError, obtener } = useOrdenes();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   
@@ -38,45 +38,32 @@ export default function PedidosPage() {
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, pendientes: 0, completados: 0, cancelados: 0 });
 
-const loadPedidos = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Llamamos a la API
-      const response = await fetch("/api/admin/pedidos"); 
-      const res = await response.json();
-      
-      if (!response.ok) throw new Error(res.error || "Falla en API");
-
-      setPedidos(res);
-
-      setStats({
-        total: res.length,
-        pendientes: res.filter((p: any) => 
-          p.estado?.toLowerCase() === "solicitado" || p.estado?.toLowerCase() === "pendiente"
-        ).length,
-        completados: res.filter((p: any) => 
-          p.estado?.toLowerCase() === "finalizado" || p.estado?.toLowerCase() === "entregado"
-        ).length,
-        cancelados: res.filter((p: any) => p.estado?.toLowerCase() === "cancelado").length
-      });
-
-    } catch (err: any) {
-      toast.error("Error de sincronización: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => { 
     if (!authLoading && can && can('view', 'pedidos')) {
-      loadPedidos(); 
+      obtener();
     }
-  }, [loadPedidos, authLoading, can]);
+  }, [authLoading, can, obtener]);
+
+  // Calcular stats cuando cambien las órdenes
+  useEffect(() => {
+    if (ordenes.length > 0) {
+      setStats({
+        total: ordenes.length,
+        pendientes: ordenes.filter((p: any) => 
+          p.estado?.toLowerCase() === "solicitado" || p.estado?.toLowerCase() === "pendiente"
+        ).length,
+        completados: ordenes.filter((p: any) => 
+          p.estado?.toLowerCase() === "finalizado" || p.estado?.toLowerCase() === "entregado"
+        ).length,
+        cancelados: ordenes.filter((p: any) => p.estado?.toLowerCase() === "cancelado").length
+      });
+    }
+  }, [ordenes]);
 
   const filteredPedidos = useMemo(() => {
-    if (pedidos.length === 0) return [];
+    if (ordenes.length === 0) return [];
 
-    return pedidos.filter((p: any) => {
+    return ordenes.filter((p: any) => {
       // Accedemos a clientes.razon_social que ya viene en el JSON
       const clienteNombre = (p.clientes?.razon_social || "Venta Directa").toLowerCase();
       const matchSearch = clienteNombre.includes(searchTerm.toLowerCase()) || 
@@ -93,7 +80,7 @@ const loadPedidos = useCallback(async () => {
       
       return matchSearch && matchStatus && matchDate;
     });
-  }, [pedidos, searchTerm, statusFilter, dateFilter]);
+  }, [ordenes, searchTerm, statusFilter, dateFilter]);
 
   const handleExport = () => {
     if (filteredPedidos.length === 0) {
@@ -219,13 +206,13 @@ const loadPedidos = useCallback(async () => {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="h-11 border-gray-200" onClick={loadPedidos}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" className="h-11 border-gray-200" onClick={() => obtener()}>
+            <RefreshCw className={`w-4 h-4 ${ordenesLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
         {/* Tabla */}
-        {loading ? (
+        {ordenesLoading ? (
           <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
             <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
             <p className="text-gray-400 text-sm font-bold uppercase">Sincronizando...</p>
@@ -260,7 +247,7 @@ const loadPedidos = useCallback(async () => {
       </div>
 
       {/* Modales */}
-      <CreatePedidoDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={loadPedidos} />
+      <CreatePedidoDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={obtener} />
       
       {selectedPedido && dialogMode === "view" && (
         <ViewPedidoDialog isOpen pedido={selectedPedido} onClose={() => { setSelectedPedido(null); setDialogMode(null); }} />
@@ -271,7 +258,7 @@ const loadPedidos = useCallback(async () => {
           isOpen 
           pedido={selectedPedido} 
           onClose={() => { setSelectedPedido(null); setDialogMode(null); }} 
-          onSuccess={loadPedidos} 
+          onSuccess={obtener} 
         />
       )}
     </div>

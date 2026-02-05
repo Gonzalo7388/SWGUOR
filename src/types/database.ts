@@ -9,24 +9,23 @@ export type Json =
 /**
  * Enums de la Base de Datos
  */
-export type EstadoPedido = 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado'
-export type EstadoConfeccion = 'pendiente' | 'en_proceso' | 'completado' 
-export type EstadoDespacho = 'pendiente' | 'en_ruta' | 'entregado'
-export type EstadoProducto = 'activo' | 'inactivo' | 'agotado'
-export type EstadoTaller = 'activo' | 'inactivo' | 'suspendido'
-export type PrioridadPedido = 'baja' | 'normal' | 'alta' | 'urgente'
-
-// ⭐ ACTUALIZADO: Rol es un ENUM con estos valores exactos
-export type RolUsuario = 'administrador' | 'cortador' | 'diseñador' | 'recepcionista' | 'ayudante' | 'representante_taller'
-
-// ⭐ ACTUALIZADO: Estado es un ENUM con estos valores exactos
-export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido'
-
-export type EstadoOrden = 'solicitado' | 'cotizado' | 'aprobado' | 'pagado' | 'en_proceso' | 'finalizado' | 'cancelado'
-export type EstadoCliente = 'activo' | 'inactivo' | 'suspendido' | 'potencial'
-export type EstadoCategoria = 'activo' | 'inactivo'
-export type TipoComprobante = 'boleta' | 'factura' | 'nota_venta'
-export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'transferencia_bcp' | 'transferencia_interbank' | 'tarjeta'
+export type EstadoPedido = 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado';
+export type EstadoConfeccion = 'corte' | 'confeccionando' | 'remallado' | 'terminado';
+export type EstadoDespacho = 'pendiente' | 'en_ruta' | 'entregado';
+export type EstadoProducto = 'activo' | 'inactivo' | 'agotado';
+export type EstadoTaller = 'activo' | 'inactivo' | 'suspendido';
+export type PrioridadPedido = 'baja' | 'normal' | 'alta' | 'urgente';
+export type RolUsuario = 'administrador' | 'cortador' | 'diseñador' | 'recepcionista' | 'ayudante' | 'representante_taller';
+export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido';
+export type EstadoOrden = 'solicitado' | 'cotizado' | 'aprobado' | 'pagado' | 'en_proceso' | 'finalizado' | 'cancelado';
+export type EstadoCliente = 'activo' | 'inactivo' | 'suspendido' | 'potencial';
+export type EstadoCategoria = 'activo' | 'inactivo';
+export type TipoComprobante = 'boleta' | 'factura' | 'nota_venta';
+export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'transferencia_bcp' | 'transferencia_interbank' | 'tarjeta';
+export type TipoInsumo = 'insumo' | 'producto_terminado';
+export type UnidadMedida = 'metros' | 'unidades' | 'conos' | 'docenas' | 'kilogramos' | 'set';
+export type TipoCliente = 'corporativo' | 'minorista' | 'distribuidor';
+export type EstadoCotizacion = 'pendiente' | 'aceptada' | 'rechazada' | 'vencida';
 
 /**
  * Schema de la Base de Datos
@@ -72,6 +71,7 @@ export interface Database {
           email: string | null
           telefono: number | null
           direccion: string | null
+          tipo: TipoCliente
           activo: EstadoCliente | null
           created_at: string
           updated_at: string
@@ -84,6 +84,7 @@ export interface Database {
           email?: string | null
           telefono?: number | null
           direccion?: string | null
+          tipo?: TipoCliente
           activo?: EstadoCliente | null
           created_at?: string
           updated_at?: string
@@ -95,6 +96,7 @@ export interface Database {
           email?: string | null
           telefono?: number | null
           direccion?: string | null
+          tipo?: TipoCliente
           activo?: EstadoCliente | null
           created_at?: string
           updated_at?: string
@@ -139,6 +141,43 @@ export interface Database {
         }
       }
 
+      // Tabla: cotizaciones
+      cotizaciones:{
+        Row: {
+          id: number
+          cotizacion_id: string
+          cliente_id: number
+          descripcion: string | null
+          monto: number
+          estado: EstadoCotizacion
+          vencimiento: string
+          fecha_creacion: string
+          updated_at: string
+
+        }
+        Insert: {
+          id?: number
+          cotizacion_id: string
+          cliente_id: number
+          descripcion?: string | null
+          monto: number
+          estado?: EstadoCotizacion
+          vencimiento: string
+          fecha_creacion?: string
+          updated_at?: string
+        }
+        Update: {
+          cotizacion_id?: string
+          cliente_id?: number
+          descripcion?: string | null
+          monto?: number
+          estado?: EstadoCotizacion
+          vencimiento?: string
+          fecha_creacion?: string
+          updated_at?: string
+        }
+      }
+
       // Tabla: despachos
       despachos: {
         Row: {
@@ -179,40 +218,45 @@ export interface Database {
       inventario: {
         Row: {
           id: number
+          sku: string | null
           nombre: string
-          tipo: string
-          unidad_medida: string
+          tipo: TipoInsumo
+          unidad_medida: UnidadMedida 
           stock_actual: number
           stock_minimo: number
+          costo_unitario: number | null
+          precio_venta: number | null
           categoria_id: number | null
           producto_id: number | null
-          cantidad_usada: number | null
           created_at: string
           updated_at: string
         }
         Insert: {
-          id?: never 
+          id?: never // El ID es generado por identidad
+          sku?: string | null
           nombre: string
-          tipo: string
-          unidad_medida: string
-          stock_actual: number
-          stock_minimo: number
+          tipo: TipoInsumo
+          unidad_medida?: UnidadMedida
+          stock_actual?: number
+          stock_minimo?: number
+          costo_unitario?: number | null
+          precio_venta?: number | null
           categoria_id?: number | null
           producto_id?: number | null
-          cantidad_usada?: number | null
           created_at?: string
           updated_at?: string
         }
         Update: {
+          sku?: string | null
           nombre?: string
-          tipo?: string
-          unidad_medida?: string
+          tipo?: TipoInsumo
+          unidad_medida?: UnidadMedida
           stock_actual?: number
           stock_minimo?: number
+          costo_unitario?: number | null
+          precio_venta?: number | null
           categoria_id?: number | null
           producto_id?: number | null
-          cantidad_usada?: number | null
-          created_at?: string
           updated_at?: string
         }
       }
@@ -543,6 +587,13 @@ export interface Database {
       estado_categoria: EstadoCategoria
       tipo_comprobante: TipoComprobante
       metodo_pago: MetodoPago
+      tipo_insumo: TipoInsumo
+      unidad_medida: UnidadMedida
+      tipo_cliente: TipoCliente
+      estado_cotizacion: EstadoCotizacion
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
@@ -563,6 +614,7 @@ export type Usuario = Database['public']['Tables']['usuarios']['Row']
 export type Orden = Database['public']['Tables']['ordenes']['Row']
 export type Venta = Database['public']['Tables']['ventas']['Row']
 export type DetalleOrden = Database['public']['Tables']['detalles_orden']['Row']
+export type Cotizacion = Database['public']['Tables']['cotizaciones']['Row']
 
 /**
  * Tipos para inserts
@@ -580,6 +632,7 @@ export type UsuarioInsert = Database['public']['Tables']['usuarios']['Insert']
 export type OrdenInsert = Database['public']['Tables']['ordenes']['Insert']
 export type VentaInsert = Database['public']['Tables']['ventas']['Insert']
 export type DetalleOrdenInsert = Database['public']['Tables']['detalles_orden']['Insert']
+export type CotizacionInsert = Database['public']['Tables']['cotizaciones']['Insert']
 
 /**
  * Tipos para updates
@@ -597,6 +650,7 @@ export type UsuarioUpdate = Database['public']['Tables']['usuarios']['Update']
 export type OrdenUpdate = Database['public']['Tables']['ordenes']['Update']
 export type VentaUpdate = Database['public']['Tables']['ventas']['Update']
 export type DetalleOrdenUpdate = Database['public']['Tables']['detalles_orden']['Update']
+export type CotizacionUpdate = Database['public']['Tables']['cotizaciones']['Update']
 
 /**
  * Tipo extendido para Inventario
@@ -609,3 +663,51 @@ export type InventarioConRelaciones = Inventario & {
     nombre: string
   } | null
 }
+
+/**
+ *  Interfaz para filtros de búsqueda en el Panel
+ */
+export interface FiltrosOrden {
+  estado?: EstadoOrden;
+  cliente_id?: number;
+  user_id?: string;
+  metodo_pago?: MetodoPago;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+/**
+ *  Estructura para los KPIs del Dashboard
+ */
+export interface EstadisticasOrden {
+  total_ordenes: number;
+  total_ventas: number;
+  promedio_venta: number;
+  ordenes_por_estado: Record<EstadoOrden, number>;
+}
+
+/**
+ *  Verificación de stock para el carrito
+ */
+export interface VerificacionStock {
+  disponible: boolean;
+  faltantes: {
+    producto_id: number;
+    nombre: string;
+    requerido: number;
+    disponible: number;
+    faltante: number;
+  }[];
+}
+
+/**
+ *  Orden con datos del Cliente y Detalles
+ *  Se usa en obtenerOrdenPorId y obtenerOrdenes
+ */
+export type OrdenCompleta = Orden & {
+  clientes: Pick<Cliente, 'id' | 'razon_social' | 'ruc' | 'email' | 'telefono' | 'direccion'> | null;
+  detalles_orden?: (DetalleOrden & {
+    productos: Pick<Producto, 'id' | 'nombre' | 'sku' | 'imagen' | 'precio'> | null;
+  })[];
+  usuarios?: Pick<Usuario, 'nombre_completo' | 'rol'> | null;
+};

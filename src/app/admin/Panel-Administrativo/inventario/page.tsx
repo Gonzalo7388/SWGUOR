@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { exportToExcel, exportToPDF } from "@/lib/utils/export-utils";
 import InventarioTable from "@/components/admin/inventario/InventarioTable";
+import { useInventario } from "@/lib/hooks/useInventory";
 
 // Lazy loading de componentes de Modales
 const CreateInsumoDialog = dynamic(() => import("@/components/admin/inventario/CreateInsumoDialog"));
@@ -20,8 +21,7 @@ const EditInsumoDialog = dynamic(() => import("@/components/admin/inventario/Edi
 const DeleteInsumoDialog = dynamic(() => import("@/components/admin/inventario/DeleteInsumoDialog"));
 
 export default function InventarioPage() {
-  const [inventario, setInventario] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { insumos, cargando, error, obtenerInsumosList, limpiar } = useInventario();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInsumo, setSelectedInsumo] = useState<any | null>(null);
@@ -34,31 +34,24 @@ export default function InventarioPage() {
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, bajoStock: 0, sinStock: 0, categorias: 0 });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/inventario');
-      if (!res.ok) throw new Error("Error al conectar con el servidor");
-      const data = await res.json();
-      
-      setInventario(data);
-      setStats({
-        total: data.length,
-        bajoStock: data.filter((i: any) => i.stock_actual > 0 && i.stock_actual <= i.stock_minimo).length,
-        sinStock: data.filter((i: any) => i.stock_actual === 0).length,
-        categorias: new Set(data.map((i: any) => i.tipo)).size
-      });
-    } catch (err: any) {
-      toast.error(err.message || "Error al sincronizar inventario");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    obtenerInsumosList();
+  }, [obtenerInsumosList]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Calcular stats cuando cambien los insumos
+  useEffect(() => {
+    if (insumos.length > 0) {
+      setStats({
+        total: insumos.length,
+        bajoStock: insumos.filter((i: any) => i.stock_actual > 0 && i.stock_actual <= i.stock_minimo).length,
+        sinStock: insumos.filter((i: any) => i.stock_actual === 0).length,
+        categorias: new Set(insumos.map((i: any) => i.tipo)).size
+      });
+    }
+  }, [insumos]);
 
   const filteredData = useMemo(() => {
-    return inventario.filter((i: any) => {
+    return insumos.filter((i: any) => {
       const matchSearch = !searchTerm || i.nombre.toLowerCase().includes(searchTerm.toLowerCase());
       const matchTipo = selectedTipo === "todos" || i.tipo === selectedTipo;
       
@@ -68,7 +61,7 @@ export default function InventarioPage() {
       
       return matchSearch && matchTipo && matchQuick;
     });
-  }, [inventario, searchTerm, quickFilter, selectedTipo]);
+  }, [insumos, searchTerm, quickFilter, selectedTipo]);
 
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const paginatedData = filteredData.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -209,13 +202,13 @@ export default function InventarioPage() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="h-11 border-gray-200" onClick={loadData}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" className="h-11 border-gray-200" onClick={() => obtenerInsumosList()}>
+            <RefreshCw className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
         {/* Tabla principal */}
-        {loading ? (
+        {cargando ? (
           <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
             <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
             <p className="text-gray-400 text-sm font-bold uppercase">Sincronizando...</p>
@@ -224,7 +217,7 @@ export default function InventarioPage() {
           <div className="space-y-4">
             <InventarioTable 
               data={paginatedData} 
-              loading={loading} 
+              loading={cargando} 
               onEdit={(item: any) => { setSelectedInsumo(item); setDialogMode("edit"); }}
               onDelete={(item: any) => { setSelectedInsumo(item); setDialogMode("delete"); }}
             />
@@ -254,7 +247,7 @@ export default function InventarioPage() {
       <CreateInsumoDialog 
         isOpen={isCreateOpen} 
         onClose={() => setIsCreateOpen(false)} 
-        onSuccess={loadData} 
+        onSuccess={obtenerInsumosList} 
       />
       
       {selectedInsumo && dialogMode === "edit" && (
@@ -262,7 +255,7 @@ export default function InventarioPage() {
           isOpen={true} 
           insumo={selectedInsumo} 
           onClose={() => {setDialogMode(null); setSelectedInsumo(null);}} 
-          onSuccess={loadData} 
+          onSuccess={obtenerInsumosList} 
         />
       )}
 
@@ -271,7 +264,7 @@ export default function InventarioPage() {
           isOpen={true} 
           insumo={selectedInsumo} 
           onClose={() => {setDialogMode(null); setSelectedInsumo(null);}} 
-          onSuccess={loadData} 
+          onSuccess={obtenerInsumosList} 
         />
       )}
     </div>

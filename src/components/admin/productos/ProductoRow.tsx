@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getEstadoInfo } from "@/lib/constants/estados";
 
 const STORAGE_URL = "https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/";
 
@@ -43,7 +44,12 @@ const ProductoRow = memo(({
   const hasFicha = (p as any).ficha_url; 
   
   const categoriaNombre = categorias.find(c => c.id === p.categoria_id)?.nombre || 'Sin categoría';
-
+  const badge = getEstadoInfo(p.estado, 'producto') || {
+    label: p.estado || 'Desconocido',
+    color: 'text-slate-500',
+    bgColor: 'bg-slate-100'
+  };
+  
   return (
     <tr className="group transition-all duration-200">
       {/* Detalle Producto */}
@@ -106,11 +112,8 @@ const ProductoRow = memo(({
       {/* Estado */}
       <td className="bg-white border-y border-slate-100 text-center shadow-sm">
         <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black border-2 uppercase shadow-none ${
-          p.estado === 'activo' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-          p.estado === 'agotado' ? 'bg-rose-50 text-rose-600 border-rose-100' : 
-          'bg-slate-50 text-slate-400 border-slate-100'
-        }`} variant="outline">
-          {p.estado}
+          badge.bgColor} ${badge.color} border-white`}>
+          {badge.label}
         </Badge>
       </td>
 

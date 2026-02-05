@@ -12,40 +12,40 @@ export async function GET(request: Request) {
   inicioPeriodoActual.setDate(ahora.getDate() - days);
 
   const inicioPeriodoAnterior = new Date();
-  inicioPeriodoAnterior.setDate(inicioPeriodoActual.getDate() - (days * 2)); // Corregido: 2 periodos atrás
+  inicioPeriodoAnterior.setDate(inicioPeriodoActual.getDate() - days);
 
   try {
-    // 1. Obtener Pedidos
-    // Nota: Eliminé 'estado_pago' porque no está en tu CSV actual. 
-    // Si la agregas luego a Supabase, puedes reincorporarla.
+    // 1. Obtener Pedidos con las columnas reales de tu esquema
     const { data: todosLosPedidos, error: errorPedidos } = await supabase
       .from("pedidos")
-      .select("total, created_at, estado")
+      .select("id, created_at, estado, cantidad, precio_unitario")
       .gte("created_at", inicioPeriodoAnterior.toISOString());
 
     if (errorPedidos) throw errorPedidos;
     if (!todosLosPedidos) return NextResponse.json({ error: "No hay datos" }, { status: 404 });
 
-    // 2. Separar pedidos por periodos (Basado en 'estado' != 'CANCELADO')
+    // Función auxiliar para calcular el total de un pedido según tu esquema
+    const calcularMonto = (p: any) => (Number(p.cantidad) || 0) * (Number(p.precio_unitario) || 0);
+
+    // 2. Separar pedidos por periodos (Excluyendo cancelados si aplica)
     const pedidosActuales = todosLosPedidos.filter(p => 
-      new Date(p.created_at) >= inicioPeriodoActual && p.estado !== 'CANCELADO'
+      new Date(p.created_at) >= inicioPeriodoActual && p.estado !== 'cancelado'
     );
     const pedidosAnteriores = todosLosPedidos.filter(p => 
       new Date(p.created_at) >= inicioPeriodoAnterior && 
       new Date(p.created_at) < inicioPeriodoActual &&
-      p.estado !== 'CANCELADO'
+      p.estado !== 'cancelado'
     );
 
-    // 3. MÉTRICA: PRODUCCIÓN EN CURSO (Basado en tus roles: cortador, diseñador, etc.)
-    // Incluimos estados que NO sean completado ni cancelado
-    const estadosProduccion = ['PENDIENTE', 'DISEÑANDO', 'CORTANDO', 'EN_TALLER', 'LISTO'];
+    // 3. Métrica: Producción en curso (Basado en tus estados de EstadoPedido)
+    const estadosProduccion = ['pendiente', 'en_diseño', 'en_corte', 'en_confeccion']; 
     const produccionEnCurso = todosLosPedidos
-      .filter(p => estadosProduccion.includes(p.estado))
-      .reduce((acc: number, p) => acc + (Number(p.total) || 0), 0);
+      .filter(p => estadosProduccion.includes(p.estado || ''))
+      .reduce((acc, p) => acc + calcularMonto(p), 0);
 
     // 4. Calcular métricas financieras
-    const totalActual = pedidosActuales.reduce((acc: number, p) => acc + (Number(p.total) || 0), 0);
-    const totalAnterior = pedidosAnteriores.reduce((acc: number, p) => acc + (Number(p.total) || 0), 0);
+    const totalActual = pedidosActuales.reduce((acc, p) => acc + calcularMonto(p), 0);
+    const totalAnterior = pedidosAnteriores.reduce((acc, p) => acc + calcularMonto(p), 0);
 
     let porcentajeCrecimiento = totalAnterior > 0 
       ? ((totalActual - totalAnterior) / totalAnterior) * 100 
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     // 5. Ventas por Día (Gráfico)
     const ventasPorDiaMap = pedidosActuales.reduce((acc: Record<string, number>, curr) => {
       const fecha = new Date(curr.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
-      acc[fecha] = (acc[fecha] || 0) + (Number(curr.total) || 0);
+      acc[fecha] = (acc[fecha] || 0) + calcularMonto(curr);
       return acc;
     }, {});
 
@@ -63,14 +63,14 @@ export async function GET(request: Request) {
       ventas: ventasPorDiaMap[fecha]
     }));
 
-    // 6. Detalles para Pareto y Tallas (Con manejo de errores para relaciones vacías)
+    // 6. Detalles para Pareto y Tallas (Desde la misma tabla pedidos según tu estructura)
     const { data: detData, error: errorDet } = await supabase
-      .from("detalles_pedido")
+      .from("pedidos")
       .select(`
         cantidad,
         talla,
-        productos (
-          precio,
+        precio_unitario,
+        producto:productos (
           categorias ( nombre )
         )
       `)
@@ -80,25 +80,22 @@ export async function GET(request: Request) {
     const tallasMap: Record<string, number> = {};
 
     detData?.forEach((d: any) => {
-      // Pareto: Si no hay categoría, usamos "General"
-      const catName = d.productos?.categorias?.nombre || "General";
-      const monto = (Number(d.cantidad) || 0) * (Number(d.productos?.precio) || 0);
+      const catName = d.producto?.categorias?.nombre || "General";
+      const monto = (Number(d.cantidad) || 0) * (Number(d.precio_unitario) || 0);
       paretoMap[catName] = (paretoMap[catName] || 0) + monto;
 
-      // Tallas
       if (d.talla) {
         tallasMap[d.talla] = (tallasMap[d.talla] || 0) + (Number(d.cantidad) || 0);
       }
     });
 
-    // 7. Respuesta consolidada (Asegurando que nada sea undefined)
     return NextResponse.json({
       metrics: {
-        total: totalActual || 0,
-        pedidos: pedidosActuales.length || 0,
-        crecimiento: Math.round(porcentajeCrecimiento) || 0,
-        produccionEnCurso: produccionEnCurso || 0,
-        clientes: new Set(pedidosActuales.map((p:any) => p.cliente_id)).size // Calculado al vuelo
+        total: totalActual,
+        pedidos: pedidosActuales.length,
+        crecimiento: Math.round(porcentajeCrecimiento),
+        produccionEnCurso: produccionEnCurso,
+        clientes: 0 // Nota: Tu tabla pedidos no tiene cliente_id directo, está en 'ordenes'
       },
       ventasPorDia: ventasPorDia.length > 0 ? ventasPorDia : [{fecha: 'Sin datos', ventas: 0}],
       ventasPorCategoria: Object.entries(paretoMap).map(([name, value]) => ({ name, value })),

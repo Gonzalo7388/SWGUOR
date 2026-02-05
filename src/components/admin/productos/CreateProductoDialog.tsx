@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { generateSKU } from "@/lib/utils/producto-utils";
+import { calcularMargen } from "@/lib/helpers/products-helpers";
+import { useProducts } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +32,7 @@ export default function CreateProductoDialog({
   onSuccess,
   categorias,
 }: any) {
+  const { refetch } = useProducts();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,6 +40,8 @@ export default function CreateProductoDialog({
     descripcion: "",
     sku: "",
     precio: "",
+    costo: "",
+    margen: "",
     stock: "0",
     stock_minimo: "400",
     categoria_id: "",
@@ -62,6 +67,19 @@ export default function CreateProductoDialog({
     }
   };
 
+  // Calcular margen automáticamente
+  const handleCostoChange = (costo: string) => {
+    if (formData.precio && costo) {
+      const margen = calcularMargen(
+        Number(formData.precio),
+        Number(costo)
+      );
+      setFormData({ ...formData, costo, margen: margen.toFixed(2) });
+    } else {
+      setFormData({ ...formData, costo });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -80,7 +98,19 @@ export default function CreateProductoDialog({
       const response = await fetch('/api/admin/productos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({formData, sku: skuGenerado}),
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          descripcion: formData.descripcion,
+          sku: skuGenerado,
+          precio: Number(formData.precio),
+          costo: formData.costo ? Number(formData.costo) : null,
+          margen: formData.margen ? Number(formData.margen) : null,
+          stock: Number(formData.stock),
+          stock_minimo: Number(formData.stock_minimo),
+          categoria_id: Number(formData.categoria_id),
+          estado: formData.estado,
+          imagen: formData.imagen_url,
+        }),
       });
 
       const result = await response.json();
@@ -88,8 +118,24 @@ export default function CreateProductoDialog({
       if (!response.ok) throw new Error(result.error || "Error al crear");
 
       toast.success(`Producto ${skuGenerado} creado correctamente`);
+      refetch(); // Refrescar lista de productos
       onSuccess();
       onClose();
+      
+      // Limpiar form
+      setFormData({
+        nombre: "",
+        descripcion: "",
+        sku: "",
+        precio: "",
+        costo: "",
+        margen: "",
+        stock: "0",
+        stock_minimo: "400",
+        categoria_id: "",
+        estado: "activo",
+        imagen_url: "",
+      });
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -126,6 +172,17 @@ export default function CreateProductoDialog({
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Precio (S/)</Label>
               <Input type="number" step="0.01" className="rounded-xl border-gray-200" value={formData.precio} onChange={(e) => setFormData({...formData, precio: e.target.value})} required />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Costo (S/)</Label>
+              <Input type="number" step="0.01" className="rounded-xl border-gray-200" value={formData.costo} onChange={(e) => handleCostoChange(e.target.value)} placeholder="Costo de venta" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Margen %</Label>
+              <Input type="number" step="0.1" className="rounded-xl bg-gray-50 cursor-not-allowed" value={formData.margen} disabled placeholder="Auto-calculado" />
             </div>
           </div>
 

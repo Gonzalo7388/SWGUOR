@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Menu, X,
   LogOut, Boxes, Truck, FileText, Scissors, Building,
-  DollarSign, Bell, Grid3x3, ChevronDown, Shield, User,
+  DollarSign, Bell, Grid3x3, ChevronDown, Settings, User,
   BarChart3,
   Crown
 } from 'lucide-react';
@@ -15,12 +15,6 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Usuario } from '@/types/database';
 import { LucideIcon } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-
-type SubMenuItem = {
-  title: string;
-  href: string;
-  icon?: LucideIcon; 
-};
 
 type NavItem = {
   title: string;
@@ -99,7 +93,7 @@ const navItems: NavItem[] = [
   {
     title: 'Configuración',
     href: '/admin/Panel-Administrativo/configuracion',
-    icon: Shield,
+    icon: Settings,
     roles: ['administrador'],
   }
 ];
