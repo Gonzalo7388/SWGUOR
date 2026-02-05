@@ -46,3 +46,116 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
+
+// Helpers para Productos
+export async function getProductos() {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('[SUPABASE] Error obteniendo productos:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function getProductosPorCategoria(categoriaId: string | number) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .eq('categoria_id', categoriaId)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('[SUPABASE] Error obteniendo productos por categoría:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function getProductoporId(id: string | number) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    console.error('[SUPABASE] Error obteniendo producto:', error);
+    return null;
+  }
+  
+  return data;
+}
+
+export async function buscarProductos(query: string) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('[SUPABASE] Error buscando productos:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+// Helpers para Categorías
+export async function getCategorias() {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('*')
+    .eq('activo', true)
+    .order('nombre', { ascending: true });
+  
+  if (error) {
+    console.error('[SUPABASE] Error obteniendo categorías:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function getCategoriasConProductos() {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('*, productos(count)')
+    .eq('activo', true)
+    .order('nombre', { ascending: true });
+  
+  if (error) {
+    console.error('[SUPABASE] Error obteniendo categorías:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function getCategoriaPorId(id: string | number) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    console.error('[SUPABASE] Error obteniendo categoría:', error);
+    return null;
+  }
+  
+  return data;
+}

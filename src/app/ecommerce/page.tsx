@@ -1,10 +1,10 @@
 'use client';
 
-import CarruselHeroi from './_components/HeroSlider';
-import MuestraCategoria from './_components/CategoryShowcase';
-import ProductosDestacados from './_components/FeaturedProducts';
-import SeccionPromo from './_components/PromoSection';
-import SeccionBeneficios from './_components/BenefitsSection';
+import CarruselHeroi from './_components/hero/HeroSlider';
+import MuestraCategoria from './_components/secciones/CategoryShowcase';
+import ProductosDestacados from './_components/productos/FeaturedProducts';
+import SeccionPromo from './_components/secciones/PromoSection';
+import SeccionBeneficios from './_components/secciones/BenefitsSection';
 
 export default function PaginaEcommerce() {
   return (
