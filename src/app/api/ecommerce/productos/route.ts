@@ -1,80 +1,87 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * GET /api/ecommerce/productos
+ * Obtiene productos para el ecommerce con filtros
+ * Parámetros:
+ * - categoria_id: ID de la categoría (para filtrar)
+ * - busqueda: Búsqueda por nombre o descripción
+ * - limite: Cantidad máxima de resultados (default: 20)
+ * - estado: Estado del producto (default: activo)
+ */
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
-
-    // Obtener parámetros de la query
     const { searchParams } = new URL(request.url);
-    const categoria = searchParams.get('categoria');
+    const categoriaId = searchParams.get('categoria_id');
     const busqueda = searchParams.get('busqueda');
-    const limite = searchParams.get('limite') || '20';
+    const limite = parseInt(searchParams.get('limite') || '20');
+    const estado = searchParams.get('estado') || 'activo';
 
-    let query = supabase.from('productos').select('*');
+    // Construir filtros dinámicos
+    const where: any = {
+      estado: estado,
+      categoria: {
+        activo: true,
+      },
+    };
 
-    // Aplicar filtros
-    if (categoria) {
-      query = query.eq('id_de_categoria', categoria);
+    if (categoriaId) {
+      where.categoria_id = parseInt(categoriaId);
     }
 
     if (busqueda) {
-      query = query.or(`nombre.ilike.%${busqueda}%,Descripción.ilike.%${busqueda}%`);
+      where.OR = [
+        { nombre: { contains: busqueda, mode: 'insensitive' } },
+        { descripcion: { contains: busqueda, mode: 'insensitive' } },
+      ];
     }
 
-    // Aplicar límite y ordenamiento
-    const { data, error } = await query
-      .order('creado_en', { ascending: false })
-      .limit(parseInt(limite));
+    // Obtener productos con relación de categoría
+    const productos = await prisma.productos.findMany({
+      where,
+      include: {
+        categoria: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      take: limite,
+    });
 
-    if (error) {
-      console.error('[API] Error obteniendo productos:', error);
-      return NextResponse.json(
-        { error: 'Error obteniendo productos' },
-        { status: 500 }
-      );
-    }
-
-    // Normalizar los datos
-    const productosNormalizados = (data || []).map((producto: any) => ({
-      id: producto.Identificon || producto.id,
+    // Transformar datos para el ecommerce
+    const productosTransformados = productos.map((producto) => ({
+      id: producto.id,
       nombre: producto.nombre,
-      descripcion: producto.Descripción,
-      precio: producto.precio,
-      precio_original: producto.precio_original,
-      categoria_id: producto['id_de_categoria'],
-      imagen: producto.Imagen,
-      creado_en: producto.creado_en,
-      existencias: producto.existencias,
-      stock_minimo: producto.stock_minimo,
+      descripcion: producto.descripcion,
+      precio: Number(producto.precio),
+      imagen: producto.imagen,
+      sku: producto.sku,
+      stock: producto.stock,
+      categoria_id: producto.categoria_id,
+      categoria: {
+        id: producto.categoria.id,
+        nombre: producto.categoria.nombre,
+      },
+      estado: producto.estado,
+      created_at: producto.created_at,
     }));
 
     return NextResponse.json({
       success: true,
-      data: productosNormalizados,
-      count: productosNormalizados.length,
+      data: productosTransformados,
+      count: productosTransformados.length,
     });
   } catch (error) {
-    console.error('[API] Error:', error);
+    console.error('[API] Error obteniendo productos:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error obteniendo productos del ecommerce' },
       { status: 500 }
     );
   }

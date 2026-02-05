@@ -1,8 +1,8 @@
 'use client';
 
 import { ReactNode } from 'react';
-import Encabezado from './_components/layout/Header';
-import PiePagina from './_components/layout/Footer';
+import Encabezado from '@/components/ecommerce/layout/Header';
+import PiePagina from '@/components/ecommerce/layout/Footer';
 import { EcommerceProvider } from './_contexts/AuthContext';
 import { CartProvider } from './_contexts/CartContext';
 

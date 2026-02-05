@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
 
 const CATEGORIAS = [
-  { id: 1, nombre: 'Vestidos', href: '#' },
-  { id: 2, nombre: 'Blusas', href: '#' },
-  { id: 3, nombre: 'Pantalones', href: '#' },
-  { id: 4, nombre: 'Faldas', href: '#' },
-  { id: 5, nombre: 'Accesorios', href: '#' },
-  { id: 6, nombre: 'Buzos', href: '#' },
+  { id: 1, nombre: 'Vestidos', href: '/ecommerce/categorias/1' },
+  { id: 2, nombre: 'Blusas', href: '/ecommerce/categorias/2' },
+  { id: 3, nombre: 'Pantalones', href: '/ecommerce/categorias/3' },
+  { id: 4, nombre: 'Faldas', href: '/ecommerce/categorias/4' },
+  { id: 5, nombre: 'Accesorios', href: '/ecommerce/categorias/5' },
+  { id: 6, nombre: 'Buzos', href: '/ecommerce/categorias/6' },
 ];
 
 export default function Encabezado() {
@@ -40,7 +40,7 @@ export default function Encabezado() {
           {/* Encabezado Escritorio */}
           <div className="hidden md:flex items-center justify-between gap-8">
             {/* Logo */}
-            <Link href="/ecommerce" className="flex-shrink-0">
+            <Link href="/ecommerce" className="shrink-0">
               <div className="text-2xl font-bold text-gray-900">
                 <span className="text-red-600">SWGUOR</span>
               </div>
@@ -48,7 +48,7 @@ export default function Encabezado() {
             </Link>
 
             {/* Barra de Búsqueda */}
-            <div className="flex-grow max-w-md">
+            <div className="grow max-w-md">
               <div className="relative">
                 <input
                   type="text"

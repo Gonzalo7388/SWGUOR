@@ -1,67 +1,88 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+/**
+ * GET /api/ecommerce/categorias/[id]
+ * Obtiene todos los productos de una categoría específica
+ * Incluye información de la categoría y sus productos
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = params;
-    
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const { id: categoriaId } = await params;
+    const id = parseInt(categoriaId);
 
-    // Obtener productos de una categoría específica
-    const { data, error } = await supabase
-      .from('productos')
-      .select('*')
-      .eq('id_de_categoria', id)
-      .order('nombre', { ascending: true });
-
-    if (error) {
-      console.error('[API] Error obteniendo productos:', error);
+    if (isNaN(id)) {
       return NextResponse.json(
-        { error: 'Error obteniendo productos' },
-        { status: 500 }
+        { error: 'ID de categoría inválido' },
+        { status: 400 }
       );
     }
 
-    // Normalizar los datos
-    const productosNormalizados = (data || []).map((producto: any) => ({
-      id: producto.Identificon || producto.id,
-      nombre: producto.nombre,
-      descripcion: producto.Descripción,
-      precio: producto.precio,
-      precio_original: producto.precio_original,
-      categoria_id: producto['id_de_categoria'],
-      imagen: producto.Imagen,
-      creado_en: producto.creado_en,
-      existencias: producto.existencias,
-      stock_minimo: producto.stock_minimo,
+    // Obtener la categoría
+    const categoria = await prisma.categorias.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nombre: true,
+        descripcion: true,
+        activo: true,
+      },
+    });
+
+    if (!categoria || !categoria.activo) {
+      return NextResponse.json(
+        { error: 'Categoría no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // Obtener todos los productos de la categoría
+    const productos = await prisma.productos.findMany({
+      where: {
+        categoria_id: id,
+        estado: 'activo',
+      },
+      select: {
+        id: true,
+        nombre: true,
+        descripcion: true,
+        precio: true,
+        imagen: true,
+        sku: true,
+        stock: true,
+        categoria_id: true,
+        estado: true,
+        created_at: true,
+      },
+      orderBy: {
+        nombre: 'asc',
+      },
+    });
+
+    // Transformar los datos
+    const productosTransformados = productos.map((producto) => ({
+      ...producto,
+      precio: Number(producto.precio),
+      categoria: {
+        id: categoria.id,
+        nombre: categoria.nombre,
+        descripcion: categoria.descripcion,
+      },
     }));
 
     return NextResponse.json({
       success: true,
-      data: productosNormalizados,
-      count: productosNormalizados.length,
+      data: productosTransformados,
+      categoria,
+      count: productosTransformados.length,
     });
   } catch (error) {
-    console.error('[API] Error:', error);
+    console.error('[API] Error obteniendo productos de categoría:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error obteniendo productos de la categoría' },
       { status: 500 }
     );
   }

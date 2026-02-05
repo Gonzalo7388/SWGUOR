@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCategoriasEcommerce } from '@/lib/hooks/useCategoriasEcommerce';
+import { getSupabaseImageUrl } from '@/lib/utils/supabase-image-utils';
 
 const ICONOS_CATEGORIA = {
   'Vestidos': '👗',
@@ -92,9 +93,12 @@ export default function MuestraCategoria() {
                   >
                     {categoria.imagen ? (
                       <img
-                        src={categoria.imagen}
+                        src={getSupabaseImageUrl(categoria.imagen, 'categorias') || categoria.imagen}
                         alt={categoria.nombre}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="text-5xl md:text-6xl">{icono}</div>

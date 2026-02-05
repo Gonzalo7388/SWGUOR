@@ -3,6 +3,7 @@
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
+import { getSupabaseImageUrl } from '@/lib/utils/supabase-image-utils';
 
 interface ProductCardProps {
   producto: {
@@ -50,16 +51,17 @@ export default function ProductCard({ producto, size = 'md' }: ProductCardProps)
       <div className={`relative ${sizeClasses[size]} overflow-hidden rounded-lg bg-gray-200 mb-3 group`}>
         {producto.imagen ? (
           <img
-            src={producto.imagen}
+            src={getSupabaseImageUrl(producto.imagen) || producto.imagen}
             alt={producto.nombre}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).src = '/placeholder-image.png';
+              (e.target as HTMLImageElement).style.filter = 'grayscale(100%)';
             }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-            Sin imagen
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm bg-gray-100">
+            Sin imagen disponible
           </div>
         )}
 

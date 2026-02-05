@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import ProductCard from '@/app/ecommerce/_components/productos/ProductCard';
-import Encabezado from '@/app/ecommerce/_components/layout/Header';
-import PiePagina from '@/app/ecommerce/_components/layout/Footer';
+import ProductCard from '@/components/ecommerce/productos/ProductCard';
 
 interface Categoria {
   id: string | number;
@@ -21,6 +19,8 @@ interface Producto {
   precio_original?: number;
   imagen?: string;
   categoria_id: string | number;
+  stock?: number;
+  sku?: string;
 }
 
 export default function PaginaCategoria() {
@@ -38,26 +38,29 @@ export default function PaginaCategoria() {
         setLoading(true);
         setError(null);
 
-        // Obtener categoría
-        const categResponse = await fetch(
-          `/api/ecommerce/categorias?filterById=${categoriaId}`
-        );
-        if (categResponse.ok) {
-          const categData = await categResponse.json();
-          const cat = categData.data?.find((c: any) => c.id == categoriaId);
-          setCategoria(cat || null);
-        }
-
-        // Obtener productos de la categoría
+        // Obtener productos de la categoría usando la API mejorada
         const prodResponse = await fetch(
           `/api/ecommerce/categorias/${categoriaId}`
         );
+
         if (!prodResponse.ok) {
           throw new Error('Error obteniendo productos');
         }
 
         const prodData = await prodResponse.json();
         setProductos(prodData.data || []);
+
+        // Extraer info de la categoría del primer producto si existe
+        if (prodData.data && prodData.data.length > 0) {
+          const primerProducto = prodData.data[0];
+          if (primerProducto.categoria) {
+            setCategoria({
+              id: categoriaId,
+              nombre: primerProducto.categoria.nombre,
+              descripcion: primerProducto.categoria.descripcion,
+            });
+          }
+        }
       } catch (err) {
         console.error('[CATEGORIA_PAGE] Error:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -73,30 +76,32 @@ export default function PaginaCategoria() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Encabezado />
-      <main className="flex-grow">
-        {/* Header de Categoría */}
-        <div className="bg-gradient-to-r from-red-500 to-red-700 text-white py-8">
-          <div className="max-w-7xl mx-auto px-4">
-            {loading ? (
-              <>
-                <div className="h-8 bg-white/20 rounded w-1/3 mb-2 animate-pulse"></div>
-                <div className="h-4 bg-white/20 rounded w-2/3 animate-pulse"></div>
-              </>
-            ) : (
-              <>
-                <h1 className="text-4xl font-bold mb-2">
-                  {categoria?.nombre || 'Categoría'}
-                </h1>
-                <p className="text-red-100">
-                  {categoria?.descripcion || ''}
-                </p>
-              </>
-            )}
-          </div>
+      {/* Header de Categoría */}
+      <div className="bg-gradient-to-r from-red-500 to-red-700 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          {loading ? (
+            <>
+              <div className="h-8 bg-white/20 rounded w-1/3 mb-2 animate-pulse"></div>
+              <div className="h-4 bg-white/20 rounded w-2/3 animate-pulse"></div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-4xl font-bold mb-2">
+                {categoria?.nombre || 'Categoría'}
+              </h1>
+              <p className="text-red-100">
+                {categoria?.descripcion || 'Explora nuestros productos'}
+              </p>
+              <p className="text-red-100 text-sm mt-2">
+                {productos.length} producto{productos.length !== 1 ? 's' : ''} disponible{productos.length !== 1 ? 's' : ''}
+              </p>
+            </>
+          )}
         </div>
+      </div>
 
-        {/* Contenido */}
+      {/* Contenido */}
+      <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 py-12">
           {loading ? (
             // Loading State
@@ -112,26 +117,41 @@ export default function PaginaCategoria() {
           ) : error ? (
             // Error State
             <div className="text-center py-12">
-              <p className="text-red-600 text-lg">Error: {error}</p>
+              <p className="text-red-600 text-lg mb-4">Error: {error}</p>
+              <a
+                href="/ecommerce/categorias"
+                className="text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                Volver a categorías
+              </a>
             </div>
           ) : productos.length > 0 ? (
             // Productos
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {productos.map((producto) => (
-                <ProductCard key={producto.id} producto={producto} size="md" />
+                <ProductCard
+                  key={producto.id}
+                  producto={producto}
+                  size="md"
+                />
               ))}
             </div>
           ) : (
             // Empty State
             <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600 text-lg mb-4">
                 No hay productos en esta categoría
               </p>
+              <a
+                href="/ecommerce/categorias"
+                className="text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                Explorar otras categorías
+              </a>
             </div>
           )}
         </div>
       </main>
-      <PiePagina />
     </div>
   );
 }

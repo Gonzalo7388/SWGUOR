@@ -1,10 +1,11 @@
 'use client';
 
-import CarruselHeroi from './_components/hero/HeroSlider';
-import MuestraCategoria from './_components/secciones/CategoryShowcase';
-import ProductosDestacados from './_components/productos/FeaturedProducts';
-import SeccionPromo from './_components/secciones/PromoSection';
-import SeccionBeneficios from './_components/secciones/BenefitsSection';
+import CarruselHeroi from '@/components/ecommerce/hero/HeroSlider';
+import MuestraCategoria from '@/components/ecommerce/secciones/CategoryShowcase';
+import ProductosDestacados from '@/components/ecommerce/productos/FeaturedProducts';
+import ProductosPorCategoria from '@/components/ecommerce/secciones/ProductosPorCategoria';
+import SeccionPromo from '@/components/ecommerce/secciones/PromoSection';
+import SeccionBeneficios from '@/components/ecommerce/secciones/BenefitsSection';
 
 export default function PaginaEcommerce() {
   return (
@@ -27,6 +28,11 @@ export default function PaginaEcommerce() {
       {/* Productos Destacados */}
       <section className="border-t border-gray-200">
         <ProductosDestacados />
+      </section>
+
+      {/* Productos por Categoría */}
+      <section className="border-t border-gray-200">
+        <ProductosPorCategoria />
       </section>
 
       {/* Beneficios */}
