@@ -35,7 +35,7 @@ export function useProductosEcommerce(options: UseProductosOptions = {}) {
         const params = new URLSearchParams();
         
         if (options.categoria) {
-          params.append('categoria', String(options.categoria));
+          params.append('categoria_id', String(options.categoria));
         }
         
         if (options.busqueda) {

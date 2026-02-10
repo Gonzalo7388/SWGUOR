@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { createClient as createServerClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -15,55 +15,75 @@ export async function GET(request: NextRequest) {
       searchParams.get('limite_por_categoria') || '6'
     );
 
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
     // Obtener todas las categorías activas
-    const categorias = await prisma.categorias.findMany({
-      where: {
-        activo: true,
-      },
-      orderBy: {
-        nombre: 'asc',
-      },
-    });
+    const { data: categorias, error: categError } = await supabase
+      .from('categorias')
+      .select('id, nombre, descripcion, activo')
+      .eq('activo', true)
+      .order('nombre', { ascending: true });
+
+    if (categError || !categorias) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Error obteniendo categorías',
+          data: [],
+        },
+        { status: 500 }
+      );
+    }
 
     // Para cada categoría, obtener sus productos
     const categoriasConProductos = await Promise.all(
-      categorias.map(async (categoria) => {
-        const productos = await prisma.productos.findMany({
-          where: {
-            categoria_id: categoria.id,
-            estado: 'activo',
-          },
-          select: {
-            id: true,
-            nombre: true,
-            descripcion: true,
-            precio: true,
-            imagen: true,
-            sku: true,
-            stock: true,
-            categoria_id: true,
-          },
-          orderBy: {
-            created_at: 'desc',
-          },
-          take: limitePorCategoria,
-        });
+      (categorias as any[]).map(async (categoria) => {
+        // Obtener productos de la categoría
+        const { data: productos, error: prodError } = await supabase
+          .from('productos')
+          .select('id, nombre, descripcion, precio, imagen, sku, stock, stock_minimo, categoria_id, created_at, updated_at')
+          .eq('categoria_id', categoria.id)
+          .eq('estado', 'activo')
+          .gt('stock', 0)
+          .order('created_at', { ascending: false })
+          .limit(limitePorCategoria);
+
+        // Contar total de productos en la categoría
+        const { count: totalProductos } = await supabase
+          .from('productos')
+          .select('id', { count: 'exact', head: true })
+          .eq('categoria_id', categoria.id)
+          .eq('estado', 'activo')
+          .gt('stock', 0);
 
         return {
           id: categoria.id,
           nombre: categoria.nombre,
           descripcion: categoria.descripcion,
           activo: categoria.activo,
-          productos: productos.map((p) => ({
-            ...p,
+          productos: ((productos || []) as any[]).map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            descripcion: p.descripcion,
             precio: Number(p.precio),
+            imagen: p.imagen,
+            sku: p.sku,
+            stock: p.stock,
+            stock_minimo: p.stock_minimo,
+            categoria_id: p.categoria_id,
+            created_at: p.created_at,
+            updated_at: p.updated_at,
           })),
-          total_productos: await prisma.productos.count({
-            where: {
-              categoria_id: categoria.id,
-              estado: 'activo',
-            },
-          }),
+          total_productos: totalProductos || 0,
         };
       })
     );
@@ -82,9 +102,12 @@ export async function GET(request: NextRequest) {
     console.error('[API] Error obteniendo productos por categoría:', error);
     return NextResponse.json(
       {
+        success: false,
         error: 'Error obteniendo productos agrupados por categoría',
+        data: [],
       },
       { status: 500 }
     );
   }
 }
+

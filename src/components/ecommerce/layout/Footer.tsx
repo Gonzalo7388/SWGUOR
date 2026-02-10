@@ -4,16 +4,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Facebook, Instagram, Twitter, Mail, Heart } from 'lucide-react';
 
-export default function PiePagina() {
-  const categorias = [
-    { id: 1, nombre: 'Vestidos' },
-    { id: 2, nombre: 'Blusas' },
-    { id: 3, nombre: 'Pantalones' },
-    { id: 4, nombre: 'Faldas' },
-    { id: 5, nombre: 'Accesorios' },
-    { id: 6, nombre: 'Buzos' },
-  ];
+const CATEGORIAS_FOOTER = [
+  { id: 1, nombre: 'Vestidos' },
+  { id: 2, nombre: 'Blusas' },
+  { id: 3, nombre: 'Pantalones' },
+  { id: 4, nombre: 'Faldas' },
+  { id: 5, nombre: 'Accesorios' },
+  { id: 6, nombre: 'Buzos' },
+];
 
+export default function PiePagina() {
   return (
     <footer className="bg-gradient-to-b from-gray-900 to-black text-gray-300 mt-20">
       {/* Sección Newsletter */}
@@ -97,7 +97,7 @@ export default function PiePagina() {
               👗 Categorías
             </h4>
             <ul className="space-y-2 text-sm">
-              {categorias.map((cat) => (
+              {CATEGORIAS_FOOTER.map((cat) => (
                 <li key={cat.id}>
                   <Link
                     href={`/ecommerce/categorias/${cat.id}`}

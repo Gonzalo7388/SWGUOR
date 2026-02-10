@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { createClient as createServerClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -8,11 +8,11 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
   try {
-    const { id: categoriaId } = await params;
-    const id = parseInt(categoriaId);
+    const resolvedParams = await Promise.resolve(params);
+    const id = parseInt(resolvedParams.id);
 
     if (isNaN(id)) {
       return NextResponse.json(
@@ -21,51 +21,66 @@ export async function GET(
       );
     }
 
-    // Obtener la categoría
-    const categoria = await prisma.categorias.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        nombre: true,
-        descripcion: true,
-        activo: true,
-      },
-    });
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
 
-    if (!categoria || !categoria.activo) {
+    // Obtener la categoría
+    const { data: categoria, error: categError } = await supabase
+      .from('categorias')
+      .select('id, nombre, descripcion, activo')
+      .eq('id', id)
+      .eq('activo', true)
+      .single();
+
+    if (categError || !categoria) {
       return NextResponse.json(
         { error: 'Categoría no encontrada' },
         { status: 404 }
       );
     }
 
-    // Obtener todos los productos de la categoría
-    const productos = await prisma.productos.findMany({
-      where: {
-        categoria_id: id,
-        estado: 'activo',
-      },
-      select: {
-        id: true,
-        nombre: true,
-        descripcion: true,
-        precio: true,
-        imagen: true,
-        sku: true,
-        stock: true,
-        categoria_id: true,
-        estado: true,
-        created_at: true,
-      },
-      orderBy: {
-        nombre: 'asc',
-      },
-    });
+    // Obtener todos los productos de la categoría (solo activos y con stock)
+    const { data: productos, error: prodError } = await supabase
+      .from('productos')
+      .select('id, nombre, descripcion, precio, imagen, sku, stock, stock_minimo, categoria_id, created_at, updated_at')
+      .eq('categoria_id', id)
+      .eq('estado', 'activo')
+      .gt('stock', 0)
+      .order('created_at', { ascending: false });
+
+    if (prodError) {
+      console.error('[API] Error obteniendo productos:', prodError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Error obteniendo productos de la categoría',
+          data: [],
+        },
+        { status: 500 }
+      );
+    }
 
     // Transformar los datos
-    const productosTransformados = productos.map((producto) => ({
-      ...producto,
+    const productosTransformados = (productos || []).map((producto: any) => ({
+      id: producto.id,
+      nombre: producto.nombre,
+      descripcion: producto.descripcion,
       precio: Number(producto.precio),
+      imagen: producto.imagen,
+      sku: producto.sku,
+      stock: producto.stock,
+      stock_minimo: producto.stock_minimo,
+      categoria_id: producto.categoria_id,
+      created_at: producto.created_at,
+      updated_at: producto.updated_at,
       categoria: {
         id: categoria.id,
         nombre: categoria.nombre,
@@ -82,7 +97,11 @@ export async function GET(
   } catch (error) {
     console.error('[API] Error obteniendo productos de categoría:', error);
     return NextResponse.json(
-      { error: 'Error obteniendo productos de la categoría' },
+      {
+        success: false,
+        error: 'Error obteniendo productos de la categoría',
+        data: [],
+      },
       { status: 500 }
     );
   }

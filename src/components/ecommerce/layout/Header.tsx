@@ -1,25 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, Search, User, Menu, X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
 
-const CATEGORIAS = [
-  { id: 1, nombre: 'Vestidos', href: '/ecommerce/categorias/1' },
-  { id: 2, nombre: 'Blusas', href: '/ecommerce/categorias/2' },
-  { id: 3, nombre: 'Pantalones', href: '/ecommerce/categorias/3' },
-  { id: 4, nombre: 'Faldas', href: '/ecommerce/categorias/4' },
-  { id: 5, nombre: 'Accesorios', href: '/ecommerce/categorias/5' },
-  { id: 6, nombre: 'Buzos', href: '/ecommerce/categorias/6' },
-];
-
 export default function Encabezado() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [busquedaAbierta, setBusquedaAbierta] = useState(false);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [categoriasLoading, setCategoriasLoading] = useState(true);
   const { obtenerCantidadTotal } = useCarrito();
   const cantidadCarrito = obtenerCantidadTotal();
+
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const response = await fetch('/api/ecommerce/categorias');
+        if (response.ok) {
+          const data = await response.json();
+          setCategorias(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+      } finally {
+        setCategoriasLoading(false);
+      }
+    };
+
+    fetchCategorias();
+  }, []);
 
   return (
     <>
@@ -111,16 +122,20 @@ export default function Encabezado() {
         <nav className="border-t border-gray-200 hidden md:block">
           <div className="max-w-7xl mx-auto px-4">
             <ul className="flex justify-start gap-8 py-3">
-              {CATEGORIAS.map((cat) => (
-                <li key={cat.id}>
-                  <Link
-                    href={cat.href}
-                    className="text-gray-700 hover:text-red-600 transition font-medium text-sm"
-                  >
-                    {cat.nombre}
-                  </Link>
-                </li>
-              ))}
+              {categoriasLoading ? (
+                <li className="text-gray-500 text-sm">Cargando categorías...</li>
+              ) : (
+                categorias.map((cat: any) => (
+                  <li key={cat.id}>
+                    <Link
+                      href={`/ecommerce/categorias/${cat.id}`}
+                      className="text-gray-700 hover:text-red-600 transition font-medium text-sm"
+                    >
+                      {cat.nombre}
+                    </Link>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </nav>
@@ -130,13 +145,17 @@ export default function Encabezado() {
           <nav className="md:hidden border-t border-gray-200">
             <div className="px-4 py-4">
               <ul className="space-y-4">
-                {CATEGORIAS.map((cat) => (
-                  <li key={cat.id}>
-                    <Link href={cat.href} className="text-gray-700 hover:text-red-600 block">
-                      {cat.nombre}
-                    </Link>
-                  </li>
-                ))}
+                {categoriasLoading ? (
+                  <li className="text-gray-500 text-sm">Cargando categorías...</li>
+                ) : (
+                  categorias.map((cat: any) => (
+                    <li key={cat.id}>
+                      <Link href={`/ecommerce/categorias/${cat.id}`} className="text-gray-700 hover:text-red-600 block">
+                        {cat.nombre}
+                      </Link>
+                    </li>
+                  ))
+                )}
                 <hr className="my-4" />
                 <li>
                   <Link href="/ecommerce/carrito" className="text-gray-700 hover:text-red-600 flex items-center gap-2">
