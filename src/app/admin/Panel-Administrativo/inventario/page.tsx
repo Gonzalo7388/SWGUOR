@@ -1,26 +1,28 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   FileSpreadsheet, Plus, Search,
   AlertTriangle, XCircle, BarChart3, ChevronLeft, ChevronRight, 
-  FileText, Factory, Layers, RefreshCw, Filter
+  FileText, Factory, Layers, RefreshCw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { exportToExcel, exportToPDF } from "@/lib/utils/export-utils";
-import InventarioTable from "@/components/admin/inventario/InventarioTable";
 import { useInventario } from "@/lib/hooks/useInventory";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // Lazy loading de componentes de Modales
+const InventarioTable = dynamic(() => import("@/components/admin/inventario/InventarioTable"));
 const CreateInsumoDialog = dynamic(() => import("@/components/admin/inventario/CreateInsumoDialog"));
 const EditInsumoDialog = dynamic(() => import("@/components/admin/inventario/EditInsumoDialog"));
 const DeleteInsumoDialog = dynamic(() => import("@/components/admin/inventario/DeleteInsumoDialog"));
 
 export default function InventarioPage() {
+  const { can, isLoading: authLoading } = usePermissions();
   const { insumos, cargando, error, obtenerInsumosList, limpiar } = useInventario();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -34,9 +36,18 @@ export default function InventarioPage() {
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, bajoStock: 0, sinStock: 0, categorias: 0 });
 
+  // Permisos
+  const canView = can('view', 'inventario');
+  const canCreate = can('create', 'inventario');
+  const canEdit = can('edit', 'inventario');
+  const canDelete = can('delete', 'inventario');
+  const canExport = can('export', 'inventario');
+
   useEffect(() => {
-    obtenerInsumosList();
-  }, [obtenerInsumosList]);
+    if (!authLoading && canView) {
+      obtenerInsumosList();
+    }
+  }, [obtenerInsumosList, authLoading, canView]);
 
   // Calcular stats cuando cambien los insumos
   useEffect(() => {
@@ -67,6 +78,10 @@ export default function InventarioPage() {
   const paginatedData = filteredData.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const handleExportPDF = () => {
+    if (!canExport) {
+      toast.error("No tienes permisos para exportar");
+      return;
+    }
     if (filteredData.length === 0) return toast.error("No hay datos para exportar");
     const headers = [["INSUMO", "TIPO", "STOCK", "U.M.", "ESTADO"]];
     const body = filteredData.map((i: any) => [
@@ -85,6 +100,10 @@ export default function InventarioPage() {
   };
 
   const handleExportExcel = () => {
+    if (!canExport) {
+      toast.error("No tienes permisos para exportar");
+      return;
+    }
     if (filteredData.length === 0) return toast.error("No hay datos para exportar");
     const dataToExport = filteredData.map((i: any) => ({
       Insumo: i.nombre.toUpperCase(),
@@ -106,6 +125,53 @@ export default function InventarioPage() {
     toast.success("Excel generado correctamente");
   };
 
+  const handleCreateClick = () => {
+    if (!canCreate) {
+      toast.error("No tienes permisos para crear insumos");
+      return;
+    }
+    setIsCreateOpen(true);
+  };
+
+  const handleEdit = (item: any) => {
+    if (!canEdit) {
+      toast.error("No tienes permisos para editar insumos");
+      return;
+    }
+    setSelectedInsumo(item);
+    setDialogMode("edit");
+  };
+
+  const handleDelete = (item: any) => {
+    if (!canDelete) {
+      toast.error("No tienes permisos para eliminar insumos");
+      return;
+    }
+    setSelectedInsumo(item);
+    setDialogMode("delete");
+  };
+
+  // Mientras se cargan los permisos
+  if (authLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Verificando permisos...</p>
+      </div>
+    );
+  }
+
+  // Sin permisos de visualización
+  if (!canView) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+        <XCircle className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
+        <p className="text-gray-500">No tienes permisos para ver esta sección</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -121,17 +187,23 @@ export default function InventarioPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95">
-              <FileText className="w-5 h-5" />
-              <span className="hidden sm:inline">Exportar PDF</span>
-            </Button>
-            <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
-              <FileSpreadsheet className="w-5 h-5" />
-              <span className="hidden sm:inline">Exportar Excel</span>
-            </Button>
-            <Button onClick={() => setIsCreateOpen(true)} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 transition-all active:scale-95">
-              <Plus className="w-5 h-5" /> Nuevo Insumo
-            </Button>
+            {canExport && (
+              <>
+                <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95">
+                  <FileText className="w-5 h-5" />
+                  <span className="hidden sm:inline">Exportar PDF</span>
+                </Button>
+                <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
+                  <FileSpreadsheet className="w-5 h-5" />
+                  <span className="hidden sm:inline">Exportar Excel</span>
+                </Button>
+              </>
+            )}
+            {canCreate && (
+              <Button onClick={handleCreateClick} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 transition-all active:scale-95">
+                <Plus className="w-5 h-5" /> Nuevo Insumo
+              </Button>
+            )}
           </div>
         </div>
 
@@ -218,8 +290,8 @@ export default function InventarioPage() {
             <InventarioTable 
               data={paginatedData} 
               loading={cargando} 
-              onEdit={(item: any) => { setSelectedInsumo(item); setDialogMode("edit"); }}
-              onDelete={(item: any) => { setSelectedInsumo(item); setDialogMode("delete"); }}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
             
             {/* Paginación */}
@@ -244,13 +316,15 @@ export default function InventarioPage() {
       </div>
 
       {/* Renderizado Condicional de Modales */}
-      <CreateInsumoDialog 
-        isOpen={isCreateOpen} 
-        onClose={() => setIsCreateOpen(false)} 
-        onSuccess={obtenerInsumosList} 
-      />
+      {canCreate && (
+        <CreateInsumoDialog 
+          isOpen={isCreateOpen} 
+          onClose={() => setIsCreateOpen(false)} 
+          onSuccess={obtenerInsumosList} 
+        />
+      )}
       
-      {selectedInsumo && dialogMode === "edit" && (
+      {canEdit && selectedInsumo && dialogMode === "edit" && (
         <EditInsumoDialog 
           isOpen={true} 
           insumo={selectedInsumo} 
@@ -259,7 +333,7 @@ export default function InventarioPage() {
         />
       )}
 
-      {selectedInsumo && dialogMode === "delete" && (
+      {canDelete && selectedInsumo && dialogMode === "delete" && (
         <DeleteInsumoDialog 
           isOpen={true} 
           insumo={selectedInsumo} 

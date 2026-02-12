@@ -8,9 +8,9 @@ export default function PromocionesPag() {
   const { productos, loading, error } = useProductosEcommerce({ limite: 50 });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <div className="min-h-screen bg-linear-to-b from-red-50 to-white">
       {/* Header de Ofertas */}
-      <div className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-16 md:py-20">
+      <div className="bg-linear-to-r from-red-600 via-red-700 to-red-800 text-white py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">🎁 Nuestras Ofertas Especiales</h1>
           <p className="text-red-100 text-lg md:text-xl mb-4">

@@ -183,8 +183,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-8 uppercase tracking-widest font-medium">
-          © 2026 Modas y Estilos GUOR
+        <p className="text-center text-xs text-gray-400 mt-8 tracking-widest font-medium">
+          © {new Date().getFullYear()} Sistema GUOR. Todos los derechos reservados.
         </p>
       </div>
     </div>

@@ -41,9 +41,9 @@ export default function CategoriasPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16 md:py-20">
+        <div className="bg-linear-to-rrom-red-600 to-red-800 text-white py-16 md:py-20">
           <div className="max-w-7xl mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Nuestras Categorías</h1>
             <p className="text-red-100 text-lg">Cargando categorías...</p>
@@ -67,9 +67,9 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-16 md:py-20">
+      <div className="bg-linear-to-r from-red-600 via-red-700 to-red-800 text-white py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Explora Nuestras Categorías</h1>
           <p className="text-red-100 text-lg md:text-xl mb-6">
@@ -93,7 +93,7 @@ export default function CategoriasPage() {
       </div>
 
       {/* Contenido */}
-      <main className="flex-grow">
+      <main className="grow">
         <div className="max-w-7xl mx-auto px-4 py-16">
           {categorias.length > 0 ? (
             <>
@@ -101,7 +101,7 @@ export default function CategoriasPage() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">
                   {categorias.length} Categoría{categorias.length !== 1 ? 's' : ''} Disponible{categorias.length !== 1 ? 's' : ''}
                 </h2>
-                <div className="h-1 w-20 bg-gradient-to-r from-red-600 to-red-400 rounded"></div>
+                <div className="h-1 w-20 bg-linear-to-r from-red-600 to-red-400 rounded"></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -119,7 +119,7 @@ export default function CategoriasPage() {
                         <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
                           {/* Imagen */}
                           <div
-                            className={`bg-gradient-to-br ${colorGradient} h-48 flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-300`}
+                            className={`bg-linear-to-br ${colorGradient} h-48 flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-300`}
                           >
                             {categoria.imagen ? (
                               <img
@@ -139,17 +139,17 @@ export default function CategoriasPage() {
                           </div>
 
                           {/* Contenido */}
-                          <div className="p-6 flex-grow flex flex-col">
+                          <div className="p-6 grow flex flex-col">
                             <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-red-600 transition">
                               {categoria.nombre}
                             </h3>
                             {categoria.descripcion && (
-                              <p className="text-gray-600 text-sm mb-4 flex-grow">
+                              <p className="text-gray-600 text-sm mb-4 grow">
                                 {categoria.descripcion}
                               </p>
                             )}
                             <div className="pt-4 border-t border-gray-200">
-                              <button className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-2.5 rounded-lg font-semibold hover:shadow-lg transition duration-300">
+                              <button className="w-full bg-linear-to-r from-red-600 to-red-700 text-white py-2.5 rounded-lg font-semibold hover:shadow-lg transition duration-300">
                                 Explorar
                               </button>
                             </div>

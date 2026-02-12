@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import { useState } from 'react';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
 import { getSupabaseImageUrl } from '@/lib/utils/supabase-image-utils';
@@ -33,79 +33,74 @@ export default function ProductCard({ producto, size = 'md' }: ProductCardProps)
     ? Math.round(((precioOriginal - precio) / precioOriginal) * 100)
     : 0;
 
-  const handleAgregar = () => {
+  const handleAgregar = (e: React.MouseEvent) => {
+    e.preventDefault(); // Por si decides envolver la card en un Link luego
     agregarAlCarrito(producto);
     setAgregado(true);
     setTimeout(() => setAgregado(false), 2000);
   };
 
+  // TAMAÑOS OPTIMIZADOS: Menos altura para mostrar más contenido
   const sizeClasses = {
-    sm: 'h-32 md:h-40',
-    md: 'h-48 md:h-64',
-    lg: 'h-72 md:h-96',
+    sm: 'aspect-[3/4] h-40', // Muy compacto
+    md: 'aspect-[3/4] h-56 md:h-64', // Estándar de moda
+    lg: 'aspect-[3/4] h-72 md:h-80', // Destacado
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Imagen */}
-      <div className={`relative ${sizeClasses[size]} overflow-hidden rounded-lg bg-gray-200 mb-3 group`}>
+    <div className="flex flex-col h-full group bg-white">
+      {/* Contenedor de Imagen */}
+      <div className={`relative ${sizeClasses[size]} overflow-hidden rounded-xl bg-gray-50 mb-3`}>
         {producto.imagen ? (
           <img
             src={getSupabaseImageUrl(producto.imagen) || producto.imagen}
             alt={producto.nombre}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder-image.png';
               (e.target as HTMLImageElement).style.filter = 'grayscale(100%)';
             }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm bg-gray-100">
-            Sin imagen disponible
+          <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400 uppercase tracking-widest bg-gray-50">
+            Sin imagen
           </div>
         )}
 
-        {/* Descuento Badge */}
+        {/* Badge de Descuento (Estilizado) */}
         {descuento > 0 && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
+          <div className="absolute top-2 left-2 bg-[#f02d65] text-white px-2 py-0.5 rounded-md text-[10px] font-black uppercase shadow-sm">
             -{descuento}%
           </div>
         )}
 
-        {/* Botón Agregar al Carrito */}
+        {/* Botón Flotante (Aparece al hacer hover o siempre visible en móvil) */}
         <button
           onClick={handleAgregar}
-          className={`absolute bottom-2 right-2 rounded-full p-2 transition shadow-lg transform hover:scale-110 ${
+          className={`absolute bottom-3 right-3 rounded-full p-2.5 transition-all duration-300 shadow-xl ${
             agregado
-              ? 'bg-green-600 text-white'
-              : 'bg-red-600 hover:bg-red-700 text-white'
+              ? 'bg-green-500 text-white scale-110'
+              : 'bg-white text-gray-900 hover:bg-[#f02d65] hover:text-white translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 lg:translate-y-0 lg:opacity-100 md:translate-y-2 md:opacity-0'
           }`}
-          title="Agregar al carrito"
         >
-          <Plus size={20} />
+          {agregado ? <Check size={16} strokeWidth={3} /> : <Plus size={16} strokeWidth={3} />}
         </button>
       </div>
 
-      {/* Información */}
-      <div className="flex-1 flex flex-col">
-        <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-1">
+      {/* Información del Producto */}
+      <div className="flex flex-col px-1">
+        <h3 className="font-bold text-gray-800 text-[13px] leading-tight line-clamp-1 mb-0.5 group-hover:text-[#f02d65] transition-colors">
           {producto.nombre}
         </h3>
 
-        {producto.descripcion && (
-          <p className="text-xs text-gray-600 line-clamp-1 mb-2">
-            {producto.descripcion}
-          </p>
-        )}
-
-        {/* Precios */}
-        <div className="mt-auto flex items-center gap-2">
-          <span className="text-lg font-bold text-red-600">
-            ${precio.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+        {/* Precio simplificado */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-black text-gray-900">
+            S/ {precio.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
           </span>
           {precioOriginal > precio && (
-            <span className="text-xs line-through text-gray-400">
-              ${precioOriginal.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+            <span className="text-[11px] line-through text-gray-400">
+              S/ {precioOriginal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
             </span>
           )}
         </div>

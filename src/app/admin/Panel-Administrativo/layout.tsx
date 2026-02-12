@@ -1,8 +1,17 @@
-
+import type { Metadata } from "next";
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import RealtimeLayoutWrapper from '@/components/admin/layout/RealtimeLayoutWrapper';
+
+export const metadata: Metadata = {
+  title: "Sistema GUOR - Gestión de Modas",
+  description: "Panel administrativo y control de inventarios",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function PanelAdministrativoLayout({
   children,
@@ -54,10 +63,9 @@ export default async function PanelAdministrativoLayout({
 
   if (usuario.estado?.toLowerCase() !== 'activo') {
     console.error('[LAYOUT] Usuario inactivo:', usuario.estado);
-    redirect('/admin/login?error=cuenta_inactiva');
+    redirect('/admin/acceso-denegado?error=cuenta_inactiva');
   }
 
-  
   return (
     <RealtimeLayoutWrapper initialUsuario={usuario}>
       {children}

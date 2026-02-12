@@ -1,6 +1,6 @@
 export default function PerfilPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-linear-to-b from-gray-50 to-white py-12">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-12">
@@ -37,7 +37,7 @@ export default function PerfilPage() {
                 <span className="text-red-600">✓</span> Foto de perfil
               </li>
             </ul>
-            <button className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
+            <button className="w-full bg-linear-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
               Editar Perfil
             </button>
           </div>
@@ -64,7 +64,7 @@ export default function PerfilPage() {
                 <span className="text-blue-600">✓</span> Múltiples direcciones
               </li>
             </ul>
-            <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
+            <button className="w-full bg-linear-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
               Gestionar Direcciones
             </button>
           </div>
@@ -91,7 +91,7 @@ export default function PerfilPage() {
                 <span className="text-green-600">✓</span> Estado de devoluciones
               </li>
             </ul>
-            <button className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
+            <button className="w-full bg-linear-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
               Ver Mis Pedidos
             </button>
           </div>
@@ -118,7 +118,7 @@ export default function PerfilPage() {
                 <span className="text-purple-600">✓</span> Privacidad
               </li>
             </ul>
-            <button className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
+            <button className="w-full bg-linear-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
               Editar Preferencias
             </button>
           </div>
@@ -145,7 +145,7 @@ export default function PerfilPage() {
                 <span className="text-orange-600">✓</span> Transferencias bancarias
               </li>
             </ul>
-            <button className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
+            <button className="w-full bg-linear-to-r from-orange-600 to-orange-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
               Gestionar Pagos
             </button>
           </div>
@@ -172,7 +172,7 @@ export default function PerfilPage() {
                 <span className="text-red-600">✓</span> Dispositivos conectados
               </li>
             </ul>
-            <button className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
+            <button className="w-full bg-linear-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
               Configurar Seguridad
             </button>
           </div>

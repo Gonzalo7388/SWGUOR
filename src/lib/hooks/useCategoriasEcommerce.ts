@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
-interface CategoriaData {
-  id: string | number;
+export interface Categoria {
+  id: string;
   nombre: string;
   descripcion?: string;
-  activo?: boolean;
-  imagen?: string;
-  icono?: string;
-  [key: string]: any;
+  tipo_categoria?: string;
+  estado?: string;
 }
 
 export function useCategoriasEcommerce() {
-  const [categorias, setCategorias] = useState<CategoriaData[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,17 +18,26 @@ export function useCategoriasEcommerce() {
       try {
         setLoading(true);
         setError(null);
-
+        
         const response = await fetch('/api/ecommerce/categorias');
         
         if (!response.ok) {
-          throw new Error('Error obteniendo categorías');
+          throw new Error(`Error HTTP: ${response.status}`);
         }
-
-        const result = await response.json();
-        setCategorias(result.data || []);
+        
+        const data = await response.json();
+        
+        console.log('Datos recibidos de la API:', data); // Debug
+        
+        if (data.success && Array.isArray(data.data)) {
+          setCategorias(data.data);
+          console.log('Categorías cargadas:', data.data.length); // Debug
+        } else {
+          console.warn('Formato de respuesta inesperado:', data);
+          setCategorias([]);
+        }
       } catch (err) {
-        console.error('[HOOK] Error:', err);
+        console.error('Error al cargar categorías:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
         setCategorias([]);
       } finally {
@@ -41,12 +48,5 @@ export function useCategoriasEcommerce() {
     fetchCategorias();
   }, []);
 
-  return {
-    categorias,
-    loading,
-    error,
-    refetch: () => {
-      setLoading(true);
-    },
-  };
+  return { categorias, loading, error };
 }

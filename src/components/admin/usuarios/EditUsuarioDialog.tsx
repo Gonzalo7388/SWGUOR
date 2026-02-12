@@ -7,9 +7,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { RolUsuario } from "@/types/database";
+
+const ROLES_SISTEMA: { value: RolUsuario; label: string }[] = [
+  { value: "administrador", label: "Administrador" },
+  { value: "recepcionista", label: "Recepcionista" },
+  { value: "diseñador", label: "Diseñador" },
+  { value: "cortador", label: "Cortador" },
+  { value: "ayudante", label: "Ayudante" },
+  { value: "representante_taller", label: "Representante de Taller" },
+];
 
 export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario }: any) {
   const [loading, setLoading] = useState(false);
+  const [rolSeleccionado, setRolSeleccionado] = useState<RolUsuario>(usuario?.rol);
+
+  useEffect(() => {
+      if (usuario) {
+        setRolSeleccionado(usuario.rol);
+      }
+    }, [usuario]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,10 +37,11 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
     try {
       const res = await fetch("/api/admin/usuarios", {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error();
-      toast.success("Usuario actualizado");
+      toast.success("Usuario actualizado correctamente");
       onSuccess();
       onClose();
     } catch (error) {
@@ -46,13 +64,16 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
           </div>
           <div className="space-y-2">
             <Label>Rol</Label>
-            <Select name="rol" defaultValue={usuario?.rol}>
-              <SelectTrigger>
-                <SelectValue />
+            <Select value={rolSeleccionado} onValueChange={(value) => setRolSeleccionado(value as RolUsuario)} name="rol" required>
+              <SelectTrigger id="rol">
+                <SelectValue placeholder="Seleccione un rol" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="administrador">Administrador</SelectItem>
-                <SelectItem value="vendedor">Vendedor</SelectItem>
+                {ROLES_SISTEMA.map((rol) => (
+                  <SelectItem key={rol.value} value={rol.value}>
+                    {rol.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

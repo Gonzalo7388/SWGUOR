@@ -1,27 +1,29 @@
-'use client';
+import type { Metadata } from "next";
+import ClientLayout from "@/app/ecommerce/client-layout";
 
-import { ReactNode } from 'react';
-import Encabezado from '@/components/ecommerce/layout/Header';
-import PiePagina from '@/components/ecommerce/layout/Footer';
-import { EcommerceProvider } from './_contexts/AuthContext';
-import { CartProvider } from './_contexts/CartContext';
+export const metadata: Metadata = {
+  title: "Modas y Estilos GUOR | Ropa para mujer - PE GUOR Perú",
+  description: "Tienda Virtual de Modas y Estilos GUOR. Descubre las últimas tendencias en moda femenina.",
+  keywords: ["moda", "ropa mujer", "tienda online", "GUOR", "Perú", "fashion", "tendencias"],
+  authors: [{ name: "GUOR" }],
+  openGraph: {
+    title: "Modas y Estilos GUOR | Ropa para mujer",
+    description: "Tienda Virtual de Modas y Estilos GUOR",
+    type: "website",
+    locale: "es_PE",
+    siteName: "GUOR Perú",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Modas y Estilos GUOR",
+    description: "Tienda Virtual de Modas y Estilos GUOR",
+  },
+};
 
-export default function DistribucionEcommerce({
+export default function EcommerceLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
-  return (
-    <EcommerceProvider>
-      <CartProvider>
-        <div className="min-h-screen flex flex-col bg-white">
-          <Encabezado />
-          <main className="flex-grow">
-            {children}
-          </main>
-          <PiePagina />
-        </div>
-      </CartProvider>
-    </EcommerceProvider>
-  );
+  return <ClientLayout>{children}</ClientLayout>;
 }

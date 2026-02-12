@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('productos')
-      .select('id, nombre, descripcion, precio, imagen, sku, stock, stock_minimo, categoria_id, created_at, updated_at')
+      .select('*')
       .eq('estado', 'activo')
       .gt('stock', 0)
       .order('created_at', { ascending: false })
@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
     // Obtener categorías para enriquecer los datos
     const { data: categorias } = await supabase
       .from('categorias')
-      .select('id, nombre, descripcion')
-      .eq('activo', true);
+      .select('*')
+      .eq('estado', 'activo');
 
     const categoriasMap = new Map(
       (categorias || []).map((c: any) => [c.id, c])

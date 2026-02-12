@@ -35,6 +35,6 @@ export default async function Home() {
     redirect('/Panel-Administrativo/dashboard');
   }
 
-  // Si no hay sesión, redirigir al login
-  redirect('/admin/login');
+  // Si no hay sesión, redirigir al ecommerce
+  redirect('/ecommerce');
 }

@@ -1,128 +1,123 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+import { useCategoriasEcommerce } from '@/lib/hooks/useCategoriasEcommerce';
 import ProductCard from '@/components/ecommerce/productos/ProductCard';
-import Link from 'next/link';
 
-interface Producto {
-  id: string | number;
-  nombre: string;
-  descripcion?: string;
-  precio: number;
-  imagen?: string;
-  stock: number;
-  categoria_id?: string | number;
-  categoria?: {
-    id: string | number;
-    nombre: string;
-  };
-}
+// IMPORTACIÓN DINÁMICA
+const FiltrosLaterales = dynamic(() => import('@/components/ecommerce/productos/FiltrosLaterales').then(mod => mod.FiltrosLaterales), { 
+  ssr: false, 
+  loading: () => <div className="h-64 bg-gray-50 animate-pulse rounded-xl" /> 
+});
+const Paginacion = dynamic(() => import('@/components/ecommerce/productos/Paginacion').then(mod => mod.Paginacion), { ssr: false });
 
 export default function TodosLosProductos() {
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { categorias } = useCategoriasEcommerce();
+
+  const [busqueda, setBusqueda] = useState('');
+  const [categoriaSel, setCategoriaSel] = useState('todos');
+  const [rangoPrecio, setRangoPrecio] = useState(500);
+  const [paginaActual, setPaginaActual] = useState(1);
+  
+  const productosPorPagina = 15;
 
   useEffect(() => {
     const fetchProductos = async () => {
       try {
         setLoading(true);
-        setError(null);
-
         const response = await fetch('/api/ecommerce/productos?limite=999');
-        
-        if (!response.ok) {
-          throw new Error('Error obteniendo productos');
-        }
-
         const result = await response.json();
         setProductos(result.data || []);
       } catch (err) {
-        console.error('[TODOS_PRODUCTOS] Error:', err);
-        setError(err instanceof Error ? err.message : 'Error desconocido');
-        setProductos([]);
+        console.error('Error:', err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProductos();
   }, []);
 
+  const productosFiltrados = useMemo(() => {
+    return productos.filter(p => (
+      p.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
+      (categoriaSel === 'todos' || p.categoria_id?.toString() === categoriaSel) &&
+      p.precio <= rangoPrecio
+    ));
+  }, [productos, busqueda, categoriaSel, rangoPrecio]);
+
+  const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+  const productosVisibles = productosFiltrados.slice(
+    (paginaActual - 1) * productosPorPagina,
+    paginaActual * productosPorPagina
+  );
+
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <Link href="/ecommerce" className="text-red-100 hover:text-white text-sm mb-4 inline-block">
-            ← Volver al Inicio
-          </Link>
-          <h1 className="text-4xl md:text-5xl font-bold mb-2">Todos los Productos</h1>
-          <p className="text-red-100 text-lg">
-            Explora nuestro catálogo completo de ropa de moda
-          </p>
+      <header className="w-full">
+        {/* Título alineado y compacto */}
+        <div className="py-10 border-b border-gray-50">
+          <div className="max-w-7xl mx-auto px-4">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+              Productos
+            </h1>
+          </div>
         </div>
-      </div>
 
-      {/* Contenido */}
-      <main className="max-w-7xl mx-auto px-4 py-12">
-        {loading ? (
-          // Loading State
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 rounded-lg h-48 mb-3"></div>
-                <div className="bg-gray-200 h-4 rounded w-3/4 mb-2"></div>
-                <div className="bg-gray-200 h-3 rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        ) : error ? (
-          // Error State
-          <div className="text-center py-12">
-            <p className="text-red-600 text-lg mb-4">Error: {error}</p>
-            <Link
-              href="/ecommerce"
-              className="inline-block bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition"
-            >
-              Volver al Inicio
-            </Link>
-          </div>
-        ) : productos.length > 0 ? (
-          // Products Grid
-          <>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {productos.length} Producto{productos.length !== 1 ? 's' : ''} Disponible{productos.length !== 1 ? 's' : ''}
-              </h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-red-600 to-red-400 rounded"></div>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 py-10">
+          <div className="flex flex-col lg:flex-row gap-10 text-left">
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {productos.map((producto) => (
-                <ProductCard
-                  key={producto.id}
-                  producto={producto}
-                  size="md"
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          // Empty State
-          <div className="text-center py-16">
-            <p className="text-gray-600 text-lg mb-6">
-              No hay productos disponibles en este momento
-            </p>
-            <Link
-              href="/ecommerce"
-              className="inline-block bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition"
-            >
-              Volver al Inicio
-            </Link>
+            {/* Sidebar con buscador integrado */}
+            <aside className="w-full lg:w-64 shrink-0">
+              <FiltrosLaterales 
+                categorias={categorias}
+                categoriaSel={categoriaSel}
+                setCategoriaSel={(id) => { setCategoriaSel(id); setPaginaActual(1); }}
+                rangoPrecio={rangoPrecio}
+                setRangoPrecio={(precio) => { setRangoPrecio(precio); setPaginaActual(1); }}
+                busqueda={busqueda}
+                setBusqueda={(val) => { setBusqueda(val); setPaginaActual(1); }}
+              />
+            </aside>
+
+            <main className="flex-1">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+                  <Loader2 className="animate-spin" size={32} />
+                </div>
+              ) : productosVisibles.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+                    {productosVisibles.map((p) => <ProductCard key={p.id} producto={p} />)}
+                  </div>
+
+                  <Paginacion 
+                    totalPaginas={totalPaginas}
+                    paginaActual={paginaActual}
+                    setPaginaActual={setPaginaActual}
+                  />
+                </>
+              ) : (
+                /* Estado sin resultados: Solo texto y botón */
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <p className="text-gray-500 font-medium mb-4">
+                    No se encontraron productos que coincidan con tu búsqueda.
+                  </p>
+                  <button 
+                    onClick={() => { setBusqueda(''); setCategoriaSel('todos'); setRangoPrecio(500); }}
+                    className="text-sm font-bold text-[#f02d65] hover:underline uppercase tracking-widest"
+                  >
+                    Restablecer filtros
+                  </button>
+                </div>
+              )}
+            </main>
           </div>
-        )}
-      </main>
+        </div>
+      </header>
     </div>
   );
 }

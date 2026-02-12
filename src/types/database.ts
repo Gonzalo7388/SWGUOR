@@ -26,6 +26,7 @@ export type TipoInsumo = 'insumo' | 'producto_terminado';
 export type UnidadMedida = 'metros' | 'unidades' | 'conos' | 'docenas' | 'kilogramos' | 'set';
 export type TipoCliente = 'corporativo' | 'minorista' | 'distribuidor';
 export type EstadoCotizacion = 'pendiente' | 'aceptada' | 'rechazada' | 'vencida';
+export type TipoCategoria = 'producto' | 'insumo';
 
 /**
  * Schema de la Base de Datos
@@ -40,7 +41,8 @@ export interface Database {
           id: number
           nombre: string
           descripcion: string | null
-          activo: EstadoCategoria
+          estado: EstadoCategoria
+          tipo_categoria: TipoCategoria
           created_at: string
           updated_at: string
         }
@@ -48,7 +50,8 @@ export interface Database {
           id?: number
           nombre: string
           descripcion?: string | null
-          activo?: EstadoCategoria
+          estado?: EstadoCategoria
+          tipo_categoria: TipoCategoria
           created_at?: string
           updated_at?: string
         }
@@ -56,7 +59,8 @@ export interface Database {
           id?: number
           nombre?: string
           descripcion?: string | null
-          activo?: EstadoCategoria
+          estado?: EstadoCategoria
+          tipo_categoria: TipoCategoria
           created_at?: string
           updated_at?: string
         }
@@ -591,6 +595,7 @@ export interface Database {
       unidad_medida: UnidadMedida
       tipo_cliente: TipoCliente
       estado_cotizacion: EstadoCotizacion
+      tipo_categoria: TipoCategoria
     }
     CompositeTypes: {
       [_ in never]: never

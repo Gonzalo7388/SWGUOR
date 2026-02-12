@@ -10,6 +10,7 @@ import {
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { exportToExcel } from "@/lib/utils/export-utils";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // Lazy loading de componentes
 const CategoriasTable = dynamic(() => import("@/components/admin/categorias/CategoriasTable"));
@@ -18,6 +19,7 @@ const EditCategoriaDialog = dynamic(() => import("@/components/admin/categorias/
 const DeleteCategoriaDialog = dynamic(() => import("@/components/admin/categorias/DeleteCategoriaDialog"));
 
 export default function CategoriasPage() {
+  const { can, isLoading: authLoading } = usePermissions();
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,8 +32,21 @@ export default function CategoriasPage() {
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, activas: 0, inactivas: 0 });
 
+  // Permisos
+  const canView = can('view', 'categorias');
+  const canCreate = can('create', 'categorias');
+  const canEdit = can('edit', 'categorias');
+  const canDelete = can('delete', 'categorias');
+  const canExport = can('export', 'categorias');
+
   // CARGA DE DATOS DESDE LA API
   const loadCategorias = useCallback(async () => {
+    if (!canView) {
+      toast.error("No tienes permisos para ver categorías");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/admin/categorias');
@@ -52,9 +67,13 @@ export default function CategoriasPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canView]);
 
-  useEffect(() => { loadCategorias(); }, [loadCategorias]);
+  useEffect(() => { 
+    if (!authLoading) {
+      loadCategorias(); 
+    }
+  }, [loadCategorias, authLoading]);
 
   const filteredCategorias = useMemo(() => {
     return categorias.filter((c: any) => {
@@ -69,16 +88,68 @@ export default function CategoriasPage() {
   const paginatedData = filteredCategorias.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const handleExportExcel = () => {
+    if (!canExport) {
+      toast.error("No tienes permisos para exportar");
+      return;
+    }
     if (filteredCategorias.length === 0) return toast.error("No hay datos para exportar");
     const dataToExport = filteredCategorias.map((c: any) => ({
       Categoría: c.nombre,
       Descripción: c.descripcion || "Sin descripción",
+      Tipo: c.tipo_categoria || "No especificado",
       Estado: c.activo ? "Activa" : "Inactiva",
       "Fecha Creación": new Date(c.created_at).toLocaleDateString()
     }));
     exportToExcel(dataToExport, { filename: `Categorias_ModasGUOR_${new Date().toISOString().split('T')[0]}` });
     toast.success("Excel generado correctamente");
   };
+
+  const handleCreateClick = () => {
+    if (!canCreate) {
+      toast.error("No tienes permisos para crear categorías");
+      return;
+    }
+    setIsCreateOpen(true);
+  };
+
+  const handleEdit = (c: any) => {
+    if (!canEdit) {
+      toast.error("No tienes permisos para editar categorías");
+      return;
+    }
+    setSelectedCategoria(c);
+    setDialogMode("edit");
+  };
+
+  const handleDelete = (c: any) => {
+    if (!canDelete) {
+      toast.error("No tienes permisos para eliminar categorías");
+      return;
+    }
+    setSelectedCategoria(c);
+    setDialogMode("delete");
+  };
+
+  // Mientras se cargan los permisos
+  if (authLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Verificando permisos...</p>
+      </div>
+    );
+  }
+
+  // Sin permisos de visualización
+  if (!canView) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+        <XCircle className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
+        <p className="text-gray-500">No tienes permisos para ver esta sección</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
@@ -94,13 +165,17 @@ export default function CategoriasPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
-              <FileSpreadsheet className="w-5 h-5" />
-              <span className="hidden sm:inline">Exportar Excel</span>
-            </Button>
-            <Button onClick={() => setIsCreateOpen(true)} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95">
-              <Plus className="w-5 h-5" /> Nueva Categoría
-            </Button>
+            {canExport && (
+              <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
+                <FileSpreadsheet className="w-5 h-5" />
+                <span className="hidden sm:inline">Exportar Excel</span>
+              </Button>
+            )}
+            {canCreate && (
+              <Button onClick={handleCreateClick} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95">
+                <Plus className="w-5 h-5" /> Nueva Categoría
+              </Button>
+            )}
           </div>
         </div>
 
@@ -158,8 +233,8 @@ export default function CategoriasPage() {
           <div className="space-y-4">
             <CategoriasTable 
               data={paginatedData} 
-              onEdit={(c: any) => {setSelectedCategoria(c); setDialogMode("edit");}}
-              onDelete={(c: any) => {setSelectedCategoria(c); setDialogMode("delete");}}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
             
             {/* Paginación */}
@@ -184,11 +259,13 @@ export default function CategoriasPage() {
       </div>
 
       {/* Modales */}
-      <CreateCategoriaDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={loadCategorias} />
-      {selectedCategoria && dialogMode === "edit" && (
+      {canCreate && (
+        <CreateCategoriaDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={loadCategorias} />
+      )}
+      {canEdit && selectedCategoria && dialogMode === "edit" && (
         <EditCategoriaDialog isOpen={true} categoria={selectedCategoria} onClose={() => {setDialogMode(null); setSelectedCategoria(null);}} onSuccess={loadCategorias} />
       )}
-      {selectedCategoria && dialogMode === "delete" && (
+      {canDelete && selectedCategoria && dialogMode === "delete" && (
         <DeleteCategoriaDialog isOpen={true} categoria={selectedCategoria} onClose={() => {setDialogMode(null); setSelectedCategoria(null);}} onSuccess={loadCategorias} />
       )}
     </div>

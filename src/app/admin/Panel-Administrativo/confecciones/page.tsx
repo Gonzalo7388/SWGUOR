@@ -6,7 +6,6 @@ import { Plus, ShieldAlert, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
-
 const ConfeccionesTable = dynamic(() => import('@/components/admin/confecciones/ConfeccionesTable').then(mod => mod.ConfeccionesTable), { loading: () => <SkeletonTable /> });
 const ConfeccionesFiltros = dynamic(() => import('@/components/admin/confecciones/ConfeccionesFiltros').then(mod => mod.ConfeccionesFiltros));
 const ConfeccionesStats = dynamic(() => import('@/components/admin/confecciones/ConfeccionesStats').then(mod => mod.ConfeccionesStats));

@@ -1,177 +1,127 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, User, Menu, X, Heart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ShoppingCart, Search, User, Menu, X, Heart, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
+import CategoriasDropdown from '@/components/ecommerce/layout/CategoriasDropdown';
+import MobileMenu from '@/components/ecommerce/layout/MobileMenu';
 
-export default function Encabezado() {
+export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [busquedaAbierta, setBusquedaAbierta] = useState(false);
-  const [categorias, setCategorias] = useState<any[]>([]);
-  const [categoriasLoading, setCategoriasLoading] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
   const { obtenerCantidadTotal } = useCarrito();
   const cantidadCarrito = obtenerCantidadTotal();
 
   useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        const response = await fetch('/api/ecommerce/categorias');
-        if (response.ok) {
-          const data = await response.json();
-          setCategorias(data.data || []);
-        }
-      } catch (error) {
-        console.error('Error cargando categorías:', error);
-      } finally {
-        setCategoriasLoading(false);
-      }
-    };
-
-    fetchCategorias();
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (menuAbierto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [menuAbierto]);
 
   return (
     <>
-      {/* Barra Superior */}
-      <div className="bg-gray-100 text-gray-700 text-sm py-2 px-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>📦 Envío gratis en compras mayores a $50.000</div>
-          <div className="flex gap-4">
-            <Link href="#" className="hover:text-gray-900">Rastrear pedido</Link>
-            <Link href="#" className="hover:text-gray-900">Soporte</Link>
-          </div>
-        </div>
+      {/* Banner */}
+      <div className="bg-[#f02d65] text-white py-2 px-4 text-center">
+        <p className="text-[11px] md:text-xs font-bold tracking-[0.2em] uppercase">
+          Envíos gratis a partir de S/ 299
+        </p>
       </div>
 
-      {/* Encabezado Principal */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          {/* Encabezado Escritorio */}
-          <div className="hidden md:flex items-center justify-between gap-8">
+      {/* Header */}
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md' : 'bg-white'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20 md:h-24">
+            
             {/* Logo */}
-            <Link href="/ecommerce" className="shrink-0">
-              <div className="text-2xl font-bold text-gray-900">
-                <span className="text-red-600">SWGUOR</span>
-              </div>
-              <p className="text-xs text-gray-600">Ropa para Mujeres</p>
-            </Link>
-
-            {/* Barra de Búsqueda */}
-            <div className="grow max-w-md">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar productos..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-600"
+            <div className="flex-1 flex items-center">
+              <button 
+                onClick={() => setMenuAbierto(true)}
+                className="p-2 -ml-2 mr-4 md:hidden text-gray-800 hover:text-[#f02d65]"
+                aria-label="Abrir menú"
+              >
+                <Menu size={24} />
+              </button>
+              <Link href="/ecommerce">
+                <Image 
+                  src="/logo-guor.png" 
+                  alt="GUOR" 
+                  width={200} 
+                  height={40} 
+                  className="h-20 md:h-15 w-auto object-contain"
+                  priority
                 />
-                <Search className="absolute right-3 top-2.5 text-gray-400" size={20} />
-              </div>
+              </Link>
             </div>
 
-            {/* Iconos Derechos */}
-            <div className="flex items-center gap-6">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <Heart size={24} className="text-gray-700" />
-              </button>
-              <Link href="/ecommerce/login" className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <User size={24} className="text-gray-700" />
+            {/* Navegación Desktop */}
+            <nav className="hidden md:flex items-center justify-center gap-10">
+              <Link 
+                href="/ecommerce/new" 
+                className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors"
+              >
+                New
               </Link>
-              <Link href="/ecommerce/carrito" className="relative p-2 hover:bg-gray-100 rounded-lg transition">
-                <ShoppingCart size={24} className="text-gray-700" />
+              
+              {/* Productos con Dropdown */}
+              <CategoriasDropdown />
+
+              <Link 
+                href="/ecommerce/nosotros" 
+                className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors"
+              >
+                Nosotros
+              </Link>
+              
+              <Link 
+                href="/ecommerce/ofertas" 
+                className="text-[13px] font-bold uppercase tracking-widest text-[#f02d65] hover:opacity-80 transition-opacity"
+              >
+                Ofertas
+              </Link>
+            </nav>
+
+            {/* Iconos */}
+            <div className="flex-1 flex items-center justify-end gap-3 md:gap-5">
+              <button className="p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
+                <Search size={20} strokeWidth={2.5} />
+              </button>
+              <Link href="/ecommerce/login" className="hidden sm:block p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
+                <User size={20} strokeWidth={2.5} />
+              </Link>
+              <Link href="/ecommerce/favoritos" className="hidden sm:block p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
+                <Heart size={20} strokeWidth={2.5} />
+              </Link>
+              <Link href="/ecommerce/carrito" className="relative p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
+                <ShoppingCart size={20} strokeWidth={2.5} />
                 {cantidadCarrito > 0 && (
-                  <span className="absolute top-1 right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                    {cantidadCarrito}
+                  <span className="absolute top-1 right-0 bg-[#f02d65] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {cantidadCarrito > 99 ? '99+' : cantidadCarrito}
                   </span>
                 )}
               </Link>
             </div>
           </div>
-
-          {/* Encabezado Móvil */}
-          <div className="md:hidden flex items-center justify-between">
-            <Link href="/ecommerce">
-              <div className="text-xl font-bold text-gray-900">
-                <span className="text-red-600">SWGUOR</span>
-              </div>
-            </Link>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setBusquedaAbierta(!busquedaAbierta)}>
-                <Search size={24} />
-              </button>
-              <button onClick={() => setMenuAbierto(!menuAbierto)}>
-                {menuAbierto ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Búsqueda Móvil */}
-          {busquedaAbierta && (
-            <div className="md:hidden mt-4">
-              <input
-                type="text"
-                placeholder="Buscar..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"
-              />
-            </div>
-          )}
         </div>
-
-        {/* Navegación Categorías */}
-        <nav className="border-t border-gray-200 hidden md:block">
-          <div className="max-w-7xl mx-auto px-4">
-            <ul className="flex justify-start gap-8 py-3">
-              {categoriasLoading ? (
-                <li className="text-gray-500 text-sm">Cargando categorías...</li>
-              ) : (
-                categorias.map((cat: any) => (
-                  <li key={cat.id}>
-                    <Link
-                      href={`/ecommerce/categorias/${cat.id}`}
-                      className="text-gray-700 hover:text-red-600 transition font-medium text-sm"
-                    >
-                      {cat.nombre}
-                    </Link>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        </nav>
-
-        {/* Menú Móvil */}
-        {menuAbierto && (
-          <nav className="md:hidden border-t border-gray-200">
-            <div className="px-4 py-4">
-              <ul className="space-y-4">
-                {categoriasLoading ? (
-                  <li className="text-gray-500 text-sm">Cargando categorías...</li>
-                ) : (
-                  categorias.map((cat: any) => (
-                    <li key={cat.id}>
-                      <Link href={`/ecommerce/categorias/${cat.id}`} className="text-gray-700 hover:text-red-600 block">
-                        {cat.nombre}
-                      </Link>
-                    </li>
-                  ))
-                )}
-                <hr className="my-4" />
-                <li>
-                  <Link href="/ecommerce/carrito" className="text-gray-700 hover:text-red-600 flex items-center gap-2">
-                    <ShoppingCart size={20} /> Carrito
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/ecommerce/login" className="text-gray-700 hover:text-red-600 flex items-center gap-2">
-                    <User size={20} /> Mi Cuenta
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </nav>
-        )}
       </header>
+
+      {/* Menú Móvil */}
+      <MobileMenu 
+        isOpen={menuAbierto} 
+        onClose={() => setMenuAbierto(false)} 
+      />
     </>
   );
 }

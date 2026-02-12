@@ -2,31 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DIAPOSITIVAS = [
   {
     id: 1,
     titulo: 'Colección de Verano 2026',
-    subtitulo: 'Descubre nuestros nuevos diseños',
-    descuento: '-40%',
-    imagen: 'bg-gradient-to-r from-pink-400 to-pink-600',
-    llamada: 'Comprar Ahora',
+    subtitulo: 'LA ELEGANCIA DEL SOL',
+    descripcion: 'Descubre texturas ligeras y cortes atemporales diseñados para la mujer moderna.',
+    imagen: '/ofertas/sale-50-pink.jpg',
+    llamada: 'Explorar Colección',
   },
   {
     id: 2,
     titulo: 'Promoción Flash',
-    subtitulo: 'Hoy: Todo en Vestidos con 50% de descuento',
-    descuento: '-50%',
-    imagen: 'bg-gradient-to-r from-purple-400 to-purple-600',
+    subtitulo: 'EDICIÓN LIMITADA',
+    descripcion: 'Aprovecha un 50% de descuento exclusivo en nuestra selección de vestidos de gala.',
+    imagen: '/ofertas/flash-sale.jpg',
     llamada: 'Ver Ofertas',
   },
   {
     id: 3,
-    titulo: 'Prendas Exclusivas',
-    subtitulo: 'Diseños únicos para ti',
-    descuento: '-30%',
-    imagen: 'bg-gradient-to-r from-red-400 to-red-600',
-    llamada: 'Explorar',
+    titulo: 'Esencia Guor',
+    subtitulo: 'DISEÑOS ÚNICOS',
+    descripcion: 'Cada pieza cuenta una historia. Encuentra la tuya en nuestra nueva curaduría.',
+    imagen: '/ofertas/shopping-bags.jpg',
+    llamada: 'Descubrir más',
   },
 ];
 
@@ -35,64 +36,112 @@ export default function CarruselHeroi() {
 
   useEffect(() => {
     const temporizador = setInterval(() => {
-      setActual((prev) => (prev + 1) % DIAPOSITIVAS.length);
-    }, 5000);
+      siguiente();
+    }, 6000);
     return () => clearInterval(temporizador);
-  }, []);
+  }, [actual]);
 
   const siguiente = () => setActual((prev) => (prev + 1) % DIAPOSITIVAS.length);
   const anterior = () => setActual((prev) => (prev - 1 + DIAPOSITIVAS.length) % DIAPOSITIVAS.length);
 
   return (
-    <div className="relative w-full h-96 md:h-[500px] overflow-hidden rounded-lg md:rounded-2xl">
-      {/* Diapositivas */}
-      {DIAPOSITIVAS.map((diapositiva, indice) => (
-        <div
-          key={diapositiva.id}
-          className={`absolute w-full h-full transition-opacity duration-1000 ease-in-out ${
-            indice === actual ? 'opacity-100' : 'opacity-0'
-          }`}
+    <div className="relative w-full h-[70vh] md:h-[85vh] overflow-hidden bg-[#F5EBEB]">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={actual}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1 }}
+          className="relative w-full h-full"
         >
-          <div className={`w-full h-full ${diapositiva.imagen} flex items-center justify-center`}>
-            <div className="text-center text-white px-4">
-              <div className="inline-block bg-white text-red-600 px-4 py-1 rounded-full text-sm font-bold mb-4">
-                {diapositiva.descuento}
+          {/* Imagen de Fondo con Zoom sutil */}
+          <motion.img
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 6 }}
+            src={DIAPOSITIVAS[actual].imagen}
+            alt={DIAPOSITIVAS[actual].titulo}
+            className="w-full h-full object-cover"
+          />
+
+          {/* Overlay Gradiente */}
+          <div className="absolute inset-0 bg-linear-to-r from-black/60 via-black/20 to-transparent" />
+
+          {/* Contenido Editorial */}
+          <div className="absolute inset-0 flex items-center">
+            <div className="max-w-7xl mx-auto px-6 md:px-12 w-full">
+              <div className="max-w-xl text-white">
+                <motion.span
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="inline-block text-[#D4AF37] text-xs md:text-sm font-bold uppercase tracking-[0.4em] mb-4"
+                >
+                  {DIAPOSITIVAS[actual].subtitulo}
+                </motion.span>
+                
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-4xl md:text-7xl font-serif leading-tight mb-6"
+                >
+                  {DIAPOSITIVAS[actual].titulo}
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="text-gray-200 text-sm md:text-lg mb-8 font-light max-w-md leading-relaxed"
+                >
+                  {DIAPOSITIVAS[actual].descripcion}
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9 }}
+                >
+                  <button className="group relative px-8 py-4 overflow-hidden border border-[#D4AF37] text-white transition-all duration-300 hover:text-black">
+                    <span className="absolute inset-0 bg-[#D4AF37] translate-y-full transition-transform duration-300 group-hover:translate-y-0" />
+                    <span className="relative z-10 text-xs font-bold uppercase tracking-widest">
+                      {DIAPOSITIVAS[actual].llamada}
+                    </span>
+                  </button>
+                </motion.div>
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold mb-2">{diapositiva.titulo}</h1>
-              <p className="text-lg md:text-xl mb-6 opacity-90">{diapositiva.subtitulo}</p>
-              <button className="bg-white text-red-600 px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition">
-                {diapositiva.llamada}
-              </button>
             </div>
           </div>
-        </div>
-      ))}
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Botones de Navegación */}
-      <button
-        onClick={anterior}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white p-2 rounded-full transition"
-      >
-        <ChevronLeft className="text-gray-900" size={24} />
-      </button>
-      <button
-        onClick={siguiente}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white p-2 rounded-full transition"
-      >
-        <ChevronRight className="text-gray-900" size={24} />
-      </button>
+      {/* Navegación Minimalista */}
+      <div className="absolute bottom-10 right-10 flex gap-4 z-20">
+        <button
+          onClick={anterior}
+          className="w-12 h-12 flex items-center justify-center rounded-full border border-white/30 text-white hover:bg-white hover:text-black transition-all"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          onClick={siguiente}
+          className="w-12 h-12 flex items-center justify-center rounded-full border border-white/30 text-white hover:bg-white hover:text-black transition-all"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
 
-      {/* Indicadores */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {DIAPOSITIVAS.map((_, indice) => (
-          <button
-            key={indice}
-            onClick={() => setActual(indice)}
-            className={`w-3 h-3 rounded-full transition ${
-              indice === actual ? 'bg-white' : 'bg-white/50'
-            }`}
-          />
-        ))}
+      {/* Indicador de barra de progreso */}
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20 z-20">
+        <motion.div
+          key={actual}
+          initial={{ width: 0 }}
+          animate={{ width: '100%' }}
+          transition={{ duration: 6, ease: "linear" }}
+          className="h-full bg-[#D4AF37]"
+        />
       </div>
     </div>
   );
