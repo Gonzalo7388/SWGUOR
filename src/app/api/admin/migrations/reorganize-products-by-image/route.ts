@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@supabase/supabase-js';
+import { createClient} from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -8,17 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
+    const supabase = await createClient();
+    
     // Obtener todas las categorías
     const { data: categorias } = await supabase
       .from('categorias')
