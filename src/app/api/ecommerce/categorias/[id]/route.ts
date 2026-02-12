@@ -1,4 +1,4 @@
-import { createClient} from '@/lib/supabase/server';
+import { createClient as createServerClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -21,30 +21,39 @@ export async function GET(
       );
     }
 
-    const supabase = await createClient();
+    // Usar cliente de servicio para acceso sin restricciones
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
 
     // Obtener la categoría
     const { data: categoria, error: categError } = await supabase
       .from('categorias')
       .select('*')
       .eq('id', id)
-      .eq('estado', true)
       .single();
 
     if (categError || !categoria) {
+      console.error('[API] Categoría no encontrada:', categError);
       return NextResponse.json(
         { error: 'Categoría no encontrada' },
         { status: 404 }
       );
     }
 
-    // Obtener todos los productos de la categoría (solo activos y con stock)
+    // Obtener todos los productos de la categoría (solo activos)
     const { data: productos, error: prodError } = await supabase
       .from('productos')
-      .select('id, nombre, descripcion, precio, imagen, sku, stock, stock_minimo, categoria_id, created_at, updated_at')
+      .select('*')
       .eq('categoria_id', id)
       .eq('estado', 'activo')
-      .gt('stock', 0)
       .order('created_at', { ascending: false });
 
     if (prodError) {
@@ -59,13 +68,21 @@ export async function GET(
       );
     }
 
+    // Normalizar URLs de imagen
+    const normalizarImagen = (imagen: string | null | undefined): string | null => {
+      if (!imagen) return null;
+      if (imagen.startsWith('http')) return imagen;
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${imagen}`;
+    };
+
     // Transformar los datos
     const productosTransformados = (productos || []).map((producto: any) => ({
       id: producto.id,
       nombre: producto.nombre,
       descripcion: producto.descripcion,
       precio: Number(producto.precio),
-      imagen: producto.imagen,
+      precio_original: producto.precio_original ? Number(producto.precio_original) : undefined,
+      imagen: normalizarImagen(producto.imagen),
       sku: producto.sku,
       stock: producto.stock,
       stock_minimo: producto.stock_minimo,

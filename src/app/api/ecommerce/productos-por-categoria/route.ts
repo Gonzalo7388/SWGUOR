@@ -65,6 +65,13 @@ export async function GET(request: NextRequest) {
           .eq('estado', 'activo')
           .gt('stock', 0);
 
+        // Normalizar URLs de imagen
+        const normalizarImagen = (imagen: string | null | undefined): string | null => {
+          if (!imagen) return null;
+          if (imagen.startsWith('http')) return imagen;
+          return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${imagen}`;
+        };
+
         return {
           id: categoria.id,
           nombre: categoria.nombre,
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
             nombre: p.nombre,
             descripcion: p.descripcion,
             precio: Number(p.precio),
-            imagen: p.imagen,
+            imagen: normalizarImagen(p.imagen),
             sku: p.sku,
             stock: p.stock,
             stock_minimo: p.stock_minimo,

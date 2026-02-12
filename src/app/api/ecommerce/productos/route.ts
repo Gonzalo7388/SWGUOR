@@ -78,13 +78,20 @@ export async function GET(request: NextRequest) {
       (categorias || []).map((c: any) => [c.id, c])
     );
 
+    // Normalizar URLs de imagen
+    const normalizarImagen = (imagen: string | null | undefined): string | null => {
+      if (!imagen) return null;
+      if (imagen.startsWith('http')) return imagen;
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${imagen}`;
+    };
+
     // Transformar los datos
     const productosTransformados = productosResultado.map((producto) => ({
       id: producto.id,
       nombre: producto.nombre,
       descripcion: producto.descripcion,
       precio: Number(producto.precio),
-      imagen: producto.imagen,
+      imagen: normalizarImagen(producto.imagen),
       sku: producto.sku,
       stock: producto.stock,
       stock_minimo: producto.stock_minimo,

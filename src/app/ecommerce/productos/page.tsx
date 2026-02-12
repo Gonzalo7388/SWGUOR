@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { useCategoriasEcommerce } from '@/lib/hooks/useCategoriasEcommerce';
@@ -14,6 +15,7 @@ const FiltrosLaterales = dynamic(() => import('@/components/ecommerce/productos/
 const Paginacion = dynamic(() => import('@/components/ecommerce/productos/Paginacion').then(mod => mod.Paginacion), { ssr: false });
 
 export default function TodosLosProductos() {
+  const searchParams = useSearchParams();
   const [productos, setProductos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { categorias } = useCategoriasEcommerce();
@@ -24,6 +26,15 @@ export default function TodosLosProductos() {
   const [paginaActual, setPaginaActual] = useState(1);
   
   const productosPorPagina = 15;
+
+  // Leer parámetro de categoría de la URL
+  useEffect(() => {
+    const categoriaParam = searchParams.get('categoria');
+    if (categoriaParam) {
+      setCategoriaSel(categoriaParam);
+      setPaginaActual(1);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchProductos = async () => {

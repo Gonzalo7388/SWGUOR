@@ -1,8 +1,14 @@
 'use client';
 
-import CarruselHeroi from '@/components/ecommerce/hero/HeroSlider';
+import dynamic from 'next/dynamic';
 import ProductosDestacados from '@/components/ecommerce/productos/FeaturedProducts';
 import PromoSection from '@/components/ecommerce/secciones/PromoSection';
+
+// Importar HeroSlider de forma dinámica sin SSR para evitar errores de hidratación
+const CarruselHeroi = dynamic(
+  () => import('@/components/ecommerce/hero/HeroSlider'),
+  { ssr: false, loading: () => <div className="w-full h-[70vh] md:h-[85vh] bg-gray-200 animate-pulse" /> }
+);
 
 export default function PaginaEcommerce() {
   return (

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 const DIAPOSITIVAS = [
   {
@@ -12,6 +13,7 @@ const DIAPOSITIVAS = [
     descripcion: 'Descubre texturas ligeras y cortes atemporales diseñados para la mujer moderna.',
     imagen: '/ofertas/sale-50-pink.jpg',
     llamada: 'Explorar Colección',
+    enlace: '/ecommerce/productos',
   },
   {
     id: 2,
@@ -20,6 +22,7 @@ const DIAPOSITIVAS = [
     descripcion: 'Aprovecha un 50% de descuento exclusivo en nuestra selección de vestidos de gala.',
     imagen: '/ofertas/flash-sale.jpg',
     llamada: 'Ver Ofertas',
+    enlace: '/ecommerce/productos',
   },
   {
     id: 3,
@@ -28,6 +31,7 @@ const DIAPOSITIVAS = [
     descripcion: 'Cada pieza cuenta una historia. Encuentra la tuya en nuestra nueva curaduría.',
     imagen: '/ofertas/shopping-bags.jpg',
     llamada: 'Descubrir más',
+    enlace: '/ecommerce/productos',
   },
 ];
 
@@ -104,12 +108,15 @@ export default function CarruselHeroi() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 }}
                 >
-                  <button className="group relative px-8 py-4 overflow-hidden border border-[#D4AF37] text-white transition-all duration-300 hover:text-black">
-                    <span className="absolute inset-0 bg-[#D4AF37] translate-y-full transition-transform duration-300 group-hover:translate-y-0" />
-                    <span className="relative z-10 text-xs font-bold uppercase tracking-widest">
-                      {DIAPOSITIVAS[actual].llamada}
-                    </span>
-                  </button>
+                  <Link href={DIAPOSITIVAS[actual].enlace}>
+                    <button className="group relative px-8 py-4 overflow-hidden border border-[#D4AF37] text-white transition-all duration-300 hover:text-black flex items-center gap-3">
+                      <span className="absolute inset-0 bg-[#D4AF37] translate-y-full transition-transform duration-300 group-hover:translate-y-0" />
+                      <span className="relative z-10 text-xs font-bold uppercase tracking-widest">
+                        {DIAPOSITIVAS[actual].llamada}
+                      </span>
+                      <ArrowRight size={16} className="relative z-10 transition-transform group-hover:translate-x-1" />
+                    </button>
+                  </Link>
                 </motion.div>
               </div>
             </div>
