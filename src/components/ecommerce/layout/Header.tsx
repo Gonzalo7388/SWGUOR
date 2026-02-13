@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ShoppingCart, Search, User, Menu, X, Heart, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
+import { useFavoritos } from '@/app/ecommerce/_contexts/FavoritosContext';
 import CategoriasDropdown from '@/components/ecommerce/layout/CategoriasDropdown';
 import MobileMenu from '@/components/ecommerce/layout/MobileMenu';
 
@@ -12,6 +13,7 @@ export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { obtenerCantidadTotal } = useCarrito();
+  const { favoritos } = useFavoritos();
   const cantidadCarrito = obtenerCantidadTotal();
 
   useEffect(() => {
@@ -101,8 +103,13 @@ export default function Header() {
               <Link href="/ecommerce/login" className="hidden sm:block p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
                 <User size={20} strokeWidth={2.5} />
               </Link>
-              <Link href="/ecommerce/favoritos" className="hidden sm:block p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
+              <Link href="/ecommerce/favoritos" className="hidden sm:block relative p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
                 <Heart size={20} strokeWidth={2.5} />
+                {favoritos.length > 0 && (
+                  <span className="absolute top-1 right-0 bg-red-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {favoritos.length > 99 ? '99+' : favoritos.length}
+                  </span>
+                )}
               </Link>
               <Link href="/ecommerce/carrito" className="relative p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
                 <ShoppingCart size={20} strokeWidth={2.5} />

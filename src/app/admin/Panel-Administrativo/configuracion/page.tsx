@@ -291,7 +291,7 @@ export default function ConfiguracionPage() {
             </div>
           </div>
         )}
-      </div>
+v>
     </div>
   );
 }

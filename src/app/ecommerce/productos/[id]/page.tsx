@@ -7,6 +7,7 @@ import { ArrowLeft, ShoppingCart, Heart, Share2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
+import { useFavoritos } from '@/app/ecommerce/_contexts/FavoritosContext';
 import ColorSelector from '@/components/ecommerce/productos/ColorSelector';
 import TallaSelector from '@/components/ecommerce/productos/TallaSelector';
 import { getSupabaseImageUrl } from '@/lib/utils/supabase-image-utils';
@@ -48,10 +49,22 @@ export default function PaginaDetallesProducto() {
 
   const [colorSeleccionado, setColorSeleccionado] = useState<string | null>(null);
   const [tallaSeleccionada, setTallaSeleccionada] = useState<string | null>(null);
-  const [cantidad, setCantidad] = useState(1);
+  const [cantidad, setCantidad] = useState(400);
   const [agregandoCarrito, setAgregandoCarrito] = useState(false);
+  const [esFavoritoLocal, setEsFavoritoLocal] = useState(false);
 
   const { agregarAlCarrito } = useCarrito();
+  const { esFavorito, toggleFavorito } = useFavoritos();
+
+  // Sincronizar estado local con favoritos
+  useEffect(() => {
+    if (producto && producto.id) {
+      const idNumerico = typeof producto.id === 'string' ? parseInt(producto.id) : producto.id;
+      setEsFavoritoLocal(esFavorito(idNumerico));
+    }
+  }, [producto?.id, esFavorito]);
+
+  const CANTIDAD_MINIMA = 400;
 
   useEffect(() => {
     const fetchProducto = async () => {
@@ -92,6 +105,11 @@ export default function PaginaDetallesProducto() {
       return;
     }
 
+    if (cantidad < CANTIDAD_MINIMA) {
+      alert(`⚠️ Cantidad mínima de compra: ${CANTIDAD_MINIMA} unidades`);
+      return;
+    }
+
     setAgregandoCarrito(true);
 
     try {
@@ -104,10 +122,10 @@ export default function PaginaDetallesProducto() {
       });
 
       // Mostrar confirmación
-      alert(`${cantidad} ${producto?.nombre} agregado(s) al carrito`);
+      alert(`✓ ${cantidad} ${producto?.nombre} agregado(s) al carrito`);
     } catch (err) {
       console.error('Error agregando carrito:', err);
-      alert('Error al agregar al carrito');
+      alert('❌ Error al agregar al carrito');
     } finally {
       setAgregandoCarrito(false);
     }
@@ -165,16 +183,17 @@ export default function PaginaDetallesProducto() {
 
       {/* Contenido Principal */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <motion.button
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          href="/ecommerce/productos"
-          as={Link}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition"
-        >
-          <ArrowLeft size={20} />
-          Volver
-        </motion.button>
+        <Link href="/ecommerce/productos">
+          <motion.button
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition"
+            type="button"
+          >
+            <ArrowLeft size={20} />
+            Volver
+          </motion.button>
+        </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Imagen del Producto */}
@@ -252,29 +271,32 @@ export default function PaginaDetallesProducto() {
             {/* Cantidad */}
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
-                📦 Cantidad
+                📦 Cantidad (Mínimo: {CANTIDAD_MINIMA})
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 mb-2">
                 <button
-                  onClick={() => setCantidad(Math.max(1, cantidad - 1))}
+                  onClick={() => setCantidad(Math.max(CANTIDAD_MINIMA, cantidad - 100))}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold"
                 >
-                  −
+                  −100
                 </button>
                 <input
                   type="number"
                   value={cantidad}
-                  onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
-                  min="1"
-                  className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  onChange={(e) => setCantidad(Math.max(CANTIDAD_MINIMA, parseInt(e.target.value) || CANTIDAD_MINIMA))}
+                  min={CANTIDAD_MINIMA}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
                 <button
-                  onClick={() => setCantidad(cantidad + 1)}
+                  onClick={() => setCantidad(cantidad + 100)}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold"
                 >
-                  +
+                  +100
                 </button>
               </div>
+              <p className="text-xs text-gray-500">
+                Subtotal: <span className="font-bold text-gray-900">S/ {(producto.precio * cantidad).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </p>
             </div>
 
             {/* Stock */}
@@ -295,9 +317,29 @@ export default function PaginaDetallesProducto() {
                 {agregandoCarrito ? 'Agregando...' : 'Agregar al Carrito'}
               </button>
 
-              <button className="flex items-center justify-center gap-2 border-2 border-gray-300 px-6 py-4 rounded-lg font-bold uppercase tracking-wide hover:bg-gray-50 transition">
-                <Heart size={20} />
-                Favorito
+              <button
+                onClick={() => {
+                  if (producto) {
+                    toggleFavorito({
+                      id: producto.id,
+                      nombre: producto.nombre,
+                      precio: producto.precio,
+                      imagen: producto.imagen,
+                    });
+                    setEsFavoritoLocal(!esFavoritoLocal);
+                  }
+                }}
+                className={`flex items-center justify-center gap-2 border-2 px-6 py-4 rounded-lg font-bold uppercase tracking-wide transition ${
+                  esFavoritoLocal
+                    ? 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Heart
+                  size={20}
+                  fill={esFavoritoLocal ? 'currentColor' : 'none'}
+                />
+                {esFavoritoLocal ? 'En Favoritos' : 'Favorito'}
               </button>
 
               <button className="flex items-center justify-center gap-2 border-2 border-gray-300 px-6 py-4 rounded-lg font-bold uppercase tracking-wide hover:bg-gray-50 transition">

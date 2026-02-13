@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle, Heart } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PaginaNosotros() {
@@ -30,13 +30,11 @@ export default function PaginaNosotros() {
     setRespuesta(null);
 
     try {
-      // Si tienes un endpoint de correo, úsalo aquí
-      // Por ahora simularemos el envío
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setRespuesta({
         tipo: 'exito',
-        mensaje: 'Gracias por tu mensaje. Nos pondremos en contacto pronto.',
+        mensaje: '✓ Gracias por tu mensaje. Nos pondremos en contacto pronto.',
       });
 
       setFormData({
@@ -48,7 +46,7 @@ export default function PaginaNosotros() {
     } catch (error) {
       setRespuesta({
         tipo: 'error',
-        mensaje: 'Ocurrió un error. Por favor intenta de nuevo.',
+        mensaje: '✗ Ocurrió un error. Por favor intenta de nuevo.',
       });
     } finally {
       setEnviando(false);
@@ -76,11 +74,11 @@ export default function PaginaNosotros() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header */}
-      <div className="bg-linear-to-r from-purple-600 via-purple-700 to-purple-800 text-white py-16 md:py-20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -z-0"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -z-0"></div>
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-amber-50">
+      {/* Header Premium */}
+      <div className="bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-b-2 border-amber-200 py-16 md:py-20 relative overflow-hidden">
+        <div className="absolute top-10 right-10 w-40 h-40 bg-amber-200 rounded-full mix-blend-multiply filter blur-2xl opacity-30 -z-0"></div>
+        <div className="absolute bottom-10 left-10 w-32 h-32 bg-yellow-100 rounded-full mix-blend-multiply filter blur-2xl opacity-20 -z-0"></div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
@@ -88,29 +86,18 @@ export default function PaginaNosotros() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Nosotros</h1>
-            <p className="text-purple-100 text-lg md:text-xl mb-6">
-              Conoce la historia y los valores de Modas y Estilos GUOR
-            </p>
-            <div className="flex gap-4 flex-wrap">
-              <Link
-                href="/ecommerce"
-                className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                ← Ir a Inicio
-              </Link>
-              <Link
-                href="/ecommerce/productos"
-                className="px-6 py-3 bg-purple-900 text-white rounded-lg font-semibold hover:bg-purple-950 transition"
-              >
-                Explorar Productos
-              </Link>
+            <div className="flex items-center gap-3 mb-4">
+              <Heart className="text-amber-600" size={32} />
+              <h1 className="text-4xl md:text-5xl font-black text-gray-900">Sobre Nosotros</h1>
             </div>
+            <p className="text-gray-700 text-lg md:text-xl mb-6 max-w-2xl">
+              Conoce la historia, visión y valores de Modas y Estilos GUOR
+            </p>
           </motion.div>
         </div>
       </div>
 
-      {/* Contenido */}
+      {/* Contenido Principal */}
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Sección: Quiénes Somos */}
         <motion.section 
@@ -121,16 +108,19 @@ export default function PaginaNosotros() {
           viewport={{ once: true }}
         >
           <motion.div variants={itemVariants} className="mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">¿Quiénes Somos?</h2>
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 flex items-center gap-3">
+              <span className="text-amber-600">✦</span>
+              ¿Quiénes Somos?
+            </h2>
+            <div className="bg-white border-2 border-amber-200 p-8 rounded-2xl hover:shadow-lg transition-all">
               <p className="text-gray-700 text-lg leading-relaxed mb-4">
-                <span className="font-bold text-purple-600">Modas y Estilos GUOR S.A.C</span> es una empresa textil dedicada al rubro de confección y venta mayorista de prendas para mujeres.
+                <span className="font-bold text-amber-700">Modas y Estilos GUOR S.A.C</span> es una empresa textil dedicada al rubro de confección y venta mayorista de prendas para mujeres.
               </p>
               <p className="text-gray-700 text-lg leading-relaxed mb-4">
                 Contamos con una trayectoria sólida en el mercado, ofreciendo productos de alta calidad con diseños modernos y tendencias actuales. Nuestro compromiso es brindar prendas elegantes y accesibles para todas nuestras clientas.
               </p>
               <p className="text-gray-700 text-lg leading-relaxed">
-                Actualmente, nuestros procesos de pedidos, producción y administración funcionan de manera organizada, con herramientas especializadas para gestionar inventario, pedidos y relación con nuestros clientes mayoristas y proveedores de talleres externos y telas.
+                Actualmente, nuestros procesos de pedidos, producción y administración funcionan de manera organizada, con herramientas especializadas para gestionar inventario, pedidos y relación con nuestros clientes mayoristas y proveedores de talleres externos.
               </p>
             </div>
           </motion.div>
@@ -140,24 +130,24 @@ export default function PaginaNosotros() {
             {/* Misión */}
             <motion.div 
               variants={itemVariants}
-              className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition"
+              className="bg-white border-2 border-amber-200 p-8 rounded-2xl hover:shadow-lg transition-all"
             >
               <div className="text-4xl mb-4">🎯</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Misión</h3>
               <p className="text-gray-700 leading-relaxed">
-                Ser la mejor empresa textil en confección y venta mayorista de prendas para mujeres, proporcionando productos de excelente calidad, diseños innovadores y un servicio personalizado a nuestros clientes. Buscamos optimizar nuestros procesos mediante tecnología digital para agilizar la gestión de pedidos, inventario y relaciones comerciales.
+                Ser la mejor empresa textil en confección y venta mayorista de prendas para mujeres, proporcionando productos de excelente calidad y diseños innovadores.
               </p>
             </motion.div>
 
             {/* Visión */}
             <motion.div 
               variants={itemVariants}
-              className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition"
+              className="bg-white border-2 border-amber-200 p-8 rounded-2xl hover:shadow-lg transition-all"
             >
               <div className="text-4xl mb-4">👁️</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Visión</h3>
               <p className="text-gray-700 leading-relaxed">
-                Ser reconocidos como líderes en la industria textil peruana, destacando por nuestra calidad, innovación y compromiso con la sostenibilidad. Implementar sistemas digitales avanzados que permitan una gestión integral de nuestros procesos y fortalecer nuestras relaciones con clientes y proveedores a nivel nacional e internacional.
+                Ser reconocidos como líderes en la industria textil peruana, destacando por nuestra calidad, innovación y compromiso con la sostenibilidad.
               </p>
             </motion.div>
           </div>
@@ -172,7 +162,10 @@ export default function PaginaNosotros() {
           viewport={{ once: true }}
         >
           <motion.div variants={itemVariants} className="mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Nuestros Valores</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-8 flex items-center gap-3">
+              <span className="text-amber-600">✦</span>
+              Nuestros Valores
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { icono: '✨', titulo: 'Calidad', desc: 'Excelencia en cada prenda' },
@@ -183,7 +176,7 @@ export default function PaginaNosotros() {
                 <motion.div 
                   key={idx}
                   variants={itemVariants}
-                  className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center hover:shadow-md transition"
+                  className="bg-white border-2 border-amber-200 p-6 rounded-xl text-center hover:shadow-lg transition-all"
                 >
                   <div className="text-4xl mb-3">{valor.icono}</div>
                   <h4 className="font-bold text-gray-900 text-lg mb-2">{valor.titulo}</h4>
@@ -202,26 +195,30 @@ export default function PaginaNosotros() {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8 text-center">¿Tienes Preguntas?</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-8 text-center flex items-center justify-center gap-3">
+            <span className="text-amber-600">✦</span>
+            ¿Tienes Preguntas?
+            <span className="text-amber-600">✦</span>
+          </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Información de contacto */}
             <motion.div variants={itemVariants}>
-              <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 h-full">
+              <div className="bg-white border-2 border-amber-200 p-8 rounded-2xl h-full hover:shadow-lg transition-all">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Contacto Directo</h3>
 
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <Mail className="text-purple-600 flex-shrink-0 mt-1" size={24} />
+                    <Mail className="text-amber-600 flex-shrink-0 mt-1" size={24} />
                     <div>
                       <p className="font-semibold text-gray-900">Email</p>
                       <p className="text-gray-600">
-                        <a href="mailto:contacto@guor.com" className="hover:text-purple-600">
+                        <a href="mailto:contacto@guor.com" className="hover:text-amber-700">
                           contacto@guor.com
                         </a>
                       </p>
                       <p className="text-gray-600">
-                        <a href="mailto:ventas@guor.com" className="hover:text-purple-600">
+                        <a href="mailto:ventas@guor.com" className="hover:text-amber-700">
                           ventas@guor.com
                         </a>
                       </p>
@@ -229,11 +226,11 @@ export default function PaginaNosotros() {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <Phone className="text-purple-600 flex-shrink-0 mt-1" size={24} />
+                    <Phone className="text-amber-600 flex-shrink-0 mt-1" size={24} />
                     <div>
                       <p className="font-semibold text-gray-900">Contacto Mayorista</p>
                       <p className="text-gray-600">
-                        <a href="https://wa.me/51" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600">
+                        <a href="https://wa.me/51" target="_blank" rel="noopener noreferrer" className="hover:text-amber-700">
                           WhatsApp Business
                         </a>
                       </p>
@@ -241,7 +238,7 @@ export default function PaginaNosotros() {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <MapPin className="text-purple-600 flex-shrink-0 mt-1" size={24} />
+                    <MapPin className="text-amber-600 flex-shrink-0 mt-1" size={24} />
                     <div>
                       <p className="font-semibold text-gray-900">Ubicación</p>
                       <p className="text-gray-600">Lima, Perú</p>
@@ -253,7 +250,7 @@ export default function PaginaNosotros() {
 
             {/* Formulario de contacto */}
             <motion.div variants={itemVariants} className="lg:col-span-2">
-              <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+              <div className="bg-white border-2 border-amber-200 p-8 rounded-2xl hover:shadow-lg transition-all">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Enviar Mensaje</h3>
 
                 {respuesta && (
@@ -262,8 +259,8 @@ export default function PaginaNosotros() {
                     animate={{ opacity: 1, y: 0 }}
                     className={`p-4 rounded-lg mb-6 flex items-start gap-3 ${
                       respuesta.tipo === 'exito'
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-red-50 border border-red-200'
+                        ? 'bg-green-50 border-2 border-green-300'
+                        : 'bg-red-50 border-2 border-red-300'
                     }`}
                   >
                     {respuesta.tipo === 'exito' ? (
@@ -273,7 +270,7 @@ export default function PaginaNosotros() {
                     )}
                     <p
                       className={
-                        respuesta.tipo === 'exito' ? 'text-green-800' : 'text-red-800'
+                        respuesta.tipo === 'exito' ? 'text-green-800 font-semibold' : 'text-red-800 font-semibold'
                       }
                     >
                       {respuesta.mensaje}
@@ -284,7 +281,7 @@ export default function PaginaNosotros() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      <label className="block text-sm font-bold text-gray-900 mb-2">
                         Nombre Completo
                       </label>
                       <input
@@ -293,12 +290,12 @@ export default function PaginaNosotros() {
                         value={formData.nombre}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+                        className="w-full px-4 py-2 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                         placeholder="Tu nombre"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      <label className="block text-sm font-bold text-gray-900 mb-2">
                         Email
                       </label>
                       <input
@@ -307,14 +304,14 @@ export default function PaginaNosotros() {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+                        className="w-full px-4 py-2 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                         placeholder="tu@email.com"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
                       Asunto
                     </label>
                     <select
@@ -322,7 +319,7 @@ export default function PaginaNosotros() {
                       value={formData.asunto}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      className="w-full px-4 py-2 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                     >
                       <option value="">Selecciona un asunto</option>
                       <option value="consulta">Consulta General</option>
@@ -334,7 +331,7 @@ export default function PaginaNosotros() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
                       Mensaje
                     </label>
                     <textarea
@@ -343,7 +340,7 @@ export default function PaginaNosotros() {
                       onChange={handleChange}
                       required
                       rows={5}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none"
+                      className="w-full px-4 py-2 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent resize-none"
                       placeholder="Cuéntanos cómo podemos ayudarte..."
                     ></textarea>
                   </div>
@@ -351,7 +348,7 @@ export default function PaginaNosotros() {
                   <button
                     type="submit"
                     disabled={enviando}
-                    className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-amber-600 text-white font-bold py-3 rounded-lg hover:bg-amber-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Send size={20} />
                     {enviando ? 'Enviando...' : 'Enviar Mensaje'}

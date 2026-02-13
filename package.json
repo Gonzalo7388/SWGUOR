@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:variantes": "ts-node -P tsconfig.json scripts/generate-variantes.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^2.0.33",

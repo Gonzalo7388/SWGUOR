@@ -4,7 +4,7 @@ import Link from 'next/link';
 import ProductCard from '@/components/ecommerce/productos/ProductCard';
 import { useProductosEcommerce } from '@/lib/hooks/useProductosEcommerce';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, Calendar } from 'lucide-react';
+import { Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
 
 export default function PaginaNuevos() {
   const { productos, loading, error } = useProductosEcommerce({ limite: 50 });
@@ -14,7 +14,7 @@ export default function PaginaNuevos() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.08,
         delayChildren: 0.2,
       },
     },
@@ -30,12 +30,12 @@ export default function PaginaNuevos() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header */}
-      <div className="bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 text-white py-16 md:py-20 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-amber-50">
+      {/* Header Premium */}
+      <div className="bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-b-2 border-amber-200 py-16 md:py-20 relative overflow-hidden">
         {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -z-0"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -z-0"></div>
+        <div className="absolute top-10 right-10 w-40 h-40 bg-amber-200 rounded-full mix-blend-multiply filter blur-2xl opacity-30 -z-0"></div>
+        <div className="absolute bottom-10 left-10 w-32 h-32 bg-yellow-100 rounded-full mix-blend-multiply filter blur-2xl opacity-20 -z-0"></div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
@@ -44,101 +44,92 @@ export default function PaginaNuevos() {
             transition={{ duration: 0.6 }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="text-yellow-300" size={32} />
-              <h1 className="text-4xl md:text-5xl font-bold">Colección NEW</h1>
+              <Sparkles className="text-amber-600" size={32} />
+              <h1 className="text-4xl md:text-5xl font-black text-gray-900">Colección NEW</h1>
             </div>
-            <p className="text-blue-100 text-lg md:text-xl mb-6">
-              Descubre lo último en moda. Productos recién llegados a nuestro catálogo
+            <p className="text-gray-700 text-lg md:text-xl mb-6 max-w-2xl">
+              Descubre los últimos diseños y tendencias exclusivas. Lo mejor de nuestro catálogo recién llegado
             </p>
-            <div className="flex gap-4 flex-wrap">
-              <Link
-                href="/ecommerce/categorias"
-                className="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                ← Explorar Categorías
-              </Link>
-              <Link
-                href="/ecommerce"
-                className="px-6 py-3 bg-blue-900 text-white rounded-lg font-semibold hover:bg-blue-950 transition"
-              >
-                Ir a Inicio
-              </Link>
+            <div className="flex items-center gap-2 text-amber-700 font-semibold">
+              <TrendingUp size={20} />
+              <span>Actualizados constantemente</span>
             </div>
           </motion.div>
         </div>
       </div>
 
-      {/* Contenido */}
+      {/* Contenido Principal */}
       <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Stats */}
+        {/* Stats Cards */}
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
           <motion.div 
-            className="bg-white rounded-lg p-6 text-center shadow-sm hover:shadow-md transition"
+            className="bg-white border-2 border-amber-200 rounded-2xl p-8 text-center hover:shadow-lg transition-all duration-300"
             variants={itemVariants}
           >
-            <div className="text-3xl font-bold text-blue-600 mb-2">🆕</div>
-            <p className="text-gray-600">Productos Nuevos</p>
+            <div className="text-4xl font-bold text-amber-600 mb-3">✨</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Nuevos Arrivals</h3>
+            <p className="text-gray-600">Productos exclusivos cada semana</p>
           </motion.div>
+          
           <motion.div 
-            className="bg-white rounded-lg p-6 text-center shadow-sm hover:shadow-md transition"
+            className="bg-white border-2 border-amber-200 rounded-2xl p-8 text-center hover:shadow-lg transition-all duration-300"
             variants={itemVariants}
           >
-            <div className="flex items-center justify-center gap-2 text-3xl font-bold text-green-600 mb-2">
-              <TrendingUp size={24} />
-              {productos.length}
-            </div>
-            <p className="text-gray-600">Productos Disponibles</p>
+            <div className="text-4xl font-bold text-amber-600 mb-3">{productos.length}+</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Productos</h3>
+            <p className="text-gray-600">Disponibles en catálogo</p>
           </motion.div>
+          
           <motion.div 
-            className="bg-white rounded-lg p-6 text-center shadow-sm hover:shadow-md transition"
+            className="bg-white border-2 border-amber-200 rounded-2xl p-8 text-center hover:shadow-lg transition-all duration-300"
             variants={itemVariants}
           >
-            <div className="flex items-center justify-center gap-2 text-3xl font-bold text-purple-600 mb-2">
-              <Calendar size={24} />
-              📅
-            </div>
-            <p className="text-gray-600">Actualizado Hoy</p>
+            <div className="text-4xl font-bold text-amber-600 mb-3">100%</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Auténtico</h3>
+            <p className="text-gray-600">Garantía de calidad premium</p>
           </motion.div>
         </motion.div>
 
-        {/* Productos */}
+        {/* Loading State */}
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {[...Array(12)].map((_, i) => (
               <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 rounded-lg h-48 mb-3"></div>
+                <div className="bg-gray-200 rounded-xl h-48 mb-3"></div>
                 <div className="bg-gray-200 h-4 rounded w-3/4 mb-2"></div>
                 <div className="bg-gray-200 h-3 rounded w-1/2"></div>
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600 text-lg mb-4">Error cargando productos: {error}</p>
+          <div className="text-center py-16 bg-white rounded-2xl border-2 border-red-200">
+            <p className="text-red-600 text-lg mb-6">Error cargando productos</p>
             <Link
               href="/ecommerce"
-              className="text-blue-600 hover:text-blue-700 font-semibold"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition"
             >
+              <ArrowRight size={18} />
               Volver al inicio
             </Link>
           </div>
         ) : productos.length > 0 ? (
           <>
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">
-              ✨ Lo Último en Llegar
+            <h2 className="text-3xl font-black text-gray-900 mb-8 flex items-center gap-2">
+              <Sparkles className="text-amber-600" size={28} />
+              Lo Último en Llegar
             </h2>
             <motion.div 
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              {productos.map((producto, idx) => (
+              {productos.map((producto) => (
                 <motion.div key={producto.id} variants={itemVariants}>
                   <ProductCard
                     producto={producto}
@@ -149,15 +140,16 @@ export default function PaginaNuevos() {
             </motion.div>
           </>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-lg mb-4">
+          <div className="text-center py-16 bg-white rounded-2xl border-2 border-amber-200">
+            <p className="text-gray-600 text-lg mb-6">
               No hay productos nuevos en este momento
             </p>
             <Link
               href="/ecommerce"
-              className="text-blue-600 hover:text-blue-700 font-semibold"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition"
             >
-              Explorar productos
+              <ArrowRight size={18} />
+              Volver al inicio
             </Link>
           </div>
         )}

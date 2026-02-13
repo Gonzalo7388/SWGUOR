@@ -1,9 +1,10 @@
 'use client';
 
-import { Plus, Check } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Check, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
+import { useFavoritos } from '@/app/ecommerce/_contexts/FavoritosContext';
 import { getSupabaseImageUrl } from '@/lib/utils/supabase-image-utils';
 
 interface ProductCardProps {
@@ -22,7 +23,15 @@ interface ProductCardProps {
 
 export default function ProductCard({ producto, size = 'md' }: ProductCardProps) {
   const { agregarAlCarrito } = useCarrito();
+  const { esFavorito, toggleFavorito } = useFavoritos();
   const [agregado, setAgregado] = useState(false);
+  const [esEnFavoritos, setEsEnFavoritos] = useState(false);
+
+  // Sincronizar estado de favorito
+  useEffect(() => {
+    const idNumerico = typeof producto.id === 'string' ? parseInt(producto.id) : producto.id;
+    setEsEnFavoritos(esFavorito(idNumerico));
+  }, [producto.id, esFavorito]);
 
   const precio = typeof producto.precio === 'string' 
     ? parseFloat(producto.precio) 
@@ -40,6 +49,19 @@ export default function ProductCard({ producto, size = 'md' }: ProductCardProps)
     agregarAlCarrito(producto);
     setAgregado(true);
     setTimeout(() => setAgregado(false), 2000);
+  };
+
+  const handleToggleFavorito = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const idNumerico = typeof producto.id === 'string' ? parseInt(producto.id) : producto.id;
+    toggleFavorito({
+      id: idNumerico,
+      nombre: producto.nombre,
+      precio: typeof producto.precio === 'string' ? parseFloat(producto.precio) : producto.precio,
+      imagen: producto.imagen,
+    });
+    setEsEnFavoritos(!esEnFavoritos);
   };
 
   // TAMAÑOS OPTIMIZADOS: Menos altura para mostrar más contenido
@@ -76,6 +98,18 @@ export default function ProductCard({ producto, size = 'md' }: ProductCardProps)
               -{descuento}%
             </div>
           )}
+
+          {/* Botón de Favorito */}
+          <button
+            onClick={handleToggleFavorito}
+            className={`absolute top-2 right-2 rounded-full p-2.5 transition-all duration-300 shadow-md ${
+              esEnFavoritos
+                ? 'bg-red-500 text-white scale-110'
+                : 'bg-white text-gray-400 hover:text-red-500 hover:scale-110'
+            }`}
+          >
+            <Heart size={16} strokeWidth={2} fill={esEnFavoritos ? 'currentColor' : 'none'} />
+          </button>
 
           {/* Botón Flotante (Aparece al hacer hover o siempre visible en móvil) */}
           <button
