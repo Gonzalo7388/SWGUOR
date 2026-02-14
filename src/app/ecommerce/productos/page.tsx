@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronRight } from 'lucide-react';
 import { useCategoriasEcommerce } from '@/lib/hooks/useCategoriasEcommerce';
 import ProductCard from '@/components/ecommerce/productos/ProductCard';
 
@@ -68,17 +69,36 @@ export default function TodosLosProductos() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Breadcrumb */}
+      <div className="border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <nav className="flex items-center gap-2 text-sm text-gray-500">
+            <Link href="/ecommerce" className="hover:text-gray-900 transition-colors">
+              Inicio
+            </Link>
+            <ChevronRight size={14} strokeWidth={2} />
+            <span className="text-gray-900 font-medium">Productos</span>
+          </nav>
+        </div>
+      </div>
+
       <header className="w-full">
-        {/* Título alineado y compacto */}
-        <div className="py-10 border-b border-gray-50">
+        {/* Título centrado y compacto */}
+        <div className="py-12 text-center">
           <div className="max-w-7xl mx-auto px-4">
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-400 font-medium mb-3">
               Productos
+            </p>
+            <h1 className="text-3xl md:text-4xl font-light text-gray-900 tracking-tight mb-4">
+              Todas las <span className="italic">Colecciones</span>
             </h1>
+            <p className="text-sm text-gray-500 max-w-xl mx-auto font-light">
+              Explora nuestra selección curada de prendas diseñadas para cada ocasión.
+            </p>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-10">
+        <div className="max-w-7xl mx-auto px-4 pb-16">
           <div className="flex flex-col lg:flex-row gap-10 text-left">
             
             {/* Sidebar con buscador integrado */}
@@ -101,6 +121,13 @@ export default function TodosLosProductos() {
                 </div>
               ) : productosVisibles.length > 0 ? (
                 <>
+                  {/* Contador de resultados */}
+                  <div className="mb-8 pb-6 border-b border-gray-100">
+                    <p className="text-sm text-gray-500">
+                      {productosFiltrados.length} {productosFiltrados.length === 1 ? 'producto' : 'productos'}
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
                     {productosVisibles.map((p) => <ProductCard key={p.id} producto={p} />)}
                   </div>
@@ -119,9 +146,9 @@ export default function TodosLosProductos() {
                   </p>
                   <button 
                     onClick={() => { setBusqueda(''); setCategoriaSel('todos'); setRangoPrecio(500); }}
-                    className="text-sm font-bold text-[#f02d65] hover:underline uppercase tracking-widest"
+                    className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
                   >
-                    Restablecer filtros
+                    Restablecer filtros →
                   </button>
                 </div>
               )}

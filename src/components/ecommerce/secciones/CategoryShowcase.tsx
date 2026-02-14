@@ -1,61 +1,205 @@
 'use client';
 
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { useCategoriasEcommerce } from '@/lib/hooks/useCategoriasEcommerce';
-import { getSupabaseImageUrl } from '@/lib/utils/supabase-image-utils';
 
-const ICONOS_CATEGORIA = {
-  'Vestidos': '👗',
-  'Blusas': '👕',
-  'Pantalones': '👖',
-  'Faldas': '👗',
-  'Buzos': '🧥',
-  'Accesorios': '👜',
-  'Camisetas': '👕',
-  'Chaquetas': '🧥',
-  'Suéteres': '🧶',
-  'Polos': '👕',
-  'Jeans': '👖',
-  'Casacas': '🧥',
-  'Prendas Deportivas': '🏃',
-  'Conjuntos': '👕',
-  'Avíos': '🧵',
-  'Hilos': '🧵',
+// Imágenes con modelos femeninas - Alta calidad de Unsplash
+const CATEGORY_IMAGES: Record<string, string> = {
+  // Vestidos
+  'Vestidos': 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=500&h=700&fit=crop&q=80',
+  
+  // Blusas
+  'Blusas': 'https://images.unsplash.com/photo-1564257577-47b4934089b8?w=500&h=700&fit=crop&q=80',
+  'Blusas y Camisas': 'https://images.unsplash.com/photo-1564257577-47b4934089b8?w=500&h=700&fit=crop&q=80',
+  
+  // Pantalones
+  'Pantalones': 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=500&h=700&fit=crop&q=80',
+  'Pantalones y Jeans': 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&h=700&fit=crop&q=80',
+  
+  // Faldas
+  'Faldas': 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&h=700&fit=crop&q=80',
+  
+  // Buzos y Casacas
+  'Buzos': 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&h=700&fit=crop&q=80',
+  'Casacas': 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=500&h=700&fit=crop&q=80',
+  'Casacas y Chaquetas': 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=500&h=700&fit=crop&q=80',
+  
+  // Suéteres
+  'Suéteres': 'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=500&h=700&fit=crop&q=80',
+  
+  // Polos
+  'Polos': 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=500&h=700&fit=crop&q=80',
+  'Polos y Poleras': 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=500&h=700&fit=crop&q=80',
+  
 };
 
-const COLORES_CATEGORIA = [
-  'bg-gradient-to-br from-pink-300 to-pink-500',
-  'bg-gradient-to-br from-purple-300 to-purple-500',
-  'bg-gradient-to-br from-blue-300 to-blue-500',
-  'bg-gradient-to-br from-red-300 to-red-500',
-  'bg-gradient-to-br from-yellow-300 to-yellow-500',
-  'bg-gradient-to-br from-green-300 to-green-500',
-  'bg-gradient-to-br from-indigo-300 to-indigo-500',
-  'bg-gradient-to-br from-orange-300 to-orange-500',
-  'bg-gradient-to-br from-cyan-300 to-cyan-500',
-  'bg-gradient-to-br from-teal-300 to-teal-500',
-];
+// Imagen por defecto con modelo femenina
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=500&h=700&fit=crop&q=80';
 
-export default function MuestraCategoria() {
+interface Categoria {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+}
+
+// Loading Skeleton
+function CategorySkeleton() {
+  return (
+    <div className="flex-none w-72 md:w-80">
+      <div className="animate-pulse">
+        <div className="bg-gray-200 rounded-2xl h-96 mb-4"></div>
+        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+      </div>
+    </div>
+  );
+}
+
+// Category Card
+function CategoryCard({ categoria }: { categoria: Categoria }) {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = CATEGORY_IMAGES[categoria.nombre] || DEFAULT_IMAGE;
+
+  return (
+    <Link href={`/ecommerce/categorias/${categoria.id}`}>
+      <div className="group relative overflow-hidden rounded-2xl h-96 cursor-pointer shadow-lg hover:shadow-2xl transition-shadow duration-300">
+        
+        {/* Background Image */}
+        <img 
+          src={imageError ? DEFAULT_IMAGE : imageUrl}
+          alt={`${categoria.nombre} - Moda Femenina`}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          onError={() => setImageError(true)}
+          loading="lazy"
+        />
+
+        {/* Gradient Overlay - Más oscuro para mejor contraste */}
+        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/50 to-black/20"></div>
+
+        {/* Top Badge - Opcional */}
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="text-xs font-bold text-gray-900">Ver colección</span>
+        </div>
+
+        {/* Content */}
+        <div className="absolute inset-0 p-6 flex flex-col justify-end">
+          <div className="transform transition-all duration-300 group-hover:translate-y-0 translate-y-2">
+            {/* Decorative Line */}
+            <div className="w-12 h-1 bg-white rounded-full mb-4 transform origin-left transition-transform duration-500 group-hover:scale-x-150"></div>
+            
+            {/* Category Name */}
+            <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
+              {categoria.nombre}
+            </h3>
+            
+            {/* Description */}
+            {categoria.descripcion && (
+              <p className="text-sm text-white/95 mb-4 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow">
+                {categoria.descripcion}
+              </p>
+            )}
+            
+            {/* CTA */}
+            <div className="flex items-center gap-2 text-white font-semibold text-sm opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span>Explorar colección</span>
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+        {/* Hover Border Effect */}
+        <div className="absolute inset-0 border-4 border-white/0 group-hover:border-white/30 transition-colors duration-300 rounded-2xl pointer-events-none"></div>
+      </div>
+    </Link>
+  );
+}
+
+// Navigation Button
+interface NavButtonProps {
+  direction: 'left' | 'right';
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+function NavButton({ direction, onClick, disabled }: NavButtonProps) {
+  const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
+  
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`absolute ${direction === 'left' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${
+        !disabled && 'hover:bg-gray-50'
+      }`}
+      aria-label={direction === 'left' ? 'Anterior' : 'Siguiente'}
+    >
+      <Icon size={24} className="text-gray-900" strokeWidth={2.5} />
+    </button>
+  );
+}
+
+// Main Component
+export default function CategoryShowcase() {
   const { categorias, loading, error } = useCategoriasEcommerce();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Check scroll position
+  const checkScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    setCanScrollLeft(container.scrollLeft > 0);
+    setCanScrollRight(
+      container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+    );
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    checkScroll();
+    container.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+
+    return () => {
+      container.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [categorias]);
+
+  // Scroll functions
+  const scroll = (direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 336;
+    const targetScroll = direction === 'left' 
+      ? container.scrollLeft - scrollAmount 
+      : container.scrollLeft + scrollAmount;
+
+    container.scrollTo({
+      left: targetScroll,
+      behavior: 'smooth',
+    });
+  };
 
   if (loading) {
     return (
-      <section className="py-12 md:py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Explora Nuestras Categorías
-          </h2>
-          <p className="text-gray-600 mb-8">Encuentra el estilo perfecto para ti</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 rounded-lg h-40 md:h-48 mb-3"></div>
-                <div className="bg-gray-200 h-4 rounded w-3/4 mb-2"></div>
-                <div className="bg-gray-200 h-3 rounded w-1/2"></div>
-              </div>
+      <section className="py-16 md:py-24 bg-white border-t border-gray-100">
+        <div className="max-w-400 mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-12">
+            <div className="h-12 bg-gray-200 rounded w-80 mb-3 animate-pulse"></div>
+            <div className="h-6 bg-gray-200 rounded w-96 animate-pulse"></div>
+          </div>
+          <div className="flex gap-6 overflow-hidden">
+            {[...Array(5)].map((_, i) => (
+              <CategorySkeleton key={i} />
             ))}
           </div>
         </div>
@@ -63,124 +207,136 @@ export default function MuestraCategoria() {
     );
   }
 
-  if (error) {
-    return (
-      <section className="py-12 md:py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <p className="text-red-600">Error cargando categorías: {error}</p>
-        </div>
-      </section>
-    );
+  if (error || categorias.length === 0) {
+    return null;
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
-  };
-
-  const childVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-  };
-
   return (
-    <section className="py-16 md:py-20 bg-white border-t border-gray-100">
-      <div className="max-w-7xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          viewport={{ once: true }}
-          className="mb-12"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Explora Nuestras Categorías
-          </h2>
-          <p className="text-gray-600">Encuentra el estilo perfecto para ti</p>
-        </motion.div>
+    <section className="py-16 md:py-24 bg-linear-to-b from-white to-gray-50">
+      <div className="max-w-400 mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+       <div className="mb-12 md:mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-4xl mx-auto text-center"
+          >
+            {/* Subtítulo */}
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-xs md:text-sm uppercase tracking-[0.3em] text-gray-500 font-medium mb-4"
+            >
+              Colección
+            </motion.p>
 
-        <motion.div
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          {categorias.map((categoria, index) => {
-            const icono = ICONOS_CATEGORIA[categoria.nombre as keyof typeof ICONOS_CATEGORIA] || '📦';
-            const colorGradient = COLORES_CATEGORIA[index % COLORES_CATEGORIA.length];
+            {/* Título Principal */}
+            <h2 className="relative inline-block">
+              <span className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-900 tracking-tight leading-tight">
+                Descubre tu{' '}
+                <span className="relative inline-block">
+                  <span className="relative z-10 font-serif italic">Estilo</span>
+                  {/* Línea decorativa debajo */}
+                  <span className="absolute bottom-2 left-0 right-0 h-3 bg-linear-to-r from-rose-200/60 via-pink-200/60 to-rose-200/60 -z-10"></span>
+                </span>
+              </span>
+              <br />
+              <span className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-400 tracking-tight">
+                por Categoría
+              </span>
+            </h2>
 
-            return (
-              <motion.div
-                key={categoria.id}
-                variants={childVariants}
-                whileHover={{ y: -8 }}
-                className="group"
-              >
-                <Link href={`/ecommerce/productos?categoria=${categoria.id}`}>
-                  <div className="cursor-pointer h-full flex flex-col">
-                    {/* Tarjeta de Imagen */}
-                    <div
-                      className={`${colorGradient} rounded-2xl h-40 md:h-48 flex items-center justify-center relative overflow-hidden transition-all duration-300 group-hover:shadow-2xl mb-4`}
-                    >
-                      {categoria.imagen ? (
-                        <img
-                          src={getSupabaseImageUrl(categoria.imagen, 'categorias') || categoria.imagen}
-                          alt={categoria.nombre}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <motion.div
-                          initial={{ scale: 1 }}
-                          whileHover={{ scale: 1.2 }}
-                          className="text-5xl md:text-6xl"
-                        >
-                          {icono}
-                        </motion.div>
-                      )}
-                      
-                      {/* Overlay Gradiente */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {/* Descripción */}
+            <p className="mt-6 text-base md:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto font-light">
+              Explora nuestra colección de moda femenina y encuentra las piezas perfectas para ti
+            </p>
 
-                      {/* Badge */}
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        Ver más
-                      </div>
-                    </div>
+            {/* Línea decorativa */}
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <div className="w-16 h-px bg-linear-to-r from-transparent to-gray-300"></div>
+              <div className="w-2 h-2 rounded-full bg-rose-400"></div>
+              <div className="w-16 h-px bg-linear-to-l from-transparent to-gray-300"></div>
+            </div>
+          </motion.div>
+        </div>
 
-                    {/* Información */}
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-sm md:text-base group-hover:text-red-600 transition duration-300 line-clamp-2">
-                        {categoria.nombre}
-                      </h3>
-                      <p className="text-xs md:text-sm text-gray-600 line-clamp-2 mt-1">
-                        {categoria.descripcion}
-                      </p>
-                    </div>
+        {/* Carousel Container */}
+        <div className="relative">
+          {/* Navigation Buttons */}
+          <NavButton 
+            direction="left" 
+            onClick={() => scroll('left')}
+            disabled={!canScrollLeft}
+          />
+          <NavButton 
+            direction="right" 
+            onClick={() => scroll('right')}
+            disabled={!canScrollRight}
+          />
 
-                    {/* Botón */}
-                    <motion.button
-                      whileHover={{ x: 4 }}
-                      className="mt-4 w-full py-2.5 px-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold text-xs md:text-sm transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 group/btn"
-                    >
-                      <span>Productos</span>
-                      <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </motion.button>
-                  </div>
-                </Link>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+          {/* Scrollable Container */}
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {categorias.map((categoria) => (
+              <div key={categoria.id} className="flex-none w-72 md:w-80">
+                <CategoryCard categoria={categoria} />
+              </div>
+            ))}
+          </div>
+
+          {/* Scroll Progress Indicator */}
+          <div className="flex justify-center gap-2 mt-8">
+            {Array.from({ length: Math.min(Math.ceil(categorias.length / 4), 8) }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === 0 ? 'w-8 bg-rose-600' : 'w-1.5 bg-gray-300'
+                }`}
+              ></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Ver Todas CTA */}
+        {categorias.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mt-16"
+          >
+            <Link 
+              href="/ecommerce/categorias"
+              className="group inline-flex items-center gap-3 px-10 py-4 bg-white border-2 border-gray-900 text-gray-900 rounded-full font-medium text-sm uppercase tracking-wider hover:bg-gray-900 hover:text-white transition-all duration-300"
+            >
+              <span>Ver todas las categorías</span>
+              <ArrowRight 
+                size={18} 
+                strokeWidth={2.5}
+                className="group-hover:translate-x-1 transition-transform" 
+              />
+            </Link>
+          </motion.div>
+        )}
       </div>
+
+      {/* CSS para ocultar scrollbar */}
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </section>
   );
 }
