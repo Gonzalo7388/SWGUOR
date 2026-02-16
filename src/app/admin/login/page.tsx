@@ -1,53 +1,61 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LogIn, AlertCircle, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { ERROR_MESSAGES } from "@/lib/auth/constants";
 import { ADMIN_ROUTES } from "@/lib/constants/admin";
 import { RolUsuario, EstadoUsuario } from '@/types/database';
 
+// Types
+type UsuarioLogin = {
+  id: number;
+  rol: RolUsuario;
+  estado: EstadoUsuario;
+};
+
+type LoginError = string | null;
+
 export default function LoginPage() {
   const router = useRouter();
+  
+  // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  
+  // UI state
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<LoginError>(null);
 
+  // Prefetch dashboard para mejor UX
   useEffect(() => {
     router.prefetch(ADMIN_ROUTES.DASHBOARD);
   }, [router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
+    setError(null);
 
     try {
       const supabase = getSupabaseBrowserClient();
+      const normalizedEmail = email.trim().toLowerCase();
 
-      // 1. Auth con Supabase
+      // 1. Autenticación
       const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       });
 
       if (authError || !user) {
-        setError(authError?.status === 400 ? ERROR_MESSAGES.INVALID_CREDENTIALS : "Error de conexión");
-        setIsLoading(false);
+        setError(authError?.status === 400 ? ERROR_MESSAGES.INVALID_CREDENTIALS : ERROR_MESSAGES.UNEXPECTED_ERROR);
         return;
       }
 
-      // 2. Consulta con tipo explícito usando auth_id
-      type UsuarioLogin = {
-        id: number;
-        rol: RolUsuario;
-        estado: EstadoUsuario;
-      };
-
+      // 2. Validación de usuario en DB
       const { data: usuarioData, error: dbError } = await supabase
         .from('usuarios')
         .select('id, rol, estado')
@@ -57,69 +65,80 @@ export default function LoginPage() {
       if (dbError || !usuarioData) {
         await supabase.auth.signOut();
         setError(ERROR_MESSAGES.USER_NOT_FOUND);
-        setIsLoading(false);
         return;
       }
 
-      // 3. Validación de estado (comparación case-insensitive)
-      const estadoNormalizado = usuarioData.estado.toLowerCase().trim();
-
-      if (estadoNormalizado !== 'activo') {
+      // 3. Validación de estado (null-safe)
+      const estadoActivo = usuarioData.estado?.toLowerCase().trim() === 'activo';
+      
+      if (!estadoActivo) {
         await supabase.auth.signOut();
         setError(ERROR_MESSAGES.INACTIVE_USER);
-        setIsLoading(false);
         return;
       }
 
-      // 4. Redirigir al dashboard (sin actualizar ultimo_acceso para evitar errores de tipado)
+      // 4. Redirección exitosa
       router.replace(ADMIN_ROUTES.DASHBOARD);
 
     } catch (err) {
-      console.error("Error en login:", err);
+      console.error("[LoginPage] Error:", err);
       setError(ERROR_MESSAGES.UNEXPECTED_ERROR);
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen relative bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/costura.webp"
-          alt="Background"
-          fill
-          priority
-          quality={75}
-          className="object-cover opacity-15 pointer-events-none"
-        />
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorativo minimalista */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-100/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent-100/20 rounded-full blur-3xl" />
       </div>
-      
+
+      {/* Login Card */}
       <div className="relative z-10 w-full max-w-md">
-        <div className="mb-8 text-center flex flex-col items-center">
-          <div className="flex items-center gap-3">
-             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-r from-red-500 to-pink-600 shadow-lg">
-                {isLoading ? <Loader2 className="text-white w-6 h-6 animate-spin" /> : <LogIn className="text-white w-6 h-6" />}
-             </div>
-             <div className="text-left">
-                <h1 className="text-2xl font-bold text-gray-900 leading-tight">
-                  Modas y Estilos <span className="text-pink-600">GUOR</span>
-                </h1>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-tighter">S.A.C. - Gestión Textil</p>
-             </div>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-lg border border-gray-100 mb-4">
+            <Image 
+              src="/logo.png" 
+              alt="GUOR Logo" 
+              width={40} 
+              height={40}
+              className="object-contain"
+              priority
+            />
           </div>
+          <h1 className="text-2xl font-light text-gray-900 mb-1">
+            Modas y Estilos <span className="font-normal">GUOR</span>
+          </h1>
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 font-medium">
+            Gestión Administrativa
+          </p>
         </div>
 
-        <div className="bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden">
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           <div className="p-8">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Bienvenido</h2>
+            {/* Welcome */}
+            <div className="mb-8">
+              <h2 className="text-xl font-medium text-gray-900 mb-1">Bienvenido</h2>
               <p className="text-sm text-gray-500">Ingresa tus credenciales para continuar</p>
             </div>
 
+            {/* Form */}
             <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700 ml-1">Email Corporativo</label>
+              {/* Email */}
+              <div>
+                <label 
+                  htmlFor="email" 
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Email corporativo
+                </label>
                 <input
+                  id="email"
                   type="email"
                   autoComplete="email"
                   value={email}
@@ -127,14 +146,22 @@ export default function LoginPage() {
                   placeholder="nombre@guor.com"
                   disabled={isLoading}
                   required
-                  className="w-full h-12 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all disabled:bg-gray-50"
+                  aria-invalid={!!error}
+                  className="w-full h-12 px-4 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700 ml-1">Contraseña</label>
+              {/* Password */}
+              <div>
+                <label 
+                  htmlFor="password" 
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Contraseña
+                </label>
                 <div className="relative">
                   <input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     value={password}
@@ -142,48 +169,66 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     disabled={isLoading}
                     required
-                    className="w-full h-12 px-4 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all"
+                    aria-invalid={!!error}
+                    className="w-full h-12 px-4 pr-12 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 disabled:bg-gray-50 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    disabled={isLoading}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div 
+                  role="alert"
+                  className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-lg animate-in fade-in duration-200"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
               <button 
                 type="submit" 
-                disabled={isLoading}
-                className="w-full h-12 bg-linear-to-r from-red-500 to-pink-600 text-white rounded-xl font-bold shadow-lg hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-70 flex items-center justify-center"
+                disabled={isLoading || !email || !password}
+                className="w-full h-12 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Validando...
-                  </span>
-                ) : "Ingresar al Sistema"}
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Validando...</span>
+                  </>
+                ) : (
+                  "Iniciar sesión"
+                )}
               </button>
             </form>
+          </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mt-4 flex items-center gap-3 animate-in fade-in duration-300">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <p className="text-sm">{error}</p>
-              </div>
-            )}
-
-            <div className="mt-8 pt-6 border-t border-gray-50 text-center">
-              <div className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors cursor-help">
-                <Mail size={16} />
-                <span className="text-xs font-medium">¿Problemas de acceso? soporte@guor.com</span>
-              </div>
-            </div>
+          {/* Footer */}
+          <div className="px-8 py-6 bg-gray-50 border-t border-gray-100">
+            <p className="text-xs text-center text-gray-500">
+              ¿Problemas de acceso?{" "}
+              <a 
+                href="mailto:soporte@guor.com" 
+                className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
+              >
+                soporte@guor.com
+              </a>
+            </p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-8 tracking-widest font-medium">
+        {/* Copyright */}
+        <p className="text-center text-xs text-gray-400 mt-8">
           © {new Date().getFullYear()} Sistema GUOR. Todos los derechos reservados.
         </p>
       </div>

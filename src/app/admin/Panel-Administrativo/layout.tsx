@@ -7,11 +7,30 @@ import RealtimeLayoutWrapper from '@/components/admin/layout/RealtimeLayoutWrapp
 export const metadata: Metadata = {
   title: "Sistema GUOR - Gestión de Modas",
   description: "Panel administrativo y control de inventarios",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: { index: false, follow: false },
 };
+
+/**
+ * Lógica de validación de usuario centralizada
+ * Esto limpia el cuerpo del layout y facilita la depuración.
+ */
+async function getValidatedUser(supabase: any) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (!user || authError) return { error: 'no_auth' };
+
+  const { data: usuario, error: usuarioError } = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('auth_id', user.id)
+    .single();
+
+  if (usuarioError || !usuario) return { error: 'no_profile' };
+  
+  if (usuario.estado?.toLowerCase() !== 'activo') return { error: 'inactive' };
+
+  return { usuario };
+}
 
 export default async function PanelAdministrativoLayout({
   children,
@@ -25,50 +44,29 @@ export default async function PanelAdministrativoLayout({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {
-            // Server Component
-          }
+          } catch { /* SSR Safe */ }
         },
       },
     }
   );
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { usuario, error } = await getValidatedUser(supabase);
 
-  if (!user || authError) {
-    redirect('/admin/login');
-  }
-
-  const { data: usuario, error: usuarioError } = await supabase
-    .from('usuarios')
-    .select('*')
-    .eq('auth_id', user.id)
-    .single();
-
-  if (!usuario || usuarioError) {
-    console.error('[LAYOUT] Error obteniendo usuario:', usuarioError);
-    redirect('/admin/login');
-  }
-
-  if (usuario.estado?.toLowerCase() !== 'activo') {
-    console.error('[LAYOUT] Usuario inactivo:', usuario.estado);
-    redirect('/admin/acceso-denegado?error=cuenta_inactiva');
-  }
+  // Manejo centralizado de redirecciones
+  if (error === 'no_auth' || error === 'no_profile') redirect('/admin/login');
+  if (error === 'inactive') redirect('/admin/acceso-denegado?error=cuenta_inactiva');
 
   return (
     <RealtimeLayoutWrapper initialUsuario={usuario}>
-      {children}
+      <div className="min-h-screen bg-slate-50/50">
+        {children}
+      </div>
     </RealtimeLayoutWrapper>
   );
 }

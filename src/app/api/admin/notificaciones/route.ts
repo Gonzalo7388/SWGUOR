@@ -1,167 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Almacenamiento temporal de notificaciones (en producción usarías Supabase)
-let notificacionesStore: any[] = [
-  {
-    id: 1,
-    tipo: 'orden',
-    titulo: 'Nueva orden recibida',
-    descripcion: 'Orden #ORD-001234 de Cliente Importante',
-    fecha: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    leida: false,
-    importante: false
-  },
-  {
-    id: 2,
-    tipo: 'inventario',
-    titulo: 'Stock bajo',
-    descripcion: 'Producto Tela Algodón 100% stock por debajo del mínimo',
-    fecha: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    leida: false,
-    importante: true
-  },
-  {
-    id: 3,
-    tipo: 'pago',
-    titulo: 'Pago recibido',
-    descripcion: 'Pago de $500.00 confirmado para Orden #ORD-001200',
-    fecha: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    leida: true,
-    importante: false
-  },
-  {
-    id: 4,
-    tipo: 'mensaje',
-    titulo: 'Nuevo mensaje del cliente',
-    descripcion: 'Cliente Importante pregunta sobre estado de su pedido',
-    fecha: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    leida: true,
-    importante: false
-  },
-  {
-    id: 5,
-    tipo: 'sistema',
-    titulo: 'Mantenimiento programado',
-    descripcion: 'Mantenimiento del sistema el próximo sábado de 2:00 AM a 4:00 AM',
-    fecha: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    leida: true,
-    importante: false
-  }
-];
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
+  const cookieStore = await cookies();
+  
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll() } }
+  );
+
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const tipoFilter = searchParams.get('tipo');
-    const soloNoLeidas = searchParams.get('soloNoLeidas') === 'true';
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    let result = [...notificacionesStore];
+    // 1. Consultas en paralelo para mejor rendimiento (Performance Optimization)
+    const [resProductos, resPedidos, resDespachos] = await Promise.all([
+      supabase.from('productos').select('id, nombre, stock').lt('stock', 400),
+      supabase.from('pedidos').select('id, cliente_nombre').eq('estado', 'pendiente'),
+      supabase.from('despachos').select('id, id_pedido').lt('fecha_entrega', new Date().toISOString()).neq('estado', 'entregado')
+    ]);
 
-    if (tipoFilter && tipoFilter !== 'todos') {
-      result = result.filter(n => n.tipo === tipoFilter);
-    }
+    // 2. Formateo de Notificaciones
+    const notificacionesRealtime = [
+      // Alertas de Stock (Regla < 400)
+      ...(resProductos.data?.map(p => ({
+        id: `stock-${p.id}`,
+        tipo: 'inventario',
+        titulo: 'ALERTA DE STOCK',
+        descripcion: `${p.nombre} está por debajo del mínimo (Actual: ${p.stock} / Mín: 400).`,
+        importante: true,
+        fecha: new Date().toISOString()
+      })) || []),
 
-    if (soloNoLeidas) {
-      result = result.filter(n => !n.leida);
-    }
+      // Pedidos Pendientes
+      ...(resPedidos.data?.map(p => ({
+        id: `ped-${p.id}`,
+        tipo: 'orden',
+        titulo: 'PEDIDO PENDIENTE',
+        descripcion: `Nueva orden de ${p.cliente_nombre || 'Cliente'} esperando gestión.`,
+        importante: false,
+        fecha: new Date().toISOString()
+      })) || []),
 
-    result.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      // Despachos Atrasados
+      ...(resDespachos.data?.map(d => ({
+        id: `desp-${d.id}`,
+        tipo: 'urgente',
+        titulo: 'DESPACHO ATRASADO',
+        descripcion: `El despacho para el pedido #${d.id_pedido} ha superado la fecha límite.`,
+        importante: true,
+        fecha: new Date().toISOString()
+      })) || [])
+    ];
 
-    const kpis = {
-      sinLeer: notificacionesStore.filter(n => !n.leida).length,
-      importantes: notificacionesStore.filter(n => n.importante).length,
-      total: notificacionesStore.length
-    };
-
+    // 3. Respuesta con KPIs actualizados
     return NextResponse.json({
-      data: result,
-      kpis,
-      count: result.length
+      data: notificacionesRealtime,
+      kpis: {
+        sinLeer: notificacionesRealtime.length,
+        total: notificacionesRealtime.length,
+        urgentes: notificacionesRealtime.filter(n => n.importante).length
+      },
+      count: notificacionesRealtime.length
     });
+
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { action, id } = body;
-
-    if (action === 'marcarComoLeida') {
-      const notif = notificacionesStore.find(n => n.id === id);
-      if (notif) {
-        notif.leida = true;
-      }
-      return NextResponse.json({ success: true, data: notif });
-    }
-
-    if (action === 'marcarComoImportante') {
-      const notif = notificacionesStore.find(n => n.id === id);
-      if (notif) {
-        notif.importante = !notif.importante;
-      }
-      return NextResponse.json({ success: true, data: notif });
-    }
-
-    if (action === 'eliminar') {
-      notificacionesStore = notificacionesStore.filter(n => n.id !== id);
-      return NextResponse.json({ success: true });
-    }
-
-    return NextResponse.json({ error: 'Acción no reconocida' }, { status: 400 });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { id, leida, importante } = body;
-
-    const notif = notificacionesStore.find(n => n.id === id);
-    if (!notif) {
-      return NextResponse.json({ error: 'Notificación no encontrada' }, { status: 404 });
-    }
-
-    if (leida !== undefined) notif.leida = leida;
-    if (importante !== undefined) notif.importante = importante;
-
-    return NextResponse.json({ success: true, data: notif });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
-
-    notificacionesStore = notificacionesStore.filter(n => n.id !== parseInt(id));
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    console.error('[API_NOTIF] Error:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

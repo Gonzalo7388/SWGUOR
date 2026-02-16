@@ -4,6 +4,7 @@
   import { usePathname } from "next/navigation";
   import Link from "next/link";
   import type { Usuario } from '@/types/database';
+  import { NotificationDropdown } from "./NotificationDropdown";
 
   interface AdminHeaderProps {
     usuario: Usuario;
@@ -48,15 +49,7 @@
           <div className="flex items-center gap-2 sm:gap-4">
             
             {/* Botón de Notificaciones*/}
-            <button className="relative flex items-center justify-center w-10 h-10 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all group cursor-pointer">
-              <Bell className="w-5 h-5 group-active:scale-90 transition-transform" />
-              
-              {/* Punto de notificación (Badge) posicionado exactamente */}
-              <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600 border-2 border-white"></span>
-              </span>
-            </button>
+              <NotificationDropdown />
 
             <div className="h-8 w-px bg-gray-200 mx-1 hidden sm:block" />
 

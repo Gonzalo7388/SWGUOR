@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import AdminSidebar from './AdminSidebar';
-import AdminHeader from './AdminHeader';
+import AdminSidebar from './Sidebar';
+import AdminHeader from './Header';
 import type { Usuario } from '@/types/database';
 
 export default function RealtimeLayoutWrapper({ 

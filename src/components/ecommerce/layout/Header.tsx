@@ -1,20 +1,26 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, User, Menu, X, Heart, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, Heart } from 'lucide-react';
 import Image from 'next/image';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
 import { useFavoritos } from '@/app/ecommerce/_contexts/FavoritosContext';
 import CategoriasDropdown from '@/components/ecommerce/layout/CategoriasDropdown';
 import MobileMenu from '@/components/ecommerce/layout/MobileMenu';
+import CartDrawer from '@/components/ecommerce/carrito/CartSummary'; // Importamos el Drawer
 
 export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false); // Estado para el Drawer
   const [scrolled, setScrolled] = useState(false);
-  const { obtenerCantidadTotal } = useCarrito();
+  
+  // Extraemos 'items' para contar las líneas de pedido
+  const { items } = useCarrito();
   const { favoritos } = useFavoritos();
-  const cantidadCarrito = obtenerCantidadTotal();
+
+  // Contador por orden/línea de producto (no por unidades)
+  const cantidadOrdenes = items.length;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -28,9 +34,6 @@ export default function Header() {
     } else {
       document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [menuAbierto]);
 
   return (
@@ -70,27 +73,14 @@ export default function Header() {
 
             {/* Navegación Desktop */}
             <nav className="hidden md:flex items-center justify-center gap-10">
-              <Link 
-                href="/ecommerce/new" 
-                className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors"
-              >
+              <Link href="/ecommerce/new" className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors">
                 New
               </Link>
-              
-              {/* Productos con Dropdown */}
               <CategoriasDropdown />
-
-              <Link 
-                href="/ecommerce/nosotros" 
-                className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors"
-              >
+              <Link href="/ecommerce/nosotros" className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors">
                 Nosotros
               </Link>
-              
-              <Link 
-                href="/ecommerce/ofertas" 
-                className="text-[13px] font-bold uppercase tracking-widest text-[#f02d65] hover:opacity-80 transition-opacity"
-              >
+              <Link href="/ecommerce/ofertas" className="text-[13px] font-bold uppercase tracking-widest text-gray-800 hover:text-[#f02d65] transition-colors">
                 Ofertas
               </Link>
             </nav>
@@ -107,18 +97,23 @@ export default function Header() {
                 <Heart size={20} strokeWidth={2.5} />
                 {favoritos.length > 0 && (
                   <span className="absolute top-1 right-0 bg-red-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {favoritos.length > 99 ? '99+' : favoritos.length}
+                    {favoritos.length}
                   </span>
                 )}
               </Link>
-              <Link href="/ecommerce/carrito" className="relative p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
+
+              {/* Icono Carrito que abre el Drawer */}
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                className="relative p-2 text-gray-700 hover:text-[#f02d65] transition-colors"
+              >
                 <ShoppingCart size={20} strokeWidth={2.5} />
-                {cantidadCarrito > 0 && (
-                  <span className="absolute top-1 right-0 bg-[#f02d65] text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {cantidadCarrito > 99 ? '99+' : cantidadCarrito}
+                {cantidadOrdenes > 0 && (
+                  <span className="absolute top-1 right-0 bg-[#f02d65] text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
+                    {cantidadOrdenes}
                   </span>
                 )}
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -128,6 +123,12 @@ export default function Header() {
       <MobileMenu 
         isOpen={menuAbierto} 
         onClose={() => setMenuAbierto(false)} 
+      />
+
+      {/* Drawer del Carrito */}
+      <CartDrawer 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
       />
     </>
   );

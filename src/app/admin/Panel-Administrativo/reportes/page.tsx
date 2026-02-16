@@ -1,38 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { 
-  LineChart, Line, PieChart, Pie, Cell as BarCell,
-  XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, BarChart, Bar, Cell
 } from "recharts";
 import { 
   TrendingUp, Calendar, Download, 
-  ShoppingBag, Users, FileBarChart, ShieldAlert,
-  Loader2
+  ShoppingBag, Layers, RefreshCcw,
+  Target, Zap, Activity, ChevronRight, Loader2, ArrowUpRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Select, SelectContent, SelectItem, 
-  SelectTrigger, SelectValue 
-} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-// SILENCIADOR DE ADVERTENCIAS DE RECHARTS
-if (typeof window !== "undefined") {
-  const originalConsoleError = console.error;
-  console.error = (...args) => {
-    if (typeof args[0] === "string" && /defaultProps|ResizeObserver/.test(args[0])) return;
-    originalConsoleError(...args);
-  };
-}
+const COLORS = ['#e11d48', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6'];
 
-const COLORS = ['#db2777', '#f472b6', '#9333ea', '#3b82f6', '#10b981'];
+const formatCurrency = (val: number) => 
+  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 0 }).format(val);
 
 export default function ReportesPage() {
-  // --- 1. HOOKS DE ESTADO Y PERMISOS (Siempre al inicio) ---
   const { can, isLoading: authLoading } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState("30");
@@ -40,254 +29,254 @@ export default function ReportesPage() {
 
   const [metrics, setMetrics] = useState<any>(null);
   const [dataVentas, setDataVentas] = useState([]);
-  const [dataCategorias, setDataCategorias] = useState([]);
   const [dataTallas, setDataTallas] = useState([]);
+  const [dataCategorias, setDataCategorias] = useState([]);
 
-  // --- 2. LÓGICA DE CARGA (useCallback) ---
   const loadReportData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/reportes?days=${range}`);
-      if (!response.ok) throw new Error("Error en el servidor (500)");
-      
+      if (!response.ok) throw new Error("Error de conexión");
       const res = await response.json();
+      
       setMetrics(res.metrics);
       setDataVentas(res.ventasPorDia || []);
-      setDataCategorias(res.ventasPorCategoria || []);
       setDataTallas(res.concentracionTallas || []);
-    } catch (error: any) {
-      console.error("API Error:", error);
+      setDataCategorias(res.ventasPorCategoria || []);
+    } catch (error) {
       toast.error("Error al sincronizar datos del taller");
     } finally {
       setLoading(false);
     }
   }, [range]);
 
-  // --- 3. EFECTOS (useEffect) ---
-  useEffect(() => { 
-    setIsMounted(true); 
-  }, []);
-
+  useEffect(() => { setIsMounted(true); }, []);
   useEffect(() => {
-    // Solo cargamos datos si el usuario tiene permiso y la autenticación terminó
-    if (!authLoading && can('view', 'reportes')) {
-      loadReportData();
-    }
+    if (!authLoading && can('view', 'reportes')) loadReportData();
   }, [authLoading, can, loadReportData]);
 
-  // --- 4. CÁLCULOS MEMORIZADOS (useMemo) ---
-  const SalesChart = useMemo(() => {
-  if (!isMounted || dataVentas.length === 0) return <EmptyState label="Sin ventas" />;
-  
-  return (
-    <ResponsiveContainer width="100%" height="100%" debounce={100}>
-      <LineChart data={dataVentas} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-        <XAxis 
-          dataKey="fecha" 
-          axisLine={false} 
-          tickLine={false} 
-          tick={{fontSize: 10, fill: '#9ca3af', fontWeight: 600}} 
-        />
-        <YAxis 
-          axisLine={false} 
-          tickLine={false} 
-          tick={{fontSize: 10, fill: '#9ca3af'}} 
-        />
-        <Tooltip contentStyle={{borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)'}} />
-        <Line 
-          type="monotone" 
-          dataKey="ventas" 
-          stroke="#db2777" 
-          strokeWidth={4} 
-          dot={{r: 4, fill: '#db2777', strokeWidth: 2, stroke: '#fff'}} 
-          activeDot={{r: 6}} 
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}, [isMounted, dataVentas]);
-
-  const TallasChart = useMemo(() => {
-    if (!isMounted || dataTallas.length === 0) return <EmptyState label="Sin datos de tallas" />;
-    return (
-      <div className="h-72 w-full mt-4">
-        {isMounted && dataTallas.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%" debounce={50}>
-            <BarChart data={dataTallas} layout="vertical" margin={{left: -20, right: 20}}>
-              <XAxis type="number" hide />
-              <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 800}} />
-              <Tooltip cursor={{fill: '#fdf2f8'}} />
-              <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={25}>
-                {dataTallas.map((_entry, i) => (
-                  <BarCell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <EmptyState label="Sin datos de tallas" />}
-      </div>
-    );
-  }, [isMounted, dataTallas]);
-
-  // --- 5. CLÁUSULAS DE GUARDIA (Returns Condicionales) ---
   if (authLoading || loading) return <LoadingSpinner />;
-  if (!can('view', 'reportes')) return <AccessDenied />;
 
-  // --- 6. RENDERIZADO PRINCIPAL ---
   return (
-    <div className="p-4 md:p-8 space-y-6 bg-[#fafafa] min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-slate-900">
+      <div className="max-w-[1600px] mx-auto space-y-8">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <FileBarChart className="text-pink-600 w-8 h-8" />
-            <h1 className="text-3xl font-black text-gray-900 italic uppercase tracking-tighter">Panel de Inteligencia</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select value={range} onValueChange={setRange}>
-              <SelectTrigger className="w-44 bg-white rounded-xl font-bold shadow-sm border-none">
-                <Calendar className="w-4 h-4 mr-2 text-pink-500" />
-                <SelectValue placeholder="Periodo" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border-none shadow-xl">
-                <SelectItem value="7">Últimos 7 días</SelectItem>
-                <SelectItem value="30">Últimos 30 días</SelectItem>
-                <SelectItem value="90">Últimos 3 meses</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="rounded-xl font-bold border-pink-100 text-pink-600 hover:bg-pink-50">
-              <Download className="w-4 h-4 mr-2" /> Exportar
-            </Button>
-          </div>
-        </div>
-
-        {/* Métricas Principales */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard 
-            title="Ingresos Reales" 
-            value={`S/ ${(metrics?.total || 0).toLocaleString()}`} 
-            trend={metrics?.crecimiento || 0} 
-            icon={TrendingUp} 
-            colorClass="bg-emerald-50 text-emerald-600"
-          />
-          <StatCard 
-            title="En Producción" 
-            value={`S/ ${(metrics?.produccionEnCurso || 0).toLocaleString()}`} 
-            trend="Valor taller" 
-            icon={ShoppingBag} 
-            colorClass="bg-amber-50 text-amber-600"
-          />
-          <StatCard title="Total Pedidos" value={metrics?.pedidos || 0} trend="Periodo" icon={FileBarChart} colorClass="bg-blue-50 text-blue-600" />
-          <StatCard title="Clientes Activos" value={metrics?.clientes || 0} trend="Base GUOR" icon={Users} colorClass="bg-purple-50 text-purple-600" />
-        </div>
-
-        {/* Gráficas Principales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-none shadow-sm bg-white p-6 rounded-[2.5rem]">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Fluctuación de Ingresos (Caja)</CardTitle>
-            </CardHeader>
-            <div className="h-72 w-full mt-4">{SalesChart}</div>
-          </Card>
-
-          <Card className="border-none shadow-sm bg-white p-6 rounded-[2.5rem]">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Demanda por Tallas (Producción)</CardTitle>
-            </CardHeader>
-            <div className="h-72 w-full mt-4">{TallasChart}</div>
-          </Card>
-
-          {/* Pareto de Categorías */}
-          <Card className="border-none shadow-sm bg-white p-6 rounded-[2.5rem] lg:col-span-2">
-            <CardHeader className="px-0 pt-0 text-center">
-              <CardTitle className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Rentabilidad por Línea (Pareto)</CardTitle>
-            </CardHeader>
-            <div className="h-80 w-full mt-4 flex flex-col md:flex-row items-center justify-around">
-              <div className="h-full w-full max-w-100">
-                {isMounted && dataCategorias.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={dataCategorias} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={8} dataKey="value" cornerRadius={10}>
-                        {dataCategorias.map((_, i) => <BarCell key={`cell-pie-${i}`} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : <EmptyState label="Sin datos de categorías" />}
+        {/* HEADER MODERNO */}
+        <header className="relative overflow-hidden bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="space-y-1 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-rose-600 font-bold text-xs uppercase tracking-[0.2em] mb-2">
+                <Activity size={16} />
+                <span>Panel de Control General</span>
               </div>
-              <div className="grid grid-cols-2 gap-x-12 gap-y-4 p-8 bg-gray-50/50 rounded-[2.5rem]">
-                {dataCategorias.map((cat: any, i) => (
-                  <div key={i} className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                      <span className="text-xs font-black text-gray-800 uppercase">{cat.name}</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-gray-400 ml-5">S/ {cat.value.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
+              <h1 className="text-4xl font-black tracking-tighter text-slate-900">
+                Intelligence <span className="text-slate-400 font-light">Suite.</span>
+              </h1>
             </div>
-          </Card>
-        </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="bg-slate-50 p-1 rounded-2xl flex items-center border border-slate-100">
+                <Select value={range} onValueChange={setRange}>
+                  <SelectTrigger className="w-[180px] border-none bg-transparent shadow-none font-bold text-slate-600 focus:ring-0">
+                    <Calendar className="w-4 h-4 mr-2 text-rose-500" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="7">Últimos 7 días</SelectItem>
+                    <SelectItem value="30">Últimos 30 días</SelectItem>
+                    <SelectItem value="90">Vista Trimestral</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="w-[1px] h-6 bg-slate-200 mx-1" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={loadReportData}
+                  className="rounded-xl hover:bg-white hover:text-rose-600"
+                >
+                  <RefreshCcw size={18} />
+                </Button>
+              </div>
+              <Button className="bg-slate-900 hover:bg-rose-600 text-white rounded-2xl px-8 h-12 shadow-xl shadow-slate-200 transition-all font-bold">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar Datos
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* KPIs - FILA 1 */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard label="Ventas Totales" value={formatCurrency(metrics?.total || 0)} trend={`${metrics?.crecimiento || 0}%`} icon={TrendingUp} color="rose" sub="Ingresos confirmados" />
+          <StatCard label="Pedidos Activos" value={metrics?.pedidos || 0} trend="+New" icon={ShoppingBag} color="indigo" sub="En flujo de taller" />
+          <StatCard label="Capital en Proceso" value={formatCurrency(metrics?.produccionEnCurso || 0)} trend="Taller" icon={Zap} color="emerald" sub="Materia prima + Mo" />
+          <StatCard label="Eficiencia" value="92.4%" trend="Óptimo" icon={Target} color="amber" sub="Cumplimiento de entrega" />
+        </section>
+
+        {/* DASHBOARD PRINCIPAL - FILA 2 & 3 */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* GRÁFICO LINEAL: Ocupa 8 columnas */}
+          <div className="lg:col-span-8 space-y-8">
+            <Card className="border-none shadow-sm rounded-[3rem] bg-white overflow-hidden p-2">
+              <CardHeader className="p-8 pb-0">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-800 tracking-tight">Rendimiento Financiero</CardTitle>
+                    <p className="text-sm text-slate-400 font-medium mt-1">Comparativa de ventas diarias</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-slate-900 leading-none">{formatCurrency(metrics?.total || 0)}</p>
+                    <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-2">Total del Periodo</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 h-[400px]">
+                {isMounted && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dataVentas}>
+                      <defs>
+                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#e11d48" stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor="#e11d48" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 600}} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 600}} tickFormatter={(v) => `S/${v}`} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="ventas" stroke="#e11d48" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* GRÁFICO BARRAS: Debajo del lineal */}
+            <Card className="border-none shadow-sm rounded-[3rem] bg-white p-8">
+              <div className="mb-8">
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">Rentabilidad por Categoría</h3>
+                <p className="text-sm text-slate-400 font-medium">Volumen de ventas segmentado</p>
+              </div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dataCategorias} margin={{ top: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b', fontWeight: 600}} />
+                    <Tooltip cursor={{fill: '#f8fafc'}} content={<CustomTooltip />} />
+                    <Bar dataKey="value" radius={[12, 12, 12, 12]} barSize={50}>
+                      {dataCategorias.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} fillOpacity={0.9} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+
+          {/* CARD TALLAS: Ocupa 4 columnas (Sticky) */}
+          <div className="lg:col-span-4 lg:sticky lg:top-8">
+            <Card className="border-none bg-slate-900 text-white shadow-2xl rounded-[3rem] p-10 flex flex-col min-h-[600px] justify-between relative overflow-hidden">
+              {/* Decoración de fondo */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 blur-[80px] -mr-16 -mt-16 rounded-full" />
+              
+              <div className="relative z-10">
+                <div className="flex justify-between items-center mb-10">
+                  <div>
+                    <h3 className="text-2xl font-black tracking-tight">Análisis de Tallas</h3>
+                    <p className="text-slate-400 text-sm font-medium mt-1">Demanda actual en taller</p>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-2xl"><Layers className="text-rose-500" size={24} /></div>
+                </div>
+
+                <div className="space-y-8">
+                  {dataTallas.length > 0 ? dataTallas.slice(0, 6).map((item: any) => (
+                    <div key={item.name} className="group">
+                      <div className="flex justify-between text-xs font-black uppercase tracking-widest text-slate-400 mb-3 group-hover:text-white transition-colors">
+                        <span>Talla {item.name}</span>
+                        <span className="text-white bg-white/10 px-2 py-0.5 rounded-md">{item.value} und.</span>
+                      </div>
+                      <div className="h-3 bg-slate-800 rounded-full overflow-hidden p-0.5">
+                        <div 
+                          className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(225,29,72,0.3)]" 
+                          style={{ width: `${Math.max((item.value / 100) * 100, 5)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="py-20 text-center">
+                      <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Sin pedidos hoy</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-12">
+                <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-[1.5rem] py-8 font-black text-lg transition-all group border-none">
+                  Ver Inventario
+                  <ChevronRight size={22} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <p className="text-center text-[10px] text-slate-500 font-bold uppercase mt-6 tracking-[0.2em]">Actualizado hace pocos minutos</p>
+              </div>
+            </Card>
+          </div>
+
+        </section>
       </div>
     </div>
   );
 }
 
-// --- COMPONENTES AUXILIARES ---
+function StatCard({ label, value, trend, icon: Icon, color, sub }: any) {
+  const colors: any = {
+    rose: "bg-rose-50 text-rose-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    amber: "bg-amber-50 text-amber-600",
+  };
 
-const StatCard = ({ title, value, trend, icon: Icon, colorClass }: any) => (
-  <Card className="border-none shadow-sm bg-white p-6 rounded-3xl group hover:shadow-md transition-all">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
-        <h3 className="text-2xl font-black text-gray-900 mt-1">{value}</h3>
+  return (
+    <Card className="border-none shadow-sm rounded-[2.5rem] p-7 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+      <div className="flex justify-between items-start mb-6">
+        <div className={`p-4 rounded-2xl ${colors[color]}`}><Icon size={24} /></div>
+        <div className="flex items-center gap-1 text-[10px] font-black px-3 py-1.5 bg-slate-50 rounded-xl text-slate-500 uppercase tracking-tighter">
+          <ArrowUpRight size={12} className="text-emerald-500" /> {trend}
+        </div>
       </div>
-      <div className={`p-4 rounded-3xl ${colorClass} group-hover:scale-110 transition-transform`}>
-        <Icon size={22} />
+      <div className="space-y-1">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em]">{label}</p>
+        <h4 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h4>
+        <p className="text-[11px] text-slate-400 font-bold">{sub}</p>
       </div>
-    </div>
-    <div className="mt-4 flex items-center gap-1">
-      <span className={`text-xs font-bold ${typeof trend === 'number' && trend < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-        {typeof trend === 'number' ? (trend > 0 ? `+${trend}%` : `${trend}%`) : trend}
-      </span>
-      {typeof trend === 'number' && <span className="text-[10px] text-gray-400 font-medium tracking-tight">vs mes anterior</span>}
-    </div>
-  </Card>
-);
+    </Card>
+  );
+}
 
-const EmptyState = ({ label }: { label: string }) => (
-  <div className="h-full flex flex-col items-center justify-center gap-2">
-    <div className="w-12 h-1 bg-gray-100 rounded-full" />
-    <p className="text-gray-300 text-[10px] font-black uppercase italic tracking-widest">{label}</p>
-  </div>
-);
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 p-5 rounded-3xl shadow-2xl border border-slate-800 scale-110">
+        <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-2">Detalle de Registro</p>
+        <p className="text-slate-400 text-xs font-bold mb-1">{payload[0].payload.name || payload[0].payload.fecha}</p>
+        <p className="text-white text-xl font-black">{formatCurrency(payload[0].value)}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 function LoadingSpinner() {
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#fafafa] gap-6">
-      <div className="relative flex items-center justify-center">
-        <div className="h-20 w-20 border-4 border-pink-50 border-t-pink-600 rounded-full animate-spin" />
-        <Loader2 className="absolute text-pink-600 animate-pulse" size={30} />
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-6">
+      <div className="relative">
+        <div className="w-20 h-20 border-[6px] border-rose-100 rounded-full animate-pulse" />
+        <Loader2 className="absolute inset-0 m-auto animate-spin text-rose-600" size={40} />
       </div>
-      <div className="text-center space-y-1">
-        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.4em] animate-pulse">Sincronizando Taller</p>
-        <p className="text-[9px] font-bold text-pink-400 uppercase tracking-widest">Modas GUOR - Intelligence</p>
+      <div className="text-center">
+        <p className="text-sm font-black uppercase tracking-[0.5em] text-slate-900 animate-bounce">Generando Reportes</p>
+        <p className="text-xs text-slate-400 font-bold uppercase mt-2">Sincronizando flujo de taller...</p>
       </div>
-    </div>
-  );
-}
-
-function AccessDenied() {
-  return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-white p-6 text-center">
-      <div className="p-6 bg-rose-50 rounded-full mb-6">
-        <ShieldAlert className="w-16 h-16 text-rose-500" />
-      </div>
-      <h2 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">Acceso Restringido</h2>
-      <p className="text-gray-500 max-w-sm mt-2 font-medium">Esta sección contiene datos financieros sensibles. Solo el rol de Administrador puede visualizar esta información.</p>
     </div>
   );
 }

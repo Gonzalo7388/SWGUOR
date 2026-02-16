@@ -47,7 +47,7 @@ export default function CategoriasDropdown() {
       >
         Productos
         <ChevronDown 
-          size={14} 
+          size={20} 
           className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
         />
       </Link>

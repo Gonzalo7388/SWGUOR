@@ -1,106 +1,88 @@
-import { createClient as createServerClient } from '@supabase/supabase-js';
+// src/app/api/ecommerce/productos/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server'; // Usamos tu helper de servidor
 
-/**
- * GET /api/ecommerce/productos/[id]
- * Obtiene detalles completos de un producto con todas sus variantes
- */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productoId = parseInt(params.id);
+    // 1. Validar ID
+    const resolvedParams = await params; // Esperar a que Next.js resuelva los params
+    const productoId = parseInt(resolvedParams.id);
+    
+    if (isNaN(productoId)) {
+      return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 });
+    }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    // 2. Inicializar cliente (con await porque es el helper de servidor de Next.js)
+    const supabase = await createClient();
 
-    // Obtener producto
+    // 3. Obtener el producto base
     const { data: producto, error: errorProducto } = await supabase
       .from('productos')
       .select('*')
       .eq('id', productoId)
-      .eq('estado', 'activo')
       .single();
 
     if (errorProducto || !producto) {
-      return NextResponse.json(
-        { success: false, error: 'Producto no encontrado' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: 'Producto no encontrado' }, { status: 404 });
     }
 
-    // Obtener variantes del producto
-    const { data: variantes, error: errorVariantes } = await supabase
-      .from('variantes_producto')
-      .select('*')
-      .eq('producto_id', productoId)
-      .eq('activo', true);
-
-    if (errorVariantes) {
-      console.error('[API] Error obteniendo variantes:', errorVariantes);
+    // 4. Verificación de estado (Limpieza de strings)
+    if (producto.estado?.toLowerCase().trim() !== 'activo') {
+      return NextResponse.json({ success: false, error: 'Producto no disponible' }, { status: 403 });
     }
 
-    // Obtener categoría
-    const { data: categoria } = await supabase
-      .from('categorias')
-      .select('*')
-      .eq('id', producto.categoria_id)
-      .single();
+    // 5. Consultas paralelas (Mejora el tiempo de respuesta)
+    const [variantesRes, categoriaRes] = await Promise.all([
+      supabase.from('variantes_producto').select('*').eq('producto_id', productoId),
+      supabase.from('categorias').select('nombre').eq('id', producto.categoria_id).maybeSingle()
+    ]);
 
-    // Normalizar URL de imagen
-    const normalizarImagen = (imagen: string | null | undefined): string | null => {
-      if (!imagen) return null;
-      if (imagen.startsWith('http')) return imagen;
-      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${imagen}`;
+    const variantesRaw = variantesRes.data || [];
+    const categoriaData = categoriaRes.data;
+
+    // 6. Normalización de URLs de imágenes
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '');
+    const normalizarImagen = (img: string | null) => {
+      if (!img) return null;
+      if (img.startsWith('http')) return img;
+      return `${baseUrl}/storage/v1/object/public/productos/${img}`;
     };
 
-    // Preparar colores únicos
-    const coloresUnicos = Array.from(new Set((variantes || []).map(v => v.color).filter(Boolean))) as string[];
-    const tallasUnicas = Array.from(new Set((variantes || []).map(v => v.talla).filter(Boolean))) as string[];
+    const imagenPrincipal = normalizarImagen(producto.imagen);
 
+    // 7. Transformación y Herencia de datos
     const productoTransformado = {
-      id: producto.id,
-      nombre: producto.nombre,
-      descripcion: producto.descripcion,
+      ...producto,
       precio: Number(producto.precio),
-      imagen: normalizarImagen(producto.imagen),
-      sku: producto.sku,
-      stock: producto.stock,
-      stock_minimo: producto.stock_minimo,
-      categoria_id: producto.categoria_id,
-      categoria: categoria || { id: producto.categoria_id, nombre: 'Sin categoría' },
-      variantes: (variantes || []).map(v => ({
-        id: v.id,
-        color: v.color,
-        talla: v.talla,
+      imagen: imagenPrincipal,
+      categoria: {
+        id: producto.categoria_id,
+        nombre: categoriaData?.nombre || 'General'
+      },
+      // Selectores para el frontend
+      colores: Array.from(new Set(variantesRaw.map(v => v.color).filter(Boolean))),
+      tallas: Array.from(new Set(variantesRaw.map(v => v.talla).filter(Boolean))),
+      // Variantes con imagen heredada si está vacía
+      variantes: variantesRaw.map(v => ({
+        ...v,
         precio_adicional: Number(v.precio_adicional || 0),
-        stock_adicional: v.stock_adicional || 0,
-        sku: v.sku,
-      })),
-      colores: coloresUnicos,
-      tallas: tallasUnicas,
-      created_at: producto.created_at,
-      updated_at: producto.updated_at,
+        imagen_url: normalizarImagen(v.imagen_url) || imagenPrincipal 
+      }))
     };
 
     return NextResponse.json({
       success: true,
-      data: productoTransformado,
+      data: productoTransformado
     });
-  } catch (error) {
-    console.error('[API] Error obteniendo producto:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error obteniendo producto' },
-      { status: 500 }
-    );
+
+  } catch (error: any) {
+    console.error('[API ERROR]:', error.message);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Error interno del servidor' 
+    }, { status: 500 });
   }
 }

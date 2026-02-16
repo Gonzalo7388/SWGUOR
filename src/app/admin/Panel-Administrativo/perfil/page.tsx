@@ -1,18 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Lock, Save, AlertCircle, CheckCircle2, Shield, Calendar, Camera, Eye, EyeOff, Mail, Phone } from "lucide-react";
+import { useState, useEffect, useReducer, useCallback, useRef } from "react";
+import { User, Lock, Save, AlertCircle, CheckCircle2, Shield, Calendar, Camera, Eye, EyeOff, Mail, Phone, Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import { cn } from "@/lib/utils";
 import { updateUsuario, getUsuarioData } from "@/lib/helpers/usuario-helpers";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface UsuarioData {
   nombre_completo: string;
@@ -23,656 +19,778 @@ interface UsuarioData {
   ultimo_acceso: string | null;
 }
 
+interface ProfileState {
+  // Form data
+  nombreCompleto: string;
+  email: string;
+  telefono: string;
+  avatarUrl: string;
+  
+  // Password change
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  showPasswordSection: boolean;
+  
+  // Password visibility
+  showCurrentPassword: boolean;
+  showNewPassword: boolean;
+  showConfirmPassword: boolean;
+  
+  // UI state
+  isLoading: boolean;
+  isSaving: boolean;
+  uploadingImage: boolean;
+  
+  // Feedback
+  success: string;
+  error: string;
+}
+
+type ProfileAction =
+  | { type: 'SET_FIELD'; field: keyof ProfileState; value: any }
+  | { type: 'SET_PROFILE_DATA'; data: Partial<UsuarioData> }
+  | { type: 'RESET_PASSWORD_FIELDS' }
+  | { type: 'SET_LOADING'; loading: boolean }
+  | { type: 'SET_SAVING'; saving: boolean }
+  | { type: 'SET_UPLOADING'; uploading: boolean }
+  | { type: 'SET_SUCCESS'; message: string }
+  | { type: 'SET_ERROR'; message: string }
+  | { type: 'CLEAR_FEEDBACK' };
+
+// ============================================================================
+// CONSTANTS & VALIDATION
+// ============================================================================
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[\d\s-()]{9,}$/;
+const MIN_PASSWORD_LENGTH = 6;
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+
+const INITIAL_STATE: ProfileState = {
+  nombreCompleto: '',
+  email: '',
+  telefono: '',
+  avatarUrl: '',
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+  showPasswordSection: false,
+  showCurrentPassword: false,
+  showNewPassword: false,
+  showConfirmPassword: false,
+  isLoading: true,
+  isSaving: false,
+  uploadingImage: false,
+  success: '',
+  error: '',
+};
+
+// ============================================================================
+// REDUCER
+// ============================================================================
+
+function profileReducer(state: ProfileState, action: ProfileAction): ProfileState {
+  switch (action.type) {
+    case 'SET_FIELD':
+      return { ...state, [action.field]: action.value };
+      
+    case 'SET_PROFILE_DATA':
+      return {
+        ...state,
+        nombreCompleto: action.data.nombre_completo || '',
+        email: action.data.email || '',
+        telefono: action.data.telefono || '',
+        avatarUrl: action.data.avatar_url || '',
+        isLoading: false,
+      };
+      
+    case 'RESET_PASSWORD_FIELDS':
+      return {
+        ...state,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        showPasswordSection: false,
+        showCurrentPassword: false,
+        showNewPassword: false,
+        showConfirmPassword: false,
+      };
+      
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.loading };
+      
+    case 'SET_SAVING':
+      return { ...state, isSaving: action.saving };
+      
+    case 'SET_UPLOADING':
+      return { ...state, uploadingImage: action.uploading };
+      
+    case 'SET_SUCCESS':
+      return { ...state, success: action.message, error: '' };
+      
+    case 'SET_ERROR':
+      return { ...state, error: action.message, success: '' };
+      
+    case 'CLEAR_FEEDBACK':
+      return { ...state, success: '', error: '' };
+      
+    default:
+      return state;
+  }
+}
+
+// ============================================================================
+// VALIDATION FUNCTIONS
+// ============================================================================
+
+const validateEmail = (email: string): { valid: boolean; error?: string } => {
+  if (!email.trim()) return { valid: false, error: 'El email es requerido' };
+  if (!EMAIL_REGEX.test(email)) return { valid: false, error: 'Email inválido' };
+  return { valid: true };
+};
+
+const validatePhone = (phone: string): { valid: boolean; error?: string } => {
+  if (!phone.trim()) return { valid: true }; // Optional field
+  if (!PHONE_REGEX.test(phone)) return { valid: false, error: 'Formato de teléfono inválido' };
+  return { valid: true };
+};
+
+const validatePassword = (password: string): { valid: boolean; error?: string } => {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { valid: false, error: `Mínimo ${MIN_PASSWORD_LENGTH} caracteres` };
+  }
+  return { valid: true };
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export default function PerfilPage() {
   const { usuario, isLoading: loadingPermisos } = usePermissions();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [state, dispatch] = useReducer(profileReducer, INITIAL_STATE);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasLoadedData = useRef(false);
 
-  // Datos del perfil
-  const [nombreCompleto, setNombreCompleto] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
-  
-  // Cambio de contraseña
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  // ============================================================================
+  // EFFECTS
+  // ============================================================================
 
+  // Load user data only once when user ID is available
   useEffect(() => {
-    if (usuario?.id) {
+    if (usuario?.id && !hasLoadedData.current) {
+      hasLoadedData.current = true;
       loadUserData();
     }
-  }, [usuario]);
+  }, [usuario?.id]);
 
-  const loadUserData = async () => {
+  // Auto-clear feedback messages
+  useEffect(() => {
+    if (state.success || state.error) {
+      timeoutRef.current = setTimeout(() => {
+        dispatch({ type: 'CLEAR_FEEDBACK' });
+      }, 5000);
+      
+      return () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      };
+    }
+  }, [state.success, state.error]);
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  const loadUserData = useCallback(async () => {
     if (!usuario?.id) return;
     
     try {
-      setIsLoading(true);
+      dispatch({ type: 'SET_LOADING', loading: true });
       const { data, error } = await getUsuarioData(usuario.id);
 
-      if (error) throw error;
-
+      if (error) throw new Error('Error al cargar datos');
       if (data) {
-        const userData = data as UsuarioData;
-        setNombreCompleto(userData.nombre_completo || "");
-        setEmail(userData.email || "");
-        setTelefono(userData.telefono || "");
-        setAvatarUrl(userData.avatar_url || "");
+        dispatch({ type: 'SET_PROFILE_DATA', data: data as UsuarioData });
       }
-    } catch (err: any) {
-      console.error("Error cargando datos del usuario:", err);
-      setError("Error al cargar los datos del perfil");
+    } catch (err) {
+      console.error('[PerfilPage] Load error:', err);
+      dispatch({ type: 'SET_ERROR', message: 'Error al cargar el perfil' });
     } finally {
-      setIsLoading(false);
+      dispatch({ type: 'SET_LOADING', loading: false });
     }
-  };
+  }, [usuario]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !usuario?.id) return;
 
-    // Validar tipo de archivo
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError("Por favor selecciona una imagen válida");
+      dispatch({ type: 'SET_ERROR', message: 'Solo se permiten imágenes' });
       return;
     }
 
-    // Validar tamaño (máximo 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setError("La imagen no debe superar los 2MB");
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      dispatch({ type: 'SET_ERROR', message: 'La imagen no debe superar 2MB' });
       return;
     }
 
     try {
-      setUploadingImage(true);
-      setError("");
+      dispatch({ type: 'SET_UPLOADING', uploading: true });
+      dispatch({ type: 'CLEAR_FEEDBACK' });
+      
       const supabase = getSupabaseBrowserClient();
-
-      // Crear nombre único para el archivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${usuario.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // Subir imagen a Supabase Storage
+      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
         });
 
       if (uploadError) throw uploadError;
 
-      // Obtener URL pública
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Actualizar base de datos usando el helper
+      // Update database
       const { error: updateError } = await updateUsuario(usuario.id, {
-        avatar_url: publicUrl
+        avatar_url: publicUrl,
       });
 
       if (updateError) throw updateError;
 
-      setAvatarUrl(publicUrl);
-      setSuccess("Foto de perfil actualizada correctamente");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      console.error("Error subiendo imagen:", err);
-      setError(err.message || "Error al subir la imagen");
+      dispatch({ type: 'SET_FIELD', field: 'avatarUrl', value: publicUrl });
+      dispatch({ type: 'SET_SUCCESS', message: 'Foto actualizada' });
+    } catch (err) {
+      console.error('[PerfilPage] Upload error:', err);
+      dispatch({ type: 'SET_ERROR', message: 'Error al subir la imagen' });
     } finally {
-      setUploadingImage(false);
+      dispatch({ type: 'SET_UPLOADING', uploading: false });
     }
-  };
+  }, [usuario]);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfile = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuario?.id) return;
     
-    setIsSaving(true);
-    setError("");
-    setSuccess("");
-
     try {
-      const supabase = getSupabaseBrowserClient();
+      dispatch({ type: 'SET_SAVING', saving: true });
+      dispatch({ type: 'CLEAR_FEEDBACK' });
 
-      // Validaciones
-      if (!nombreCompleto.trim()) {
-        setError("El nombre completo es obligatorio");
-        setIsSaving(false);
+      // Validate nombre
+      if (!state.nombreCompleto.trim()) {
+        dispatch({ type: 'SET_ERROR', message: 'El nombre es requerido' });
         return;
       }
 
-      // Validar email si es administrador y cambió el email
-      const isAdmin = usuario?.rol?.toLowerCase() === 'administrador';
-      const emailChanged = email.trim() && email.trim().toLowerCase() !== usuario.email?.toLowerCase();
-      
+      // Validate telefono if provided
+      const phoneValidation = validatePhone(state.telefono);
+      if (!phoneValidation.valid) {
+        dispatch({ type: 'SET_ERROR', message: phoneValidation.error! });
+        return;
+      }
+
+      const supabase = getSupabaseBrowserClient();
+      const isAdmin = usuario.rol?.toLowerCase() === 'administrador';
+      const emailChanged = state.email.trim().toLowerCase() !== usuario.email?.toLowerCase();
+
+      // Handle email change for admin
       if (isAdmin && emailChanged) {
-        // Validar formato de email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-          setError("El formato del email no es válido");
-          setIsSaving(false);
+        const emailValidation = validateEmail(state.email);
+        if (!emailValidation.valid) {
+          dispatch({ type: 'SET_ERROR', message: emailValidation.error! });
           return;
         }
 
-        // Actualizar email en Supabase Auth
         const { error: authError } = await supabase.auth.updateUser({
-          email: email.trim().toLowerCase(),
+          email: state.email.trim().toLowerCase(),
         });
 
         if (authError) {
-          setError("Error al actualizar el email: " + authError.message);
-          setIsSaving(false);
+          dispatch({ type: 'SET_ERROR', message: `Error: ${authError.message}` });
           return;
         }
       }
 
-      // Preparar datos para actualizar
+      // Update profile
       const updateData: Record<string, any> = {
-        nombre_completo: nombreCompleto.trim(),
-        telefono: telefono.trim() || null,
+        nombre_completo: state.nombreCompleto.trim(),
+        telefono: state.telefono.trim() || null,
       };
 
-      // Si es admin y cambió el email, también actualizar en la tabla
       if (isAdmin && emailChanged) {
-        updateData.email = email.trim().toLowerCase();
+        updateData.email = state.email.trim().toLowerCase();
       }
 
-      // Actualizar usando el helper
       const { error: updateError } = await updateUsuario(usuario.id, updateData);
-
       if (updateError) throw updateError;
 
-      setSuccess(
-        isAdmin && emailChanged
-          ? "Perfil actualizado. Revisa tu nuevo email para confirmar el cambio."
-          : "Perfil actualizado correctamente"
-      );
-      setTimeout(() => setSuccess(""), 5000);
-    } catch (err: any) {
-      console.error("Error actualizando perfil:", err);
-      setError(err.message || "Error al actualizar el perfil");
+      dispatch({
+        type: 'SET_SUCCESS',
+        message: isAdmin && emailChanged
+          ? 'Perfil actualizado. Confirma el cambio en tu email.'
+          : 'Perfil actualizado correctamente',
+      });
+    } catch (err) {
+      console.error('[PerfilPage] Update error:', err);
+      dispatch({ type: 'SET_ERROR', message: 'Error al actualizar el perfil' });
     } finally {
-      setIsSaving(false);
+      dispatch({ type: 'SET_SAVING', saving: false });
     }
-  };
+  }, [state.nombreCompleto, state.email, state.telefono, usuario]);
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleChangePassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    setError("");
-    setSuccess("");
-
+    
     try {
+      dispatch({ type: 'SET_SAVING', saving: true });
+      dispatch({ type: 'CLEAR_FEEDBACK' });
+
+      // Validate all fields present
+      if (!state.currentPassword || !state.newPassword || !state.confirmPassword) {
+        dispatch({ type: 'SET_ERROR', message: 'Completa todos los campos' });
+        return;
+      }
+
+      // Validate new password
+      const passwordValidation = validatePassword(state.newPassword);
+      if (!passwordValidation.valid) {
+        dispatch({ type: 'SET_ERROR', message: passwordValidation.error! });
+        return;
+      }
+
+      // Validate passwords match
+      if (state.newPassword !== state.confirmPassword) {
+        dispatch({ type: 'SET_ERROR', message: 'Las contraseñas no coinciden' });
+        return;
+      }
+
       const supabase = getSupabaseBrowserClient();
 
-      // Validaciones
-      if (!currentPassword || !newPassword || !confirmPassword) {
-        setError("Todos los campos de contraseña son obligatorios");
-        setIsSaving(false);
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        setError("La nueva contraseña debe tener al menos 6 caracteres");
-        setIsSaving(false);
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        setError("Las contraseñas no coinciden");
-        setIsSaving(false);
-        return;
-      }
-
-      // Verificar contraseña actual
+      // Verify current password by trying to sign in
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: currentPassword,
+        email: state.email,
+        password: state.currentPassword,
       });
 
       if (signInError) {
-        setError("La contraseña actual es incorrecta");
-        setIsSaving(false);
+        dispatch({ type: 'SET_ERROR', message: 'Contraseña actual incorrecta' });
         return;
       }
 
-      // Actualizar contraseña
+      // Update password
       const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
+        password: state.newPassword,
       });
 
       if (updateError) throw updateError;
 
-      setSuccess("Contraseña actualizada correctamente");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setShowPasswordSection(false);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: any) {
-      console.error("Error cambiando contraseña:", err);
-      setError(err.message || "Error al cambiar la contraseña");
+      dispatch({ type: 'SET_SUCCESS', message: 'Contraseña actualizada' });
+      dispatch({ type: 'RESET_PASSWORD_FIELDS' });
+    } catch (err) {
+      console.error('[PerfilPage] Password change error:', err);
+      dispatch({ type: 'SET_ERROR', message: 'Error al cambiar la contraseña' });
     } finally {
-      setIsSaving(false);
+      dispatch({ type: 'SET_SAVING', saving: false });
     }
-  };
+  }, [state.currentPassword, state.newPassword, state.confirmPassword, state.email]);
 
-  if (loadingPermisos || isLoading) {
+  // ============================================================================
+  // RENDER: LOADING STATE
+  // ============================================================================
+
+  if (loadingPermisos || state.isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-gray-50 via-pink-50 to-red-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-pink-200 border-t-pink-600 mx-auto"></div>
-          <p className="mt-6 text-gray-600 font-medium">Cargando perfil...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-gray-400 mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Cargando perfil...</p>
         </div>
       </div>
     );
   }
+
+  // ============================================================================
+  // RENDER: ERROR STATE
+  // ============================================================================
 
   if (!usuario) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-gray-50 via-pink-50 to-red-50">
-        <div className="text-center bg-white p-10 rounded-2xl shadow-xl">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-10 h-10 text-red-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center bg-white p-10 rounded-xl shadow-lg border border-gray-200 max-w-md">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Usuario no encontrado</h1>
-          <p className="text-gray-600">Por favor, inicia sesión nuevamente.</p>
+          <h2 className="text-xl font-medium text-gray-900 mb-2">Usuario no encontrado</h2>
+          <p className="text-sm text-gray-600">Por favor, inicia sesión nuevamente.</p>
         </div>
       </div>
     );
   }
 
+  // ============================================================================
+  // RENDER: MAIN CONTENT
+  // ============================================================================
+
+  const isAdmin = usuario.rol?.toLowerCase() === 'administrador';
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 via-pink-50 to-red-50 p-4 md:p-8">
-      <div className="w-full max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-3 tracking-tight">
+        <div className="mb-8">
+          <h1 className="text-3xl font-light text-gray-900 tracking-tight mb-2">
             Mi Perfil
           </h1>
-          <p className="text-gray-600 text-base md:text-lg font-medium">
-            Administra tu información personal y configuración de cuenta
-          </p>  
+          <p className="text-sm text-gray-600">
+            Administra tu información personal y configuración
+          </p>
         </div>
 
-        {/* Alertas */}
-        {success && (
-          <Alert className="mb-6 bg-emerald-50 border-2 border-emerald-200 shadow-lg animate-in slide-in-from-top">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            <AlertDescription className="text-emerald-800 font-medium ml-2">{success}</AlertDescription>
-          </Alert>
+        {/* Feedback Messages */}
+        {state.success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+            <p className="text-sm text-green-800">{state.success}</p>
+          </div>
         )}
 
-        {error && (
-          <Alert className="mb-6 bg-red-50 border-2 border-red-200 shadow-lg animate-in slide-in-from-top">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <AlertDescription className="text-red-800 font-medium ml-2">{error}</AlertDescription>
-          </Alert>
+        {state.error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <p className="text-sm text-red-800">{state.error}</p>
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Card de Información del Usuario */}
-          <Card className="lg:col-span-1 shadow-xl border-2 border-gray-100 overflow-hidden">
-            <div className="bg-linear-to-br from-pink-500 via-red-500 to-pink-600 h-32"></div>
-            <CardContent className="relative -mt-16 pb-8">
-              {/* Avatar con opción de cambio */}
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative group">
-                  {avatarUrl ? (
-                    <img 
-                      src={avatarUrl} 
-                      alt="Avatar" 
-                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-2xl ring-4 ring-pink-100"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 bg-linear-to-br from-pink-500 to-red-600 rounded-full flex items-center justify-center border-4 border-white shadow-2xl ring-4 ring-pink-100">
-                      <User className="w-16 h-16 text-white" />
-                    </div>
-                  )}
-                  
-                  {/* Botón de cambiar foto */}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="absolute bottom-0 right-0 w-12 h-12 bg-linear-to-r from-pink-500 to-red-600 text-white rounded-full flex items-center justify-center shadow-lg hover:from-pink-600 hover:to-red-700 transition-all hover:scale-110 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed group-hover:ring-4 ring-pink-200"
-                  >
-                    {uploadingImage ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          
+          {/* User Info Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="h-24 bg-gradient-to-br from-gray-100 to-gray-200" />
+              
+              <div className="relative px-6 pb-6">
+                {/* Avatar */}
+                <div className="flex flex-col items-center -mt-12 mb-6">
+                  <div className="relative group">
+                    {state.avatarUrl ? (
+                      <img
+                        src={state.avatarUrl}
+                        alt="Avatar"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
                     ) : (
-                      <Camera className="w-5 h-5" />
+                      <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                        <User className="w-12 h-12 text-gray-400" />
+                      </div>
                     )}
-                  </button>
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </div>
+                    
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={state.uploadingImage}
+                      className="absolute bottom-0 right-0 w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    >
+                      {state.uploadingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </button>
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
 
-                <h3 className="font-black text-2xl text-gray-900 text-center mt-4 mb-1 tracking-tight">
-                  {nombreCompleto}
-                </h3>
-                <p className="text-sm text-gray-500 font-medium mb-1 flex items-center gap-1.5">
-                  <Mail className="w-4 h-4" />
-                  {email}
-                </p>
-                {telefono && (
-                  <p className="text-sm text-gray-500 font-medium flex items-center gap-1.5">
-                    <Phone className="w-4 h-4" />
-                    {telefono}
+                  <h3 className="font-medium text-lg text-gray-900 mt-4 mb-1">
+                    {state.nombreCompleto}
+                  </h3>
+                  <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                    <Mail className="w-4 h-4" />
+                    {state.email}
                   </p>
-                )}
-              </div>
-
-              <div className="space-y-4 pt-6 border-t border-gray-100">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-linear-to-br from-pink-500 to-red-600 rounded-lg flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Rol</p>
-                    <p className="font-bold text-gray-900 capitalize">{usuario.rol?.replace('_', ' ')}</p>
-                  </div>
+                  {state.telefono && (
+                    <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
+                      <Phone className="w-4 h-4" />
+                      {state.telefono}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-linear-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-white" />
+                {/* User Details */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Shield className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Rol</p>
+                      <p className="text-sm font-medium text-gray-900 capitalize">
+                        {usuario.rol?.replace('_', ' ')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Estado</p>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      {usuario.estado}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                   <div className="flex flex-col">
-                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter">
-                        Miembro desde
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <CheckCircle2 className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
+                        {usuario.estado}
                       </span>
-                      <span className="text-sm font-black text-gray-800">
-                        {usuario.created_at 
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Miembro desde</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {usuario.created_at
                           ? new Date(usuario.created_at).toLocaleDateString('es-ES', {
                               day: 'numeric',
                               month: 'long',
-                              year: 'numeric'
+                              year: 'numeric',
                             })
-                          : 'Sin fecha'
-                        }
-                      </span>
+                          : 'Sin fecha'}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Formularios */}
+          {/* Forms */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Datos Personales */}
-            <Card className="shadow-xl border-2 border-gray-100">
-              <CardHeader className="pb-3 bg-linear-to-r from-pink-50 to-red-50 border-b-2 border-gray-100">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-linear-to-br from-pink-500 to-red-600 rounded-lg flex items-center justify-center shadow-md shrink-0">
-                    <User className="w-6 h-6 text-white" />
+            
+            {/* Profile Form */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="border-b border-gray-200 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <User className="w-5 h-5 text-gray-600" />
                   </div>
-                  <div className="flex flex-col items-start">
-                    <CardTitle className="text-2xl font-black">
-                      Datos Personales
-                    </CardTitle>
-                    <CardDescription className="text-base font-medium">
-                      Actualiza tu información personal
-                    </CardDescription>
+                  <div>
+                    <h2 className="text-lg font-medium text-gray-900">Datos personales</h2>
+                    <p className="text-sm text-gray-500">Actualiza tu información</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <form onSubmit={handleUpdateProfile} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombreCompleto" className="text-sm font-bold text-gray-700">
-                      Nombre Completo <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="nombreCompleto"
-                      type="text"
-                      placeholder="Juan Pérez García"
-                      value={nombreCompleto}
-                      onChange={(e) => setNombreCompleto(e.target.value)}
-                      required
-                      disabled={isSaving}
-                      className="h-12 border-2 border-gray-200 focus:border-pink-500 focus:ring-pink-500"
-                    />
-                  </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-bold text-gray-700">
-                      Email Corporativo
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={usuario?.rol?.toLowerCase() !== 'administrador' || isSaving}
-                      className={cn(
-                        "h-12 border-2 border-gray-200 focus:border-pink-500 focus:ring-pink-500",
-                        usuario?.rol?.toLowerCase() !== 'administrador' && "bg-gray-100 cursor-not-allowed"
-                      )}
-                    />
-                    <p className="text-xs text-gray-500 font-medium">
-                      {usuario?.rol?.toLowerCase() === 'administrador' 
-                        ? "Como administrador, puedes cambiar tu email corporativo."
-                        : "El email no se puede modificar. Contacta al administrador si necesitas cambiarlo."
-                      }
-                    </p>
-                  </div>
+              <form onSubmit={handleUpdateProfile} className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre completo <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={state.nombreCompleto}
+                    onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'nombreCompleto', value: e.target.value })}
+                    required
+                    disabled={state.isSaving}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors disabled:bg-gray-50"
+                    placeholder="Juan Pérez"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="telefono" className="text-sm font-bold text-gray-700">
-                      Teléfono
-                    </Label>
-                    <Input
-                      id="telefono"
-                      type="tel"
-                      placeholder="+51 987 654 321"
-                      value={telefono}
-                      onChange={(e) => setTelefono(e.target.value)}
-                      disabled={isSaving}
-                      className="h-12 border-2 border-gray-200 focus:border-pink-500 focus:ring-pink-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email corporativo
+                  </label>
+                  <input
+                    type="email"
+                    value={state.email}
+                    onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'email', value: e.target.value })}
+                    disabled={!isAdmin || state.isSaving}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {isAdmin
+                      ? 'Como administrador, puedes cambiar tu email.'
+                      : 'Contacta al administrador para cambiar el email.'}
+                  </p>
+                </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-linear-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-5 h-5 mr-2" />
-                        Guardar Cambios
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Teléfono
+                  </label>
+                  <input
+                    type="tel"
+                    value={state.telefono}
+                    onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'telefono', value: e.target.value })}
+                    disabled={state.isSaving}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors disabled:bg-gray-50"
+                    placeholder="+51 987 654 321"
+                  />
+                </div>
 
-            {/* Cambiar Contraseña */}
-            <Card className="shadow-xl border-2 border-gray-100">
-              <CardHeader className="pb-3 bg-linear-to-r from-pink-50 to-red-50 border-b-2 border-gray-100">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-linear-to-br from-pink-500 to-red-600 rounded-lg flex items-center justify-center shadow-md shrink-0">
-                    <Lock className="w-6 h-6 text-white" />
+                <button
+                  type="submit"
+                  disabled={state.isSaving}
+                  className="w-full px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {state.isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Guardar cambios
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* Password Form */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="border-b border-gray-200 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-gray-600" />
                   </div>
-                  <div className="flex flex-col items-start">
-                    <CardTitle className="text-2xl font-black">
-                      Seguridad
-                    </CardTitle>
-                    <CardDescription className="text-base font-medium">
-                      Cambia tu contraseña para mantener tu cuenta segura
-                    </CardDescription>
+                  <div>
+                    <h2 className="text-lg font-medium text-gray-900">Seguridad</h2>
+                    <p className="text-sm text-gray-500">Cambia tu contraseña</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {!showPasswordSection ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowPasswordSection(true)}
-                    className="w-full h-14 text-base font-bold border-2 border-gray-200 hover:border-pink-500 hover:bg-pink-50 transition-all"
+              </div>
+
+              <div className="p-6">
+                {!state.showPasswordSection ? (
+                  <button
+                    onClick={() => dispatch({ type: 'SET_FIELD', field: 'showPasswordSection', value: true })}
+                    className="w-full px-4 py-2.5 border-2 border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Lock className="w-5 h-5 mr-2" />
-                    Cambiar Contraseña
-                  </Button>
+                    <Lock className="w-4 h-4" />
+                    Cambiar contraseña
+                  </button>
                 ) : (
-                  <form onSubmit={handleChangePassword} className="space-y-6">
-                    {/* Contraseña Actual */}
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword" className="text-sm font-bold text-gray-700">
-                        Contraseña Actual <span className="text-red-500">*</span>
-                      </Label>
+                  <form onSubmit={handleChangePassword} className="space-y-5">
+                    {/* Current Password */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contraseña actual <span className="text-red-500">*</span>
+                      </label>
                       <div className="relative">
-                        <Input
-                          id="currentPassword"
-                          type={showCurrentPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
+                        <input
+                          type={state.showCurrentPassword ? 'text' : 'password'}
+                          value={state.currentPassword}
+                          onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'currentPassword', value: e.target.value })}
                           required
-                          disabled={isSaving}
-                          className="h-12 pr-12 border-2 border-gray-200 focus:border-pink-500 focus:ring-pink-500"
+                          disabled={state.isSaving}
+                          className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
+                          placeholder="••••••••"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                          onClick={() => dispatch({ type: 'SET_FIELD', field: 'showCurrentPassword', value: !state.showCurrentPassword })}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                          {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {state.showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
 
-                    {/* Nueva Contraseña */}
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword" className="text-sm font-bold text-gray-700">
-                        Nueva Contraseña <span className="text-red-500">*</span>
-                      </Label>
+                    {/* New Password */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nueva contraseña <span className="text-red-500">*</span>
+                      </label>
                       <div className="relative">
-                        <Input
-                          id="newPassword"
-                          type={showNewPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
+                        <input
+                          type={state.showNewPassword ? 'text' : 'password'}
+                          value={state.newPassword}
+                          onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'newPassword', value: e.target.value })}
                           required
-                          disabled={isSaving}
-                          className="h-12 pr-12 border-2 border-gray-200 focus:border-pink-500 focus:ring-pink-500"
+                          disabled={state.isSaving}
+                          className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
+                          placeholder="••••••••"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                          onClick={() => dispatch({ type: 'SET_FIELD', field: 'showNewPassword', value: !state.showNewPassword })}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                          {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {state.showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      <p className="text-xs text-gray-500 font-medium">
-                        Mínimo 6 caracteres
-                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
                     </div>
 
-                    {/* Confirmar Nueva Contraseña */}
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-sm font-bold text-gray-700">
-                        Confirmar Nueva Contraseña <span className="text-red-500">*</span>
-                      </Label>
+                    {/* Confirm Password */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Confirmar contraseña <span className="text-red-500">*</span>
+                      </label>
                       <div className="relative">
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        <input
+                          type={state.showConfirmPassword ? 'text' : 'password'}
+                          value={state.confirmPassword}
+                          onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'confirmPassword', value: e.target.value })}
                           required
-                          disabled={isSaving}
-                          className="h-12 pr-12 border-2 border-gray-200 focus:border-pink-500 focus:ring-pink-500"
+                          disabled={state.isSaving}
+                          className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
+                          placeholder="••••••••"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                          onClick={() => dispatch({ type: 'SET_FIELD', field: 'showConfirmPassword', value: !state.showConfirmPassword })}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                          {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {state.showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                      <Button
+                      <button
                         type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setShowPasswordSection(false);
-                          setCurrentPassword("");
-                          setNewPassword("");
-                          setConfirmPassword("");
-                          setError("");
-                        }}
-                        disabled={isSaving}
-                        className="flex-1 h-12 border-2 border-gray-200 font-bold hover:bg-gray-50"
+                        onClick={() => dispatch({ type: 'RESET_PASSWORD_FIELDS' })}
+                        disabled={state.isSaving}
+                        className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                       >
                         Cancelar
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="submit"
-                        className="flex-1 h-12 bg-linear-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                        disabled={isSaving}
+                        disabled={state.isSaving}
+                        className="flex-1 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                       >
-                        {isSaving ? (
+                        {state.isSaving ? (
                           <>
-                            <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                             Actualizando...
                           </>
                         ) : (
                           <>
-                            <Lock className="w-5 h-5 mr-2" />
+                            <Lock className="w-4 h-4" />
                             Actualizar
                           </>
                         )}
-                      </Button>
+                      </button>
                     </div>
                   </form>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>

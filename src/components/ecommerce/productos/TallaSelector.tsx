@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Ruler } from 'lucide-react';
 
 interface TallaSelectorProps {
   tallasDisponibles: string[];
@@ -8,57 +9,44 @@ interface TallaSelectorProps {
   onTallaSeleccionada: (talla: string) => void;
 }
 
-// Orden de presentación de tallas
-const ORDEN_TALLAS = ['S', 'M', 'L'];
-
-export default function TallaSelector({
-  tallasDisponibles,
-  tallaSeleccionada,
-  onTallaSeleccionada,
-}: TallaSelectorProps) {
-  if (tallasDisponibles.length === 0) {
-    return null;
-  }
-
-  // Filtrar tallas disponibles y ordenarlas según el orden oficial
-  const tallasOrdenadas = ORDEN_TALLAS.filter(talla =>
-    tallasDisponibles.some(t => t.toUpperCase() === talla)
-  );
-
+export default function TallaSelector({ tallasDisponibles, tallaSeleccionada, onTallaSeleccionada }: TallaSelectorProps) {
   return (
-    <div className="mb-6">
-      <label className="block text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
-        📏 Selecciona una Talla
-      </label>
-      <div className="flex flex-wrap gap-2">
-        {tallasOrdenadas.length > 0 ? (
-          tallasOrdenadas.map((talla) => {
-            const isSelected = tallaSeleccionada?.toUpperCase() === talla;
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+          Tallas de Producción
+        </label>
+        <button className="flex items-center gap-1.5 text-[10px] font-bold text-gray-900 hover:text-rose-500 transition-colors uppercase">
+          <Ruler size={14} /> Guía de medidas
+        </button>
+      </div>
 
-            return (
-              <motion.button
-                key={talla}
-                onClick={() => {
-                  // Buscar el nombre de la talla en la lista de disponibles (mantener el caso original)
-                  const tallaOriginal = tallasDisponibles.find(t => t.toUpperCase() === talla);
-                  onTallaSeleccionada(tallaOriginal || talla);
-                }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`px-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all duration-200 border-2 ${
-                  isSelected
-                    ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
-                    : 'bg-white text-gray-900 border-gray-300 hover:border-gray-900'
-                }`}
-                type="button"
-              >
-                {talla}
-              </motion.button>
-            );
-          })
-        ) : (
-          <p className="text-gray-500 text-sm">No hay tallas disponibles</p>
-        )}      </div>
+      <div className="flex flex-wrap gap-2">
+        {tallasDisponibles.map((talla) => {
+          const isActive = tallaSeleccionada === talla;
+          return (
+            <motion.button
+              key={talla}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onTallaSeleccionada(talla)}
+              className={`h-12 min-w-[3.5rem] px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center border-2 ${
+                isActive 
+                  ? 'border-black bg-black text-white shadow-lg' 
+                  : 'border-gray-100 bg-white text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              {talla}
+            </motion.button>
+          );
+        })}
+      </div>
+      
+      {tallaSeleccionada && (
+        <p className="text-[10px] text-gray-500 italic">
+          * Las medidas de la talla <span className="font-bold text-gray-900">{tallaSeleccionada}</span> están sujetas a +/- 1cm de tolerancia en costura.
+        </p>
+      )}
     </div>
   );
 }

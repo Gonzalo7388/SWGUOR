@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ArrowLeft, ShoppingCart, Heart, Share2, Loader2 } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ShoppingCart, Loader2, Wand2, ChevronRight 
+} from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
 import { useFavoritos } from '@/app/ecommerce/_contexts/FavoritosContext';
 import ColorSelector from '@/components/ecommerce/productos/ColorSelector';
@@ -29,19 +30,18 @@ interface Producto {
   imagen: string;
   sku: string;
   stock: number;
-  stock_minimo: number;
   categoria_id: number;
   categoria: { id: number; nombre: string };
   variantes: Variante[];
   colores: string[];
   tallas: string[];
-  created_at: string;
-  updated_at: string;
 }
 
 export default function PaginaDetallesProducto() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const productoId = params.id as string;
+  const isCustomModeInitial = searchParams.get('mode') === 'custom';
 
   const [producto, setProducto] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,319 +51,290 @@ export default function PaginaDetallesProducto() {
   const [tallaSeleccionada, setTallaSeleccionada] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState(400);
   const [agregandoCarrito, setAgregandoCarrito] = useState(false);
-  const [esFavoritoLocal, setEsFavoritoLocal] = useState(false);
 
-  const { agregarAlCarrito } = useCarrito();
-  const { esFavorito, toggleFavorito } = useFavoritos();
+  const [isCustomizing, setIsCustomizing] = useState(isCustomModeInitial);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [colorSimulado, setColorSimulado] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sincronizar estado local con favoritos
-  useEffect(() => {
-    if (producto && producto.id) {
-      const idNumerico = typeof producto.id === 'string' ? parseInt(producto.id) : producto.id;
-      setEsFavoritoLocal(esFavorito(idNumerico));
-    }
-  }, [producto?.id, esFavorito]);
-
+  // Extraemos las funciones del carrito
+  const { agregarAlCarrito, setIsCartOpen } = useCarrito();
   const CANTIDAD_MINIMA = 400;
+
+  const [colorIA, setColorIA] = useState('#e2e8f0');
 
   useEffect(() => {
     const fetchProducto = async () => {
+      if (!productoId) return;
       try {
         setLoading(true);
-        setError(null);
-
         const response = await fetch(`/api/ecommerce/productos/${productoId}`);
-
-        if (!response.ok) {
-          throw new Error('Producto no encontrado');
-        }
-
-        const data = await response.json();
-        setProducto(data.data);
-
-        // Pre-seleccionar primer color y talla
-        if (data.data.colores.length > 0) {
-          setColorSeleccionado(data.data.colores[0]);
-        }
-        if (data.data.tallas.length > 0) {
-          setTallaSeleccionada(data.data.tallas[0]);
-        }
+        if (!response.ok) throw new Error('Producto no encontrado');
+        const { data } = await response.json();
+        setProducto(data);
+        if (data.colores?.length > 0) setColorSeleccionado(data.colores[0]);
+        if (data.tallas?.length > 0) setTallaSeleccionada(data.tallas[0]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error cargando producto');
-        console.error('[PRODUCTO_DETALLE] Error:', err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducto();
   }, [productoId]);
 
-  const handleAgregarCarrito = async () => {
-    if (!colorSeleccionado || !tallaSeleccionada) {
-      alert('Por favor selecciona color y talla');
-      return;
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setLogoPreview(reader.result as string);
+      reader.readAsDataURL(file);
     }
+  };
 
-    if (cantidad < CANTIDAD_MINIMA) {
-      alert(`⚠️ Cantidad mínima de compra: ${CANTIDAD_MINIMA} unidades`);
-      return;
-    }
+  // Función de agregar al carrito optimizada
+  const handleAgregarCarrito = async () => {
+    if (!producto) return;
+    if (!colorSeleccionado || !tallaSeleccionada) return;
 
     setAgregandoCarrito(true);
-
+    
     try {
-      // Agregar al carrito con opciones
+      // Enviamos el objeto con la data de personalización si aplica
       agregarAlCarrito({
         ...producto,
         cantidad,
         color: colorSeleccionado,
         talla: tallaSeleccionada,
+        // Si está en modo personalización, enviamos el color de la IA
+        imagenIA: isCustomizing ? colorIA : null,
+        logoCustom: isCustomizing ? logoPreview : null
       });
 
-      // Mostrar confirmación
-      alert(`✓ ${cantidad} ${producto?.nombre} agregado(s) al carrito`);
+      setIsCartOpen(true);
+
     } catch (err) {
-      console.error('Error agregando carrito:', err);
-      alert('❌ Error al agregar al carrito');
+      console.error("Error al añadir:", err);
     } finally {
       setAgregandoCarrito(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <Loader2 className="animate-spin mx-auto mb-4 text-gray-400" size={40} />
-          <p className="text-gray-600">Cargando producto...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-gray-400" size={40} />
+    </div>
+  );
 
-  if (error || !producto) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <p className="text-red-600 mb-4 text-lg">{error || 'Producto no encontrado'}</p>
-          <Link href="/ecommerce/productos" className="text-blue-600 hover:text-blue-700 font-semibold">
-            ← Volver a productos
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (error || !producto) return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+      <p className="text-red-500 mb-4 text-lg font-semibold">{error}</p>
+      <Link href="/ecommerce/productos" className="font-bold text-blue-600 hover:underline">
+        Volver al catálogo
+      </Link>
+    </div>
+  );
 
-  const imageUrl = getSupabaseImageUrl(producto.imagen) || producto.imagen;
-
+  const imageUrl = getSupabaseImageUrl(producto.imagen) || '';
   return (
-    <div className="min-h-screen bg-white">
-      {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link href="/ecommerce" className="hover:text-gray-900">
-            Inicio
-          </Link>
-          <span>→</span>
-          <Link href="/ecommerce/productos" className="hover:text-gray-900">
-            Productos
-          </Link>
-          <span>→</span>
-          <Link
-            href={`/ecommerce/categorias/${producto.categoria_id}`}
-            className="hover:text-gray-900"
-          >
-            {producto.categoria.nombre}
-          </Link>
-          <span>→</span>
-          <span className="text-gray-900 font-semibold">{producto.nombre}</span>
-        </div>
+    <div className="min-h-screen bg-slate-50/30">
+      <div className="max-w-7xl mx-auto px-6 py-4 text-xs text-gray-500 flex gap-2">
+        <Link href="/ecommerce">Inicio</Link> <span>/</span>
+        <Link href="/ecommerce/productos">Catálogo</Link> <span>/</span>
+        <span className="text-black font-bold">{producto.nombre}</span>
       </div>
 
-      {/* Contenido Principal */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <Link href="/ecommerce/productos">
-          <motion.button
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition"
-            type="button"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </motion.button>
-        </Link>
+      <div className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* Visualizador de Producto */}
+          <div className="lg:col-span-7">
+            <div className="sticky top-10 space-y-6">
+              <div className="relative aspect-square bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border border-white">
+                <motion.img
+                  key={colorSimulado}
+                  initial={{ opacity: 0.8 }}
+                  animate={{ opacity: 1 }}
+                  src={imageUrl}
+                  alt={producto.nombre}
+                  className="w-full h-full object-cover transition-all duration-700"
+                  style={{ 
+                    filter: isCustomizing ? 'grayscale(100%) brightness(1.1)' : 'none'
+                  }}
+                />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Imagen del Producto */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden"
-          >
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={producto.nombre}
-                className="w-full h-full object-cover max-h-[500px]"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="w-full h-96 flex items-center justify-center text-gray-400 text-sm uppercase">
-                Sin imagen disponible
+                {/* CAPA DE IA: El color dinámico */}
+                <AnimatePresence>
+                  {isCustomizing && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.6 }} // Opacidad media para ver las sombras de abajo
+                      className="absolute inset-0 z-10 pointer-events-none"
+                      style={{ 
+                        backgroundColor: colorIA,
+                        mixBlendMode: 'multiply' // MAGIA CSS: Mantiene las texturas y sombras
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+                  
+                {/* Capa de Logo (Mantener como la tienes) */}
+                <AnimatePresence>
+                  {logoPreview && isCustomizing && (
+                    <motion.div 
+                      drag
+                      dragConstraints={{ left: -150, right: 150, top: -150, bottom: 150 }}
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="absolute inset-0 flex items-center justify-center z-20 cursor-move"
+                    >
+                      <img src={logoPreview} className="w-32 h-32 object-contain drop-shadow-2xl" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="absolute top-8 left-8">
+                  <span className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${
+                    isCustomizing ? 'bg-rose-500 text-white' : 'bg-white text-black'
+                  }`}>
+                    {isCustomizing ? 'Modo Personalización' : 'Stock Mayorista'}
+                  </span>
+                </div>
               </div>
-            )}
-          </motion.div>
+              {isCustomizing && (
+                  <motion.div className="mt-6 p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Paleta IA Personalizada</p>
+                    <div className="flex flex-wrap gap-3">
+                      {['#FF5555', '#55FF55', '#5555FF', '#FACC15', '#000000', '#FFFFFF'].map((hex) => (
+                        <button
+                          key={hex}
+                          onClick={() => setColorIA(hex)}
+                          className="w-10 h-10 rounded-full border-2 border-white shadow-md transition-transform hover:scale-110"
+                          style={{ backgroundColor: hex }}
+                        />
+                      ))}
+                      {/* Selector Libre */}
+                      <input 
+                        type="color" 
+                        value={colorIA}
+                        onChange={(e) => setColorIA(e.target.value)}
+                        className="w-10 h-10 rounded-full cursor-pointer overflow-hidden border-none"
+                      />
+                    </div>
+                    <p className="mt-4 text-[11px] text-slate-500 italic">
+                      * La visualización utiliza IA para simular el teñido textil sobre el tejido original.
+                    </p>
+                  </motion.div>
+                )}
 
-          {/* Información del Producto */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="flex flex-col"
-          >
-            {/* Categoría */}
-            <div className="mb-4">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full uppercase">
-                {producto.categoria.nombre}
+              {isCustomizing && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-black rounded-[2rem] text-white flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-gradient-to-tr from-rose-500 to-amber-500 rounded-2xl">
+                      <Wand2 size={24} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Añadir Identidad</p>
+                      <p className="text-[10px] text-gray-400">Sube tu logo y ubícalo sobre la prenda</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-6 py-3 bg-white text-black rounded-xl font-bold text-[10px] uppercase hover:bg-rose-500 hover:text-white transition-all"
+                  >
+                    Subir Logo
+                  </button>
+                  <input type="file" ref={fileInputRef} hidden onChange={handleLogoUpload} accept="image/*" />
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          {/* Información y Compra */}
+          <div className="lg:col-span-5 space-y-8">
+            <div>
+              <span className="text-rose-500 font-black text-xs uppercase tracking-widest">
+                {producto.categoria?.nombre || 'General'}
               </span>
+              <h1 className="text-5xl font-black text-slate-900 mt-2">{producto.nombre}</h1>
+              <p className="text-slate-400 text-sm mt-2 font-mono">SKU: {producto.sku}</p>
             </div>
 
-            {/* Título */}
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              {producto.nombre}
-            </h1>
-
-            {/* Precio */}
-            <div className="mb-6">
-              <p className="text-5xl font-black text-gray-900">
-                S/ {producto.precio.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">SKU: {producto.sku}</p>
+            <div className="flex items-baseline gap-4">
+              <span className="text-5xl font-black text-slate-900">S/ {producto.precio.toFixed(2)}</span>
+              <span className="text-slate-400 font-bold uppercase text-xs tracking-tighter">Precio x Volumen</span>
             </div>
 
-            {/* Descripción */}
-            <div className="mb-8 pb-8 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Descripción</h3>
-              <p className="text-gray-700 leading-relaxed text-base">
-                {producto.descripcion || 'No hay descripción disponible para este producto.'}
-              </p>
-            </div>
+            <p className="text-slate-600 leading-relaxed">{producto.descripcion}</p>
 
-            {/* Selector de Color */}
-            <ColorSelector
-              coloresDisponibles={producto.colores}
+            <div className="h-px bg-slate-200" />
+
+            {/* Selectores Dinámicos */}
+            <ColorSelector 
+              coloresDisponibles={producto.colores || []}
               colorSeleccionado={colorSeleccionado}
-              onColorSeleccionado={setColorSeleccionado}
+              onColorSeleccionado={(c) => { setColorSeleccionado(c); setColorSimulado(c); }}
             />
 
-            {/* Selector de Talla */}
-            <TallaSelector
-              tallasDisponibles={producto.tallas}
+            <TallaSelector 
+              tallasDisponibles={producto.tallas || []}
               tallaSeleccionada={tallaSeleccionada}
               onTallaSeleccionada={setTallaSeleccionada}
             />
 
-            {/* Cantidad */}
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-900 mb-3 uppercase tracking-wide">
-                📦 Cantidad (Mínimo: {CANTIDAD_MINIMA})
-              </label>
-              <div className="flex items-center gap-4 mb-2">
-                <button
-                  onClick={() => setCantidad(Math.max(CANTIDAD_MINIMA, cantidad - 100))}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold"
-                >
-                  −100
-                </button>
-                <input
-                  type="number"
-                  value={cantidad}
+            {/* Manejo de Cantidad B2B */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cantidad mínima (400 uds)</label>
+              <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 w-fit">
+                <button onClick={() => setCantidad(Math.max(CANTIDAD_MINIMA, cantidad - 100))} className="w-12 h-12 flex items-center justify-center font-bold hover:bg-slate-50 rounded-xl">-</button>
+                <input 
+                  type="number" 
+                  value={cantidad} 
                   onChange={(e) => setCantidad(Math.max(CANTIDAD_MINIMA, parseInt(e.target.value) || CANTIDAD_MINIMA))}
-                  min={CANTIDAD_MINIMA}
-                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  className="w-20 text-center font-black text-lg focus:outline-none"
                 />
-                <button
-                  onClick={() => setCantidad(cantidad + 100)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold"
-                >
-                  +100
-                </button>
+                <button onClick={() => setCantidad(cantidad + 100)} className="w-12 h-12 flex items-center justify-center font-bold hover:bg-slate-50 rounded-xl">+</button>
               </div>
-              <p className="text-xs text-gray-500">
-                Subtotal: <span className="font-bold text-gray-900">S/ {(producto.precio * cantidad).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                Subtotal: <span className="text-slate-900">S/ {(producto.precio * cantidad).toLocaleString()}</span>
               </p>
             </div>
 
-            {/* Stock */}
-            <div className="mb-8">
-              <p className={`text-sm font-semibold ${producto.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {producto.stock > 0 ? `✓ ${producto.stock} unidades en stock` : '✗ Agotado'}
-              </p>
-            </div>
-
-            {/* Botones de Acción */}
-            <div className="flex gap-4 flex-wrap">
-              <button
+            {/* Acciones Finales */}
+            <div className="flex gap-4">
+              <button 
                 onClick={handleAgregarCarrito}
-                disabled={agregandoCarrito || producto.stock === 0}
-                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-lg font-bold uppercase tracking-wide hover:bg-black transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={agregandoCarrito}
+                className="flex-[3] bg-black text-white py-6 rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-rose-600 transition-all flex items-center justify-center gap-3 shadow-2xl disabled:opacity-50"
               >
-                <ShoppingCart size={20} />
-                {agregandoCarrito ? 'Agregando...' : 'Agregar al Carrito'}
+                {agregandoCarrito ? <Loader2 className="animate-spin" /> : "Añadir a Carrito"}
               </button>
-
-              <button
-                onClick={() => {
-                  if (producto) {
-                    toggleFavorito({
-                      id: producto.id,
-                      nombre: producto.nombre,
-                      precio: producto.precio,
-                      imagen: producto.imagen,
-                    });
-                    setEsFavoritoLocal(!esFavoritoLocal);
-                  }
-                }}
-                className={`flex items-center justify-center gap-2 border-2 px-6 py-4 rounded-lg font-bold uppercase tracking-wide transition ${
-                  esFavoritoLocal
-                    ? 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
+              <button 
+                onClick={() => setIsCustomizing(!isCustomizing)}
+                className={`flex-1 flex items-center justify-center rounded-3xl border-2 transition-all ${isCustomizing ? 'bg-rose-50 border-rose-500 text-rose-500' : 'border-slate-200 text-slate-400 hover:border-black'}`}
               >
-                <Heart
-                  size={20}
-                  fill={esFavoritoLocal ? 'currentColor' : 'none'}
-                />
-                {esFavoritoLocal ? 'En Favoritos' : 'Favorito'}
-              </button>
-
-              <button className="flex items-center justify-center gap-2 border-2 border-gray-300 px-6 py-4 rounded-lg font-bold uppercase tracking-wide hover:bg-gray-50 transition">
-                <Share2 size={20} />
-                Compartir
+                <Wand2 size={24} />
               </button>
             </div>
+          </div>
+        </div>
 
-            {/* Información Adicional */}
-            <div className="mt-8 pt-8 border-t border-gray-200 grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-gray-600 text-sm mb-1">📦 Envío</p>
-                <p className="font-semibold text-gray-900">Gratis +S/ 299</p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm mb-1">🔒 Seguridad</p>
-                <p className="font-semibold text-gray-900">100% Seguro</p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm mb-1">↩️ Devolución</p>
-                <p className="font-semibold text-gray-900">30 días</p>
-              </div>
+        {/* Sección de Recomendados */}
+        <div className="mt-40 border-t pt-20">
+          <div className="flex justify-between items-end mb-12">
+            <div>
+              <h2 className="text-4xl font-black text-slate-900 italic">Relacionados</h2>
+              <p className="text-slate-400 font-medium">Sugerencias para tu inventario</p>
             </div>
-          </motion.div>
+            <Link href="/ecommerce/productos" className="text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:text-rose-500 transition-colors">
+              Catálogo completo <ChevronRight size={14}/>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="aspect-[3/4] bg-slate-100 rounded-[2rem] animate-pulse" />
+            ))}
+          </div>
         </div>
       </div>
     </div>
