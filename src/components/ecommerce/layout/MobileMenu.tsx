@@ -42,7 +42,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   };
 
   return (
-    <div className={`fixed inset-0 z-60 md:hidden ${isOpen ? 'visible' : 'invisible'}`}>
+    <div className={`fixed inset-0 z-[9999] md:hidden ${isOpen ? 'visible' : 'invisible'}`}>
       <div 
         className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
         onClick={onClose} 
