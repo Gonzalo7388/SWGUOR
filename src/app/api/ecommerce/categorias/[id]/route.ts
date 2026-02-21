@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
+
 ) {
   try {
     // En Next.js 14/15, params puede ser una promesa
@@ -22,16 +23,7 @@ export async function GET(
       );
     }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const supabase = await createClient();
 
     // 1. Obtener la categoría
     const { data: categoria, error: categError } = await supabase
