@@ -4,14 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * GET /api/ecommerce/categorias/[id]
  * Obtiene todos los productos de una categoría específica
- * Incluye información de la categoría y sus productos
+ * Incluye información de la categoría y sus productos normalizados
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const resolvedParams = await Promise.resolve(params);
+    // En Next.js 14/15, params puede ser una promesa
+    const resolvedParams = await params;
     const id = parseInt(resolvedParams.id);
 
     if (isNaN(id)) {
@@ -21,7 +22,6 @@ export async function GET(
       );
     }
 
-    // Usar cliente de servicio para acceso sin restricciones
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -33,7 +33,7 @@ export async function GET(
       }
     );
 
-    // Obtener la categoría
+    // 1. Obtener la categoría
     const { data: categoria, error: categError } = await supabase
       .from('categorias')
       .select('*')
@@ -48,7 +48,7 @@ export async function GET(
       );
     }
 
-    // Obtener todos los productos de la categoría (solo activos)
+    // 2. Obtener todos los productos de la categoría (solo activos)
     const { data: productos, error: prodError } = await supabase
       .from('productos')
       .select('*')
@@ -68,46 +68,52 @@ export async function GET(
       );
     }
 
-    // Normalizar URLs de imagen
-    const normalizarImagen = (imagen: string | null | undefined): string | null => {
-      if (!imagen) return null;
-      if (imagen.startsWith('http')) return imagen;
-      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${imagen}`;
+    /**
+     * Helper para normalizar imágenes del bucket de Supabase
+     * Ahora detecta si la ruta ya incluye el nombre del bucket o si es una URL externa
+     */
+    const getFullImageUrl = (path: string | null, bucket: string = 'productos'): string | null => {
+      if (!path) return null;
+      if (path.startsWith('http')) return path;
+      
+      // Si el path ya contiene el nombre del bucket (ej: "categorias/foto.jpg"), lo usamos directamente
+      const cleanPath = path.includes('/') ? path : `${bucket}/${path}`;
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${cleanPath}`;
     };
 
-    // Transformar los datos
+    // 3. Transformar los datos para el Frontend
     const productosTransformados = (productos || []).map((producto: any) => ({
-      id: producto.id,
-      nombre: producto.nombre,
-      descripcion: producto.descripcion,
+      ...producto,
       precio: Number(producto.precio),
       precio_original: producto.precio_original ? Number(producto.precio_original) : undefined,
-      imagen: normalizarImagen(producto.imagen),
-      sku: producto.sku,
-      stock: producto.stock,
-      stock_minimo: producto.stock_minimo,
-      categoria_id: producto.categoria_id,
-      created_at: producto.created_at,
-      updated_at: producto.updated_at,
+      imagen: getFullImageUrl(producto.imagen, 'productos'),
       categoria: {
         id: categoria.id,
         nombre: categoria.nombre,
         descripcion: categoria.descripcion,
+        imagen: getFullImageUrl(categoria.imagen, 'categorias')
       },
     }));
+
+    // Normalizamos también la imagen de la categoría principal en la respuesta
+    const categoriaNormalizada = {
+      ...categoria,
+      imagen: getFullImageUrl(categoria.imagen, 'categorias')
+    };
 
     return NextResponse.json({
       success: true,
       data: productosTransformados,
-      categoria,
+      categoria: categoriaNormalizada,
       count: productosTransformados.length,
     });
+
   } catch (error) {
-    console.error('[API] Error obteniendo productos de categoría:', error);
+    console.error('[API] Error crítico:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Error obteniendo productos de la categoría',
+        error: 'Error interno del servidor',
         data: [],
       },
       { status: 500 }

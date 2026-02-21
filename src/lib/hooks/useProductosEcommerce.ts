@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 
 interface ProductoData {
@@ -12,6 +14,7 @@ interface ProductoData {
   rating?: number;
   reviews?: number;
   color?: string;
+  es_nuevo?: boolean;
   [key: string]: any;
 }
 
@@ -19,6 +22,8 @@ interface UseProductosOptions {
   categoria?: string | number;
   busqueda?: string;
   limite?: number;
+  nuevo?: boolean;
+  dias?: number;
 }
 
 export function useProductosEcommerce(options: UseProductosOptions = {}) {
@@ -33,21 +38,29 @@ export function useProductosEcommerce(options: UseProductosOptions = {}) {
         setError(null);
 
         const params = new URLSearchParams();
-        
+
         if (options.categoria) {
           params.append('categoria_id', String(options.categoria));
         }
-        
+
         if (options.busqueda) {
           params.append('busqueda', options.busqueda);
         }
-        
+
         if (options.limite) {
           params.append('limite', String(options.limite));
         }
 
+        if (options.nuevo) {
+          params.append('nuevo', 'true');
+        }
+
+        if (options.dias) {
+          params.append('dias', String(options.dias));
+        }
+
         const response = await fetch(`/api/ecommerce/productos?${params}`);
-        
+
         if (!response.ok) {
           throw new Error('Error obteniendo productos');
         }
@@ -64,7 +77,7 @@ export function useProductosEcommerce(options: UseProductosOptions = {}) {
     };
 
     fetchProductos();
-  }, [options.categoria, options.busqueda, options.limite]);
+  }, [options.categoria, options.busqueda, options.limite, options.nuevo, options.dias]);
 
   return {
     productos,

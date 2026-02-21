@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 interface Favorito {
   id: number;
@@ -15,6 +15,7 @@ interface FavoritosContextType {
   agregarFavorito: (producto: Favorito) => void;
   removerFavorito: (productoId: number) => void;
   toggleFavorito: (producto: Favorito) => void;
+  cargado: boolean; // Exponemos esto para evitar saltos visuales
 }
 
 const FavoritosContext = createContext<FavoritosContextType | undefined>(undefined);
@@ -23,62 +24,83 @@ export function FavoritosProvider({ children }: { children: React.ReactNode }) {
   const [favoritos, setFavoritos] = useState<Favorito[]>([]);
   const [cargado, setCargado] = useState(false);
 
-  // Cargar favoritos del localStorage al montar
+  // 1. Carga optimizada: Solo ocurre una vez y de forma pasiva
   useEffect(() => {
-    try {
-      const favoritosGuardados = localStorage.getItem('favoritos_ecommerce');
-      if (favoritosGuardados) {
-        setFavoritos(JSON.parse(favoritosGuardados));
+    const cargarDatos = () => {
+      try {
+        const guardados = localStorage.getItem('favoritos_ecommerce');
+        if (guardados) {
+          const parseados = JSON.parse(guardados);
+          // Validamos que sea un array para evitar crashes
+          if (Array.isArray(parseados)) {
+            setFavoritos(parseados);
+          }
+        }
+      } catch (e) {
+        console.error('[FAVORITOS] Error en hidratación:', e);
+      } finally {
+        setCargado(true);
       }
-    } catch (error) {
-      console.error('[FAVORITOS] Error al cargar:', error);
+    };
+
+    // Usamos requestIdleCallback si está disponible para no bloquear la carga inicial de la página
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(cargarDatos);
+    } else {
+      setTimeout(cargarDatos, 1);
     }
-    setCargado(true);
   }, []);
 
-  // Guardar favoritos en localStorage cada que cambian
+  // 2. Persistencia eficiente: Evitamos escribir en cada renderizado
   useEffect(() => {
     if (cargado) {
-      try {
-        localStorage.setItem('favoritos_ecommerce', JSON.stringify(favoritos));
-      } catch (error) {
-        console.error('[FAVORITOS] Error al guardar:', error);
-      }
+      const timeoutId = setTimeout(() => {
+        try {
+          localStorage.setItem('favoritos_ecommerce', JSON.stringify(favoritos));
+        } catch (e) {
+          console.error('[FAVORITOS] Error al persistir:', e);
+        }
+      }, 300); // Debounce de 300ms para no saturar el disco en clics rápidos
+      return () => clearTimeout(timeoutId);
     }
   }, [favoritos, cargado]);
 
-  const esFavorito = (productoId: number): boolean => {
+  // 3. Memoización de funciones para evitar re-renders en los hijos (FavoriteCard)
+  const esFavorito = useCallback((productoId: number): boolean => {
     return favoritos.some((fav) => fav.id === productoId);
-  };
+  }, [favoritos]);
 
-  const agregarFavorito = (producto: Favorito) => {
-    if (!esFavorito(producto.id)) {
-      setFavoritos([...favoritos, producto]);
-    }
-  };
+  const agregarFavorito = useCallback((producto: Favorito) => {
+    setFavoritos(prev => {
+      if (prev.some(p => p.id === producto.id)) return prev;
+      return [...prev, producto];
+    });
+  }, []);
 
-  const removerFavorito = (productoId: number) => {
-    setFavoritos(favoritos.filter((fav) => fav.id !== productoId));
-  };
+  const removerFavorito = useCallback((productoId: number) => {
+    setFavoritos(prev => prev.filter((fav) => fav.id !== productoId));
+  }, []);
 
-  const toggleFavorito = (producto: Favorito) => {
-    if (esFavorito(producto.id)) {
-      removerFavorito(producto.id);
-    } else {
-      agregarFavorito(producto);
-    }
-  };
+  const toggleFavorito = useCallback((producto: Favorito) => {
+    setFavoritos(prev => {
+      const existe = prev.some(p => p.id === producto.id);
+      if (existe) return prev.filter(p => p.id !== producto.id);
+      return [...prev, producto];
+    });
+  }, []);
+
+  // 4. Value memoizado para evitar que todo el árbol se renderice si el objeto contexto cambia
+  const value = useMemo(() => ({
+    favoritos,
+    esFavorito,
+    agregarFavorito,
+    removerFavorito,
+    toggleFavorito,
+    cargado
+  }), [favoritos, esFavorito, agregarFavorito, removerFavorito, toggleFavorito, cargado]);
 
   return (
-    <FavoritosContext.Provider
-      value={{
-        favoritos,
-        esFavorito,
-        agregarFavorito,
-        removerFavorito,
-        toggleFavorito,
-      }}
-    >
+    <FavoritosContext.Provider value={value}>
       {children}
     </FavoritosContext.Provider>
   );
@@ -86,8 +108,6 @@ export function FavoritosProvider({ children }: { children: React.ReactNode }) {
 
 export function useFavoritos() {
   const context = useContext(FavoritosContext);
-  if (!context) {
-    throw new Error('useFavoritos debe ser usado dentro de FavoritosProvider');
-  }
+  if (!context) throw new Error('useFavoritos debe estar dentro de FavoritosProvider');
   return context;
-}
+}  

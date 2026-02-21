@@ -43,12 +43,12 @@ export default function CategoriasDropdown() {
     >
       <Link 
         href="/ecommerce/productos"
-        className="flex items-center gap-1 text-[13px] font-bold uppercase tracking-widest text-gray-800 group-hover:text-[#f02d65] transition-colors"
+        className="flex items-center gap-1 text-sm font-black uppercase tracking-[0.15em] text-gray-800 hover:text-[#f02d65] transition-colors"
       >
         Productos
         <ChevronDown 
           size={20} 
-          className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+          className={`transition-transform to-black duration-300 ${isOpen ? 'rotate-180' : ''}`} 
         />
       </Link>
 
