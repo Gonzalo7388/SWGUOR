@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:variantes": "ts-node -P tsconfig.json scripts/generate-variantes.ts"
+    "generate:variantes": "ts-node -P tsconfig.json scripts/generate-variantes.ts",
+    "create:admin": "tsx scripts/create-admin-user.ts",
+    "check:users": "tsx scripts/check-users.ts",
+    "check:users:supabase": "tsx scripts/check-users-supabase.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^2.0.33",
@@ -33,6 +36,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.3.1",
     "framer-motion": "^12.34.0",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -65,6 +69,7 @@
     "eslint-config-next": "16.0.10",
     "postcss": "8.4.35",
     "tailwindcss": "3.4.0",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   },
   "overrides": {

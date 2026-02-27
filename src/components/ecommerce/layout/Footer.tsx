@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Instagram, Twitter, Mail, Heart, MapPin, Phone, ArrowRight } from 'lucide-react';
+import { Facebook, Instagram, Mail, Heart, MapPin, Phone, ArrowRight, MessageCircle } from 'lucide-react';
 import { useCategoriasEcommerce } from '@/lib/hooks/useCategoriasEcommerce';
 
 export default function PiePagina() {
@@ -77,11 +77,15 @@ export default function PiePagina() {
               Redefiniendo la elegancia femenina a través de piezas de alta calidad y diseño atemporal.
             </p>
             <div className="flex gap-4">
-              {[Facebook, Instagram, Twitter].map((Icon, idx) => (
-                <Link key={idx} href="#" className="w-9 h-9 flex items-center justify-center rounded-full border border-[#D4AF37]/30 text-[#8A7676] hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all duration-300 bg-white/50">
-                  <Icon size={16} />
-                </Link>
-              ))}
+              <Link href="https://www.facebook.com/share/18WiHhpZ1i/" target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full border border-[#D4AF37]/30 text-[#8A7676] hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all duration-300 bg-white/50">
+                <Facebook size={16} />
+              </Link>
+              <Link href="https://www.instagram.com/giobrand.pe?igsh=MTZzZHNkMXc3cDZo" target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full border border-[#D4AF37]/30 text-[#8A7676] hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all duration-300 bg-white/50">
+                <Instagram size={16} />
+              </Link>
+              <Link href="https://wa.me/51908801912" target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full border border-[#D4AF37]/30 text-[#8A7676] hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all duration-300 bg-white/50">
+                <MessageCircle size={16} />
+              </Link>
             </div>
           </div>
 
@@ -128,7 +132,9 @@ export default function PiePagina() {
               </div>
               <div className="flex items-center gap-3">
                 <Phone size={16} className="text-[#D4AF37] shrink-0" />
-                <p>+51 992 439 550</p>
+                <a href="https://wa.me/51908801912" target="_blank" rel="noopener noreferrer" className="hover:text-[#D4AF37] transition-colors">
+                  +51 908 801 912
+                </a>
               </div>
               <div className="flex items-center gap-3">
                 <Mail size={16} className="text-[#D4AF37] shrink-0" />

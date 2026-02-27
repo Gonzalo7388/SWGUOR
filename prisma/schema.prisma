@@ -159,8 +159,8 @@ model pedidos {
   cliente_id             BigInt?
   fecha_pedido           DateTime?        @default(now())
   fecha_entrega_estimada DateTime?
-  estado                 EstadoPedido?    @default(PENDIENTE)
-  prioridad              PrioridadPedido? @default(NORMAL)
+  estado                 EstadoPedido?    @default(pendiente)
+  prioridad              PrioridadPedido? @default(normal)
   total                  Decimal          @db.Decimal(10, 2)
   notas                  String?
   direccion_envio        String?
@@ -218,7 +218,7 @@ model talleres {
   email        String?
   ruc          String        @unique
   contacto     String
-  estado       EstadoTaller  @default(ACTIVO)
+  estado       EstadoTaller  @default(activo)
   created_at   DateTime      @default(now())
   updated_at   DateTime      @updatedAt
   
@@ -231,7 +231,7 @@ model confecciones {
   id            BigInt           @id @default(autoincrement())
   pedido_id     BigInt
   taller_id     BigInt
-  estado        EstadoConfeccion @default(PENDIENTE)
+  estado        EstadoConfeccion @default(pendiente)
   fecha_inicio  DateTime         @default(now())
   fecha_fin     DateTime?
   observaciones String?
@@ -247,7 +247,7 @@ model despachos {
   id                BigInt         @id @default(autoincrement())
   pedido_id         BigInt
   usuario_id        BigInt
-  estado            EstadoDespacho @default(PENDIENTE)
+  estado            EstadoDespacho @default(pendiente)
   direccion_entrega String
   fecha_despacho    DateTime       @default(now())
   fecha_entrega     DateTime?
