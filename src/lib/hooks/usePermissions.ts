@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase'; 
-import { Usuario, RolUsuario, EstadoUsuario } from '@/types/database';
+import { Usuario, RolUsuario, EstadoUsuario } from '@/types';
 
 interface AppPermissions {
   [resource: string]: string[];

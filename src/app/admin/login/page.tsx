@@ -7,7 +7,7 @@ import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { ERROR_MESSAGES } from "@/lib/auth/constants";
 import { ADMIN_ROUTES } from "@/lib/constants/admin";
-import { RolUsuario, EstadoUsuario } from '@/types/database';
+import { RolUsuario, EstadoUsuario } from '@/types';
 
 // Types
 type UsuarioLogin = {

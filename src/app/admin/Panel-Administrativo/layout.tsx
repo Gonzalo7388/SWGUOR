@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import RealtimeLayoutWrapper from '@/components/admin/layout/RealtimeLayoutWrapper';
+import ReactQueryProvider from '@/components/admin/provider/ReactQueryProvider';
 
 export const metadata: Metadata = {
   title: "Sistema GUOR - Gestión de Modas",
@@ -63,10 +64,12 @@ export default async function PanelAdministrativoLayout({
   if (error === 'inactive') redirect('/admin/acceso-denegado?error=cuenta_inactiva');
 
   return (
-    <RealtimeLayoutWrapper initialUsuario={usuario}>
-      <div className="min-h-screen bg-slate-50/50">
-        {children}
-      </div>
-    </RealtimeLayoutWrapper>
+    <ReactQueryProvider>
+      <RealtimeLayoutWrapper initialUsuario={usuario}>
+        <div className="min-h-screen bg-slate-50/50">
+          {children}
+        </div>
+      </RealtimeLayoutWrapper>
+    </ReactQueryProvider>
   );
 }

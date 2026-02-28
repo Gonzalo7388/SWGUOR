@@ -7,7 +7,7 @@ import type {
   MetodoPago,
   FiltrosOrden,
   VerificacionStock
-} from '@/types/database';
+} from '@/types';
 
 const supabase = getSupabaseBrowserClient();
 

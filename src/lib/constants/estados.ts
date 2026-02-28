@@ -12,7 +12,7 @@ import type {
   EstadoDespacho,
   EstadoTaller,
   EstadoUsuario
-} from '@/types/database';
+} from '@/types';
 
 /**
  * Estados de Órdenes

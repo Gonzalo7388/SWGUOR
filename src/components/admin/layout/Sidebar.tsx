@@ -11,7 +11,7 @@ import {
   BarChart3, Crown, ChevronRight
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Usuario } from '@/types/database';
+import type { Usuario } from '@/types';
 import { LucideIcon } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
@@ -180,7 +180,8 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
         <div className="h-24 flex items-center justify-center border-b border-slate-100/50">
           {!isCollapsed ? (
             <div className="flex items-center gap-3 w-full px-6 animate-in fade-in duration-300">
-              <div className="relative w-10 h-10 shrink-0 rounded-xl bg-slate-950 flex items-center justify-center">
+              {/* Contenedor del logo actualizado */}
+              <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white border border-slate-100 flex items-center justify-center">
                 <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
               </div>
               <div className="flex-1 min-w-0">
@@ -191,7 +192,8 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
               </div>
             </div>
           ) : (
-            <div className="w-12 h-12 rounded-2xl bg-slate-950 flex items-center justify-center shadow-lg">
+            /* Contenedor del logo colapsado actualizado */
+            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
               <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
             </div>
           )}

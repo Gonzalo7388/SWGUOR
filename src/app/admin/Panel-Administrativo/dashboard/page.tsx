@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
+import dynamic from 'next/dynamic';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { Loader2, ShieldAlert, UserX, Sparkles } from "lucide-react";
+import { Loader2, UserX, AlertTriangle, Sparkles } from "lucide-react";
 
-// Importación de los Dashboards por Rol
-import AdminDashboard from '@/components/admin/dashboards/DashboardAdmin';
-import DashboardAyudante from '@/components/admin/dashboards/DashboardAyudante';
-import DashboardCortador from '@/components/admin/dashboards/DashboardCortador';
-import DashboardDiseñador from '@/components/admin/dashboards/DashboardDiseñador';
-import DashboardRecepcionista from '@/components/admin/dashboards/DashboardRecepcionista';
-import DashboardRepresentante from '@/components/admin/dashboards/DashboardRepresentante'; // Asegúrate que este archivo exporta por defecto
+// Lazy Loading para dashboards
+const AdminDashboard = dynamic(() => import('@/components/admin/dashboards/DashboardAdmin'));
+const DashboardAyudante = dynamic(() => import('@/components/admin/dashboards/DashboardAyudante'));
+const DashboardCortador = dynamic(() => import('@/components/admin/dashboards/DashboardCortador'));
+const DashboardDiseñador = dynamic(() => import('@/components/admin/dashboards/DashboardDiseñador'));
+const DashboardRecepcionista = dynamic(() => import('@/components/admin/dashboards/DashboardRecepcionista'));
+const DashboardRepresentante = dynamic(() => import('@/components/admin/dashboards/DashboardRepresentante'));
 
 const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   administrador: AdminDashboard,
@@ -18,27 +19,26 @@ const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   cortador: DashboardCortador,
   diseñador: DashboardDiseñador,
   recepcionista: DashboardRecepcionista,
-  representante_taller: DashboardRepresentante, // Clave coincidente con tu base de datos
+  representante_taller: DashboardRepresentante,
 };
 
 export default function DashboardPage() {
   const { usuario, isLoading, hasRole } = usePermissions();
 
   const ActiveDashboard = useMemo(() => {
-    if (!usuario) return null;
+    if (!usuario || !usuario.rol) return null;
     
-    // Buscamos el rol del usuario en nuestro mapa de dashboards
-    const roleKey = Object.keys(DASHBOARDS_MAP).find(role => hasRole(role));
-    
-    return roleKey ? DASHBOARDS_MAP[roleKey] : null;
-  }, [usuario, hasRole]);
+    // Mapeo directo de rol a componente sin necesidad de buscar en el objeto
+    const component = DASHBOARDS_MAP[usuario.rol];
+    return component || null;
+  }, [usuario]);
 
-  // Pantalla de carga mientras se verifican permisos
+  // Pantalla de carga - Minimalista
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <div className="h-16 w-16 rounded-full border-4 border-slate-100 border-t-pink-600 animate-spin" />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Sincronizando Accesos GUOR...</p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-3 bg-white">
+        <Loader2 className="h-10 w-10 text-slate-400 animate-spin" />
+        <p className="text-sm text-slate-500 font-medium">Cargando panel...</p>
       </div>
     );
   }
@@ -46,55 +46,57 @@ export default function DashboardPage() {
   // Pantalla si no hay usuario autenticado
   if (!usuario) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center p-6">
-        <UserX className="w-10 h-10 text-red-500 mb-4" />
-        <h1 className="text-xl font-black text-slate-900 uppercase">Sesión Expirada</h1>
-        <p className="text-slate-400 text-sm mt-2">Por favor, inicia sesión nuevamente.</p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-6 bg-white">
+        <div className="p-4 rounded-full bg-slate-100 mb-5">
+          <UserX className="w-10 h-10 text-slate-500" />
+        </div>
+        <h1 className="text-2xl font-semibold text-slate-950 tracking-tight">Sesión finalizada</h1>
+        <p className="text-slate-600 text-sm mt-2 max-w-sm">
+          Por favor, inicia sesión nuevamente para continuar.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      {/* Header de Bienvenida Impactante */}
-      <div className="bg-white border-b border-slate-100 px-8 py-10 mb-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-pink-100 p-2 rounded-lg">
-              <Sparkles className="w-5 h-5 text-pink-600" />
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b border-slate-100">
+        <div className="max-w-[1700px] mx-auto px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {usuario.rol?.replace('_', ' ')}
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold text-slate-950 tracking-tight">
+                Hola, {usuario.nombre_completo?.split(' ')[0] || "Usuario"}
+              </h1>
             </div>
-            <span className="text-[10px] font-black text-pink-600 uppercase tracking-[0.4em]">
-              Panel de Control Interno
-            </span>
+            
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-xs font-medium text-slate-700">
+                <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                GUOR v2
+            </div>
           </div>
-          
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase">
-            Bienvenido, <span> {usuario.nombre_completo || "Usuario"} </span>
-          </h1>
-          
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            Sistema de Gestión de Producción • {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
         </div>
-      </div>
+      </header>
 
-      {/* Renderizado del Dashboard Específico */}
-      <div className="px-8 pb-12">
-        <div className="max-w-7xl mx-auto">
+      <main className="p-6 md:p-8">
+        <div className="max-w-[1700px] mx-auto">
           {ActiveDashboard ? (
             <ActiveDashboard usuario={usuario} />
           ) : (
-            // Pantalla de error si el rol no tiene dashboard asignado
-            <div className="bg-white p-12 rounded-[3rem] text-center border border-slate-100 shadow-sm">
-              <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-xl font-black text-slate-900 uppercase">Rol no configurado</h2>
-              <p className="text-slate-400 text-sm mt-2">
-                Tu rol ({usuario.rol}) no tiene un tablero asignado. Contacta con soporte técnico.
+            <div className="bg-white p-8 rounded-xl border border-slate-100 flex flex-col items-center text-center">
+              <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
+              <h2 className="text-xl font-semibold text-slate-950">Acceso restringido</h2>
+              <p className="text-slate-600 text-sm mt-2">
+                El rol <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-xs">{usuario.rol}</span> no tiene un tablero configurado.
               </p>
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

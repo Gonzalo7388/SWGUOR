@@ -1,10 +1,11 @@
 "use client";
 
 import { AlertTriangle, ArrowRight, Package } from 'lucide-react';
-import { Inventario } from '@/types/database';
+import { Insumo } from '@/types';
+import router from 'next/router';
 
 interface StockAlertCardProps {
-  items: Inventario[];
+  items: Insumo[];
 }
 
 export default function StockAlertCard({ items }: StockAlertCardProps) {
@@ -61,7 +62,10 @@ export default function StockAlertCard({ items }: StockAlertCardProps) {
       </div>
 
       {/* FOOTER - ACCIÓN GLOBAL */}
-      <button className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+      <button 
+        onClick={() => router.push('/admin/inventario')}
+        className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+      >
         Reponer Inventario
         <ArrowRight size={14} />
       </button>

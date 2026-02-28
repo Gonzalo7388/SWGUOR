@@ -1,6 +1,5 @@
 /**
- * Helpers para Productos
- * Funciones para gestionar productos, inventario, y cálculos relacionados
+ * Helpers para Productos e Insumos
  */
 
 import { getSupabaseBrowserClient } from '@/lib/supabase';
@@ -8,22 +7,28 @@ import type {
   Producto,
   ProductoInsert,
   ProductoUpdate,
-  Inventario,
-  InventarioInsert,
+  Insumo,
+  InsumoInsert,
   EstadoProducto,
   TipoInsumo
-} from '@/types/database';
+} from '@/types';
 
-/**
- * Obtener todos los productos con filtros
- */
+// Helper para obtener el cliente — cast a any solo para la tabla 'insumo'
+// porque su definición puede no estar sincronizada con el tipo Database generado.
+const getClient = () => getSupabaseBrowserClient();
+const getClientAny = () => getSupabaseBrowserClient() as any;
+
+// ==========================================
+// SECCIÓN: PRODUCTOS (Tabla: 'productos')
+// ==========================================
+
 export async function obtenerProductos(filtros?: {
   categoria_id?: number;
   estado?: EstadoProducto;
   busqueda?: string;
 }): Promise<{ data: Producto[] | null; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClient();
 
     let query = supabase
       .from('productos')
@@ -43,7 +48,6 @@ export async function obtenerProductos(filtros?: {
 
     let productos = (data as Producto[]) || [];
 
-    // Filtro por búsqueda (cliente side)
     if (filtros?.busqueda) {
       const busquedaBaja = filtros.busqueda.toLowerCase();
       productos = productos.filter(
@@ -60,14 +64,11 @@ export async function obtenerProductos(filtros?: {
   }
 }
 
-/**
- * Obtener un producto por ID
- */
 export async function obtenerProductoPorId(
   productoId: number
 ): Promise<{ data: Producto | null; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClient();
 
     const { data, error } = await supabase
       .from('productos')
@@ -83,14 +84,11 @@ export async function obtenerProductoPorId(
   }
 }
 
-/**
- * Crear un nuevo producto
- */
 export async function crearProducto(
   productoData: ProductoInsert
 ): Promise<{ data: Producto | null; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClient();
 
     const { data, error } = await supabase
       .from('productos')
@@ -106,19 +104,16 @@ export async function crearProducto(
   }
 }
 
-/**
- * Actualizar un producto
- */
 export async function actualizarProducto(
   productoId: number,
   updates: ProductoUpdate
 ): Promise<{ data: Producto | null; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClient();
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('productos')
-      .update(updates)
+      .update(updates as any)
       .eq('id', productoId)
       .select()
       .single();
@@ -131,12 +126,11 @@ export async function actualizarProducto(
   }
 }
 
-/**
- * Eliminar un producto
- */
-export async function eliminarProducto(productoId: number): Promise<{ success: boolean; error: string | null }> {
+export async function eliminarProducto(
+  productoId: number
+): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClient();
 
     const { error } = await supabase.from('productos').delete().eq('id', productoId);
 
@@ -148,37 +142,23 @@ export async function eliminarProducto(productoId: number): Promise<{ success: b
   }
 }
 
-/**
- * Obtener inventario por producto
- */
-export async function obtenerInventarioPorProducto(
-  productoId: number
-): Promise<{ data: Inventario | null; error: string | null }> {
-  try {
-    const supabase = getSupabaseBrowserClient();
+// ==========================================
+// SECCIÓN: INSUMOS (Tabla: 'insumo')
+// Usamos getClientAny() porque la tabla 'insumo' no está en el tipo
+// Database generado (o tiene nombre distinto). El tipado de retorno
+// lo garantizamos con los tipos manuales Insumo / InsumoInsert.
+// ==========================================
 
-    const { data, error } = await supabase
-      .from('inventario')
+export async function obtenerInsumos(
+  tipo?: TipoInsumo
+): Promise<{ data: Insumo[] | null; error: string | null }> {
+  try {
+    const supabase = getClientAny();
+
+    let query = supabase
+      .from('insumo')
       .select('*')
-      .eq('producto_id', productoId)
-      .single();
-
-    if (error) throw error;
-
-    return { data: data as Inventario, error: null };
-  } catch (err: any) {
-    return { data: null, error: err.message };
-  }
-}
-
-/**
- * Obtener todos los insumos
- */
-export async function obtenerInsumos(tipo?: TipoInsumo): Promise<{ data: Inventario[] | null; error: string | null }> {
-  try {
-    const supabase = getSupabaseBrowserClient();
-
-    let query = supabase.from('inventario').select('*').order('nombre', { ascending: true });
+      .order('nombre', { ascending: true });
 
     if (tipo) {
       query = query.eq('tipo', tipo);
@@ -187,49 +167,43 @@ export async function obtenerInsumos(tipo?: TipoInsumo): Promise<{ data: Inventa
     const { data, error } = await query;
     if (error) throw error;
 
-    return { data: (data as Inventario[]) || [], error: null };
+    return { data: (data as Insumo[]) || [], error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
 }
 
-/**
- * Crear un insumo
- */
 export async function crearInsumo(
-  insumoData: InventarioInsert
-): Promise<{ data: Inventario | null; error: string | null }> {
+  insumoData: InsumoInsert
+): Promise<{ data: Insumo | null; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClientAny();
 
     const { data, error } = await supabase
-      .from('inventario')
-      .insert(insumoData as any)
+      .from('insumo')
+      .insert(insumoData)
       .select()
       .single();
 
     if (error) throw error;
 
-    return { data: data as Inventario, error: null };
+    return { data: data as Insumo, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
 }
 
-/**
- * Actualizar stock de un insumo
- */
 export async function actualizarStockInsumo(
-  inventarioId: number,
+  insumoId: number,
   nuevoStock: number
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClientAny();
 
-    const { error } = await (supabase as any)
-      .from('inventario')
-      .update({ stock_actual: nuevoStock, updated_at: new Date().toISOString() })
-      .eq('id', inventarioId);
+    const { error } = await supabase
+      .from('insumo')
+      .update({ stock_actual: nuevoStock })
+      .eq('id', insumoId);
 
     if (error) throw error;
 
@@ -239,35 +213,30 @@ export async function actualizarStockInsumo(
   }
 }
 
-/**
- * Descontar stock (para cuando se crea una orden)
- */
 export async function descontarStock(
-  inventarioId: number,
+  insumoId: number,
   cantidad: number
 ): Promise<{ success: boolean; nuevoStock?: number; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClientAny();
 
-    // Primero obtenemos el stock actual
-    const { data: inventario, error: fetchError } = await (supabase as any)
-      .from('inventario')
+    const { data: insumo, error: fetchError } = await supabase
+      .from('insumo')
       .select('stock_actual')
-      .eq('id', inventarioId)
+      .eq('id', insumoId)
       .single();
 
     if (fetchError) throw fetchError;
 
-    const nuevoStock = (inventario?.stock_actual || 0) - cantidad;
+    const stockActual: number = insumo?.stock_actual ?? 0;
+    const nuevoStock = stockActual - cantidad;
 
-    if (nuevoStock < 0) {
-      throw new Error('Stock insuficiente para descontar');
-    }
+    if (nuevoStock < 0) throw new Error('Stock insuficiente');
 
-    const { error: updateError } = await (supabase as any)
-      .from('inventario')
-      .update({ stock_actual: nuevoStock, updated_at: new Date().toISOString() })
-      .eq('id', inventarioId);
+    const { error: updateError } = await supabase
+      .from('insumo')
+      .update({ stock_actual: nuevoStock })
+      .eq('id', insumoId);
 
     if (updateError) throw updateError;
 
@@ -277,30 +246,28 @@ export async function descontarStock(
   }
 }
 
-/**
- * Incrementar stock (devoluciones o ajustes)
- */
 export async function incrementarStock(
-  inventarioId: number,
+  insumoId: number,
   cantidad: number
 ): Promise<{ success: boolean; nuevoStock?: number; error: string | null }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClientAny();
 
-    const { data: inventario, error: fetchError } = await (supabase as any)
-      .from('inventario')
+    const { data: insumo, error: fetchError } = await supabase
+      .from('insumo')
       .select('stock_actual')
-      .eq('id', inventarioId)
+      .eq('id', insumoId)
       .single();
 
     if (fetchError) throw fetchError;
 
-    const nuevoStock = (inventario?.stock_actual || 0) + cantidad;
+    const stockActual: number = insumo?.stock_actual ?? 0;
+    const nuevoStock = stockActual + cantidad;
 
-    const { error: updateError } = await (supabase as any)
-      .from('inventario')
-      .update({ stock_actual: nuevoStock, updated_at: new Date().toISOString() })
-      .eq('id', inventarioId);
+    const { error: updateError } = await supabase
+      .from('insumo')
+      .update({ stock_actual: nuevoStock })
+      .eq('id', insumoId);
 
     if (updateError) throw updateError;
 
@@ -310,72 +277,68 @@ export async function incrementarStock(
   }
 }
 
-/**
- * Verificar si el stock está bajo el mínimo
- */
-export function stockBajoMinimo(stockActual: number, stockMinimo: number): boolean {
-  return stockActual <= stockMinimo;
-}
+// ==========================================
+// SECCIÓN: REPORTES / ALERTAS
+// ==========================================
 
-/**
- * Calcular margen de ganancia
- */
-export function calcularMargen(costoUnitario: number, precioVenta: number): number {
-  if (costoUnitario === 0) return 0;
-  return ((precioVenta - costoUnitario) / costoUnitario) * 100;
-}
-
-/**
- * Calcular precio de venta desde costo y margen deseado
- */
-export function calcularPrecioVenta(costoUnitario: number, margenPorcentaje: number): number {
-  return costoUnitario + costoUnitario * (margenPorcentaje / 100);
-}
-
-/**
- * Obtener productos agotados
- */
-export async function obtenerProductosAgotados(): Promise<{
-  data: Inventario[] | null;
+export async function obtenerInsumosAgotados(): Promise<{
+  data: Insumo[] | null;
   error: string | null;
 }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClientAny();
 
     const { data, error } = await supabase
-      .from('inventario')
+      .from('insumo')
       .select('*')
       .eq('stock_actual', 0)
       .order('nombre', { ascending: true });
 
     if (error) throw error;
 
-    return { data: (data as Inventario[]) || [], error: null };
+    return { data: (data as Insumo[]) || [], error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
 }
 
-/**
- * Obtener productos con stock bajo
- */
-export async function obtenerProductosStockBajo(): Promise<{
-  data: Inventario[] | null;
+export async function obtenerInsumosStockBajo(): Promise<{
+  data: Insumo[] | null;
   error: string | null;
 }> {
   try {
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getClientAny();
 
     const { data, error } = await supabase
-      .from('inventario')
+      .from('insumo')
       .select('*')
-      .lt('stock_actual', 'stock_minimo')
-      .order('nombre', { ascending: true });
+      .order('stock_actual', { ascending: true });
 
     if (error) throw error;
 
-    return { data: (data as Inventario[]) || [], error: null };
+    const filtrados = (data as Insumo[]).filter(
+      (i) => i.stock_actual <= i.stock_minimo
+    );
+
+    return { data: filtrados, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
+}
+
+// ==========================================
+// SECCIÓN: CÁLCULOS (Frontend — sin Supabase)
+// ==========================================
+
+export function stockBajoMinimo(stockActual: number, stockMinimo: number): boolean {
+  return stockActual <= stockMinimo;
+}
+
+export function calcularMargen(costoUnitario: number, precioVenta: number): number {
+  if (costoUnitario === 0) return 0;
+  return ((precioVenta - costoUnitario) / costoUnitario) * 100;
+}
+
+export function calcularPrecioVenta(costoUnitario: number, margenPorcentaje: number): number {
+  return costoUnitario + costoUnitario * (margenPorcentaje / 100);
 }

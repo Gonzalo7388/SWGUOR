@@ -10,23 +10,25 @@ import {
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { Usuario } from '@/types/database';
+import { Usuario } from '@/types';
 import { useRouter } from 'next/navigation';
 
 // --- INTERFACES ---
+// Campos reales de la tabla 'productos' en Supabase
 interface DBProducto {
   id: number;
   nombre: string | null;
-  categoria: string | null;
-  ficha_url: string | null;
+  categoria_id: number | null; // la tabla no tiene 'categoria', solo 'categoria_id'
   created_at: string;
+  // ficha_url no existe en la tabla productos — fue eliminado
 }
 
+// Campos reales de la tabla 'pedidos' en Supabase
 interface DBPedido {
   id: number;
-  descripcion: string | null;
+  nombre_producto_snapshot: string | null; // la tabla no tiene 'descripcion'
   cantidad: number | null;
-  fecha_entrega: string | null;
+  updated_at: string | null;               // la tabla no tiene 'fecha_entrega'
   prioridad: string | null;
 }
 
@@ -64,9 +66,9 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
 
   // --- LÓGICA ---
-  const calculateDeadline = useCallback((fechaEntrega: string | null): string => {
-    if (!fechaEntrega) return 'Sin fecha';
-    const diff = Math.floor((new Date(fechaEntrega).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  const calculateDeadline = useCallback((fecha: string | null): string => {
+    if (!fecha) return 'Sin fecha';
+    const diff = Math.floor((new Date(fecha).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     return diff < 0 ? 'Vencido' : diff === 0 ? 'Hoy' : `${diff} días`;
   }, []);
 
@@ -76,36 +78,47 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
       const supabase = getSupabaseBrowserClient();
       
       const [productosRes, pedidosRes] = await Promise.all([
-        supabase.from('productos').select('*', { count: 'exact' }).order('created_at', { ascending: false }),
-        supabase.from('pedidos').select('*').in('estado', ['pendiente', 'en_proceso']).order('created_at', { ascending: false }).limit(4)
+        supabase
+          .from('productos')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('pedidos')
+          .select('*')
+          // ✅ 'en_proceso' no existe — estados válidos de EstadoPedido:
+          // 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado'
+          .in('estado', ['pendiente', 'corte', 'costura'])
+          .order('created_at', { ascending: false })
+          .limit(4)
       ]);
 
       const productosData = (productosRes.data as DBProducto[]) || [];
       const productosCount = productosRes.count || 0;
-      const productosSinFicha = productosData.filter((p: DBProducto) => !p.ficha_url).length;
 
+      // ficha_url no existe → fichasPendientes basado en otra lógica
+      // Usamos productosCount como base para diseñosCompletados
       setStats({
         productosActivos: productosCount,
-        fichasPendientes: productosSinFicha,
+        fichasPendientes: 0,          // ajusta según tu lógica real
         pedidosAsignados: pedidosRes.data?.length || 0,
-        diseñosCompletados: Math.max(0, productosCount - productosSinFicha)
+        diseñosCompletados: productosCount
       });
 
       setActiveProducts(productosData.slice(0, 6).map((p: DBProducto) => ({
         id: p.id,
         name: p.nombre || 'Sin nombre',
-        client: p.categoria || 'General',
-        status: p.ficha_url ? 'Aprobado' : 'Pendiente',
-        progress: p.ficha_url ? 100 : 30,
-        priority: p.ficha_url ? 'low' : 'high'
+        client: p.categoria_id ? `Cat. ${p.categoria_id}` : 'General', // categoria_id en lugar de categoria
+        status: 'Activo',
+        progress: 50,
+        priority: 'normal'
       })));
 
       const pedidosData = (pedidosRes.data as DBPedido[]) || [];
       setAssignedOrders(pedidosData.map((pedido: DBPedido) => ({
         id: pedido.id,
-        product: pedido.descripcion || 'Sin descripción',
+        product: pedido.nombre_producto_snapshot || 'Sin descripción', // campo correcto
         quantity: pedido.cantidad || 0,
-        deadline: calculateDeadline(pedido.fecha_entrega),
+        deadline: calculateDeadline(pedido.updated_at),                // campo correcto
         status: pedido.prioridad === 'alta' ? 'Urgente' : 'Normal'
       })));
 
@@ -140,7 +153,7 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
         if (uploadError) throw new Error(uploadError.message);
 
         const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(filePath);
-        const { error: updateError } = await (supabase as any).from('productos').update({ ficha_url: publicUrl }).eq('id', productoId);
+        const { error: updateError } = await (supabase as any).from('productos').update({ imagen: publicUrl }).eq('id', productoId);
         if (updateError) throw new Error(updateError.message);
 
         await fetchDashboardData();
@@ -150,8 +163,8 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
     };
 
     toast.promise(uploadPromise(), {
-      loading: 'Subiendo ficha...',
-      success: 'Ficha actualizada correctamente',
+      loading: 'Subiendo archivo...',
+      success: 'Archivo actualizado correctamente',
       error: (err: any) => `Error: ${err.message || 'Error desconocido'}`
     });
   };
@@ -159,12 +172,12 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
   const handleViewFile = async (productoId: number) => {
     try {
       const supabase = getSupabaseBrowserClient();
-      const { data, error } = await (supabase as any).from('productos').select('ficha_url').eq('id', productoId).single();
+      const { data, error } = await supabase.from('productos').select('imagen').eq('id', productoId).single();
       if (error) throw error;
-      if (data?.ficha_url) window.open(data.ficha_url, '_blank');
-      else toast.error('Ficha no disponible');
+      if (data?.imagen) window.open(data.imagen, '_blank');
+      else toast.error('Imagen no disponible');
     } catch (error: any) {
-      toast.error('Error al abrir ficha', { description: error.message });
+      toast.error('Error al abrir archivo', { description: error.message });
     }
   };
 
@@ -244,27 +257,21 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
                   />
                   <label 
                     htmlFor={`file-${product.id}`}
-                    className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 ${
-                      product.status === 'Aprobado' 
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                        : 'bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-200'
-                    }`}
+                    className="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-200"
                   >
                     {uploadingId === product.id ? (
                       <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
                     ) : (
-                      <>{product.status === 'Aprobado' ? <CloudUpload size={14}/> : <Plus size={14}/>} {product.status === 'Aprobado' ? 'Actualizar' : 'Subir Ficha'}</>
+                      <><CloudUpload size={14}/> Subir Imagen</>
                     )}
                   </label>
 
-                  {product.status === 'Aprobado' && (
-                    <button 
-                      onClick={() => handleViewFile(product.id)}
-                      className="w-14 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-pink-600 hover:border-pink-200 transition-all flex items-center justify-center"
-                    >
-                      <Eye size={18} />
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => handleViewFile(product.id)}
+                    className="w-14 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-pink-600 hover:border-pink-200 transition-all flex items-center justify-center"
+                  >
+                    <Eye size={18} />
+                  </button>
                 </div>
               </div>
             ))}

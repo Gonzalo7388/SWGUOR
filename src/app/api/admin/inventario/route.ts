@@ -32,13 +32,13 @@ export async function POST(req: Request) {
     }
 
     const { data, error } = await crearInsumo({
-      nombre: body.nombre,
-      tipo: body.tipo,
+      nombre:        body.nombre,
+      tipo:          body.tipo,
       unidad_medida: body.unidad_medida,
-      stock_actual: body.stock_actual,
-      stock_minimo: body.stock_minimo || 0,
-      categoria_id: body.categoria_id,
-      producto_id: body.producto_id
+      stock_actual:  body.stock_actual,
+      stock_minimo:  body.stock_minimo ?? 0,
+      precio_unitario: body.precio_unitario ?? null,
+      proveedor:     body.proveedor ?? null,
     });
 
     if (error) throw new Error(error);
@@ -60,7 +60,7 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     const { error } = await (supabase as any)
-      .from('inventario')
+      .from('insumo')
       .delete()
       .eq('id', parseInt(id));
 
@@ -82,19 +82,14 @@ export async function PATCH(req: Request) {
 
     const body = await req.json();
 
-    // Usar helper para actualizar stock
     const { success, error } = await actualizarStockInsumo(parseInt(id), body.stock_actual);
 
     if (error) throw new Error(error);
+    if (!success) return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 400 });
 
-    if (!success) {
-      return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 400 });
-    }
-
-    // Retornar el insumo actualizado
     const supabase = await createClient();
     const { data: updatedData } = await (supabase as any)
-      .from('inventario')
+      .from('insumo')
       .select()
       .eq('id', parseInt(id))
       .single();

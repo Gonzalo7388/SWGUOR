@@ -17,7 +17,7 @@ import type {
   VerificacionStock,
   EstadoOrden,
   MetodoPago
-} from '@/types/database';
+} from '@/types';
 
 interface UseOrdenesState {
   ordenes: OrdenCompleta[];

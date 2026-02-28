@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import AdminSidebar from './Sidebar';
 import AdminHeader from './Header';
-import type { Usuario } from '@/types/database';
+import type { Usuario } from '@/types';
 
 export default function RealtimeLayoutWrapper({ 
   initialUsuario, 
@@ -13,24 +13,35 @@ export default function RealtimeLayoutWrapper({
   initialUsuario: Usuario, 
   children: React.ReactNode 
 }) {
-  const [usuario, setUsuario] = useState(initialUsuario);
+  const [usuario, setUsuario] = useState<Usuario>(initialUsuario);
   const supabase = getSupabaseBrowserClient();
+  
+  // Usamos ref para mantener la referencia del usuario sin disparar efectos
+  const usuarioRef = useRef(usuario);
 
   useEffect(() => {
-    // Suscripción a cambios en la tabla 'usuarios' para este ID específico
+    // Actualizar la referencia cuando el estado cambie
+    usuarioRef.current = usuario;
+  }, [usuario]);
+
+  useEffect(() => {
+    // Suscripción a cambios en la tabla 'usuarios'
     const channel = supabase
-      .channel(`user-changes-${usuario.id}`)
+      .channel(`user-changes-${initialUsuario.id}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'usuarios',
-          filter: `id=eq.${usuario.id}`,
+          filter: `id=eq.${initialUsuario.id}`,
         },
         (payload) => {
-            if (JSON.stringify(payload.new) !== JSON.stringify(usuario)) {
-            setUsuario(payload.new as Usuario);
+          const newUser = payload.new as Usuario;
+          
+          // Comparación profunda básica para evitar actualizaciones innecesarias
+          if (JSON.stringify(newUser) !== JSON.stringify(usuarioRef.current)) {
+            setUsuario(newUser);
           }
         }
       )
@@ -39,15 +50,14 @@ export default function RealtimeLayoutWrapper({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [usuario.id]);
+  }, [initialUsuario.id, supabase]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Ahora el Sidebar y Header usan el estado "usuario" que cambia solo */}
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <AdminSidebar usuario={usuario} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader usuario={usuario} />
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>

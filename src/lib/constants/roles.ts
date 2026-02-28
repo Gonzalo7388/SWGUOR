@@ -3,7 +3,7 @@
  * Define los roles de usuarios y sus permisos asociados
  */
 
-import type { RolUsuario } from '@/types/database';
+import type { RolUsuario } from '@/types';
 
 /**
  * Definición de permisos por rol

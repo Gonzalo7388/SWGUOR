@@ -6,596 +6,902 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-/**
- * Enums de la Base de Datos
- */
-export type EstadoPedido = 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado';
-export type EstadoConfeccion = 'corte' | 'confeccionando' | 'remallado' | 'terminado';
-export type EstadoDespacho = 'pendiente' | 'en_ruta' | 'entregado';
-export type EstadoProducto = 'activo' | 'inactivo' | 'agotado';
-export type EstadoTaller = 'activo' | 'inactivo' | 'suspendido';
-export type PrioridadPedido = 'baja' | 'normal' | 'alta' | 'urgente';
-export type RolUsuario = 'administrador' | 'cortador' | 'diseñador' | 'recepcionista' | 'ayudante' | 'representante_taller';
-export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido';
-export type EstadoOrden = 'solicitado' | 'cotizado' | 'aprobado' | 'pagado' | 'en_proceso' | 'finalizado' | 'cancelado';
-export type EstadoCliente = 'activo' | 'inactivo' | 'suspendido' | 'potencial';
-export type EstadoCategoria = 'activo' | 'inactivo';
-export type TipoComprobante = 'boleta' | 'factura' | 'nota_venta';
-export type MetodoPago = 'efectivo' | 'yape' | 'plin' | 'transferencia_bcp' | 'transferencia_interbank' | 'tarjeta';
-export type TipoInsumo = 'insumo' | 'producto_terminado';
-export type UnidadMedida = 'metros' | 'unidades' | 'conos' | 'docenas' | 'kilogramos' | 'set';
-export type TipoCliente = 'corporativo' | 'minorista' | 'distribuidor';
-export type EstadoCotizacion = 'pendiente' | 'aceptada' | 'rechazada' | 'vencida';
-export type TipoCategoria = 'producto' | 'insumo';
-
-/**
- * Schema de la Base de Datos
- */
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
-
-      //Tabla: categorias
       categorias: {
         Row: {
-          id: number
-          nombre: string
+          activo: boolean | null
+          created_at: string
           descripcion: string | null
-          estado: EstadoCategoria
-          tipo_categoria: TipoCategoria
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: number
+          id: number
+          imagen: string | null
           nombre: string
-          descripcion?: string | null
-          estado?: EstadoCategoria
-          tipo_categoria: TipoCategoria
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: number
-          nombre?: string
-          descripcion?: string | null
-          estado?: EstadoCategoria
-          tipo_categoria: TipoCategoria
-          created_at?: string
-          updated_at?: string
-        }
-      }
-
-      // Tabla: clientes
-      clientes: {
-        Row: {
-          id: number
-          ruc: number
-          razon_social: string | null
-          email: string | null
-          telefono: number | null
-          direccion: string | null
-          tipo: TipoCliente
-          activo: EstadoCliente | null
-          created_at: string
-          updated_at: string
-          auth_id: string | null
-        }
-        Insert: {
-          id?: never
-          ruc: number
-          razon_social?: string | null
-          email?: string | null
-          telefono?: number | null
-          direccion?: string | null
-          tipo?: TipoCliente
-          activo?: EstadoCliente | null
-          created_at?: string
-          updated_at?: string
-          auth_id?: string | null
-        }
-        Update: {
-          ruc?: number
-          razon_social?: string | null
-          email?: string | null
-          telefono?: number | null
-          direccion?: string | null
-          tipo?: TipoCliente
-          activo?: EstadoCliente | null
-          created_at?: string
-          updated_at?: string
-          auth_id?: string | null
-        }
-      }
-
-      // Tabla: confecciones
-      confecciones: {
-        Row: {
-          id: number
-          pedido_id: number
-          taller_id: number
-          estado: EstadoConfeccion
-          fecha_inicio: string
-          fecha_fin: string | null
-          observaciones: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: number
-          pedido_id: number
-          taller_id: number
-          estado?: EstadoConfeccion
-          fecha_inicio: string
-          fecha_fin?: string | null
-          observaciones?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: number
-          pedido_id?: number
-          taller_id?: number
-          estado?: EstadoConfeccion
-          fecha_inicio?: string
-          fecha_fin?: string | null
-          observaciones?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-
-      // Tabla: cotizaciones
-      cotizaciones:{
-        Row: {
-          id: number
-          cotizacion_id: string
-          cliente_id: number
-          descripcion: string | null
-          monto: number
-          estado: EstadoCotizacion
-          vencimiento: string
-          fecha_creacion: string
-          updated_at: string
-
-        }
-        Insert: {
-          id?: number
-          cotizacion_id: string
-          cliente_id: number
-          descripcion?: string | null
-          monto: number
-          estado?: EstadoCotizacion
-          vencimiento: string
-          fecha_creacion?: string
-          updated_at?: string
-        }
-        Update: {
-          cotizacion_id?: string
-          cliente_id?: number
-          descripcion?: string | null
-          monto?: number
-          estado?: EstadoCotizacion
-          vencimiento?: string
-          fecha_creacion?: string
-          updated_at?: string
-        }
-      }
-
-      // Tabla: despachos
-      despachos: {
-        Row: {
-          id: number
-          pedido_id: number
-          fecha_despacho: string
-          created_at: string
-          direccion_entrega: string
-          fecha_entrega: string | null
-          updated_at: string
-          usuario_id: number
-          estado: EstadoDespacho
-        }
-        Insert: {
-          id?: never
-          pedido_id: number
-          fecha_despacho: string
-          created_at?: string
-          direccion_entrega: string
-          fecha_entrega?: string | null
-          updated_at?: string
-          usuario_id: number
-          estado?: EstadoDespacho
-        }
-        Update: {
-          pedido_id?: number
-          fecha_despacho?: string
-          created_at?: string
-          direccion_entrega?: string
-          fecha_entrega?: string | null
-          updated_at?: string
-          usuario_id?: number
-          estado?: EstadoDespacho
-        }
-      }
-
-      // Tabla: inventario
-      inventario: {
-        Row: {
-          id: number
-          sku: string | null
-          nombre: string
-          tipo: TipoInsumo
-          unidad_medida: UnidadMedida 
-          stock_actual: number
-          stock_minimo: number
-          costo_unitario: number | null
-          precio_venta: number | null
-          categoria_id: number | null
-          producto_id: number | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: never // El ID es generado por identidad
-          sku?: string | null
-          nombre: string
-          tipo: TipoInsumo
-          unidad_medida?: UnidadMedida
-          stock_actual?: number
-          stock_minimo?: number
-          costo_unitario?: number | null
-          precio_venta?: number | null
-          categoria_id?: number | null
-          producto_id?: number | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          sku?: string | null
-          nombre?: string
-          tipo?: TipoInsumo
-          unidad_medida?: UnidadMedida
-          stock_actual?: number
-          stock_minimo?: number
-          costo_unitario?: number | null
-          precio_venta?: number | null
-          categoria_id?: number | null
-          producto_id?: number | null
-          updated_at?: string
-        }
-      }
-
-      // Tabla: lista_materiales
-      lista_materiales: {
-        Row: {
-          id: number
-          producto_id: number | null
-          insumo_id: number | null
-          created_at: string
-          cantidad_requerida: number | null
+          orden: number | null
           updated_at: string | null
         }
         Insert: {
-          id?: never
-          producto_id?: number | null
-          insumo_id?: number | null
+          activo?: boolean | null
           created_at?: string
-          cantidad_requerida?: number | null
+          descripcion?: string | null
+          id?: number
+          imagen?: string | null
+          nombre: string
+          orden?: number | null
           updated_at?: string | null
         }
         Update: {
-          producto_id?: number | null
-          insumo_id?: number | null
+          activo?: boolean | null
           created_at?: string
-          cantidad_requerida?: number | null
+          descripcion?: string | null
+          id?: number
+          imagen?: string | null
+          nombre?: string
+          orden?: number | null
           updated_at?: string | null
         }
+        Relationships: []
       }
-
-      // Tabla: ordenes (El encabezado)
-      ordenes: {
+      clientes: {
         Row: {
-          id: string
-          cliente_id: number
-          total: number
-          estado: EstadoOrden
-          metodo_pago: MetodoPago | null
+          activo: Database["public"]["Enums"]["EstadoCliente"] | null
+          auth_id: string | null
           created_at: string
+          direccion: string | null
+          email: string | null
+          id: number
+          razon_social: string | null
+          ruc: number
+          telefono: number | null
+          tipo: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at: string
-          user_id: string
         }
         Insert: {
-          id?: string
-          cliente_id: number
-          total: number
-          estado?: EstadoOrden
-          metodo_pago?: MetodoPago | null
-          user_id: string
+          activo?: Database["public"]["Enums"]["EstadoCliente"] | null
+          auth_id?: string | null
           created_at?: string
+          direccion?: string | null
+          email?: string | null
+          id?: number
+          razon_social?: string | null
+          ruc: number
+          telefono?: number | null
+          tipo?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
         }
         Update: {
-          id?: string
-          cliente_id?: number
-          total?: number
-          estado?: EstadoOrden
-          metodo_pago?: MetodoPago | null
-          user_id?: string
+          activo?: Database["public"]["Enums"]["EstadoCliente"] | null
+          auth_id?: string | null
           created_at?: string
+          direccion?: string | null
+          email?: string | null
+          id?: number
+          razon_social?: string | null
+          ruc?: number
+          telefono?: number | null
+          tipo?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
         }
+        Relationships: []
       }
-
-      // Tabla: detalles_orden
+      confecciones: {
+        Row: {
+          created_at: string
+          estado: Database["public"]["Enums"]["EstadoConfeccion"]
+          fecha_fin: string | null
+          fecha_inicio: string
+          id: number
+          observaciones: string | null
+          pedido_id: number
+          taller_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estado?: Database["public"]["Enums"]["EstadoConfeccion"]
+          fecha_fin?: string | null
+          fecha_inicio: string
+          id?: number
+          observaciones?: string | null
+          pedido_id: number
+          taller_id: number
+          updated_at: string
+        }
+        Update: {
+          created_at?: string
+          estado?: Database["public"]["Enums"]["EstadoConfeccion"]
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          id?: number
+          observaciones?: string | null
+          pedido_id?: number
+          taller_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confecciones_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotizaciones: {
+        Row: {
+          cliente_id: number | null
+          cotizacion_id: string
+          descripcion: string | null
+          estado: Database["public"]["Enums"]["EstadoCotizacion"] | null
+          fecha_creacion: string
+          id: number
+          monto: number
+          updated_at: string
+          vencimiento: string | null
+        }
+        Insert: {
+          cliente_id?: number | null
+          cotizacion_id: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["EstadoCotizacion"] | null
+          fecha_creacion?: string
+          id?: number
+          monto?: number
+          updated_at?: string
+          vencimiento?: string | null
+        }
+        Update: {
+          cliente_id?: number | null
+          cotizacion_id?: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["EstadoCotizacion"] | null
+          fecha_creacion?: string
+          id?: number
+          monto?: number
+          updated_at?: string
+          vencimiento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despachos: {
+        Row: {
+          created_at: string
+          direccion_entrega: string
+          estado: Database["public"]["Enums"]["EstadoDespacho"]
+          fecha_despacho: string
+          fecha_entrega: string | null
+          id: number
+          pedido_id: number
+          updated_at: string
+          usuario_id: number
+        }
+        Insert: {
+          created_at?: string
+          direccion_entrega: string
+          estado?: Database["public"]["Enums"]["EstadoDespacho"]
+          fecha_despacho: string
+          fecha_entrega?: string | null
+          id?: number
+          pedido_id: number
+          updated_at: string
+          usuario_id: number
+        }
+        Update: {
+          created_at?: string
+          direccion_entrega?: string
+          estado?: Database["public"]["Enums"]["EstadoDespacho"]
+          fecha_despacho?: string
+          fecha_entrega?: string | null
+          id?: number
+          pedido_id?: number
+          updated_at?: string
+          usuario_id?: number
+        }
+        Relationships: []
+      }
       detalles_orden: {
         Row: {
-          id: number
-          orden_id: string
-          producto_id: number
           cantidad: number
-          precio_unitario: number
-          subtotal: number
-          talla: string
           color: string | null
+          id: number
+          orden_id: number
+          precio_unitario: number
+          producto_id: number
+          subtotal: number
+          talla: Database["public"]["Enums"]["TallaProductos"] | null
         }
         Insert: {
-          id?: never
-          orden_id: string
-          producto_id: number
           cantidad: number
-          precio_unitario: number
-          subtotal?: number
-          talla: string
           color?: string | null
+          id?: number
+          orden_id: number
+          precio_unitario: number
+          producto_id: number
+          subtotal: number
+          talla?: Database["public"]["Enums"]["TallaProductos"] | null
         }
         Update: {
-          id?: number
-          orden_id?: string
-          producto_id?: number
           cantidad?: number
-          precio_unitario?: number
-          subtotal?: number
-          talla?: string
           color?: string | null
+          id?: number
+          orden_id?: number
+          precio_unitario?: number
+          producto_id?: number
+          subtotal?: number
+          talla?: Database["public"]["Enums"]["TallaProductos"] | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "detalles_orden_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detalles_orden_producto_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-
-      // Tabla: pedidos
+      insumo: {
+        Row: {
+          created_at: string
+          id: number
+          nombre: string
+          precio_unitario: number | null
+          proveedor: string | null
+          stock_actual: number
+          stock_minimo: number
+          tipo: Database["public"]["Enums"]["TipoInsumo"]
+          unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          nombre: string
+          precio_unitario?: number | null
+          proveedor?: string | null
+          stock_actual?: number
+          stock_minimo?: number
+          tipo: Database["public"]["Enums"]["TipoInsumo"]
+          unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          nombre?: string
+          precio_unitario?: number | null
+          proveedor?: string | null
+          stock_actual?: number
+          stock_minimo?: number
+          tipo?: Database["public"]["Enums"]["TipoInsumo"]
+          unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Relationships: []
+      }
+      movimientos_inventario: {
+        Row: {
+          cantidad: number | null
+          created_at: string
+          id: number
+          insumo_id: number | null
+          motivo: string | null
+          producto_id: number | null
+          tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"] | null
+          usuario_id: number | null
+        }
+        Insert: {
+          cantidad?: number | null
+          created_at?: string
+          id?: number
+          insumo_id?: number | null
+          motivo?: string | null
+          producto_id?: number | null
+          tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
+          usuario_id?: number | null
+        }
+        Update: {
+          cantidad?: number | null
+          created_at?: string
+          id?: number
+          insumo_id?: number | null
+          motivo?: string | null
+          producto_id?: number | null
+          tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_inventario_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_inventario_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordenes: {
+        Row: {
+          cliente_id: number | null
+          created_at: string
+          estado: Database["public"]["Enums"]["EstadoOrden"] | null
+          id: number
+          impuestos: number
+          metodo_pago: Database["public"]["Enums"]["MetodoPago"] | null
+          notas_internas: string | null
+          payment_id: string | null
+          subtotal: number
+          total: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cliente_id?: number | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["EstadoOrden"] | null
+          id?: number
+          impuestos?: number
+          metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
+          notas_internas?: string | null
+          payment_id?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cliente_id?: number | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["EstadoOrden"] | null
+          id?: number
+          impuestos?: number
+          metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
+          notas_internas?: string | null
+          payment_id?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordenes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
-          id: number
-          orden_id: string
-          producto_id: number
-          cantidad: number
-          talla: string
-          precio_unitario: number
-          estado: EstadoPedido
-          especificaciones: Json | null
+          cantidad: number | null
           created_at: string
-          updated_at: string
+          created_by: string | null
+          especificaciones: Json | null
+          estado: Database["public"]["Enums"]["EstadoPedido"] | null
+          fecha_pedido: string | null
+          id: number
+          nombre_producto_snapshot: string | null
+          orden_id: number | null
+          precio_unitario: number | null
+          prioridad: Database["public"]["Enums"]["PrioridadPedido"] | null
+          producto_id: number | null
+          talla: Database["public"]["Enums"]["TallaProductos"] | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
-          id?: never
-          orden_id: string
-          producto_id: number
-          cantidad: number
-          talla: string
-          precio_unitario: number
-          estado?: EstadoPedido
-          especificaciones?: Json | null
+          cantidad?: number | null
           created_at?: string
-          updated_at?: string
+          created_by?: string | null
+          especificaciones?: Json | null
+          estado?: Database["public"]["Enums"]["EstadoPedido"] | null
+          fecha_pedido?: string | null
+          id?: number
+          nombre_producto_snapshot?: string | null
+          orden_id?: number | null
+          precio_unitario?: number | null
+          prioridad?: Database["public"]["Enums"]["PrioridadPedido"] | null
+          producto_id?: number | null
+          talla?: Database["public"]["Enums"]["TallaProductos"] | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
-          cantidad?: number
-          talla?: string
-          estado?: EstadoPedido
+          cantidad?: number | null
+          created_at?: string
+          created_by?: string | null
           especificaciones?: Json | null
-          updated_at?: string
+          estado?: Database["public"]["Enums"]["EstadoPedido"] | null
+          fecha_pedido?: string | null
+          id?: number
+          nombre_producto_snapshot?: string | null
+          orden_id?: number | null
+          precio_unitario?: number | null
+          prioridad?: Database["public"]["Enums"]["PrioridadPedido"] | null
+          producto_id?: number | null
+          talla?: Database["public"]["Enums"]["TallaProductos"] | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-
-      // Tabla: productos
       productos: {
         Row: {
-          id: number
-          nombre: string
-          descripcion: string | null
+          categoria_id: number | null
           created_at: string
-          categoria_id: number
+          descripcion: string | null
+          destacado: boolean | null
+          estado: Database["public"]["Enums"]["EstadoProducto"]
+          id: number
           imagen: string | null
+          nombre: string
           precio: number
-          stock: number
-          stock_minimo: number
-          updated_at: string
-          estado: EstadoProducto
           sku: string
-          ficha_url: string | null
+          stock: number
+          updated_at: string
         }
         Insert: {
-          id?: never
-          nombre: string
-          descripcion?: string | null
+          categoria_id?: number | null
           created_at?: string
-          categoria_id: number
+          descripcion?: string | null
+          destacado?: boolean | null
+          estado?: Database["public"]["Enums"]["EstadoProducto"]
+          id?: number
           imagen?: string | null
+          nombre: string
           precio: number
-          stock?: number
-          stock_minimo?: number
-          updated_at?: string
-          estado?: EstadoProducto
           sku: string
-          ficha_url?: string | null
+          stock?: number
+          updated_at: string
         }
         Update: {
-          nombre?: string
+          categoria_id?: number | null
+          created_at?: string
           descripcion?: string | null
-          categoria_id?: number
+          destacado?: boolean | null
+          estado?: Database["public"]["Enums"]["EstadoProducto"]
+          id?: number
           imagen?: string | null
+          nombre?: string
           precio?: number
-          stock?: number
-          stock_minimo?: number
-          updated_at?: string
-          estado?: EstadoProducto
           sku?: string
-          ficha_url?: string | null
+          stock?: number
+          updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "productos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-
-      // Tabla: talleres
       talleres: {
         Row: {
+          contacto: string
+          created_at: string
+          direccion: string
+          email: string | null
+          especialidad: Database["public"]["Enums"]["EspecialidadTaller"] | null
+          estado: Database["public"]["Enums"]["EstadoTaller"]
           id: number
           nombre: string
-          direccion: string
-          telefono: string
-          email: string | null
-          created_at: string
-          updated_at: string
           ruc: string
-          contacto: string
-          especialidad: string | null
-          estado: EstadoTaller
+          telefono: string
+          updated_at: string
         }
         Insert: {
+          contacto: string
+          created_at?: string
+          direccion: string
+          email?: string | null
+          especialidad?:
+            | Database["public"]["Enums"]["EspecialidadTaller"]
+            | null
+          estado?: Database["public"]["Enums"]["EstadoTaller"]
           id?: number
           nombre: string
-          direccion: string
-          telefono: string
-          email?: string | null
-          created_at?: string
-          updated_at?: string
           ruc: string
-          contacto: string
-          especialidad?: string | null
-          estado?: EstadoTaller
+          telefono: string
+          updated_at: string
         }
         Update: {
+          contacto?: string
+          created_at?: string
+          direccion?: string
+          email?: string | null
+          especialidad?:
+            | Database["public"]["Enums"]["EspecialidadTaller"]
+            | null
+          estado?: Database["public"]["Enums"]["EstadoTaller"]
           id?: number
           nombre?: string
-          direccion?: string
-          telefono?: string
-          email?: string | null
-          created_at?: string
-          updated_at?: string
           ruc?: string
-          contacto?: string
-          especialidad?: string | null
-          estado?: EstadoTaller
+          telefono?: string
+          updated_at?: string
         }
+        Relationships: []
       }
-
-      // Tabla: usuarios  
       usuarios: {
         Row: {
-          id: number
-          email: string
-          nombre_completo: string
-          telefono: string | null
-          estado: EstadoUsuario
-          rol: RolUsuario
-          created_at: string
-          updated_at: string
           auth_id: string | null
-          ultimo_acceso: string | null
-          created_by: string | null
           avatar_url: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string
+          estado: Database["public"]["Enums"]["EstadoUsuario"] | null
+          id: number
+          nombre_completo: string
+          rol: Database["public"]["Enums"]["rol"] | null
+          telefono: string | null
+          ultimo_acceso: string | null
+          updated_at: string | null
         }
         Insert: {
-          id?: never
-          email: string
-          nombre_completo: string
-          telefono?: string | null
-          estado?: EstadoUsuario
-          rol?: RolUsuario
-          created_at?: string
-          updated_at?: string
           auth_id?: string | null
-          ultimo_acceso?: string | null
-          created_by?: string | null
           avatar_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
+          id?: number
+          nombre_completo: string
+          rol?: Database["public"]["Enums"]["rol"] | null
+          telefono?: string | null
+          ultimo_acceso?: string | null
+          updated_at?: string | null
         }
         Update: {
-          id?: number
-          email?: string
-          nombre_completo?: string
-          telefono?: string | null
-          estado?: EstadoUsuario
-          rol?: RolUsuario
-          created_at?: string
-          updated_at?: string
           auth_id?: string | null
-          ultimo_acceso?: string | null
-          created_by?: string | null
           avatar_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
+          id?: number
+          nombre_completo?: string
+          rol?: Database["public"]["Enums"]["rol"] | null
+          telefono?: string | null
+          ultimo_acceso?: string | null
+          updated_at?: string | null
         }
+        Relationships: []
       }
-
-      // Tabla: ventas
+      variantes_producto: {
+        Row: {
+          color: Database["public"]["Enums"]["ColorPrenda"]
+          created_at: string | null
+          estado: Database["public"]["Enums"]["EstadoProducto"]
+          id: number
+          imagen_url: string | null
+          nombre: string
+          precio_adicional: number
+          producto_id: number
+          sku: string
+          stock_adicional: number
+          talla: Database["public"]["Enums"]["TallaProductos"]
+          updated_at: string | null
+        }
+        Insert: {
+          color: Database["public"]["Enums"]["ColorPrenda"]
+          created_at?: string | null
+          estado?: Database["public"]["Enums"]["EstadoProducto"]
+          id?: number
+          imagen_url?: string | null
+          nombre: string
+          precio_adicional?: number
+          producto_id: number
+          sku: string
+          stock_adicional?: number
+          talla: Database["public"]["Enums"]["TallaProductos"]
+          updated_at?: string | null
+        }
+        Update: {
+          color?: Database["public"]["Enums"]["ColorPrenda"]
+          created_at?: string | null
+          estado?: Database["public"]["Enums"]["EstadoProducto"]
+          id?: number
+          imagen_url?: string | null
+          nombre?: string
+          precio_adicional?: number
+          producto_id?: number
+          sku?: string
+          stock_adicional?: number
+          talla?: Database["public"]["Enums"]["TallaProductos"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variantes_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ventas: {
         Row: {
-          id: number
-          orden_id: string
-          vendedor_id: number
-          subtotal: number
+          created_at: string | null
+          id: string
           impuestos: number
-          total: number
-          metodo_pago: MetodoPago
-          tipo_comprobante: TipoComprobante
+          metodo_pago: Database["public"]["Enums"]["MetodoPago"] | null
           numero_comprobante: string | null
-          created_at: string
+          orden_id: number
+          subtotal: number
+          tipo_comprobante:
+            | Database["public"]["Enums"]["TipoComprobante"]
+            | null
+          total: number
+          updated_at: string | null
+          vendedor_id: string | null
         }
         Insert: {
-          id?: never
-          orden_id: string
-          vendedor_id: number
-          subtotal: number
-          impuestos: number
-          total: number
-          metodo_pago: MetodoPago
-          tipo_comprobante: TipoComprobante
+          created_at?: string | null
+          id?: string
+          impuestos?: number
+          metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
           numero_comprobante?: string | null
-          created_at?: string
+          orden_id: number
+          subtotal?: number
+          tipo_comprobante?:
+            | Database["public"]["Enums"]["TipoComprobante"]
+            | null
+          total?: number
+          updated_at?: string | null
+          vendedor_id?: string | null
         }
         Update: {
-          id?: number
-          orden_id?: string
-          vendedor_id?: number
-          subtotal?: number
+          created_at?: string | null
+          id?: string
           impuestos?: number
-          total?: number
-          metodo_pago?: MetodoPago
-          tipo_comprobante?: TipoComprobante
+          metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
           numero_comprobante?: string | null
-          created_at?: string
+          orden_id?: number
+          subtotal?: number
+          tipo_comprobante?:
+            | Database["public"]["Enums"]["TipoComprobante"]
+            | null
+          total?: number
+          updated_at?: string | null
+          vendedor_id?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "ventas_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      actualizar_ultimo_acceso: {
+        Args: { usuario_id: number }
+        Returns: undefined
+      }
+      check_user_role: {
+        Args: { target_roles: Database["public"]["Enums"]["rol"][] }
+        Returns: boolean
+      }
+      create_user_with_creator: {
+        Args: {
+          auth_id_input: string
+          email_input: string
+          nombre_completo_input: string
+          rol_input: string
+          telefono_input: string
+        }
+        Returns: undefined
+      }
+      decrement_inventory: {
+        Args: { p_id: number; p_qty: number }
+        Returns: undefined
+      }
+      decrement_stock: {
+        Args: { quantity: number; row_id: string }
+        Returns: undefined
+      }
+      get_dashboard_stats: { Args: never; Returns: Json }
+      get_my_role: { Args: never; Returns: Database["public"]["Enums"]["rol"] }
+      get_user_id: { Args: never; Returns: number }
+      get_user_role: { Args: never; Returns: string }
+      has_role: { Args: { required_role: string }; Returns: boolean }
+      increment_stock: {
+        Args: { quantity: number; row_id: string }
+        Returns: undefined
+      }
+      insert_new_user_with_creator: {
+        Args: {
+          auth_id_input: string
+          email_input: string
+          nombre_completo_input: string
+          rol_input: string
+          telefono_input: string
+        }
+        Returns: undefined
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_role: {
+        Args: { target_roles: Database["public"]["Enums"]["rol"][] }
+        Returns: boolean
+      }
+      is_staff: { Args: never; Returns: boolean }
+      reduce_stock_from_order: {
+        Args: { p_orden_id: number }
+        Returns: undefined
+      }
+      reset_productos_sequence: {
+        Args: { new_value?: number }
+        Returns: undefined
+      }
+      restar_stock: {
+        Args: { cantidad_param: number; producto_id_param: string }
+        Returns: undefined
+      }
+      sumar_stock: {
+        Args: { cantidad_param: number; producto_id_param: string }
+        Returns: undefined
+      }
+      verificar_stock_bajo: {
+        Args: never
+        Returns: {
+          categoria_nombre: string
+          nombre: string
+          producto_id: number
+          stock: number
+          stock_minimo: number
+        }[]
+      }
     }
     Enums: {
-      estado_pedido: EstadoPedido
-      estado_confeccion: EstadoConfeccion
-      estado_despacho: EstadoDespacho
-      estado_producto: EstadoProducto
-      estado_taller: EstadoTaller
-      prioridad_pedido: PrioridadPedido
-      rol: RolUsuario
-      estado_usuario: EstadoUsuario
-      estado_orden: EstadoOrden
-      estado_cliente: EstadoCliente
-      estado_categoria: EstadoCategoria
-      tipo_comprobante: TipoComprobante
-      metodo_pago: MetodoPago
-      tipo_insumo: TipoInsumo
-      unidad_medida: UnidadMedida
-      tipo_cliente: TipoCliente
-      estado_cotizacion: EstadoCotizacion
-      tipo_categoria: TipoCategoria
+      ColorPrenda:
+        | "Blanco"
+        | "Negro"
+        | "Gris"
+        | "Beige"
+        | "Marrón pastel"
+        | "Azul jean"
+        | "Azul marino"
+        | "Rojo"
+        | "Rosa pastel"
+        | "Morado claro"
+        | "Verde olivo"
+        | "Amarillo"
+        | "Naranja"
+        | "Multicolor"
+        | "Único"
+        | "Vino"
+        | "Camel"
+        | "Crema"
+        | "Celeste"
+        | "Amarillo limón"
+      EspecialidadTaller:
+        | "corte"
+        | "confección"
+        | "bordado"
+        | "estampado"
+        | "costura"
+        | "acabados"
+        | "otro"
+      EstadoCategoria: "activo" | "inactivo"
+      EstadoCliente: "activo" | "inactivo" | "suspendido" | "potencial"
+      EstadoConfeccion: "corte" | "confeccionando" | "remallado" | "terminado"
+      EstadoCotizacion: "pendiente" | "aceptada" | "rechazada" | "expirada"
+      EstadoDespacho: "pendiente" | "en_ruta" | "entregado"
+      EstadoOrden:
+        | "solicitado"
+        | "cotizado"
+        | "aprobado"
+        | "pagado"
+        | "en_proceso"
+        | "finalizado"
+        | "cancelado"
+      EstadoPago: "pendiente" | "pagado_parcial" | "pagado" | "vencido"
+      EstadoPedido:
+        | "pendiente"
+        | "corte"
+        | "costura"
+        | "acabado"
+        | "completado"
+        | "cancelado"
+      EstadoProducto: "activo" | "inactivo" | "agotado" | "descontinuado"
+      EstadoTaller: "activo" | "inactivo" | "suspendido"
+      EstadoUsuario: "activo" | "inactivo" | "suspendido"
+      MetodoPago:
+        | "efectivo"
+        | "transferencia_bcp"
+        | "yape"
+        | "plin"
+        | "visa"
+        | "mastercard"
+      PrioridadPedido: "baja" | "normal" | "alta" | "urgente"
+      rol:
+        | "administrador"
+        | "cortador"
+        | "diseñador"
+        | "recepcionista"
+        | "ayudante"
+        | "representante_taller"
+      TallaProductos:
+        | "XS"
+        | "S"
+        | "M"
+        | "L"
+        | "XL"
+        | "XXL"
+        | "28"
+        | "30"
+        | "32"
+        | "34"
+      TipoCategoria: "producto" | "insumo"
+      TipoCliente: "corporativo" | "minorista" | "distribuidor"
+      TipoComprobante: "boleta" | "factura" | "nota_venta"
+      TipoInsumo: "tela" | "hilo" | "avio" | "boton" | "cierre"
+      TipoMovimiento: "entrada" | "salida" | "ajuste"
+      UnidadMedida:
+        | "metros"
+        | "unidades"
+        | "conos"
+        | "docenas"
+        | "kilogramos"
+        | "set"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -603,116 +909,225 @@ export interface Database {
   }
 }
 
-/**
- * Tipos de conveniencia
- */
-export type Categoria = Database['public']['Tables']['categorias']['Row']
-export type Cliente = Database['public']['Tables']['clientes']['Row']
-export type Confeccion = Database['public']['Tables']['confecciones']['Row']
-export type Despacho = Database['public']['Tables']['despachos']['Row']
-export type Inventario = Database['public']['Tables']['inventario']['Row']
-export type ListaMaterial = Database['public']['Tables']['lista_materiales']['Row']
-export type Pedido = Database['public']['Tables']['pedidos']['Row']
-export type Producto = Database['public']['Tables']['productos']['Row']
-export type Taller = Database['public']['Tables']['talleres']['Row']
-export type Usuario = Database['public']['Tables']['usuarios']['Row']
-export type Orden = Database['public']['Tables']['ordenes']['Row']
-export type Venta = Database['public']['Tables']['ventas']['Row']
-export type DetalleOrden = Database['public']['Tables']['detalles_orden']['Row']
-export type Cotizacion = Database['public']['Tables']['cotizaciones']['Row']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-/**
- * Tipos para inserts
- */
-export type CategoriaInsert = Database['public']['Tables']['categorias']['Insert']
-export type ClienteInsert = Database['public']['Tables']['clientes']['Insert']
-export type ConfeccionInsert = Database['public']['Tables']['confecciones']['Insert']
-export type DespachoInsert = Database['public']['Tables']['despachos']['Insert']
-export type InventarioInsert = Database['public']['Tables']['inventario']['Insert']
-export type ListaMaterialInsert = Database['public']['Tables']['lista_materiales']['Insert']
-export type PedidoInsert = Database['public']['Tables']['pedidos']['Insert']
-export type ProductoInsert = Database['public']['Tables']['productos']['Insert']
-export type TallerInsert = Database['public']['Tables']['talleres']['Insert']
-export type UsuarioInsert = Database['public']['Tables']['usuarios']['Insert']
-export type OrdenInsert = Database['public']['Tables']['ordenes']['Insert']
-export type VentaInsert = Database['public']['Tables']['ventas']['Insert']
-export type DetalleOrdenInsert = Database['public']['Tables']['detalles_orden']['Insert']
-export type CotizacionInsert = Database['public']['Tables']['cotizaciones']['Insert']
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-/**
- * Tipos para updates
- */
-export type CategoriaUpdate = Database['public']['Tables']['categorias']['Update']
-export type ClienteUpdate = Database['public']['Tables']['clientes']['Update']
-export type ConfeccionUpdate = Database['public']['Tables']['confecciones']['Update']
-export type DespachoUpdate = Database['public']['Tables']['despachos']['Update']
-export type InventarioUpdate = Database['public']['Tables']['inventario']['Update']
-export type ListaMaterialUpdate = Database['public']['Tables']['lista_materiales']['Update']
-export type PedidoUpdate = Database['public']['Tables']['pedidos']['Update']
-export type ProductoUpdate = Database['public']['Tables']['productos']['Update']
-export type TallerUpdate = Database['public']['Tables']['talleres']['Update']
-export type UsuarioUpdate = Database['public']['Tables']['usuarios']['Update']
-export type OrdenUpdate = Database['public']['Tables']['ordenes']['Update']
-export type VentaUpdate = Database['public']['Tables']['ventas']['Update']
-export type DetalleOrdenUpdate = Database['public']['Tables']['detalles_orden']['Update']
-export type CotizacionUpdate = Database['public']['Tables']['cotizaciones']['Update']
-
-/**
- * Tipo extendido para Inventario
- */
-export type InventarioConRelaciones = Inventario & {
-  categorias: {
-    nombre: string
-  } | null
-  productos: {
-    nombre: string
-  } | null
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-/**
- *  Interfaz para filtros de búsqueda en el Panel
- */
-export interface FiltrosOrden {
-  estado?: EstadoOrden;
-  cliente_id?: number;
-  user_id?: string;
-  metodo_pago?: MetodoPago;
-  fecha_desde?: string;
-  fecha_hasta?: string;
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
-/**
- *  Estructura para los KPIs del Dashboard
- */
-export interface EstadisticasOrden {
-  total_ordenes: number;
-  total_ventas: number;
-  promedio_venta: number;
-  ordenes_por_estado: Record<EstadoOrden, number>;
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
-/**
- *  Verificación de stock para el carrito
- */
-export interface VerificacionStock {
-  disponible: boolean;
-  faltantes: {
-    producto_id: number;
-    nombre: string;
-    requerido: number;
-    disponible: number;
-    faltante: number;
-  }[];
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
-/**
- *  Orden con datos del Cliente y Detalles
- *  Se usa en obtenerOrdenPorId y obtenerOrdenes
- */
-export type OrdenCompleta = Orden & {
-  clientes: Pick<Cliente, 'id' | 'razon_social' | 'ruc' | 'email' | 'telefono' | 'direccion'> | null;
-  detalles_orden?: (DetalleOrden & {
-    productos: Pick<Producto, 'id' | 'nombre' | 'sku' | 'imagen' | 'precio'> | null;
-  })[];
-  usuarios?: Pick<Usuario, 'nombre_completo' | 'rol'> | null;
-};
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      ColorPrenda: [
+        "Blanco",
+        "Negro",
+        "Gris",
+        "Beige",
+        "Marrón pastel",
+        "Azul jean",
+        "Azul marino",
+        "Rojo",
+        "Rosa pastel",
+        "Morado claro",
+        "Verde olivo",
+        "Amarillo",
+        "Naranja",
+        "Multicolor",
+        "Único",
+        "Vino",
+        "Camel",
+        "Crema",
+        "Celeste",
+        "Amarillo limón",
+      ],
+      EspecialidadTaller: [
+        "corte",
+        "confección",
+        "bordado",
+        "estampado",
+        "costura",
+        "acabados",
+        "otro",
+      ],
+      EstadoCategoria: ["activo", "inactivo"],
+      EstadoCliente: ["activo", "inactivo", "suspendido", "potencial"],
+      EstadoConfeccion: ["corte", "confeccionando", "remallado", "terminado"],
+      EstadoCotizacion: ["pendiente", "aceptada", "rechazada", "expirada"],
+      EstadoDespacho: ["pendiente", "en_ruta", "entregado"],
+      EstadoOrden: [
+        "solicitado",
+        "cotizado",
+        "aprobado",
+        "pagado",
+        "en_proceso",
+        "finalizado",
+        "cancelado",
+      ],
+      EstadoPago: ["pendiente", "pagado_parcial", "pagado", "vencido"],
+      EstadoPedido: [
+        "pendiente",
+        "corte",
+        "costura",
+        "acabado",
+        "completado",
+        "cancelado",
+      ],
+      EstadoProducto: ["activo", "inactivo", "agotado", "descontinuado"],
+      EstadoTaller: ["activo", "inactivo", "suspendido"],
+      EstadoUsuario: ["activo", "inactivo", "suspendido"],
+      MetodoPago: [
+        "efectivo",
+        "transferencia_bcp",
+        "yape",
+        "plin",
+        "visa",
+        "mastercard",
+      ],
+      PrioridadPedido: ["baja", "normal", "alta", "urgente"],
+      rol: [
+        "administrador",
+        "cortador",
+        "diseñador",
+        "recepcionista",
+        "ayudante",
+        "representante_taller",
+      ],
+      TallaProductos: [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL",
+        "28",
+        "30",
+        "32",
+        "34",
+      ],
+      TipoCategoria: ["producto", "insumo"],
+      TipoCliente: ["corporativo", "minorista", "distribuidor"],
+      TipoComprobante: ["boleta", "factura", "nota_venta"],
+      TipoInsumo: ["tela", "hilo", "avio", "boton", "cierre"],
+      TipoMovimiento: ["entrada", "salida", "ajuste"],
+      UnidadMedida: [
+        "metros",
+        "unidades",
+        "conos",
+        "docenas",
+        "kilogramos",
+        "set",
+      ],
+    },
+  },
+} as const

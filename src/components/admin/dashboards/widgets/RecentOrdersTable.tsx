@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Eye, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Orden, EstadoOrden } from '@/types/database';
+import { Orden, EstadoOrden } from '@/types';
 
 interface RecentOrdersTableProps {
   orders: (Orden & { clientes: { razon_social: string } | null })[];

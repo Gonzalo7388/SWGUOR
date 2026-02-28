@@ -14,7 +14,7 @@ import {
   obtenerProductosAgotados,
   obtenerProductosStockBajo,
 } from '@/lib/helpers/products-helpers';
-import type { Inventario, InventarioInsert, TipoInsumo } from '@/types/database';
+import type { Inventario, InventarioInsert, TipoInsumo } from '@/types';
 
 interface UseInventarioState {
   insumos: Inventario[];

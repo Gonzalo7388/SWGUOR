@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { Database } from '@/types/database'; 
+import { Database } from '@/types'; 
 
 // Cliente singleton para el navegador con tipos integrados
 export type SupabaseClientTyped = ReturnType<typeof createBrowserClient<Database>>;

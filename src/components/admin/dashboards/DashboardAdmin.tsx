@@ -10,7 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, AreaChart, Area, Cell
 } from 'recharts';
-import { Inventario } from '@/types/database';
+import { Insumo } from '@/types';
 
 // Widgets optimizados
 import RecentOrdersTable from './widgets/RecentOrdersTable';
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const [salesChart, setSalesChart] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [criticalStock, setCriticalStock] = useState<Inventario[]>([]);
+  const [criticalStock, setCriticalStock] = useState<Insumo[]>([]);
 
   useEffect(() => { setIsMounted(true); }, []);
 

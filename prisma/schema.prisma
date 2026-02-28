@@ -9,20 +9,23 @@ datasource db {
 }
 
 // ============================================
-// ENUMS
+// ENUMS (Sincronizados con imágenes de Supabase)
 // ============================================
 
 enum EstadoPedido {
   pendiente
-  en_proceso
-  terminado
-  entregado
+  corte
+  costura
+  acabado
+  completado
   cancelado
 }
 
 enum EstadoConfeccion {
   pendiente
-  en_proceso
+  corte
+  confeccionando
+  remallado
   terminado
 }
 
@@ -32,7 +35,7 @@ enum EstadoDespacho {
   entregado
 }
 
-enum RolUsuario {
+enum rol {
   administrador
   cortador
   diseñador
@@ -61,14 +64,31 @@ enum EstadoProducto {
   descontinuado
 }
 
+enum EspecialidadTaller {
+  corte
+  confeccion
+  bordado
+  estampado
+  costura
+  acabados
+  otro
+}
+
 enum EstadoTaller {
   activo
   inactivo
   suspendido
 }
 
+enum EstadoPago {
+  pendiente
+  pagado_parcial
+  pagado
+  vencido
+}
+
 enum EstadoOrden {
-  solicitud
+  solicitado
   cotizado
   aprobado
   pagado
@@ -77,17 +97,127 @@ enum EstadoOrden {
   cancelado
 }
 
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
+}
+
+// Nota: TallaProductos en tu imagen es un tipo de dato, 
+// pero usualmente se maneja como String o Enum personalizado en modelos.
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  N28 // Prisma no permite números al inicio del enum
+  N30
+  N32
+  N34
+  @@map("TallaProductos")
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia_bcp
+  yape
+  plin
+  visa
+  mastercard
+}
+
+enum EstadoCliente {
+  activo
+  inactivo
+  suspendido
+  potencial
+}
+
+enum UnidadMedida {
+  metros
+  unidades
+  conos
+  docenas
+  kilogramos
+  set
+}
+
+enum TipoInsumo {
+  tela
+  hilo
+  avio
+  boton
+  cierre
+}
+
+enum EstadoCotizacion {
+  pendiente
+  aceptada
+  rechazada
+  expirada
+}
+
+enum TipoCliente {
+  corporativo
+  minorista
+  distribuidor
+}
+
+enum TipoCategoria {
+  producto
+  insumo
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+}
+
+enum ColorPrenda {
+  Blanco
+  Negro
+  Gris
+  Beige
+  Marron_pastel // Prisma no permite espacios
+  Azul_jean
+  Azul_marino
+  Rojo
+  Rosa_pastel
+  Morado_claro
+  Verde_olivo
+  Amarillo
+  Naranja
+  Multicolor
+  Unico
+  Vino
+  Camel
+  Crema
+  Celeste
+  Amarillo_limon
+  @@map("ColorPrenda")
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+}
+
 // ============================================
 // MODELOS
 // ============================================
 
 model categorias {
-  id          BigInt     @id @default(autoincrement())
-  nombre      String     @unique
+  id          BigInt    @id @default(autoincrement())
+  nombre      String    @unique
   descripcion String?
-  activo      Boolean    @default(true)
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @default(now()) @updatedAt
+  created_at  DateTime  @default(now())
+  updated_at  DateTime? @default(now()) @updatedAt
+  orden       BigInt?
+  activo      Boolean?  @default(true)
+  imagen      String?
   
   productos   productos[]
   inventario  inventario[]
@@ -96,56 +226,57 @@ model categorias {
 }
 
 model clientes {
-  id           BigInt    @id @default(autoincrement())
+  id           BigInt         @id @default(autoincrement())
   ruc          BigInt
-  razon_social String?   @db.VarChar
-  email        String?   @db.VarChar
+  razon_social String?
+  email        String?
   telefono     BigInt?
-  direccion    String?   @db.VarChar
-  activo       Boolean?  @default(true)
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @default(now()) @updatedAt
-  auth_id      String?   @unique @db.Uuid
-  
-  pedidos      pedidos[]
+  direccion    String?
+  tipo         TipoCliente    @default(minorista)
+  activo       EstadoCliente  @default(activo)
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @default(now()) @updatedAt
+  auth_id      String?        @unique @db.Uuid
+
+  pedidos pedidos[]
 
   @@map("clientes")
 }
 
 model usuarios {
-  id              BigInt        @id @default(autoincrement())
-  email           String        @unique
+  id              BigInt         @id @default(autoincrement())
+  email           String         @unique
   nombre_completo String
   telefono        String?
-  estado          EstadoUsuario @default(activo)
-  rol             RolUsuario    @default(administrador)
-  created_at      DateTime      @default(now())
-  updated_at      DateTime      @updatedAt
-  auth_id         String?       @unique @db.Uuid
+  estado          EstadoUsuario  @default(activo)
+  rol             rol            @default(ayudante)
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  auth_id         String?        @unique @db.Uuid
   ultimo_acceso   DateTime?
   avatar_url      String?
-  created_by      String?       @db.Uuid
-  
-  despachos       despachos[]
+  created_by      String?        @db.Uuid
+
+  despachos despachos[]
 
   @@map("usuarios")
 }
 
 model productos {
-  id               BigInt              @id @default(autoincrement())
-  nombre           String
-  descripcion      String?
-  created_at       DateTime            @default(now())
-  categoria_id     BigInt
-  imagen           String?
-  precio           Float
-  stock            Int                 @default(0)
-  stock_minimo     Int                 @default(400)
-  updated_at       DateTime            @updatedAt
-  estado           EstadoProducto      @default(activo)
-  sku              String              @unique
-  
-  categoria        categorias          @relation(fields: [categoria_id], references: [id])
+  id           BigInt         @id @default(autoincrement())
+  nombre       String
+  descripcion  String?
+  created_at   DateTime       @default(now())
+  categoria_id BigInt
+  imagen       String?
+  precio       Float
+  stock        Int            @default(0)
+  stock_minimo Int            @default(0)
+  updated_at   DateTime       @updatedAt
+  estado       EstadoProducto @default(activo)
+  sku          String         @unique
+
+  categoria        categorias           @relation(fields: [categoria_id], references: [id])
   detalles_pedido  detalles_pedido[]
   variantes        variantes_producto[]
   lista_materiales lista_materiales[]
@@ -155,36 +286,36 @@ model productos {
 }
 
 model pedidos {
-  id                     BigInt           @id @default(autoincrement())
-  cliente_id             BigInt?
-  fecha_pedido           DateTime?        @default(now())
-  fecha_entrega_estimada DateTime?
-  estado                 EstadoPedido?    @default(pendiente)
-  prioridad              PrioridadPedido? @default(normal)
-  total                  Decimal          @db.Decimal(10, 2)
-  notas                  String?
-  direccion_envio        String?
-  created_at             DateTime         @default(now())
-  updated_at             DateTime?        @updatedAt
-  orden_id               String?          @unique
-  metodo_pago            String?
+  id                       BigInt           @id @default(autoincrement())
+  cliente_id               BigInt?
+  fecha_pedido             DateTime?        @default(now())
+  fecha_entrega_estimada   DateTime?
+  estado                   EstadoPedido?    @default(pendiente)
+  prioridad                PrioridadPedido? @default(normal)
+  total                    Decimal          @db.Decimal(10, 2)
+  notas                    String?
+  direccion_envio          String?
+  created_at               DateTime         @default(now())
+  updated_at               DateTime?        @updatedAt
+  orden_id                 String?          @unique
+  metodo_pago              String?
   
-  cliente                clientes?        @relation(fields: [cliente_id], references: [id])
-  detalles               detalles_pedido[]
+  cliente                  clientes?        @relation(fields: [cliente_id], references: [id])
+  detalles                 detalles_pedido[]
 
   @@map("pedidos")
 }
 
 model detalles_pedido {
-  id              BigInt    @id @default(autoincrement())
+  id              BigInt   @id @default(autoincrement())
   pedido_id       BigInt
   producto_id     BigInt
   cantidad        Int
-  talla           String    @db.VarChar
-  color           String?   @db.VarChar
-  precio_unitario Decimal   @db.Decimal(10, 2)
-  subtotal        Decimal   @db.Decimal(10, 2)
-  created_at      DateTime  @default(now())
+  talla           String
+  color           String?
+  precio_unitario Decimal  @db.Decimal(10, 2)
+  subtotal        Decimal  @db.Decimal(10, 2)
+  created_at      DateTime @default(now())
   
   pedido          pedidos   @relation(fields: [pedido_id], references: [id])
   producto        productos @relation(fields: [producto_id], references: [id])
@@ -193,89 +324,88 @@ model detalles_pedido {
 }
 
 model variantes_producto {
-  id               BigInt    @id @default(autoincrement())
+  id               BigInt      @id @default(autoincrement())
   producto_id      BigInt?
-  nombre           String    @db.VarChar
-  talla            String?   @db.VarChar
-  color            String?   @db.VarChar
-  precio_adicional Decimal?  @default(0) @db.Decimal(10, 2)
-  stock_adicional  Int?      @default(0)
-  sku              String?   @db.VarChar @unique
-  activo           Boolean?  @default(true)
-  created_at       DateTime? @default(now())
-  updated_at       DateTime? @default(now()) @updatedAt
+  nombre           String
+  talla            String?
+  color            String?
+  precio_adicional Decimal?    @default(0) @db.Decimal(10, 2)
+  stock_adicional  Int?        @default(0)
+  sku              String?     @unique
+  activo           Boolean?    @default(true)
+  created_at       DateTime?   @default(now())
+  updated_at       DateTime?   @default(now()) @updatedAt
   
-  producto         productos? @relation(fields: [producto_id], references: [id])
+  producto         productos?  @relation(fields: [producto_id], references: [id])
 
   @@map("variantes_producto")
 }
 
 model talleres {
-  id           BigInt        @id @default(autoincrement())
+  id           BigInt             @id @default(autoincrement())
   nombre       String
   direccion    String
   telefono     String
   email        String?
-  ruc          String        @unique
+  ruc          String             @unique
   contacto     String
-  estado       EstadoTaller  @default(activo)
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
-  
+  estado       EstadoTaller       @default(activo)
+  created_at   DateTime           @default(now())
+  updated_at   DateTime           @updatedAt
   confecciones confecciones[]
 
   @@map("talleres")
 }
 
 model confecciones {
-  id            BigInt           @id @default(autoincrement())
+  id            BigInt            @id @default(autoincrement())
   pedido_id     BigInt
   taller_id     BigInt
-  estado        EstadoConfeccion @default(pendiente)
-  fecha_inicio  DateTime         @default(now())
+  estado        EstadoConfeccion  @default(pendiente)
+  fecha_inicio  DateTime          @default(now())
   fecha_fin     DateTime?
   observaciones String?
-  created_at    DateTime         @default(now())
-  updated_at    DateTime         @updatedAt
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
   
-  taller        talleres         @relation(fields: [taller_id], references: [id])
+  taller        talleres          @relation(fields: [taller_id], references: [id])
 
   @@map("confecciones")
 }
 
 model despachos {
-  id                BigInt         @id @default(autoincrement())
+  id                BigInt          @id @default(autoincrement())
   pedido_id         BigInt
   usuario_id        BigInt
-  estado            EstadoDespacho @default(pendiente)
+  estado            EstadoDespacho  @default(pendiente)
   direccion_entrega String
-  fecha_despacho    DateTime       @default(now())
+  fecha_despacho    DateTime        @default(now())
   fecha_entrega     DateTime?
-  created_at        DateTime       @default(now())
-  updated_at        DateTime       @updatedAt
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
   
-  usuario           usuarios       @relation(fields: [usuario_id], references: [id])
+  usuario           usuarios        @relation(fields: [usuario_id], references: [id])
 
   @@map("despachos")
 }
 
 model inventario {
-  id               BigInt             @id @default(autoincrement())
-  sku              String?            @unique
-  nombre           String
-  tipo             String
-  unidad_medida    String             @default("unidades")
-  stock_actual     Int                @default(0)
-  stock_minimo     Int                @default(10)
-  costo_unitario   Decimal?           @db.Decimal(10, 2)
-  precio_venta     Decimal?           @db.Decimal(10, 2)
-  categoria_id     BigInt?
-  producto_id      BigInt?
-  created_at       DateTime           @default(now())
-  updated_at       DateTime           @updatedAt
+  id             BigInt        @id @default(autoincrement())
+  sku            String?       @unique
+  nombre         String
+  tipo           TipoInsumo
+  unidad_medida  UnidadMedida  @default(unidades)
+  stock_actual   Int           @default(0)
+  stock_minimo   Int           @default(10)
+  costo_unitario Decimal?      @db.Decimal(10, 2)
+  precio_venta   Decimal?      @db.Decimal(10, 2)
+  categoria_id   BigInt?
+  producto_id    BigInt?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
   
-  categoria        categorias?        @relation(fields: [categoria_id], references: [id])
-  producto         productos?         @relation(fields: [producto_id], references: [id])
+  categoria      categorias?   @relation(fields: [categoria_id], references: [id])
+  producto       productos?    @relation(fields: [producto_id], references: [id])
   lista_materiales lista_materiales[]
 
   @@map("inventario")
