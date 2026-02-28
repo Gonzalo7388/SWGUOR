@@ -10,7 +10,7 @@ import DashboardAyudante from '@/components/admin/dashboards/DashboardAyudante';
 import DashboardCortador from '@/components/admin/dashboards/DashboardCortador';
 import DashboardDiseñador from '@/components/admin/dashboards/DashboardDiseñador';
 import DashboardRecepcionista from '@/components/admin/dashboards/DashboardRecepcionista';
-import DashboardRepresentante from '@/components/admin/dashboards/DashboardRepresentante';
+import DashboardRepresentante from '@/components/admin/dashboards/DashboardRepresentante'; // Asegúrate que este archivo exporta por defecto
 
 const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   administrador: AdminDashboard,
@@ -18,7 +18,7 @@ const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   cortador: DashboardCortador,
   diseñador: DashboardDiseñador,
   recepcionista: DashboardRecepcionista,
-  representante_taller: DashboardRepresentante,
+  representante_taller: DashboardRepresentante, // Clave coincidente con tu base de datos
 };
 
 export default function DashboardPage() {
@@ -26,10 +26,14 @@ export default function DashboardPage() {
 
   const ActiveDashboard = useMemo(() => {
     if (!usuario) return null;
+    
+    // Buscamos el rol del usuario en nuestro mapa de dashboards
     const roleKey = Object.keys(DASHBOARDS_MAP).find(role => hasRole(role));
+    
     return roleKey ? DASHBOARDS_MAP[roleKey] : null;
   }, [usuario, hasRole]);
 
+  // Pantalla de carga mientras se verifican permisos
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
@@ -39,11 +43,13 @@ export default function DashboardPage() {
     );
   }
 
+  // Pantalla si no hay usuario autenticado
   if (!usuario) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] text-center p-6">
         <UserX className="w-10 h-10 text-red-500 mb-4" />
         <h1 className="text-xl font-black text-slate-900 uppercase">Sesión Expirada</h1>
+        <p className="text-slate-400 text-sm mt-2">Por favor, inicia sesión nuevamente.</p>
       </div>
     );
   }
@@ -78,10 +84,13 @@ export default function DashboardPage() {
           {ActiveDashboard ? (
             <ActiveDashboard usuario={usuario} />
           ) : (
+            // Pantalla de error si el rol no tiene dashboard asignado
             <div className="bg-white p-12 rounded-[3rem] text-center border border-slate-100 shadow-sm">
               <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-4" />
               <h2 className="text-xl font-black text-slate-900 uppercase">Rol no configurado</h2>
-              <p className="text-slate-400 text-sm mt-2">Tu acceso está limitado. Contacta con soporte técnico.</p>
+              <p className="text-slate-400 text-sm mt-2">
+                Tu rol ({usuario.rol}) no tiene un tablero asignado. Contacta con soporte técnico.
+              </p>
             </div>
           )}
         </div>

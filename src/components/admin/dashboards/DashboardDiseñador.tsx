@@ -5,14 +5,15 @@ import { toast } from 'sonner';
 import { 
   Palette, Package, FileText, CheckCircle, 
   ShoppingCart, Upload, Eye, AlertCircle, 
-  ArrowRight, Search, Plus
+  ArrowRight, Search, Plus, Layers,
+  CloudUpload, PenTool
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { Usuario } from '@/types/database';
 import { useRouter } from 'next/navigation';
 
-// Interfaces
+// --- INTERFACES ---
 interface DBProducto {
   id: number;
   nombre: string | null;
@@ -49,6 +50,8 @@ interface PedidoAsignado {
 export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
   const router = useRouter();
   const { can, isLoading: permissionsLoading } = usePermissions();
+  
+  // --- ESTADOS ---
   const [stats, setStats] = useState({
     productosActivos: 0,
     fichasPendientes: 0,
@@ -60,6 +63,7 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
 
+  // --- LÓGICA ---
   const calculateDeadline = useCallback((fechaEntrega: string | null): string => {
     if (!fechaEntrega) return 'Sin fecha';
     const diff = Math.floor((new Date(fechaEntrega).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -167,57 +171,67 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
   if (permissionsLoading || loading) return <LoadingDashboard />;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-4 bg-slate-50/50">
+    <div className="space-y-10 p-6 bg-[#FDFDFF] min-h-screen font-sans">
       
-      {/* Botones de Acción Superior - CORREGIDO: Más anchos y altos */}
-      <div className="flex flex-wrap gap-4">
-        <QuickActionBtn 
-          icon={Plus} 
-          label="Nuevo Producto" 
-          color="bg-white border-slate-200 text-slate-900 hover:border-pink-500 hover:text-pink-600 shadow-sm" 
-          onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
-        />
-        <QuickActionBtn 
-          icon={Search} 
-          label="Buscar Ficha Técnica" 
-          color="bg-slate-900 text-white hover:bg-slate-800 shadow-md" 
-          onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
-        />
-      </div>
-
-      {/* Cards de Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Catálogo" value={stats.productosActivos} icon={<Package />} color="text-blue-600" bgColor="bg-blue-50" />
-        <StatCard label="Pendientes" value={stats.fichasPendientes} icon={<FileText />} color="text-rose-600" bgColor="bg-rose-50" />
-        <StatCard label="En Cola" value={stats.pedidosAsignados} icon={<ShoppingCart />} color="text-amber-600" bgColor="bg-amber-50" />
-        <StatCard label="Listos" value={stats.diseñosCompletados} icon={<CheckCircle />} color="text-emerald-600" bgColor="bg-emerald-50" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-8">
+        <div>
+          <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none italic">
+            Studio <span className="text-pink-600">.</span>
+          </h1>
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-3">
+            Gestión de Diseño • {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
         
-        {/* Bandeja de Producción */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-4xl border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-black text-slate-900 uppercase italic flex items-center gap-3">
-              <Palette className="text-pink-600" size={24} />
-              Bandeja de Producción
-            </h2>
-          </div>
+        <div className="flex gap-3">
+          <QuickActionBtn 
+            icon={Plus} 
+            label="Nuevo Modelo" 
+            color="bg-white border-slate-200 text-slate-900 hover:border-pink-500 hover:text-pink-600 shadow-sm" 
+            onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
+          />
+          <QuickActionBtn 
+            icon={Search} 
+            label="Catálogo" 
+            color="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200" 
+            onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
+          />
+        </div>
+      </div>
+
+      {/* KPI CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard label="Modelos Totales" value={stats.productosActivos} icon={<Layers size={20}/>} color="text-indigo-600" bgColor="bg-indigo-50" />
+        <StatCard label="Fichas por Hacer" value={stats.fichasPendientes} icon={<PenTool size={20}/>} color="text-pink-600" bgColor="bg-pink-50" isCritical={stats.fichasPendientes > 0} />
+        <StatCard label="Pedidos en Cola" value={stats.pedidosAsignados} icon={<ShoppingCart size={20}/>} color="text-amber-600" bgColor="bg-amber-50" />
+        <StatCard label="Listos para Taller" value={stats.diseñosCompletados} icon={<CheckCircle size={20}/>} color="text-emerald-600" bgColor="bg-emerald-50" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
+        {/* BANDEJA DE PRODUCCIÓN */}
+        <div className="lg:col-span-8 space-y-6">
+          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <Palette size={14} className="text-pink-600" />
+            Bandeja de Producción Reciente
+          </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {activeProducts.map((product) => (
-              <div key={product.id} className="p-6 rounded-3xl bg-white border border-slate-100 hover:border-pink-200 transition-all hover:shadow-md group">
-                <div className="flex justify-between items-start mb-4">
-                  <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
-                    product.status === 'Aprobado' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                  }`}>
-                    {product.status}
-                  </span>
-                  <span className="text-[10px] font-black text-slate-300">#{product.id}</span>
+              <div key={product.id} className="group bg-white rounded-[2.5rem] border border-slate-100 p-7 hover:shadow-2xl hover:shadow-pink-100/50 transition-all duration-500">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">SKU #{product.id}</p>
+                    <h4 className="font-black text-slate-800 uppercase text-sm group-hover:text-pink-600 transition-colors">{product.name}</h4>
+                  </div>
+                  <StatusBadge status={product.status} />
                 </div>
                 
-                <h4 className="font-bold text-slate-800 uppercase text-xs mb-1">{product.name}</h4>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6">{product.client}</p>
+                <div className="bg-slate-50 rounded-2xl p-4 mb-6">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Categoría</p>
+                  <p className="text-[11px] font-black text-slate-700 uppercase">{product.client}</p>
+                </div>
                 
                 <div className="flex gap-2">
                   <input
@@ -230,25 +244,25 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
                   />
                   <label 
                     htmlFor={`file-${product.id}`}
-                    className={`flex-1 py-4 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 ${
+                    className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 ${
                       product.status === 'Aprobado' 
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200' 
-                        : 'bg-pink-600 text-white hover:bg-pink-700 shadow-sm shadow-pink-200'
+                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                        : 'bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-200'
                     }`}
                   >
                     {uploadingId === product.id ? (
                       <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
                     ) : (
-                      <><Upload size={14} /> {product.status === 'Aprobado' ? 'Reemplazar' : 'Subir Ficha Técnica'}</>
+                      <>{product.status === 'Aprobado' ? <CloudUpload size={14}/> : <Plus size={14}/>} {product.status === 'Aprobado' ? 'Actualizar' : 'Subir Ficha'}</>
                     )}
                   </label>
 
                   {product.status === 'Aprobado' && (
                     <button 
                       onClick={() => handleViewFile(product.id)}
-                      className="px-4 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-pink-600 hover:border-pink-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                      className="w-14 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-pink-600 hover:border-pink-200 transition-all flex items-center justify-center"
                     >
-                      <Eye size={16} />
+                      <Eye size={18} />
                     </button>
                   )}
                 </div>
@@ -257,31 +271,33 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
           </div>
         </div>
 
-        {/* Sidebar Prioridad */}
-        <div className="space-y-6">
-          <div className="bg-slate-900 p-8 rounded-4xl text-white shadow-xl">
-            <div className="flex items-center gap-2 mb-8">
-              <AlertCircle size={18} className="text-pink-500" />
-              <h3 className="text-md font-black uppercase italic tracking-tighter">Prioridad Taller</h3>
-            </div>
+        {/* SIDEBAR PRIORIDAD */}
+        <div className="lg:col-span-4">
+          <div className="sticky top-6 bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-10 flex items-center gap-2">
+              <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse" />
+              Prioridad Taller
+            </h3>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               {assignedOrders.length > 0 ? assignedOrders.map((o) => (
-                <div key={o.id} className="border-l border-slate-700 pl-4">
-                  <p className="text-[9px] font-bold text-pink-500 uppercase tracking-widest mb-1">{o.deadline}</p>
+                <div key={o.id} className="group">
+                  <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-1">{o.deadline}</p>
                   <p className="font-bold text-xs uppercase leading-tight text-slate-200">{o.product}</p>
+                  <div className="mt-3 w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                    <div className="bg-pink-600 h-full w-1/3 group-hover:w-1/2 transition-all duration-700" />
+                  </div>
                 </div>
               )) : (
-                <p className="text-[10px] text-slate-500 uppercase font-bold">No hay pedidos pendientes</p>
+                <p className="text-[10px] text-slate-500 uppercase font-black text-center py-10">Sin pedidos críticos</p>
               )}
             </div>
 
-            {/* Botón de Hoja de Ruta - CORREGIDO: py-4 para mayor cuerpo */}
             <button 
               onClick={() => router.push('/admin/Panel-Administrativo/pedidos')}
-              className="w-full mt-10 py-4 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-lg shadow-black/20"
+              className="w-full mt-12 py-5 bg-white text-slate-900 hover:bg-pink-50 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95"
             >
-              Ver hoja de ruta <ArrowRight size={14} />
+              Hoja de Ruta <ArrowRight size={14} />
             </button>
           </div>
         </div>
@@ -289,45 +305,44 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
     </div>
   );
 }
-// --- SUB-COMPONENTES AUXILIARES ---
 
-interface StatCardProps {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-  bgColor: string;
+// --- SUB-COMPONENTES ---
+
+function StatusBadge({ status }: { status: string }) {
+  const isOk = status === 'Aprobado';
+  return (
+    <span className={`text-[8px] font-black px-3 py-1.5 rounded-lg uppercase ${
+      isOk ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-rose-100 text-rose-700 border border-rose-200'
+    }`}>
+      {status}
+    </span>
+  );
 }
 
-function StatCard({ label, value, icon, color, bgColor }: StatCardProps) {
+function StatCard({ label, value, icon, color, bgColor, isCritical }: any) {
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all cursor-default">
-      {/* Icono contenido en un cuadro fijo para evitar deformación */}
-      <div className={`${bgColor} shrink-0 w-12 h-12 rounded-xl flex items-center justify-center`}>
-        <div className={color}>{icon}</div>
+    <div className={`bg-white p-6 rounded-[2rem] border transition-all flex items-center gap-5 ${
+      isCritical ? 'border-pink-200 shadow-lg shadow-pink-50' : 'border-slate-100 shadow-sm'
+    }`}>
+      <div className={`${bgColor} w-14 h-14 rounded-2xl flex items-center justify-center ${color}`}>
+        {icon}
       </div>
-      
-      {/* Información alineada */}
-      <div className="flex flex-col justify-center overflow-hidden">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
-          {label}
-        </p>
-        <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
-          {value}
-        </p>
+      <div>
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1">{label}</p>
+        <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none">{value}</p>
       </div>
     </div>
   );
 }
 
-function QuickActionBtn({ icon: Icon, label, color, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; color: string; onClick: () => void }) {
+function QuickActionBtn({ icon: Icon, label, color, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className={`${color} min-w-50 px-6 py-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:-translate-y-0.5 cursor-pointer border active:scale-95`}
+      className={`${color} px-8 py-4 rounded-2xl flex items-center gap-3 transition-all hover:-translate-y-1 active:scale-95 border text-[10px] font-black uppercase tracking-widest`}
     >
-      <Icon className="w-4 h-4" />
-      <span className="font-bold text-[10px] uppercase tracking-wider">{label}</span>
+      <Icon size={16} />
+      {label}
     </button>
   );
 }
