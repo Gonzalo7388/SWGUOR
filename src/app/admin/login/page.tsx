@@ -30,11 +30,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<LoginError>(null);
 
-  // Prefetch dashboard para mejor UX
-  useEffect(() => {
-    router.prefetch(ADMIN_ROUTES.DASHBOARD);
-  }, [router]);
-
+  // Handle form submission
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -78,7 +74,7 @@ export default function LoginPage() {
       }
 
       // 4. Redirección exitosa
-      router.replace(ADMIN_ROUTES.DASHBOARD);
+      window.location.href = ADMIN_ROUTES.DASHBOARD;
 
     } catch (err) {
       console.error("[LoginPage] Error:", err);
