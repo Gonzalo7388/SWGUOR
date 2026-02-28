@@ -48,9 +48,7 @@ export default function PaginaNuevos() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] md:bg-white text-white md:text-gray-900">
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          HERO
-      ══════════════════════════════════════════════════════════════════════ */}
+      {/* ── HERO ── */}
       <section
         className="relative overflow-hidden"
         style={{ minHeight: '100svh' }}
@@ -67,31 +65,22 @@ export default function PaginaNuevos() {
             Mobile:  gradiente fuerte desde abajo (texto en la parte inferior)
             Desktop: gradiente lateral izquierdo + leve desde abajo
           */}
-          <div className="absolute inset-0
-            bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-[#0a0a0a]/20
-            md:bg-gradient-to-r md:from-black/80 md:via-black/45 md:to-black/10"
-          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-[#0a0a0a]/20 md:bg-gradient-to-r md:from-black/80 md:via-black/45 md:to-black/10"/>
+          
           {/* Gradiente inferior extra solo desktop */}
           <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
         </div>
 
         {/* ── Contenido hero ── */}
         <div
-          className="relative z-10 max-w-7xl mx-auto px-5 md:px-8 lg:px-8
-            flex flex-col
-            justify-end pb-10
-            md:justify-center md:items-center md:text-center md:py-32"
-          style={{ minHeight: '100svh' }}
-        >
+          className="relative z-10 max-w-7xl mx-auto px-5 md:px-8 lg:px-8 flex flex-col justify-end pb-10 md:justify-center md:items-center md:text-center md:py-32" style={{ minHeight: '100svh' }}>
+          
           {/* Badge */}
           <motion.p
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.5em] text-[#f02d65] mb-6 md:mb-8
-              flex items-center gap-3
-              justify-start md:justify-center"
-          >
+            className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.5em] text-[#f02d65] mb-6 md:mb-8 flex items-center gap-3 justify-start md:justify-center">
             <Sparkles size={10} className="md:hidden" />
             <span className="hidden md:inline-block w-10 h-px bg-[#f02d65]" />
             Nueva Colección · 2026
@@ -126,9 +115,7 @@ export default function PaginaNuevos() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.5 }}
-            className="text-white/70 text-sm md:text-lg leading-relaxed mt-4 mb-0
-              max-w-[280px] md:max-w-xl md:mx-auto"
-          >
+            className="text-white/70 text-sm md:text-lg leading-relaxed mt-4 mb-0 max-w-[280px] md:max-w-xl md:mx-auto">
             Diseños exclusivos para mayoristas. Las tendencias más recientes
             en moda femenina, directo a tu inventario.
           </motion.p>
@@ -141,36 +128,16 @@ export default function PaginaNuevos() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.65 }}
-            className="flex flex-col md:flex-row gap-3 md:gap-4
-              items-stretch md:items-center md:justify-center
-              mt-7 md:mt-10 w-full md:w-auto"
-          >
+            className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center md:justify-center mt-7 md:mt-10 w-full md:w-auto">
             <Link
               href="#catalogo"
-              className="group flex items-center justify-center gap-3
-                bg-[#f02d65] text-white
-                px-8 py-4
-                rounded-2xl md:rounded-full
-                font-black text-sm uppercase tracking-widest
-                hover:bg-white hover:text-black
-                active:scale-95
-                transition-all duration-300
-                shadow-lg shadow-[#f02d65]/30"
-            >
+              className="group flex items-center justify-center gap-3 bg-[#f02d65] text-white px-8 py-4 rounded-2xl md:rounded-full font-black text-sm uppercase tracking-widest hover:bg-white hover:text-black active:scale-95 transition-all duration-300 shadow-lg shadow-[#f02d65]/30">
               Ver colección
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/ecommerce/productos"
-              className="flex items-center justify-center gap-2
-                border border-white/30 text-white
-                px-8 py-4
-                rounded-2xl md:rounded-full
-                font-black text-sm uppercase tracking-widest
-                hover:border-white hover:bg-white/10
-                active:scale-95
-                transition-all duration-300 backdrop-blur-sm"
-            >
+              className="flex items-center justify-center gap-2 border border-white/30 text-white px-8 py-4 rounded-2xl md:rounded-full font-black text-sm uppercase tracking-widest hover:border-white hover:bg-white/10 active:scale-95  transition-all duration-300 backdrop-blur-sm">
               Catálogo completo
             </Link>
           </motion.div>
@@ -186,11 +153,7 @@ export default function PaginaNuevos() {
             className="flex gap-3 mt-6 md:mt-12 md:justify-center"
           >
             {/* Stat 1 */}
-            <div className="flex items-center gap-3 md:gap-4
-              bg-white/8 md:bg-white/10
-              backdrop-blur-md border border-white/10 md:border-white/15
-              rounded-2xl px-4 md:px-8 py-3 md:py-5 flex-1 md:flex-none"
-            >
+            <div className="flex items-center gap-3 md:gap-4 bg-white/8 md:bg-white/10 backdrop-blur-md border border-white/10 md:border-white/15 rounded-2xl px-4 md:px-8 py-3 md:py-5 flex-1 md:flex-none">
               <TrendingUp size={18} className="text-[#f02d65] shrink-0 md:hidden" />
               <div>
                 <span className="text-2xl md:text-4xl font-black text-white leading-none block">
@@ -207,11 +170,7 @@ export default function PaginaNuevos() {
             <div className="hidden md:block w-px bg-white/15 self-stretch" />
 
             {/* Stat 2 */}
-            <div className="flex items-center gap-3 md:gap-4
-              bg-white/8 md:bg-white/10
-              backdrop-blur-md border border-white/10 md:border-white/15
-              rounded-2xl px-4 md:px-8 py-3 md:py-5 flex-1 md:flex-none"
-            >
+            <div className="flex items-center gap-3 md:gap-4 bg-white/8 md:bg-white/10 backdrop-blur-md border border-white/10 md:border-white/15 rounded-2xl px-4 md:px-8 py-3 md:py-5 flex-1 md:flex-none">
               <Sparkles size={18} className="text-[#f02d65] shrink-0 md:hidden" />
               <div>
                 <span className="text-2xl md:text-4xl font-black text-white leading-none block">
@@ -241,19 +200,12 @@ export default function PaginaNuevos() {
         </motion.div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          SEPARADOR / MARQUEE
-      ══════════════════════════════════════════════════════════════════════ */}
-      <div className="border-y border-white/5 md:border-gray-200 overflow-hidden
-        bg-[#0d0d0d] md:bg-white"
-      >
-        <div className="flex whitespace-nowrap py-3 md:py-4"
-          style={{ animation: 'marquee 20s linear infinite' }}
-        >
+      {/* ── SEPARADOR / MARQUEE ── */}
+      <div className="border-y border-white/5 md:border-gray-200 overflow-hidden bg-[#0d0d0d] md:bg-white">
+        <div className="flex whitespace-nowrap py-3 md:py-4" style={{ animation: 'marquee 20s linear infinite' }}>
           {Array(8).fill(null).map((_, i) => (
             <span key={i}
-              className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em]
-                text-white/10 md:text-gray-900/10 px-6 md:px-8"
+              className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] text-white/10 md:text-gray-900/10 px-6 md:px-8"
             >
               Nueva Colección · Modas y Estilos GUOR · Mayorista ·&nbsp;
             </span>
@@ -261,20 +213,15 @@ export default function PaginaNuevos() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          CATÁLOGO
+      {/* CATÁLOGO
           Mobile:  sección blanca que "flota" sobre el hero oscuro (rounded-t-3xl)
           Desktop: fondo blanco normal, sin border-radius
-      ══════════════════════════════════════════════════════════════════════ */}
+       */}
       <section
         id="catalogo"
-        className="bg-white
-          rounded-t-[2rem] md:rounded-none
-          px-4 md:px-8 lg:px-8
-          pt-8 md:pt-0 pb-20
-          max-w-full md:max-w-7xl md:mx-auto md:py-20"
-        style={{ marginTop: '-1.5rem' }}
-      >
+        className="bg-white rounded-t-[2rem] md:rounded-none px-4 md:px-8 lg:px-8 pt-8 md:pt-0 pb-20 max-w-full md:max-w-7xl md:mx-auto md:py-20" style={{ marginTop: '-1.5rem' }}
+        >
+
         {/* Header sección */}
         <div className="flex items-center justify-between mb-6 md:mb-12 md:pb-8 md:border-b md:border-gray-100">
           <div className="flex items-center gap-3 md:gap-6">
@@ -294,16 +241,8 @@ export default function PaginaNuevos() {
           {/* "Ver todo" — pill en mobile, link en desktop */}
           <Link
             href="/ecommerce/productos"
-            className="flex items-center gap-1 md:gap-2
-              text-[9px] md:text-[10px] font-black uppercase tracking-widest
-              text-[#f02d65] md:text-gray-400
-              border border-[#f02d65]/30 md:border-none
-              px-3 py-2 md:p-0
-              rounded-full md:rounded-none
-              hover:text-[#f02d65]
-              active:scale-95 md:active:scale-100
-              transition-all"
-          >
+            className="flex items-center gap-1 md:gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#f02d65] md:text-gray-400 border border-[#f02d65]/30 md:border-none px-3 py-2 md:p-0 rounded-full md:rounded-none hover:text-[#f02d65] active:scale-95 md:active:scale-100 transition-all"
+            >
             Ver todo
             <ArrowRight size={10} className="md:hidden" />
             <ArrowUpRight size={14} className="hidden md:block" />
@@ -389,14 +328,7 @@ export default function PaginaNuevos() {
           <div className="mt-10 md:mt-16 flex justify-center">
             <Link
               href="/ecommerce/productos"
-              className="group flex items-center gap-2 md:gap-3
-                border border-gray-200 md:border-white/20
-                rounded-full px-8 md:px-10 py-4
-                text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em]
-                text-gray-500
-                hover:border-[#f02d65] hover:text-gray-900
-                active:scale-95
-                transition-all duration-300"
+              className="group flex items-center gap-2 md:gap-3 border border-gray-200 md:border-white/20 rounded-full px-8 md:px-10 py-4 text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 hover:border-[#f02d65] hover:text-gray-900 active:scale-95 transition-all duration-300"
             >
               Ver catálogo completo
               <ArrowRight size={12} md-size={14} className="group-hover:translate-x-1 transition-transform" />

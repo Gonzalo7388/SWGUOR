@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, ChevronDown, Instagram, Facebook, Twitter, User, Loader2 } from 'lucide-react';
+import { X, ChevronRight, Instagram, Facebook, Twitter, User, Loader2, Sparkles, Tag, ArrowRight } from 'lucide-react';
 import { CategoriasService } from '@/lib/services/categoriasService';
 
 interface Categoria {
@@ -43,123 +43,173 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
   return (
     <div className={`fixed inset-0 z-[9999] md:hidden ${isOpen ? 'visible' : 'invisible'}`}>
-      <div 
-        className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
-        onClick={onClose} 
+
+      {/* Overlay */}
+      <div
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+        onClick={onClose}
       />
-      
-      <div className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-500 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col h-full">
-          
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <Image src="/logo-guor.png" alt="GUOR" width={200} height={40} className="h-11 w-auto" />
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-              <X size={24} />
-            </button>
-          </div>
 
-          {/* Nav */}
-          <nav className="flex-1 overflow-y-auto px-4 py-6">
-            <ul className="space-y-1">
-              <li>
-                <Link 
-                  href="/ecommerce/new" 
-                  onClick={handleLinkClick} 
-                  className="block px-4 py-3.5 text-base font-bold text-gray-900 uppercase hover:text-[#f02d65]"
-                >
-                  New In
-                </Link>
-              </li>
-              
-              <li>
-                <button 
-                  onClick={() => setProductosSubmenuAbierto(!productosSubmenuAbierto)} 
-                  className="w-full flex items-center justify-between px-4 py-3.5 text-base font-bold text-gray-900 uppercase"
-                >
-                  Productos
-                  <ChevronDown 
-                    size={18} 
-                    className={`transition-transform ${productosSubmenuAbierto ? 'rotate-180' : ''}`} 
-                  />
-                </button>
-                
-                <div className={`overflow-hidden transition-all duration-300 ${productosSubmenuAbierto ? 'max-h-125' : 'max-h-0'}`}>
-                  <div className="pl-4 py-2 space-y-1 bg-gray-50/50 rounded-xl mt-1">
-                    {loading ? (
-                      <div className="p-4 flex justify-center">
-                        <Loader2 className="animate-spin text-rose-500" />
-                      </div>
-                    ) : (
-                      <>
-                        {categorias.map((cat) => (
-                          <Link 
-                            key={cat.id} 
-                            href={`/ecommerce/categorias/${cat.id}`} 
-                            onClick={handleLinkClick} 
-                            className="block px-4 py-3 text-sm font-semibold text-gray-600 hover:text-rose-600 border-l-2 border-transparent hover:border-rose-500"
-                          >
-                            {cat.nombre}
-                          </Link>
-                        ))}
-                        <Link 
-                          href="/ecommerce/productos" 
-                          onClick={handleLinkClick} 
-                          className="block px-4 py-3 text-sm font-bold text-rose-600 uppercase"
-                        >
-                          Ver todo →
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </li>
+      {/* Panel */}
+      <div className={`absolute top-0 left-0 h-full w-[88%] max-w-[340px] bg-white shadow-2xl flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
-              <li>
-                <Link 
-                  href="/ecommerce/nosotros" 
-                  onClick={handleLinkClick} 
-                  className="block px-4 py-3.5 text-base font-bold text-gray-900 uppercase hover:text-[#f02d65]"
-                >
-                  Nosotros
-                </Link>
-              </li>
-              
-              <li>
-                <Link 
-                  href="/ecommerce/ofertas" 
-                  onClick={handleLinkClick} 
-                  className="block px-4 py-3.5 text-base font-black text-rose-600 uppercase"
-                >
-                  Ofertas %
-                </Link>
-              </li>
-            </ul>
-          </nav>
+        {/* ── Header ── */}
+        <div className="relative flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <Image src="/logo-guor.png" alt="GUOR" width={200} height={40} className="h-9 w-auto" />
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+          >
+            <X size={18} strokeWidth={2.5} />
+          </button>
+        </div>
 
-          {/* Footer */}
-          <div className="border-t p-6 space-y-6 bg-gray-50">
-            <Link 
-              href="/ecommerce/login" 
-              onClick={handleLinkClick} 
-              className="flex items-center justify-center gap-2 w-full py-4 bg-gray-900 text-white rounded-xl text-sm font-bold uppercase"
+        {/* ── Nav ── */}
+        <nav className="flex-1 overflow-y-auto py-4">
+
+          {/* NEW IN — destacado */}
+          <Link
+            href="/ecommerce/new"
+            onClick={handleLinkClick}
+            className="group flex items-center justify-between mx-3 px-4 py-3.5 rounded-2xl bg-[#f02d65]/5 border border-[#f02d65]/15 mb-2"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#f02d65] text-white">
+                <Sparkles size={14} />
+              </span>
+              <span className="text-[13px] font-black uppercase tracking-widest text-[#f02d65]">
+                New In
+              </span>
+            </div>
+            <ArrowRight size={15} className="text-[#f02d65] group-active:translate-x-1 transition-transform" />
+          </Link>
+
+          {/* Divider */}
+          <div className="mx-5 my-3 border-t border-gray-100" />
+
+          {/* PRODUCTOS con submenu */}
+          <div className="mx-3">
+            <button
+              onClick={() => setProductosSubmenuAbierto(!productosSubmenuAbierto)}
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <User size={18} />
-              Mi Cuenta
-            </Link>
-            <div className="flex justify-center gap-8">
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full shadow-sm hover:text-rose-500">
-                <Instagram size={20} />
-              </a>
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full shadow-sm hover:text-rose-500">
-                <Facebook size={20} />
-              </a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full shadow-sm hover:text-rose-500">
-                <Twitter size={20} />
-              </a>
+              <div className="flex items-center gap-3">
+                <span className={`flex items-center justify-center w-8 h-8 rounded-xl transition-colors ${productosSubmenuAbierto ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  <Tag size={14} />
+                </span>
+                <span className="text-[13px] font-black uppercase tracking-widest text-gray-900">
+                  Productos
+                </span>
+              </div>
+              <ChevronRight
+                size={16}
+                strokeWidth={2.5}
+                className={`text-gray-400 transition-transform duration-300 ${productosSubmenuAbierto ? 'rotate-90' : ''}`}
+              />
+            </button>
+
+            {/* Submenu categorías */}
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productosSubmenuAbierto ? 'max-h-[420px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="mt-1 mb-2 ml-4 pl-3 border-l-2 border-gray-100 space-y-0.5 py-1">
+                {loading ? (
+                  <div className="py-6 flex justify-center">
+                    <Loader2 size={20} className="animate-spin text-[#f02d65]" />
+                  </div>
+                ) : (
+                  <>
+                    {categorias.map((cat) => (
+                      <Link
+                        key={cat.id}
+                        href={`/ecommerce/categorias/${cat.id}`}
+                        onClick={handleLinkClick}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                        {cat.nombre}
+                      </Link>
+                    ))}
+                    <Link
+                      href="/ecommerce/productos"
+                      onClick={handleLinkClick}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest text-[#f02d65] hover:bg-[#f02d65]/5 transition-colors mt-1"
+                    >
+                      Ver todo el catálogo
+                      <ArrowRight size={12} />
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* NOSOTROS */}
+          <div className="mx-3 mt-0.5">
+            <Link
+              href="/ecommerce/nosotros"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between px-4 py-3.5 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            >
+              <span className="text-[13px] font-black uppercase tracking-widest text-gray-900">
+                Nosotros
+              </span>
+              <ChevronRight size={16} strokeWidth={2.5} className="text-gray-300" />
+            </Link>
+          </div>
+
+          {/* OFERTAS — destacado */}
+          <div className="mx-3 mt-2">
+            <Link
+              href="/ecommerce/ofertas"
+              onClick={handleLinkClick}
+              className="group flex items-center justify-between px-4 py-3.5 rounded-2xl bg-rose-50 border border-rose-100"
+            >
+              <span className="text-[13px] font-black uppercase tracking-widest text-rose-600">
+                Ofertas
+              </span>
+              <span className="text-[11px] font-black text-white bg-rose-500 px-2 py-0.5 rounded-full">
+                %
+              </span>
+            </Link>
+          </div>
+        </nav>
+
+        {/* ── Footer ── */}
+        <div className="border-t border-gray-100 px-5 py-5 space-y-4">
+          <Link
+            href="/ecommerce/login"
+            onClick={handleLinkClick}
+            className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-gray-900 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest active:scale-[0.98] transition-transform"
+          >
+            <User size={15} />
+            Mi Cuenta
+          </Link>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Síguenos</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+
+          <div className="flex justify-center gap-3">
+            {[
+              { href: 'https://instagram.com', Icon: Instagram, label: 'Instagram' },
+              { href: 'https://facebook.com', Icon: Facebook, label: 'Facebook' },
+              { href: 'https://twitter.com', Icon: Twitter, label: 'Twitter' },
+            ].map(({ href, Icon, label }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 text-gray-500 hover:text-[#f02d65] hover:border-[#f02d65]/30 active:scale-95 transition-all"
+              >
+                <Icon size={17} />
+              </a>
+            ))}
+          </div>
         </div>
+
       </div>
     </div>
   );
