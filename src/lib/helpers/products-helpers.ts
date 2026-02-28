@@ -1,5 +1,6 @@
 /**
  * Helpers para Productos e Insumos
+ * Tipos derivados del schema regenerado de Supabase.
  */
 
 import { getSupabaseBrowserClient } from '@/lib/supabase';
@@ -10,13 +11,10 @@ import type {
   Insumo,
   InsumoInsert,
   EstadoProducto,
-  TipoInsumo
+  TipoInsumo,
 } from '@/types';
 
-// Helper para obtener el cliente — cast a any solo para la tabla 'insumo'
-// porque su definición puede no estar sincronizada con el tipo Database generado.
 const getClient = () => getSupabaseBrowserClient();
-const getClientAny = () => getSupabaseBrowserClient() as any;
 
 // ==========================================
 // SECCIÓN: PRODUCTOS (Tabla: 'productos')
@@ -51,7 +49,7 @@ export async function obtenerProductos(filtros?: {
     if (filtros?.busqueda) {
       const busquedaBaja = filtros.busqueda.toLowerCase();
       productos = productos.filter(
-        p =>
+        (p) =>
           p.nombre.toLowerCase().includes(busquedaBaja) ||
           p.sku.toLowerCase().includes(busquedaBaja) ||
           p.descripcion?.toLowerCase().includes(busquedaBaja)
@@ -78,7 +76,7 @@ export async function obtenerProductoPorId(
 
     if (error) throw error;
 
-    return { data: data as Producto, error: null };
+    return { data, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
@@ -92,13 +90,13 @@ export async function crearProducto(
 
     const { data, error } = await supabase
       .from('productos')
-      .insert(productoData as any)
+      .insert(productoData)
       .select()
       .single();
 
     if (error) throw error;
 
-    return { data: data as Producto, error: null };
+    return { data, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
@@ -113,14 +111,14 @@ export async function actualizarProducto(
 
     const { data, error } = await supabase
       .from('productos')
-      .update(updates as any)
+      .update(updates)
       .eq('id', productoId)
       .select()
       .single();
 
     if (error) throw error;
 
-    return { data: data as Producto, error: null };
+    return { data, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
@@ -132,7 +130,10 @@ export async function eliminarProducto(
   try {
     const supabase = getClient();
 
-    const { error } = await supabase.from('productos').delete().eq('id', productoId);
+    const { error } = await supabase
+      .from('productos')
+      .delete()
+      .eq('id', productoId);
 
     if (error) throw error;
 
@@ -144,16 +145,13 @@ export async function eliminarProducto(
 
 // ==========================================
 // SECCIÓN: INSUMOS (Tabla: 'insumo')
-// Usamos getClientAny() porque la tabla 'insumo' no está en el tipo
-// Database generado (o tiene nombre distinto). El tipado de retorno
-// lo garantizamos con los tipos manuales Insumo / InsumoInsert.
 // ==========================================
 
 export async function obtenerInsumos(
   tipo?: TipoInsumo
 ): Promise<{ data: Insumo[] | null; error: string | null }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     let query = supabase
       .from('insumo')
@@ -167,7 +165,7 @@ export async function obtenerInsumos(
     const { data, error } = await query;
     if (error) throw error;
 
-    return { data: (data as Insumo[]) || [], error: null };
+    return { data: data || [], error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
@@ -177,7 +175,7 @@ export async function crearInsumo(
   insumoData: InsumoInsert
 ): Promise<{ data: Insumo | null; error: string | null }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     const { data, error } = await supabase
       .from('insumo')
@@ -187,7 +185,7 @@ export async function crearInsumo(
 
     if (error) throw error;
 
-    return { data: data as Insumo, error: null };
+    return { data, error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
@@ -198,7 +196,7 @@ export async function actualizarStockInsumo(
   nuevoStock: number
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     const { error } = await supabase
       .from('insumo')
@@ -218,7 +216,7 @@ export async function descontarStock(
   cantidad: number
 ): Promise<{ success: boolean; nuevoStock?: number; error: string | null }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     const { data: insumo, error: fetchError } = await supabase
       .from('insumo')
@@ -228,8 +226,7 @@ export async function descontarStock(
 
     if (fetchError) throw fetchError;
 
-    const stockActual: number = insumo?.stock_actual ?? 0;
-    const nuevoStock = stockActual - cantidad;
+    const nuevoStock = (insumo?.stock_actual ?? 0) - cantidad;
 
     if (nuevoStock < 0) throw new Error('Stock insuficiente');
 
@@ -251,7 +248,7 @@ export async function incrementarStock(
   cantidad: number
 ): Promise<{ success: boolean; nuevoStock?: number; error: string | null }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     const { data: insumo, error: fetchError } = await supabase
       .from('insumo')
@@ -261,8 +258,7 @@ export async function incrementarStock(
 
     if (fetchError) throw fetchError;
 
-    const stockActual: number = insumo?.stock_actual ?? 0;
-    const nuevoStock = stockActual + cantidad;
+    const nuevoStock = (insumo?.stock_actual ?? 0) + cantidad;
 
     const { error: updateError } = await supabase
       .from('insumo')
@@ -286,7 +282,7 @@ export async function obtenerInsumosAgotados(): Promise<{
   error: string | null;
 }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     const { data, error } = await supabase
       .from('insumo')
@@ -296,7 +292,7 @@ export async function obtenerInsumosAgotados(): Promise<{
 
     if (error) throw error;
 
-    return { data: (data as Insumo[]) || [], error: null };
+    return { data: data || [], error: null };
   } catch (err: any) {
     return { data: null, error: err.message };
   }
@@ -307,7 +303,7 @@ export async function obtenerInsumosStockBajo(): Promise<{
   error: string | null;
 }> {
   try {
-    const supabase = getClientAny();
+    const supabase = getClient();
 
     const { data, error } = await supabase
       .from('insumo')
@@ -316,7 +312,7 @@ export async function obtenerInsumosStockBajo(): Promise<{
 
     if (error) throw error;
 
-    const filtrados = (data as Insumo[]).filter(
+    const filtrados = (data || []).filter(
       (i) => i.stock_actual <= i.stock_minimo
     );
 
