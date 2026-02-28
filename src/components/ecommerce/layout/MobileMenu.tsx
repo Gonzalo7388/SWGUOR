@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, ChevronRight, Instagram, Facebook, Twitter, User, Loader2, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { X, ChevronRight, Instagram, Facebook, MessageCircle, User, Loader2, Sparkles, Tag, ArrowRight } from 'lucide-react';
 import { CategoriasService } from '@/lib/services/categoriasService';
 
 interface Categoria {
@@ -192,9 +192,9 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
           <div className="flex justify-center gap-3">
             {[
-              { href: 'https://instagram.com', Icon: Instagram, label: 'Instagram' },
-              { href: 'https://facebook.com', Icon: Facebook, label: 'Facebook' },
-              { href: 'https://twitter.com', Icon: Twitter, label: 'Twitter' },
+              { href: 'https://www.instagram.com/giobrand.pe?igsh=MTZzZHNkMXc3cDZo', Icon: Instagram, label: 'Instagram' },
+              { href: 'https://www.facebook.com/share/18WiHhpZ1i/', Icon: Facebook, label: 'Facebook' },
+              { href: 'https://wa.me/51908801912', Icon: MessageCircle, label: 'WhatsApp' },
             ].map(({ href, Icon, label }) => (
               <a
                 key={label}
