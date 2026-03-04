@@ -131,8 +131,8 @@ export default function ProductosPage() {
         {/* Header - Diseño Original */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Package className="text-pink-600 w-8 h-8" /> Inventario de Productos
+            <h1 className="text-3xl font-bold text-gray-900">
+              Inventario de Productos
             </h1>
             <p className="text-gray-500 text-sm">Gestión unificada del catálogo Modas y Estilos GUOR</p>
           </div>

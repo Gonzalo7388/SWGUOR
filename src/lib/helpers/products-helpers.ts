@@ -337,4 +337,4 @@ export function calcularMargen(costoUnitario: number, precioVenta: number): numb
 
 export function calcularPrecioVenta(costoUnitario: number, margenPorcentaje: number): number {
   return costoUnitario + costoUnitario * (margenPorcentaje / 100);
-}
+} 

@@ -173,59 +173,60 @@ export default function InventarioPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-8 space-y-6 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Header con acciones principales */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Factory className="text-pink-600 w-8 h-8" /> 
-              Inventario de Materiales
-            </h1>
-            <p className="text-gray-500 text-sm">Control de insumos, telas y avíos de producción</p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {canExport && (
-              <>
-                <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95">
-                  <FileText className="w-5 h-5" />
-                  <span className="hidden sm:inline">Exportar PDF</span>
+        {/* Header con acciones principales - Diseño mejorado */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                Inventario de Materiales
+              </h1>
+              <p className="text-slate-500 text-sm font-medium mt-2">Control de insumos, telas y avíos de producción</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3 justify-end">
+              {canExport && (
+                <>
+                  <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95 rounded-xl">
+                    <FileText className="w-5 h-5" />
+                    <span className="hidden sm:inline">PDF</span>
+                  </Button>
+                  <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95 rounded-xl">
+                    <FileSpreadsheet className="w-5 h-5" />
+                    <span className="hidden sm:inline">Excel</span>
+                  </Button>
+                </>
+              )}
+              {canCreate && (
+                <Button onClick={handleCreateClick} className="bg-slate-900 hover:bg-slate-800 shadow-lg font-bold gap-2 h-11 transition-all active:scale-95 rounded-xl text-white">
+                  <Plus className="w-5 h-5" /> Nuevo
                 </Button>
-                <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
-                  <FileSpreadsheet className="w-5 h-5" />
-                  <span className="hidden sm:inline">Exportar Excel</span>
-                </Button>
-              </>
-            )}
-            {canCreate && (
-              <Button onClick={handleCreateClick} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 transition-all active:scale-95">
-                <Plus className="w-5 h-5" /> Nuevo Insumo
-              </Button>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Dashboard de métricas */}
+        {/* Dashboard de métricas - Mejorado */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard 
+          <MetricCard 
             title="TOTAL INSUMOS" 
             value={stats.total} 
             icon={<Layers className="w-6 h-6" />} 
             isActive={quickFilter === "todos"} 
             onClick={() => {setQuickFilter("todos"); setCurrentPage(0);}} 
-            color="pink" 
+            color="slate" 
           />
-          <StatCard 
+          <MetricCard 
             title="STOCK BAJO" 
             value={stats.bajoStock} 
             icon={<AlertTriangle className="w-6 h-6" />} 
             isActive={quickFilter === "bajo_stock"} 
             onClick={() => {setQuickFilter("bajo_stock"); setCurrentPage(0);}} 
-            color="orange" 
+            color="amber" 
           />
-          <StatCard 
+          <MetricCard 
             title="AGOTADOS" 
             value={stats.sinStock} 
             icon={<XCircle className="w-6 h-6" />} 
@@ -233,8 +234,8 @@ export default function InventarioPage() {
             onClick={() => {setQuickFilter("critico"); setCurrentPage(0);}} 
             color="red" 
           />
-          <StatCard 
-            title="TIPOS" 
+          <MetricCard 
+            title="CATEGORÍAS" 
             value={stats.categorias} 
             icon={<BarChart3 className="w-6 h-6" />} 
             isActive={false} 
@@ -243,47 +244,55 @@ export default function InventarioPage() {
           />
         </div>
 
-        {/* FILTROS Y BÚSQUEDA */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-            <Input
-              type="text"
-              placeholder="Buscar por nombre o material..."
-              className="pl-10 h-11 border-gray-200 focus:ring-pink-500"
-              value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(0);}}
-            />
+        {/* FILTROS Y BÚSQUEDA - Mejorado */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-2">Buscar insumo</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-3.5 text-slate-400 w-5 h-5" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por nombre, material..."
+                  className="pl-12 h-11 border-slate-200 focus:ring-slate-400 rounded-lg placeholder:text-slate-400"
+                  value={searchTerm}
+                  onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(0);}}
+                />
+              </div>
+            </div>
+
+            <div className="w-full lg:w-56">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-2">Filtrar por tipo</label>
+              <Select 
+                value={selectedTipo} 
+                onValueChange={(value) => {
+                  setSelectedTipo(value);
+                  setCurrentPage(0);
+                }}
+              >
+                <SelectTrigger className="h-11 border-slate-200 rounded-lg focus:ring-slate-400">
+                  <SelectValue placeholder="Todos los tipos" />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg border-slate-200">
+                  <SelectItem value="todos">Todos los tipos</SelectItem>
+                  <SelectItem value="Materia Prima">Materia Prima</SelectItem>
+                  <SelectItem value="Insumo">Insumos</SelectItem>
+                  <SelectItem value="Herramienta">Herramientas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button variant="outline" className="h-11 border-slate-200 hover:bg-slate-50 rounded-lg px-6" onClick={() => obtenerInsumosList()}>
+              <RefreshCw className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
-
-          <Select 
-            value={selectedTipo} 
-            onValueChange={(value) => {
-              setSelectedTipo(value);
-              setCurrentPage(0);
-            }}
-          >
-            <SelectTrigger className="w-full md:w-48 h-11 border-gray-200">
-              <SelectValue placeholder="Todos los tipos" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-gray-100">
-              <SelectItem value="todos">Todos los tipos</SelectItem>
-              <SelectItem value="Materia Prima">Materia Prima</SelectItem>
-              <SelectItem value="Insumo">Insumos</SelectItem>
-              <SelectItem value="Herramienta">Herramientas</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" className="h-11 border-gray-200" onClick={() => obtenerInsumosList()}>
-            <RefreshCw className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} />
-          </Button>
         </div>
 
         {/* Tabla principal */}
         {cargando ? (
-          <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
-            <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-gray-400 text-sm font-bold uppercase">Sincronizando...</p>
+          <div className="h-64 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <div className="w-10 h-10 border-4 border-slate-300 border-t-slate-900 rounded-full animate-spin mb-4" />
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">Sincronizando datos...</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -294,19 +303,19 @@ export default function InventarioPage() {
               onDelete={handleDelete}
             />
             
-            {/* Paginación */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-              <p className="text-xs text-gray-500">
-                Mostrando <span className="font-bold text-gray-900">{paginatedData.length}</span> de <span className="font-bold text-gray-900">{filteredData.length}</span>
+            {/* Paginación - Mejorada */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex items-center justify-between">
+              <p className="text-sm text-slate-600 font-medium">
+                Mostrando <span className="font-bold text-slate-900">{paginatedData.length}</span> de <span className="font-bold text-slate-900">{filteredData.length}</span> insumos
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0} className="rounded-lg h-10">
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <div className="px-4 py-1.5 text-xs font-bold bg-gray-50 border rounded-lg flex items-center">
+                <div className="px-4 py-2 text-sm font-bold bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
                   Página {currentPage + 1} de {totalPages || 1}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage + 1 >= totalPages}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage + 1 >= totalPages} className="rounded-lg h-10">
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -345,46 +354,46 @@ export default function InventarioPage() {
   );
 }
 
-function StatCard({ title, value, icon, isActive, color, onClick }: any) {
-  const styles: any = {
-    pink: {
-      active: "border-pink-500 ring-pink-50 bg-white",
-      iconActive: "bg-pink-600 text-white",
-      textActive: "text-pink-600"
+function MetricCard({ title, value, icon, isActive, color, onClick }: any) {
+  const colorMap: any = {
+    slate: {
+      active: "border-slate-400 ring-slate-50 bg-white shadow-md",
+      iconActive: "bg-slate-900 text-white",
+      textActive: "text-slate-900"
     },
-    orange: {
-      active: "border-orange-500 ring-orange-50 bg-white",
-      iconActive: "bg-orange-600 text-white",
-      textActive: "text-orange-600"
+    amber: {
+      active: "border-amber-400 ring-amber-50 bg-white shadow-md",
+      iconActive: "bg-amber-600 text-white",
+      textActive: "text-amber-600"
     },
     red: {
-      active: "border-red-500 ring-red-50 bg-white",
+      active: "border-red-400 ring-red-50 bg-white shadow-md",
       iconActive: "bg-red-600 text-white",
       textActive: "text-red-600"
     },
     blue: {
-      active: "border-blue-500 ring-blue-50 bg-white",
+      active: "border-blue-400 ring-blue-50 bg-white shadow-md",
       iconActive: "bg-blue-600 text-white",
       textActive: "text-blue-600"
     }
   };
-  const currentStyle = styles[color];
+  const currentStyle = colorMap[color];
 
   return (
     <button 
       onClick={onClick} 
-      className={`group p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 cursor-pointer ${
+      className={`group p-5 rounded-2xl border-2 transition-all duration-300 flex items-center gap-4 cursor-pointer hover:shadow-lg ${
         isActive 
-        ? `ring-4 shadow-xl scale-[1.02] z-10 ${currentStyle.active}` 
-        : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'
+        ? `ring-4 scale-[1.02] ${currentStyle.active}` 
+        : 'bg-white border-slate-200 shadow-sm hover:-translate-y-1 active:scale-95'
       }`}
     >
-      <div className={`p-3 rounded-lg transition-all duration-300 ${isActive ? `${currentStyle.iconActive} rotate-3` : 'bg-gray-100 text-gray-600 group-hover:rotate-3'}`}>
+      <div className={`p-3 rounded-xl transition-all duration-300 ${isActive ? `${currentStyle.iconActive}` : 'bg-slate-100 text-slate-400'}`}>
         {icon}
       </div>
       <div className="text-left">
-        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{title}</p>
-        <p className={`text-2xl font-black tracking-tight ${isActive ? currentStyle.textActive : 'text-gray-800'}`}>{value}</p>
+        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">{title}</p>
+        <p className={`text-2xl font-black tracking-tight ${isActive ? currentStyle.textActive : 'text-slate-800'}`}>{value}</p>
       </div>
     </button>
   );

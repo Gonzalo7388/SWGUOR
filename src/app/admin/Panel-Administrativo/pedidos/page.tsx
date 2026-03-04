@@ -115,8 +115,8 @@ export default function PedidosPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <ShoppingBag className="text-pink-600" /> Registro de Pedidos
+            <h1 className="text-3xl font-bold text-gray-900">
+              Registro de Pedidos
             </h1>
             <p className="text-gray-500 text-sm">Gestión de pedidos Modas GUOR</p>
           </div>

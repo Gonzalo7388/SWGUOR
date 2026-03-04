@@ -129,8 +129,8 @@ export default function UsuariosPage() {
         {/* Header idéntico a Clientes */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="text-pink-600" /> Panel de Personal
+            <h1 className="text-3xl font-bold text-gray-900">
+              Panel de Personal
             </h1>
             <p className="text-gray-500 text-sm">Control de accesos y roles GUOR</p>
           </div>

@@ -111,8 +111,8 @@ const handleExportPDF = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
-              <Receipt className="text-pink-600 w-8 h-8" /> Control de Caja
+            <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">
+              Control de Caja
             </h1>
             <p className="text-gray-500 text-sm font-medium">Registro de ingresos y comprobantes GUOR</p>
           </div>

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, Menu, X,
   LogOut, Boxes, Truck, FileText, Scissors, Building,
   DollarSign, Bell, Grid3x3, ChevronDown, Settings, User,
-  BarChart3, Crown, ChevronRight
+  BarChart3, Crown
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Usuario } from '@/types';
@@ -181,7 +181,7 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
           {!isCollapsed ? (
             <div className="flex items-center gap-3 w-full px-6 animate-in fade-in duration-300">
               {/* Contenedor del logo actualizado */}
-              <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white border border-slate-100 flex items-center justify-center">
+              <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center">
                 <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
               </div>
               <div className="flex-1 min-w-0">
@@ -193,7 +193,7 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
             </div>
           ) : (
             /* Contenedor del logo colapsado actualizado */
-            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
               <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
             </div>
           )}
@@ -299,7 +299,6 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
                             : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                         )}
                       >
-                        <ChevronRight size={14} className="text-slate-400" />
                         {sub.title}
                       </Link>
                     ))}

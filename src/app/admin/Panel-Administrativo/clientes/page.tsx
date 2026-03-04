@@ -200,8 +200,8 @@ export default function ClientesPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="text-pink-600" /> Directorio de Clientes
+            <h1 className="text-3xl font-bold text-gray-900">
+              Directorio de Clientes
             </h1>
             <p className="text-gray-500 text-sm">Gestión de base de datos GUOR</p>
           </div>
