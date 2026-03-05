@@ -63,7 +63,7 @@ export async function getProductos() {
   return data || [];
 }
 
-export async function getProductosPorCategoria(categoriaId: string | number) {
+export async function getProductosPorCategoria(categoriaId: number) {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from('productos')
@@ -79,7 +79,7 @@ export async function getProductosPorCategoria(categoriaId: string | number) {
   return data || [];
 }
 
-export async function getProductoporId(id: string | number) {
+export async function getProductoporId(id: number) {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from('productos')
@@ -144,7 +144,7 @@ export async function getCategoriasConProductos() {
   return data || [];
 }
 
-export async function getCategoriaPorId(id: string | number) {
+export async function getCategoriaPorId(id: number) {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from('categorias')

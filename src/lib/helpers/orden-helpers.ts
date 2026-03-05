@@ -1,13 +1,36 @@
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type {
-  Orden,
-  OrdenInsert,
-  OrdenCompleta,
-  EstadoOrden,
-  MetodoPago,
-  FiltrosOrden,
-  VerificacionStock
-} from '@/types';
+import type { Orden, OrdenInsert, EstadoOrden, MetodoPago } from '@/types';
+
+// Tipos locales que no existen en @/types
+interface FiltrosOrden {
+  estado?: EstadoOrden;
+  cliente_id?: number;
+  user_id?: string;
+  metodo_pago?: MetodoPago;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+type OrdenCompleta = Orden & {
+  clientes?: {
+    id: number;
+    razon_social: string;
+    ruc?: string | null;
+    email?: string | null;
+    telefono?: string | null;
+  } | null;
+};
+
+interface VerificacionStock {
+  disponible: boolean;
+  faltantes: Array<{
+    producto_id: number;
+    nombre: string;
+    requerido: number;
+    disponible: number;
+    faltante: number;
+  }>;
+}
 
 const supabase = getSupabaseBrowserClient();
 
@@ -143,9 +166,9 @@ export async function verificarStock(
   const faltantes: VerificacionStock['faltantes'] = [];
 
   for (const item of items) {
-    // Buscamos en 'inventario' porque ahí está el stock físico real
+    // Buscamos en 'insumo' porque ahí está el stock físico real
     const { data: inv, error } = await supabase
-      .from('inventario')
+      .from('insumo')
       .select('producto_id, nombre, stock_actual')
       .eq('producto_id', item.producto_id)
       .single();

@@ -1,14 +1,14 @@
 "use client";
 
 import { Edit2, Trash2, Layers, Loader2 } from "lucide-react";
-import { Inventario } from "@/types/database";
+import { Insumo } from "@/types";
 import { Button } from "@/components/ui/button";
 
 interface InventarioTableProps {
-  data: Inventario[];
+  data: Insumo[];
   loading?: boolean;
-  onEdit: (item: Inventario) => void;
-  onDelete: (item: Inventario) => void;
+  onEdit: (item: Insumo) => void;
+  onDelete: (item: Insumo) => void;
 }
 
 export default function InventarioTable({ data, loading, onEdit, onDelete }: InventarioTableProps) {

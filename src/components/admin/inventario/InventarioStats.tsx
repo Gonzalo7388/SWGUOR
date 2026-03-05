@@ -1,10 +1,10 @@
 'use client'
 
-import { Inventario } from '@/types'
+import { Insumo } from '@/types'
 import { AlertTriangle, Package, BarChart3 } from 'lucide-react'
 
 interface Props {
-  data: Inventario[]
+  data: Insumo[]
 }
 
 export default function InventoryStats({ data }: Props) {

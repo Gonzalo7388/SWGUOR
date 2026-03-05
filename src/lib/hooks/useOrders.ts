@@ -4,20 +4,31 @@
  */
 
 import { useCallback, useState } from 'react';
-import {
-  obtenerOrdenes,
-  crearOrden,
-  cambiarEstadoOrden,
-  verificarStock,
-} from '@/lib/helpers/orden-helpers';
-import type {
-  FiltrosOrden,
-  OrdenCompleta,
-  OrdenInsert,
-  VerificacionStock,
-  EstadoOrden,
-  MetodoPago
-} from '@/types';
+import { obtenerOrdenes, crearOrden, cambiarEstadoOrden, verificarStock } from '@/lib/helpers/orden-helpers';
+import type { Orden, OrdenInsert, EstadoOrden, MetodoPago } from '@/types';
+
+// Tipos que no existen en @/types → definidos localmente
+interface FiltrosOrden {
+  estado?: EstadoOrden;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+type OrdenCompleta = Orden & {
+  detalles?: any[];
+  clientes?: { razon_social: string; ruc?: string | null } | null;
+};
+
+interface VerificacionStock {
+  disponible: boolean;
+  faltantes: Array<{
+    producto_id: number;
+    nombre: string;
+    requerido: number;
+    disponible: number;
+    faltante: number;
+  }>;
+}
 
 interface UseOrdenesState {
   ordenes: OrdenCompleta[];
@@ -88,14 +99,12 @@ export function useOrdenes(): UseOrdenesState & UseOrdenesActions {
           return false;
         }
 
-        // Refrescar lista
         await obtener();
         return true;
       } catch (err: any) {
-        const errorMsg = err.message || 'Error creando orden';
         setState(prev => ({
           ...prev,
-          error: errorMsg,
+          error: err.message || 'Error creando orden',
           cargando: false
         }));
         return false;
@@ -123,11 +132,10 @@ export function useOrdenes(): UseOrdenesState & UseOrdenesActions {
           return false;
         }
 
-        // Actualizar localmente
         setState(prev => ({
           ...prev,
-          ordenes: prev.ordenes.map(o =>
-            o.id === ordenId ? { ...o, estado: nuevoEstado, ...dataExtra } : o
+          ordenes: prev.ordenes.map((o: OrdenCompleta) =>
+            o.id === Number(ordenId) ? { ...o, estado: nuevoEstado, ...dataExtra } : o
           ),
           cargando: false
         }));

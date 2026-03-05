@@ -3,7 +3,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { Database, InventarioInsert, InventarioUpdate } from '@/types'
+import type { Database, InsumoInsert, InsumoUpdate } from '@/types'
 
 async function getSupabase() {
   const cookieStore = await cookies()
@@ -13,7 +13,6 @@ async function getSupabase() {
     { 
       cookies: { 
         getAll: () => Array.from(cookieStore.getAll()),
-        // Es buena práctica añadir setAll para que las acciones puedan refrescar sesiones
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         }
@@ -25,38 +24,32 @@ async function getSupabase() {
 export async function saveInsumo(data: any, id?: number | null) {
   const supabase = await getSupabase()
 
-  // Definimos la tabla con su tipo explícito para evitar el error 'never'
-  const tablaInventario = supabase.from('inventario')
-
   if (id) {
-    // Caso UPDATE
-    const updateData: InventarioUpdate = {
+    const updateData: InsumoUpdate = {
       nombre: data.nombre,
       tipo: data.tipo,
       unidad_medida: data.unidad_medida,
       stock_actual: data.stock_actual,
       stock_minimo: data.stock_minimo,
-      updated_at: new Date().toISOString()
     }
 
-    const { error } = await (tablaInventario as any)
+    const { error } = await supabase
+      .from('insumo')
       .update(updateData)
       .eq('id', id)
 
     if (error) throw new Error(error.message)
   } else {
-    // Caso INSERT
-    const insertData: InventarioInsert = {
+    const insertData: InsumoInsert = {
       nombre: data.nombre,
       tipo: data.tipo,
       unidad_medida: data.unidad_medida,
       stock_actual: data.stock_actual,
       stock_minimo: data.stock_minimo,
-      updated_at: new Date().toISOString()
-      // No incluimos ID ni created_at porque son automáticos
     }
 
-    const { error } = await (tablaInventario as any)
+    const { error } = await supabase
+      .from('insumo')
       .insert(insertData)
 
     if (error) throw new Error(error.message)
@@ -67,8 +60,9 @@ export async function saveInsumo(data: any, id?: number | null) {
 
 export async function deleteInsumo(id: number) {
   const supabase = await getSupabase()
+  
   const { error } = await supabase
-    .from('inventario')
+    .from('insumo')
     .delete()
     .eq('id', id)
   

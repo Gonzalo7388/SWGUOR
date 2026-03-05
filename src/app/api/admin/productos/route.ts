@@ -43,10 +43,10 @@ export async function POST(req: Request) {
       descripcion: body.descripcion,
       precio: body.precio,
       stock: body.stock || 0,
-      stock_minimo: body.stock_minimo || 5,
       categoria_id: body.categoria_id,
       imagen: body.imagen_url || body.imagen,
-      estado: 'activo'
+      estado: 'activo',
+      updated_at: new Date().toISOString()
     });
 
     if (error) throw new Error(error);

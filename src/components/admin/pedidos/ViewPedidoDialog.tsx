@@ -23,9 +23,9 @@ export default function ViewPedidoDialog({ isOpen, pedido, onClose }: any) {
         try {
           const supabase = getSupabaseBrowserClient();
           const { data, error } = await supabase
-            .from("detalles_pedido")
+            .from("detalles_orden")
             .select("*, productos(nombre, sku)")
-            .eq("pedido_id", pedido.id);
+            .eq("orden_id", pedido.id);
           if (error) throw error;
           setDetalles(data || []);
         } catch (error) {

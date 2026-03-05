@@ -6,21 +6,20 @@
 import { useCallback, useState } from 'react';
 import {
   obtenerInsumos,
-  obtenerInventarioPorProducto,
   crearInsumo,
   actualizarStockInsumo,
   descontarStock,
   incrementarStock,
-  obtenerProductosAgotados,
-  obtenerProductosStockBajo,
+  obtenerProductos,
+  obtenerInsumosStockBajo,
 } from '@/lib/helpers/products-helpers';
-import type { Inventario, InventarioInsert, TipoInsumo } from '@/types';
+import type { Insumo, InsumoInsert, TipoInsumo } from '@/types';
 
 interface UseInventarioState {
-  insumos: Inventario[];
-  inventarioActual: Inventario | null;
-  productosAgotados: Inventario[];
-  productosStockBajo: Inventario[];
+  insumos: Insumo[];
+  inventarioActual: Insumo | null;
+  productosAgotados: Insumo[];
+  productosStockBajo: Insumo[];
   cargando: boolean;
   error: string | null;
 }
@@ -28,7 +27,7 @@ interface UseInventarioState {
 interface UseInventarioActions {
   obtenerInsumosList: (tipo?: TipoInsumo) => Promise<void>;
   obtenerInventario: (productoId: number) => Promise<void>;
-  crearInsumoNuevo: (insumoData: InventarioInsert) => Promise<boolean>;
+  crearInsumoNuevo: (insumoData: InsumoInsert) => Promise<boolean>;
   actualizarStock: (inventarioId: number, nuevoStock: number) => Promise<boolean>;
   descontar: (inventarioId: number, cantidad: number) => Promise<boolean>;
   incrementar: (inventarioId: number, cantidad: number) => Promise<boolean>;
@@ -98,7 +97,7 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
     }
   }, []);
 
-  const crearInsumoNuevo = useCallback(async (insumoData: InventarioInsert) => {
+  const crearInsumoNuevo = useCallback(async (insumoData: InsumoInsert) => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
       const { data, error } = await crearInsumo(insumoData);
@@ -111,7 +110,7 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
       // Agregar a la lista
       setState(prev => ({
         ...prev,
-        insumos: [data as Inventario, ...prev.insumos],
+        insumos: [data as Insumo, ...prev.insumos],
         cargando: false
       }));
 
@@ -241,18 +240,21 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
   const obtenerAgotados = useCallback(async () => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      const { data, error } = await obtenerProductosAgotados();
+      const { data, error } = await obtenerInsumos();
 
       if (error) {
         setState(prev => ({ ...prev, error, cargando: false }));
         return;
       }
 
+      // Filtra localmente los que tienen stock 0
+      const agotados = (data || []).filter(i => i.stock_actual === 0);
       setState(prev => ({
-        ...prev,
-        productosAgotados: data || [],
-        cargando: false
-      }));
+      ...prev,
+      productosAgotados: agotados,
+      cargando: false
+    }));
+    
     } catch (err: any) {
       setState(prev => ({
         ...prev,
@@ -265,7 +267,7 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
   const obtenerBajoStock = useCallback(async () => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      const { data, error } = await obtenerProductosStockBajo();
+      const { data, error } = await obtenerInsumosStockBajo();
 
       if (error) {
         setState(prev => ({ ...prev, error, cargando: false }));
@@ -310,3 +312,7 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
     limpiar
   };
 }
+function obtenerInventarioPorProducto(productoId: number): { data: any; error: any; } | PromiseLike<{ data: any; error: any; }> {
+  throw new Error('Function not implemented.');
+}
+

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Edit2, Trash2, Package, BarChart3, Tag, Lock, FileText, Paperclip, CheckCircle2 } from "lucide-react";
-import type { Producto, Categoria } from "@/types/database";
+import type { Producto, Categoria } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -102,7 +102,7 @@ const ProductoRow = memo(({
       {/* Stock */}
       <td className="bg-white border-y border-slate-100 text-center shadow-sm">
         <div className="flex flex-col items-center">
-          <span className={`text-sm font-black ${p.stock <= (p.stock_minimo || 5) ? 'text-rose-600 animate-pulse' : 'text-slate-800'}`}>
+          <span className="text-lg font-black text-slate-900">
             {p.stock}
           </span>
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Unidades</span>

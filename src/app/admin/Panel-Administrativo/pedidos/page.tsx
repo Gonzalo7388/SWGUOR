@@ -92,7 +92,7 @@ export default function PedidosPage() {
       "Fecha": new Date(p.created_at).toLocaleDateString(),
       "Cliente": p.clientes?.razon_social || 'Desconocido',
       "Total": p.total,
-      "Estado": p.estado.toUpperCase(),
+      "Estado": p.estado?.toUpperCase() ?? 'SIN ESTADO',
       "Método Pago": p.metodo_pago || 'No especificado'
     }));
 

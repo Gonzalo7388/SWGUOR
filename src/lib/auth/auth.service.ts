@@ -144,7 +144,7 @@ export async function loginUser(
     }
 
     // 3. Validar estado activo
-    if (!isUserActive(usuario.estado)) {
+    if (!isUserActive(usuario.estado ?? undefined)) {
       await getSupabaseBrowserClient().auth.signOut();
       invalidateUserCache(authData.user.id);
       return { 

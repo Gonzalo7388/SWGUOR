@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Producto, Categoria } from "@/types/database";
+import type { Producto, Categoria } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +46,6 @@ export default function EditProductoDialog({
     sku: "",
     precio: "",
     stock: "",
-    stock_minimo: "",
     categoria_id: "",
     estado: "",
   });
@@ -59,7 +58,6 @@ export default function EditProductoDialog({
         sku: producto.sku || "",
         precio: producto.precio?.toString() || "0",
         stock: producto.stock?.toString() || "0",
-        stock_minimo: producto.stock_minimo?.toString() || "5",
         categoria_id: producto.categoria_id?.toString() || "",
         estado: producto.estado || "activo",
       });
@@ -87,7 +85,6 @@ export default function EditProductoDialog({
         // Mantenemos SKU y Stock intactos ya que son protegidos
         sku: formData.sku,
         stock: parseInt(formData.stock),
-        stock_minimo: parseInt(formData.stock_minimo),
         estado: formData.estado,
         updated_at: new Date().toISOString(),
       };
@@ -197,11 +194,11 @@ export default function EditProductoDialog({
               <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Estado Stock</Label>
               <div className={`h-10 flex items-center px-4 rounded-xl text-[10px] font-black uppercase border ${
                 parseInt(formData.stock) === 0 ? "bg-red-50 text-red-600 border-red-100" : 
-                parseInt(formData.stock) <= parseInt(formData.stock_minimo) ? "bg-orange-50 text-orange-600 border-orange-100" : 
                 "bg-emerald-50 text-emerald-600 border-emerald-100"
               }`}>
                 {parseInt(formData.stock) === 0 ? "Agotado" : 
-                 parseInt(formData.stock) <= parseInt(formData.stock_minimo) ? "Reponer Stock" : "Suficiente"}
+
+                parseInt(formData.stock) <= 5 ? "Bajo Stock" : "Suficiente"}
               </div>
             </div>
           </div>

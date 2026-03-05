@@ -7,23 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import type { Venta } from "@/types";
 
 interface DetalleVenta {
   id: number;
-  venta_id: number;
+  orden_id: number;
   producto_id: number;
   cantidad: number;
   precio_unitario: number;
-  producto?: {
+  productos?: {
     nombre: string;
   };
-}
-
-interface Venta {
-  id: number;
-  codigo_pedido: string;
-  estado_pedido: string;
-  total: string | number;
 }
 
 interface VentaDetalleDialogProps {
@@ -40,61 +34,60 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
   const [error, setError] = useState<string | null>(null);
 
   const loadDetalle = useCallback(async () => {
-    if (!venta?.id) return;
+    if (!venta?.orden_id) return;
 
     setLoading(true);
     setError(null);
     try {
       const supabase = getSupabaseBrowserClient();
+      // Los detalles están en detalles_orden, enlazados por orden_id
       const { data, error: queryError } = await supabase
-        .from("detalles_ventas")
-        .select(`*, producto:producto_id(nombre)`)
-        .eq("venta_id", venta.id);
-      
+        .from("detalles_orden")
+        .select("*, productos(nombre)")
+        .eq("orden_id", venta.orden_id);
+
       if (queryError) {
         console.error('[VentaDetalleDialog] Error loading detalles:', queryError);
         setError("Error al cargar los detalles");
         return;
       }
 
-      setDetalles((data || []) as DetalleVenta[]);
+      setDetalles((data || []) as unknown as DetalleVenta[]);
     } catch (err: any) {
       console.error('[VentaDetalleDialog] Unexpected error:', err);
       setError("Error inesperado al cargar detalles");
     } finally {
       setLoading(false);
     }
-  }, [venta?.id]);
+  }, [venta?.orden_id]);
 
   useEffect(() => {
-    if (isOpen && venta?.id) {
+    if (isOpen && venta?.orden_id) {
       loadDetalle();
     }
-  }, [isOpen, venta?.id, loadDetalle]);
+  }, [isOpen, venta?.orden_id, loadDetalle]);
 
   const handleCancelarVenta = async () => {
     const confirmar = confirm("¿Estás seguro de cancelar esta venta? Esta acción devolverá los productos al stock.");
-    if (!confirmar) return;
-
-    if (!venta) return;
+    if (!confirmar || !venta) return;
 
     setCancelling(true);
     const supabase = getSupabaseBrowserClient();
 
     try {
-      // 1. Actualizar el estado de la venta
-      const { error: errorVenta } = await (supabase as any)
+      // 1. Eliminar o anular la venta (la tabla ventas no tiene campo estado, se elimina)
+      const { error: errorVenta } = await supabase
         .from("ventas")
-        .update({ estado_pedido: "cancelado" })
+        .delete()
         .eq("id", venta.id);
 
       if (errorVenta) throw new Error(errorVenta.message);
 
       // 2. Devolver stock para cada artículo
       for (const item of detalles) {
-        const { error: rpcError } = await (supabase as any).rpc('increment_stock', { 
-          row_id: item.producto_id, 
-          quantity: item.cantidad 
+        const { error: rpcError } = await (supabase as any).rpc('increment_stock', {
+          row_id: item.producto_id,
+          quantity: item.cantidad
         });
 
         if (rpcError) {
@@ -120,15 +113,14 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
       <DialogContent className="max-w-2xl">
         <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
           <DialogTitle className="text-xl font-bold">
-            Pedido: <span className="text-pink-600">{venta.codigo_pedido}</span>
+            Venta: <span className="text-pink-600">{venta.numero_comprobante || venta.id}</span>
           </DialogTitle>
-          <Badge className={venta.estado_pedido === 'cancelado' ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}>
-            {venta.estado_pedido.toUpperCase()}
+          <Badge className="bg-green-100 text-green-700">
+            {venta.tipo_comprobante?.toUpperCase() || "VENTA"}
           </Badge>
         </DialogHeader>
-        
+
         <div className="py-4 space-y-6">
-          {/* Mostrar errores si existen */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-700">{error}</p>
@@ -139,7 +131,9 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
           <div className="space-y-3">
             <h4 className="font-semibold text-gray-700">Artículos del Pedido</h4>
             {loading ? (
-              <div className="flex justify-center py-4"><Loader2 className="animate-spin text-pink-600" /></div>
+              <div className="flex justify-center py-4">
+                <Loader2 className="animate-spin text-pink-600" />
+              </div>
             ) : detalles.length === 0 ? (
               <div className="bg-gray-50 rounded-lg p-4 border text-center text-gray-500 text-sm">
                 No hay detalles disponibles
@@ -148,7 +142,7 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
               <div className="bg-gray-50 rounded-lg p-4 border space-y-2">
                 {detalles.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span>{item.producto?.nombre} (x{item.cantidad})</span>
+                    <span>{item.productos?.nombre} (x{item.cantidad})</span>
                     <span className="font-medium">S/ {(item.cantidad * item.precio_unitario).toFixed(2)}</span>
                   </div>
                 ))}
@@ -161,27 +155,25 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
           </div>
 
           {/* Sección de Acciones de Peligro */}
-          {venta.estado_pedido !== "cancelado" && (
-            <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="text-red-600 w-5 h-5" />
-                <div>
-                  <p className="text-sm font-bold text-red-900">Anulación de Venta</p>
-                  <p className="text-xs text-red-700">Esto restaurará el stock de los productos.</p>
-                </div>
+          <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="text-red-600 w-5 h-5" />
+              <div>
+                <p className="text-sm font-bold text-red-900">Anulación de Venta</p>
+                <p className="text-xs text-red-700">Esto restaurará el stock de los productos.</p>
               </div>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleCancelarVenta}
-                disabled={cancelling}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {cancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
-                Cancelar Pedido
-              </Button>
             </div>
-          )}
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleCancelarVenta}
+              disabled={cancelling}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {cancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+              Cancelar Pedido
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

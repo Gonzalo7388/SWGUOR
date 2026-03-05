@@ -21,7 +21,6 @@ const CreateProductoDialog = dynamic(() => import("@/components/admin/productos/
 const EditProductoDialog = dynamic(() => import("@/components/admin/productos/EditProductoDialog"));
 const DeleteProductoDialog = dynamic(() => import("@/components/admin/productos/DeleteProductoDialog"));
 const StockDialog = dynamic(() => import("@/components/admin/productos/StockDialog"));
-const FichaTecnicaDialog = dynamic(() => import("@/components/admin/productos/FichaTecnicaDialog"));
 
 export default function ProductosPage() {
   const { can, isLoading: authLoading, usuario } = usePermissions();
@@ -254,15 +253,7 @@ export default function ProductosPage() {
           {dialogMode === "stock" && (
             <StockDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} />
           )}
-          {dialogMode === "ficha" && (
-            <FichaTecnicaDialog 
-            isOpen={true} 
-            producto={selectedProducto} 
-            onClose={() => {setDialogMode(null); setSelectedProducto(null);}} 
-            onSuccess={refetch} 
-            canUpload={canManageFichas} 
-            />
-            )}
+          
         </>
       )}
     </div>

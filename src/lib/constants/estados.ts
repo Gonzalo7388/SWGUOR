@@ -135,6 +135,11 @@ export const ESTADOS_PRODUCTO: Record<EstadoProducto, { label: string; color: st
     label: 'Agotado',
     color: 'text-red-700',
     bgColor: 'bg-red-100'
+  },
+  descontinuado: {         
+    label: 'Descontinuado',
+    color: 'text-slate-700',
+    bgColor: 'bg-slate-100'
   }
 };
 

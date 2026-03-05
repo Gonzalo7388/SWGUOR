@@ -1,9 +1,9 @@
 "use client";
 
-import { Edit, Trash2, CheckCircle, XCircle, Tag, Layers, Package, ShoppingBag } from "lucide-react";
+import { Edit, Trash2, CheckCircle, XCircle, Tag, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Categoria } from "@/types/database";
+import type { Categoria } from "@/types";
 
 interface Props {
   data: Categoria[];
@@ -20,7 +20,6 @@ export default function CategoriasTable({ data, onEdit, onDelete }: Props) {
             <tr className="text-left">
               <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Categoría</th>
               <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Descripción</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Tipo</th>
               <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
               <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
             </tr>
@@ -28,7 +27,7 @@ export default function CategoriasTable({ data, onEdit, onDelete }: Props) {
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={5} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
+                <td colSpan={4} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
                   <div className="flex flex-col items-center gap-3">
                     <Layers className="w-12 h-12 text-slate-200" />
                     <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hay categorías configuradas</p>
@@ -62,29 +61,14 @@ export default function CategoriasTable({ data, onEdit, onDelete }: Props) {
                     </p>
                   </td>
 
-                  {/* Tipo de Categoría */}
+                  {/* Estado — usa "activo" (boolean) */}
                   <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:shadow-md transition-all">
                     <Badge className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase ${
-                      categoria.tipo_categoria === 'producto'
-                        ? 'bg-blue-50 text-blue-600 border-blue-100' 
-                        : 'bg-purple-50 text-purple-600 border-purple-100'
-                    }`} variant="outline">
-                      {categoria.tipo_categoria === 'producto' ? (
-                        <><ShoppingBag className="w-3 h-3 mr-1" /> Producto</>
-                      ) : (
-                        <><Package className="w-3 h-3 mr-1" /> Insumo</>
-                      )}
-                    </Badge>
-                  </td>
-
-                  {/* Estado */}
-                  <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:shadow-md transition-all">
-                    <Badge className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase ${
-                      categoria.estado 
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                      categoria.activo
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : 'bg-rose-50 text-rose-600 border-rose-100'
                     }`} variant="outline">
-                      {categoria.estado ? (
+                      {categoria.activo ? (
                         <><CheckCircle className="w-3 h-3 mr-1" /> Activo</>
                       ) : (
                         <><XCircle className="w-3 h-3 mr-1" /> Inactivo</>

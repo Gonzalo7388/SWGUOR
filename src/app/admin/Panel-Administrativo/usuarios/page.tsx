@@ -7,6 +7,7 @@ import { Search, Users, RefreshCw, UserCheck, UserMinus, ChevronLeft, ChevronRig
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { EstadoUsuario } from "@/types";
 
 // Componentes dinámicos
 const UsuariosTable = dynamic(() => import("@/components/admin/usuarios/UsuarioTable"));
@@ -20,7 +21,7 @@ export default function UsuariosPage() {
   const [selectedUsuario, setSelectedUsuario] = useState<any | null>(null);
   const [dialogMode, setDialogMode] = useState<"edit" | "new" | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<EstadoUsuario | null>(null);
   const pageSize = 10;
 
   // Stats 
