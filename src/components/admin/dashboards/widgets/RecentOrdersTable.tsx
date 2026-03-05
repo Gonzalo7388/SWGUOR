@@ -47,61 +47,59 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
 
   return (
     <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h3 className="font-black uppercase tracking-tighter text-slate-800 text-xl flex items-center gap-2">
-            <Clock className="text-rose-500" size={20} /> {/* Uso de Clock en el título */}
-            Órdenes Recientes
-          </h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monitor de flujo operativo</p>
+      <div className="mb-8 space-y-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="font-black uppercase tracking-tight text-slate-800 text-lg leading-none">Órdenes Recientes</h3>
+            <p className="text-slate-400 text-sm font-medium mt-2">Monitor en tiempo real del flujo operativo</p>
+          </div>
+          <button className="text-[10px] font-black uppercase bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all shadow-sm">
+            Ver todas
+          </button>
         </div>
-        <button className="text-[10px] font-black uppercase bg-slate-50 px-4 py-2 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
-          Ver todas
-        </button>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-separate border-spacing-y-3">
+        <table className="w-full text-left border-separate border-spacing-y-2.5">
           <thead>
-            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
-              <th className="pb-4 pl-4">ID</th>
+            <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <th className="pb-4 pl-4">Orden ID</th>
               <th className="pb-4">Cliente</th>
-              <th className="pb-4">Monto</th>
+              <th className="pb-4">Monto Total</th>
               <th className="pb-4">Estado</th>
-              <th className="pb-4 text-right pr-4">Detalle</th>
+              <th className="pb-4 text-right pr-4">Acción</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((order) => {
-              const { class: statusClass, icon: statusIcon } = getStatusDetails(order.estado);
+              const { class: statusClass, icon: statusIcon } = getStatusDetails(order.estado || 'solicitado');
               return (
-                <tr key={order.id} className="group hover:bg-slate-50 transition-all">
-                  <td className="py-4 pl-4 bg-slate-50 group-hover:bg-white rounded-l-2xl border-y border-l border-transparent group-hover:border-slate-200">
-                    <span className="font-black text-slate-900 text-xs italic">#{order.id.toString().slice(0, 5)}</span>
+                <tr key={order.id} className="group hover:shadow-md transition-all">
+                  <td className="py-4 pl-4 bg-slate-50 group-hover:bg-white rounded-l-2xl border-y border-l border-transparent group-hover:border-slate-200 transition-all">
+                    <span className="font-black text-slate-900 text-[11px] italic">#{order.id.toString().padStart(5, '0')}</span>
                   </td>
-                  <td className="py-4">
+                  <td className="py-4 bg-slate-50 group-hover:bg-white border-y border-transparent group-hover:border-slate-200 transition-all">
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-700 text-sm truncate max-w-50">
-                        {order.clientes?.razon_social || 'Consumidor Final'}
+                      <span className="font-bold text-slate-700 text-[12px] uppercase leading-tight max-w-xs truncate">
+                        {order.clientes?.razon_social || 'Consumidor General'}
                       </span>
-                      <span className="text-[9px] text-slate-400 font-bold uppercase">
-                        {new Date(order.created_at).toLocaleDateString()}
+                      <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                        {new Date(order.created_at).toLocaleDateString('es-PE', {weekday: 'short', day: 'numeric', month: 'short'})}
                       </span>
                     </div>
                   </td>
-                  <td className="py-4">
-                    <span className="font-black text-slate-900 text-sm">S/ {order.total?.toLocaleString()}</span>
+                  <td className="py-4 bg-slate-50 group-hover:bg-white border-y border-transparent group-hover:border-slate-200 transition-all">
+                    <span className="font-black text-slate-900 text-[13px]">S/ {order.total?.toLocaleString()}</span>
                   </td>
-                  <td className="py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase border ${statusClass}`}>
+                  <td className="py-4 bg-slate-50 group-hover:bg-white border-y border-transparent group-hover:border-slate-200 transition-all">
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[8px] font-black uppercase border gap-1.5 ${statusClass}`}>
                       {statusIcon}
-                      {order.estado.replace('_', ' ')}
+                      {(order.estado || 'solicitado').replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="py-4 text-right pr-4 rounded-r-2xl border-y border-r border-transparent group-hover:border-slate-200 bg-slate-50 group-hover:bg-white">
-                    {/* Uso de Eye para la acción de ver */}
-                    <button className="p-2 hover:bg-slate-900 hover:text-white text-slate-400 rounded-xl transition-all">
-                      <Eye size={16} />
+                  <td className="py-4 pr-4 rounded-r-2xl border-y border-r border-transparent group-hover:border-slate-200 bg-slate-50 group-hover:bg-white transition-all text-right">
+                    <button className="p-2.5 hover:bg-slate-900 hover:text-white text-slate-400 rounded-xl transition-all inline-flex">
+                      <Eye size={16} strokeWidth={1.5} />
                     </button>
                   </td>
                 </tr>
@@ -111,12 +109,15 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
         </table>
       </div>
       
-      {/* Footer del widget con una alerta visual si hay muchas órdenes pendientes */}
-      <div className="mt-6 flex items-center gap-2 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-        <AlertCircle size={14} className="text-blue-600" />
-        <p className="text-[10px] font-bold text-blue-600 uppercase">
-          Tienes {orders.filter(o => o.estado === 'solicitado').length} órdenes nuevas por cotizar hoy.
-        </p>
+      {/* Footer - Quick Insights */}
+      <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-3">
+        <AlertCircle size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-[9px] font-black text-blue-900 uppercase tracking-wider">
+            {orders.filter(o => o.estado === 'solicitado').length} Órdenes Pendientes
+          </p>
+          <p className="text-[8px] text-blue-600 font-bold uppercase mt-1">Requieren cotización o aprobación</p>
+        </div>
       </div>
     </div>
   );

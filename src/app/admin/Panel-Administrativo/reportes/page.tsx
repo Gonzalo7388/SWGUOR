@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar, Cell
+  ResponsiveContainer, BarChart, Bar, Cell, Label
 } from "recharts";
 import { 
   TrendingUp, Calendar, Download, 
@@ -63,21 +63,25 @@ export default function ReportesPage() {
         
         {/* HEADER MODERNO */}
         <header className="relative overflow-hidden bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="space-y-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 text-rose-600 font-bold text-xs uppercase tracking-[0.2em] mb-2">
-                <Activity size={16} />
-                <span>Panel de Control General</span>
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-3 text-left">
+              <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+                <span>Panel de Inteligencia Empresarial</span>
               </div>
-              <h1 className="text-4xl font-black tracking-tighter text-slate-900">
-                Intelligence <span className="text-slate-400 font-light">Suite.</span>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">
+                Intelligence <span className="text-slate-300 font-light">Suite.<span className="text-rose-600">+</span></span>
               </h1>
+              <p className="text-slate-500 text-sm font-medium max-w-md">Análisis integral de rendimiento financiero y operativo</p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <div className="bg-slate-50 p-1 rounded-2xl flex items-center border border-slate-100">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch justify-end gap-3 w-full md:w-auto">
+              <div className="bg-slate-50 p-1 rounded-2xl flex items-center border border-slate-100 order-2 sm:order-1">
                 <Select value={range} onValueChange={setRange}>
-                  <SelectTrigger className="w-[180px] border-none bg-transparent shadow-none font-bold text-slate-600 focus:ring-0">
+                  <SelectTrigger className="w-full sm:w-[180px] border-none bg-transparent shadow-none font-bold text-slate-600 focus:ring-0">
                     <Calendar className="w-4 h-4 mr-2 text-rose-500" />
                     <SelectValue />
                   </SelectTrigger>
@@ -97,9 +101,9 @@ export default function ReportesPage() {
                   <RefreshCcw size={18} />
                 </Button>
               </div>
-              <Button className="bg-slate-900 hover:bg-rose-600 text-white rounded-2xl px-8 h-12 shadow-xl shadow-slate-200 transition-all font-bold">
+              <Button className="bg-rose-600 hover:bg-rose-700 text-white rounded-2xl px-8 h-12 shadow-lg shadow-rose-200 transition-all font-bold text-sm order-1 sm:order-2">
                 <Download className="w-4 h-4 mr-2" />
-                Exportar Datos
+                Exportar
               </Button>
             </div>
           </div>
@@ -134,7 +138,7 @@ export default function ReportesPage() {
               <CardContent className="p-8 h-[400px]">
                 {isMounted && (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={dataVentas}>
+                    <AreaChart data={dataVentas} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                       <defs>
                         <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#e11d48" stopOpacity={0.15}/>
@@ -142,10 +146,34 @@ export default function ReportesPage() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 600}} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 600}} tickFormatter={(v) => `S/${v}`} />
+                      <XAxis 
+                        dataKey="fecha" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fontSize: 11, fill: '#94a3b8', fontWeight: 500}} 
+                        dy={10}
+                      >
+                        <Label value="Período (Días)" position="bottom" offset={10} fill="#64748b" fontSize={12} fontWeight={600} />
+                      </XAxis>
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fontSize: 11, fill: '#94a3b8', fontWeight: 500}} 
+                        tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`}
+                      >
+                        <Label value="Monto (S/)" angle={-90} position="insideLeft" style={{textAnchor: 'middle'}} fill="#64748b" fontSize={12} fontWeight={600} />
+                      </YAxis>
                       <Tooltip content={<CustomTooltip />} />
-                      <Area type="monotone" dataKey="ventas" stroke="#e11d48" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+                      <Area 
+                        type="monotone" 
+                        dataKey="ventas" 
+                        stroke="#e11d48" 
+                        strokeWidth={4} 
+                        fillOpacity={1} 
+                        fill="url(#colorSales)" 
+                        dot={{ r: 5, fill: '#e11d48', strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 7, strokeWidth: 1 }}
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -160,9 +188,24 @@ export default function ReportesPage() {
               </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dataCategorias} margin={{ top: 20 }}>
+                  <BarChart data={dataCategorias} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b', fontWeight: 600}} />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 11, fill: '#64748b', fontWeight: 500}}
+                    >
+                      <Label value="Categorías" position="bottom" offset={10} fill="#64748b" fontSize={12} fontWeight={600} />
+                    </XAxis>
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 11, fill: '#64748b', fontWeight: 500}}
+                      tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`}
+                    >
+                      <Label value="Monto Ventas (S/)" angle={-90} position="insideLeft" style={{textAnchor: 'middle'}} fill="#64748b" fontSize={12} fontWeight={600} />
+                    </YAxis>
                     <Tooltip cursor={{fill: '#f8fafc'}} content={<CustomTooltip />} />
                     <Bar dataKey="value" radius={[12, 12, 12, 12]} barSize={50}>
                       {dataCategorias.map((entry, index) => (
@@ -230,24 +273,24 @@ export default function ReportesPage() {
 
 function StatCard({ label, value, trend, icon: Icon, color, sub }: any) {
   const colors: any = {
-    rose: "bg-rose-50 text-rose-600",
-    indigo: "bg-indigo-50 text-indigo-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
+    rose: "bg-rose-50 text-rose-600 border-rose-100",
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
   };
 
   return (
-    <Card className="border-none shadow-sm rounded-[2.5rem] p-7 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <Card className="border-2 shadow-sm rounded-[2.5rem] p-7 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
       <div className="flex justify-between items-start mb-6">
-        <div className={`p-4 rounded-2xl ${colors[color]}`}><Icon size={24} /></div>
-        <div className="flex items-center gap-1 text-[10px] font-black px-3 py-1.5 bg-slate-50 rounded-xl text-slate-500 uppercase tracking-tighter">
-          <ArrowUpRight size={12} className="text-emerald-500" /> {trend}
+        <div className={`p-3.5 rounded-2xl border ${colors[color]}`}><Icon size={22} strokeWidth={1.8} /></div>
+        <div className="flex items-center gap-1.5 text-[9px] font-black px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl uppercase tracking-tighter border border-emerald-100">
+          <ArrowUpRight size={11} /> {trend}
         </div>
       </div>
-      <div className="space-y-1">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em]">{label}</p>
-        <h4 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h4>
-        <p className="text-[11px] text-slate-400 font-bold">{sub}</p>
+      <div className="space-y-2">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] leading-none">{label}</p>
+        <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter leading-none">{value}</h3>
+        <p className="text-[10px] text-slate-500 font-medium mt-3">{sub}</p>
       </div>
     </Card>
   );
@@ -255,11 +298,26 @@ function StatCard({ label, value, trend, icon: Icon, color, sub }: any) {
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const value = payload[0].value;
+    const formatted = formatCurrency(value);
+    
     return (
-      <div className="bg-slate-900 p-5 rounded-3xl shadow-2xl border border-slate-800 scale-110">
-        <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-2">Detalle de Registro</p>
-        <p className="text-slate-400 text-xs font-bold mb-1">{payload[0].payload.name || payload[0].payload.fecha}</p>
-        <p className="text-white text-xl font-black">{formatCurrency(payload[0].value)}</p>
+      <div className="bg-slate-900 p-5 rounded-2xl shadow-2xl border border-slate-700 scale-95 origin-bottom">
+        <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-3">Detalle de Registro</p>
+        <p className="text-slate-400 text-[11px] font-bold mb-2">{data.name || data.fecha}</p>
+        <div className="space-y-1 border-t border-slate-700 pt-3">
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] text-slate-500 uppercase tracking-wider">Monto:</span>
+            <span className="text-white text-sm font-black">{formatted}</span>
+          </div>
+          {data.quantity && (
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] text-slate-500 uppercase tracking-wider">Cantidad:</span>
+              <span className="text-slate-300 text-sm font-bold">{data.quantity} und.</span>
+            </div>
+          )}
+        </div>
       </div>
     );
   }

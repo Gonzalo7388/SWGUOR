@@ -1,13 +1,9 @@
 "use client";
 
 import React from "react";
-import { 
-  ShoppingCart, Users, Clock, Plus, 
-  Search, ClipboardList, Wallet, ArrowUpRight,
-  UserPlus, PackagePlus
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Clock, TrendingUp, Users } from 'lucide-react';
 import DashboardCharts from "./DashboardCharts";
 
 type Usuario = {
@@ -29,53 +25,66 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
     <div className="space-y-8 p-6 bg-[#fcfcfe] min-h-screen">
       
       {/* HEADER DE BIENVENIDA */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-            Atención al Cliente
-          </h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-2 italic">
-            Bienvenido, {usuario.nombre_completo.split(' ')[0]} • Recepción Central
-          </p>
-        </div>
-        
-        <div className="flex bg-white p-2 rounded-3xl border border-slate-100 shadow-sm">
-          <div className="px-6 py-2 text-right">
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Caja del Día</p>
-             <p className="text-xl font-black text-emerald-600">S/ 4,280.50</p>
+      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+              </span>
+              Centro de Atención
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+              Atención al Cliente
+            </h1>
+            <p className="text-slate-500 text-sm font-medium">Bienvenido, {usuario.nombre_completo.split(' ')[0]} • Recepción Central</p>
           </div>
-          <div className="w-px bg-slate-100 h-10 my-auto" />
-          <div className="px-6 py-2">
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado</p>
-             <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-900 uppercase">
-               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> En Línea
-             </span>
+          
+          <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl border border-slate-100 shadow-sm h-fit">
+            <div className="space-y-4">
+              <div className="text-right">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Caja del Día</p>
+                <p className="text-3xl font-black text-emerald-600 mt-2 leading-none">S/ 4,280.50</p>
+              </div>
+              <div className="w-px bg-slate-200 h-px" />
+              <div className="flex items-center gap-2">
+                <div className="flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado Sistema</p>
+                  <p className="text-[10px] font-black text-slate-900 uppercase mt-1">En Línea</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* KPI GRID - MÉTRICAS DE SERVICIO */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <KpiCard 
           title="Por Confirmar" 
           value="08" 
-          icon={<Clock size={22} />} 
           color="orange" 
           detail="Pedidos web"
+          icon={Clock}
         />
         <KpiCard 
           title="Ventas Hoy" 
           value="12" 
-          icon={<Wallet size={22} />} 
           color="blue" 
           detail="Procesadas hoy"
+          icon={TrendingUp}
         />
         <KpiCard 
           title="Clientes Nuevos" 
           value="05" 
-          icon={<UserPlus size={22} />} 
           color="emerald" 
           detail="Registrados hoy"
+          icon={Users}
         />
       </div>
 
@@ -90,31 +99,19 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Link href="/dashboard/pedidos/nuevo" className="group">
                 <div className="bg-slate-900 p-6 rounded-[2rem] text-white flex items-center justify-between hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-slate-200">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white/10 p-3 rounded-2xl group-hover:rotate-6 transition-transform">
-                      <PackagePlus size={24} />
-                    </div>
-                    <div>
-                      <p className="font-black uppercase text-xs">Nuevo Pedido</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Registrar venta o proforma</p>
-                    </div>
+                  <div>
+                    <p className="font-black uppercase text-xs">Nuevo Pedido</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Registrar venta o proforma</p>
                   </div>
-                  <Plus size={20} className="text-slate-500" />
                 </div>
               </Link>
 
               <Link href="/dashboard/clientes/nuevo" className="group">
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:border-blue-200 hover:shadow-xl hover:shadow-blue-50 transition-all cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl group-hover:rotate-6 transition-transform">
-                      <UserPlus size={24} />
-                    </div>
-                    <div>
-                      <p className="font-black uppercase text-xs text-slate-800">Registrar Cliente</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Alta de nuevo usuario</p>
-                    </div>
+                  <div>
+                    <p className="font-black uppercase text-xs text-slate-800">Registrar Cliente</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Alta de nuevo usuario</p>
                   </div>
-                  <Plus size={20} className="text-slate-200" />
                 </div>
               </Link>
             </div>
@@ -123,8 +120,7 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
           {/* LISTA DE SEGUIMIENTO */}
           <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-50">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="font-black uppercase text-slate-800 text-sm flex items-center gap-2">
-                <ClipboardList size={18} className="text-blue-600" />
+              <h3 className="font-black uppercase text-slate-800 text-sm">
                 Pendientes de Confirmación
               </h3>
               <button className="text-[10px] font-black text-blue-600 uppercase hover:underline">Ver todos</button>
@@ -159,7 +155,6 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
                       </td>
                       <td className="py-4 text-right">
                         <button className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-slate-400 hover:text-blue-600 transition-all">
-                          <ArrowUpRight size={16} />
                         </button>
                       </td>
                     </tr>
@@ -174,8 +169,7 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
         <div className="lg:col-span-4 space-y-8">
           
           <div className="bg-slate-900 p-8 rounded-[3rem] shadow-2xl text-white">
-            <h3 className="font-black uppercase tracking-widest text-[10px] mb-6 flex items-center gap-2">
-              <Search className="text-blue-400" size={14} />
+            <h3 className="font-black uppercase tracking-widest text-[10px] mb-6">
               Analítica de Ventas
             </h3>
             
@@ -194,9 +188,6 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
           </div>
 
           <div className="bg-indigo-50 p-8 rounded-[3rem] border border-indigo-100 flex items-center gap-4">
-            <div className="p-3 bg-white rounded-2xl text-indigo-600 shadow-sm">
-              <ClipboardList size={20} />
-            </div>
             <div>
               <p className="text-[10px] font-black text-indigo-900 uppercase">Nota de Turno</p>
               <p className="text-[11px] text-indigo-700 italic font-medium leading-tight">
@@ -213,22 +204,16 @@ export default function DashboardRecepcionista({ usuario }: { usuario: Usuario }
 }
 
 // SUB-COMPONENTE KPI
-function KpiCard({ title, value, icon, color, isAlert, detail }: any) {
-  const colorMap: any = { 
-    orange: 'bg-orange-50 text-orange-600', 
-    blue: 'bg-blue-50 text-blue-600', 
-    emerald: 'bg-emerald-50 text-emerald-600' 
-  };
-  
+function KpiCard({ title, value, color, isAlert, detail, icon: Icon }: any) {
   return (
     <div className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all group ${
       isAlert ? 'border-rose-100 shadow-lg' : 'border-transparent shadow-sm'
     }`}>
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:-rotate-6 transition-transform ${colorMap[color]}`}>
-        {icon}
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon className="w-4 h-4 text-slate-400" />}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-      <div className="flex items-baseline gap-2 mt-2">
+      <div className="flex items-baseline gap-2">
         <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">{detail}</p>
       </div>

@@ -17,7 +17,7 @@ const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   administrador: AdminDashboard,
   ayudante: DashboardAyudante,
   cortador: DashboardCortador,
-  diseñador: DashboardDiseñador,
+  disenador: DashboardDiseñador,
   recepcionista: DashboardRecepcionista,
   representante_taller: DashboardRepresentante,
 };
@@ -60,21 +60,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-30">
-        <div className="max-w-[1700px] mx-auto px-6 md:px-8 py-6">
+      <header className="bg-white border-b border-slate-100">
+        <div className="max-w-[1700px] mx-auto px-6 md:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   {usuario.rol?.replace('_', ' ')}
                 </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-950 tracking-tight">
                 Bienvenido, {usuario.nombre_completo?.split(' ')[0] || "Usuario"}
               </h1>
             </div>
             
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold text-slate-700 whitespace-nowrap">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-bold text-slate-700 whitespace-nowrap">
               <div className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>

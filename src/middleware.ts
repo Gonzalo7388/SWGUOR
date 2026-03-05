@@ -5,20 +5,20 @@ import { userCache } from '@/lib/cache';
 // CONFIGURACIÓN DE PERMISOS POR ROL
 
 const routePermissions: Record<string, string[]> = {
-  '/admin/Panel-Administrativo/dashboard': ['administrador', 'recepcionista', 'diseñador', 'cortador', 'ayudante', 'representante_taller'],
+  '/admin/Panel-Administrativo/dashboard': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
   '/admin/Panel-Administrativo/usuarios': ['administrador'],
   '/admin/Panel-Administrativo/clientes': ['administrador', 'recepcionista'],
-  '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'diseñador', 'cortador'],
-  '/admin/Panel-Administrativo/productos': ['administrador', 'diseñador'],
-  '/admin/Panel-Administrativo/inventario': ['administrador', 'diseñador'],
+  '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'disenador', 'cortador'],
+  '/admin/Panel-Administrativo/productos': ['administrador', 'disenador'],
+  '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador'],
   '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller'],
   '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista'],
-  '/admin/Panel-Administrativo/categorias': ['administrador', 'diseñador'],
+  '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador'],
   '/admin/Panel-Administrativo/talleres': ['administrador'],
   '/admin/Panel-Administrativo/ventas': ['administrador', 'recepcionista'],
   '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista'],
   '/admin/Panel-Administrativo/pagos': ['administrador'],
-  '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'diseñador', 'cortador', 'ayudante', 'representante_taller'],
+  '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
 };
 
 const ESTADO_ACTIVO = 'ACTIVO'; // Cambiado a mayúsculas

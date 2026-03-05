@@ -41,9 +41,11 @@ export default function ProductosPage() {
 
   const canManageFichas = useMemo(() => {
     if (!usuario?.rol) return false;
-  const rolActual = usuario.rol.toLowerCase().trim();
-  return rolActual === 'diseñador' || rolActual === 'administrador';
-}, [usuario]);
+    const rolActual = usuario.rol.toLowerCase().trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    return rolActual === 'disenador' || rolActual === 'administrador';
+  }, [usuario]);
 
   const loadCategorias = useCallback(async () => {
     try {
@@ -67,7 +69,7 @@ export default function ProductosPage() {
     if (productos.length > 0) {
       setStats({
         total: productos.length,
-        bajoStock: productos.filter((p: any) => p.stock > 0 && p.stock <= (p.stock_minimo || 5)).length,
+        bajoStock: productos.filter((p: any) => p.stock > 0 && p.stock <= 5).length,
         agotados: productos.filter((p: any) => p.stock === 0).length,
         lineas: categorias.length
       });
@@ -88,7 +90,7 @@ export default function ProductosPage() {
       "Categoría": categorias.find(c => c.id === p.categoria_id)?.nombre || "Sin categoría",
       "Stock": p.stock,
       "Precio": p.precio,
-      "Estado": p.stock === 0 ? "Agotado" : p.stock <= (p.stock_minimo || 5) ? "Bajo Stock" : "Disponible"
+      "Estado": p.stock === 0 ? "Agotado" : p.stock <= 5 ? "Bajo Stock" : "Disponible"
     }));
     exportToExcel(dataToExport as any, { filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}` });
     toast.success("Excel generado correctamente");
@@ -109,7 +111,7 @@ export default function ProductosPage() {
       const matchSearch = !search || p.nombre.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search);
       const matchCat = selectedCategoria === "todos" || p.categoria_id === Number(selectedCategoria);
       let matchQuick = true;
-      if (quickFilter === "bajo_stock") matchQuick = p.stock > 0 && p.stock <= (p.stock_minimo || 5);
+      if (quickFilter === "bajo_stock") matchQuick = p.stock > 0 && p.stock <= 5;
       if (quickFilter === "agotados") matchQuick = p.stock === 0;
 
       return matchSearch && matchCat && matchQuick;

@@ -2,33 +2,27 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { 
-  Palette, Package, FileText, CheckCircle, 
-  ShoppingCart, Upload, Eye, AlertCircle, 
-  ArrowRight, Search, Plus, Layers,
-  CloudUpload, PenTool
-} from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { Usuario } from '@/types';
 import { useRouter } from 'next/navigation';
+import { Upload, Eye, CheckCircle, AlertCircle, ClipboardList, Layers, FileText, Inbox } from 'lucide-react';
 
 // --- INTERFACES ---
 // Campos reales de la tabla 'productos' en Supabase
 interface DBProducto {
   id: number;
   nombre: string | null;
-  categoria_id: number | null; // la tabla no tiene 'categoria', solo 'categoria_id'
+  categoria_id: number | null;
   created_at: string;
-  // ficha_url no existe en la tabla productos — fue eliminado
 }
 
 // Campos reales de la tabla 'pedidos' en Supabase
 interface DBPedido {
   id: number;
-  nombre_producto_snapshot: string | null; // la tabla no tiene 'descripcion'
+  nombre_producto_snapshot: string | null; 
   cantidad: number | null;
-  updated_at: string | null;               // la tabla no tiene 'fecha_entrega'
+  updated_at: string | null;               
   prioridad: string | null;
 }
 
@@ -85,8 +79,6 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
         supabase
           .from('pedidos')
           .select('*')
-          // ✅ 'en_proceso' no existe — estados válidos de EstadoPedido:
-          // 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado'
           .in('estado', ['pendiente', 'corte', 'costura'])
           .order('created_at', { ascending: false })
           .limit(4)
@@ -95,7 +87,6 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
       const productosData = (productosRes.data as DBProducto[]) || [];
       const productosCount = productosRes.count || 0;
 
-      // ficha_url no existe → fichasPendientes basado en otra lógica
       // Usamos productosCount como base para diseñosCompletados
       setStats({
         productosActivos: productosCount,
@@ -187,46 +178,52 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
     <div className="space-y-10 p-6 bg-[#FDFDFF] min-h-screen font-sans">
       
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-8">
-        <div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none italic">
-            Studio <span className="text-pink-600">.</span>
-          </h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-3">
-            Gestión de Diseño • {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-600"></span>
+              </span>
+              Estudio Creativo
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none italic">
+              Studio <span className="text-pink-600 font-black">.</span>
+            </h1>
+            <p className="text-slate-500 text-sm font-medium mt-2">
+              Gestión de Diseño • {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+          
+          <div className="flex gap-2 md:gap-3 h-fit">
+            <QuickActionBtn 
+              label="Nuevo Modelo" 
+              color="bg-white border-slate-200 text-slate-900 hover:border-pink-500 hover:text-pink-600 shadow-sm" 
+              onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
+            />
+            <QuickActionBtn 
+              label="Catálogo" 
+              color="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200" 
+              onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
+            />
+          </div>
         </div>
-        
-        <div className="flex gap-3">
-          <QuickActionBtn 
-            icon={Plus} 
-            label="Nuevo Modelo" 
-            color="bg-white border-slate-200 text-slate-900 hover:border-pink-500 hover:text-pink-600 shadow-sm" 
-            onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
-          />
-          <QuickActionBtn 
-            icon={Search} 
-            label="Catálogo" 
-            color="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200" 
-            onClick={() => router.push('/admin/Panel-Administrativo/productos')} 
-          />
-        </div>
-      </div>
+      </header>
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Modelos Totales" value={stats.productosActivos} icon={<Layers size={20}/>} color="text-indigo-600" bgColor="bg-indigo-50" />
-        <StatCard label="Fichas por Hacer" value={stats.fichasPendientes} icon={<PenTool size={20}/>} color="text-pink-600" bgColor="bg-pink-50" isCritical={stats.fichasPendientes > 0} />
-        <StatCard label="Pedidos en Cola" value={stats.pedidosAsignados} icon={<ShoppingCart size={20}/>} color="text-amber-600" bgColor="bg-amber-50" />
-        <StatCard label="Listos para Taller" value={stats.diseñosCompletados} icon={<CheckCircle size={20}/>} color="text-emerald-600" bgColor="bg-emerald-50" />
+        <StatCard label="Modelos Totales" value={stats.productosActivos} color="text-indigo-600" bgColor="bg-indigo-50" icon={Layers} />
+        <StatCard label="Fichas por Hacer" value={stats.fichasPendientes} color="text-pink-600" bgColor="bg-pink-50" isCritical={stats.fichasPendientes > 0} icon={FileText} />
+        <StatCard label="Pedidos en Cola" value={stats.pedidosAsignados} color="text-amber-600" bgColor="bg-amber-50" icon={Inbox} />
+        <StatCard label="Listos para Taller" value={stats.diseñosCompletados} color="text-emerald-600" bgColor="bg-emerald-50" icon={CheckCircle} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         
         {/* BANDEJA DE PRODUCCIÓN */}
         <div className="lg:col-span-8 space-y-6">
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Palette size={14} className="text-pink-600" />
+          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">
             Bandeja de Producción Reciente
           </h2>
           
@@ -262,15 +259,15 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
                     {uploadingId === product.id ? (
                       <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
                     ) : (
-                      <><CloudUpload size={14}/> Subir Imagen</>
+                      <><Upload className="w-3.5 h-3.5" /> Subir Imagen</>
                     )}
                   </label>
 
                   <button 
                     onClick={() => handleViewFile(product.id)}
-                    className="w-14 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-pink-600 hover:border-pink-200 transition-all flex items-center justify-center"
+                    className="w-14 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-pink-600 hover:border-pink-200 transition-all flex items-center justify-center hover:shadow-lg hover:shadow-pink-100"
                   >
-                    <Eye size={18} />
+                    <Eye className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -302,9 +299,10 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
 
             <button 
               onClick={() => router.push('/admin/Panel-Administrativo/pedidos')}
-              className="w-full mt-12 py-5 bg-white text-slate-900 hover:bg-pink-50 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95"
+              className="w-full mt-12 py-5 bg-white text-slate-900 hover:bg-pink-50 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg shadow-slate-900/20 hover:shadow-xl"
             >
-              Hoja de Ruta <ArrowRight size={14} />
+              <ClipboardList className="w-4 h-4" />
+              Hoja de Ruta
             </button>
           </div>
         </div>
@@ -318,21 +316,22 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
 function StatusBadge({ status }: { status: string }) {
   const isOk = status === 'Aprobado';
   return (
-    <span className={`text-[8px] font-black px-3 py-1.5 rounded-lg uppercase ${
+    <span className={`text-[8px] font-black px-3 py-1.5 rounded-lg uppercase flex items-center gap-1.5 ${
       isOk ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-rose-100 text-rose-700 border border-rose-200'
     }`}>
+      {isOk ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
       {status}
     </span>
   );
 }
 
-function StatCard({ label, value, icon, color, bgColor, isCritical }: any) {
+function StatCard({ label, value, color, bgColor, isCritical, icon: Icon }: any) {
   return (
     <div className={`bg-white p-6 rounded-[2rem] border transition-all flex items-center gap-5 ${
       isCritical ? 'border-pink-200 shadow-lg shadow-pink-50' : 'border-slate-100 shadow-sm'
     }`}>
       <div className={`${bgColor} w-14 h-14 rounded-2xl flex items-center justify-center ${color}`}>
-        {icon}
+        {Icon && <Icon className="w-6 h-6" />}
       </div>
       <div>
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1">{label}</p>
@@ -342,13 +341,12 @@ function StatCard({ label, value, icon, color, bgColor, isCritical }: any) {
   );
 }
 
-function QuickActionBtn({ icon: Icon, label, color, onClick }: any) {
+function QuickActionBtn({ label, color, onClick }: any) {
   return (
     <button
       onClick={onClick}
       className={`${color} px-8 py-4 rounded-2xl flex items-center gap-3 transition-all hover:-translate-y-1 active:scale-95 border text-[10px] font-black uppercase tracking-widest`}
     >
-      <Icon size={16} />
       {label}
     </button>
   );

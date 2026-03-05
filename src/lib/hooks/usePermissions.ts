@@ -34,18 +34,23 @@ const ROLE_PERMISSIONS: { [role: string]: AppPermissions } = {
   },
   disenador: {
     productos: ['view', 'create', 'edit'], 
+    categorias: ['view', 'create', 'edit'],
     confecciones: ['view', 'create', 'edit'], 
     pedidos: ['view'],
+    inventario: ['view'],
+    reportes: ['view'],
   },
   cortador: {
     productos: ['view'], 
     confecciones: ['view', 'update_status'],
+    inventario: ['view'],
     pedidos: ['view'],
   },
   ayudante: {
     productos: ['view'],
     confecciones: ['view'],
     despachos: ['view', 'update_status'],
+    inventario: ['view'],
   },
 };
 

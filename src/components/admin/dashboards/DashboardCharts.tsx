@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Label
 } from 'recharts';
 import { Download, TrendingUp, TrendingDown, Package, ShoppingCart, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -129,17 +129,51 @@ export default function DashboardCharts({ minimal = false }: DashboardChartsProp
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
                 <div className="flex justify-between items-center mb-10">
-                  <h3 className="font-black uppercase text-slate-800 tracking-tight">Flujo de Ingresos</h3>
-                  <span className="text-emerald-600 font-black text-[10px] bg-emerald-50 px-4 py-1.5 rounded-full uppercase tracking-tighter">↑ +12.5% vs mes anterior</span>
+                  <div>
+                    <h3 className="font-black uppercase text-slate-800 tracking-tight text-lg">Flujo de Ingresos</h3>
+                    <p className="text-slate-400 text-sm font-medium mt-1">Comparativa de ventas vs meta</p>
+                  </div>
+                  <span className="text-emerald-600 font-black text-[10px] bg-emerald-50 px-4 py-1.5 rounded-full uppercase tracking-tighter border border-emerald-100">↑ +12.5% vs mes anterior</span>
                 </div>
                 <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={ventasData}>
+                  <LineChart data={ventasData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="fecha" tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-                    <YAxis hide />
+                    <XAxis 
+                      dataKey="fecha" 
+                      tick={{fontSize: 11, fontWeight: 600, fill: '#64748b'}} 
+                      axisLine={false} 
+                      tickLine={false}
+                      dy={10}
+                    >
+                      <Label value="Período (Días)" position="bottom" offset={10} fill="#64748b" fontSize={12} fontWeight={600} />
+                    </XAxis>
+                    <YAxis 
+                      tick={{fontSize: 11, fontWeight: 600, fill: '#64748b'}}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`}
+                    >
+                      <Label value="Monto (S/)" angle={-90} position="insideLeft" style={{textAnchor: 'middle'}} fill="#64748b" fontSize={12} fontWeight={600} />
+                    </YAxis>
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="ventas" stroke="#f43f5e" strokeWidth={4} dot={{ r: 4, fill: '#f43f5e' }} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="meta" stroke="#cbd5e1" strokeWidth={2} strokeDasharray="8 8" dot={false} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="ventas" 
+                      stroke="#f43f5e" 
+                      strokeWidth={4} 
+                      dot={{ r: 5, fill: '#f43f5e', strokeWidth: 2, stroke: '#fff' }} 
+                      activeDot={{ r: 7, strokeWidth: 1 }}
+                      name="Ventas Reales"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="meta" 
+                      stroke="#cbd5e1" 
+                      strokeWidth={2.5} 
+                      strokeDasharray="8 8" 
+                      dot={false}
+                      name="Meta Esperada"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -163,18 +197,24 @@ export default function DashboardCharts({ minimal = false }: DashboardChartsProp
 
 function StatCard({ label, value, trend, icon }: any) {
   return (
-    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-slate-50 rounded-lg text-slate-400">{icon}</div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-      </div>
-      <div className="flex items-baseline justify-between">
-        <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
-        {trend && (
-          <div className={`text-[10px] font-black px-2 py-1 rounded-lg ${trend > 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
-            {trend > 0 ? '+' : ''}{trend}%
+    <div className="bg-white p-7 rounded-[2rem] border-2 border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className="flex items-center justify-between mb-4">
+        <div className="p-3 bg-slate-50 rounded-xl text-slate-600 hover:text-slate-900 transition-colors">
+          {icon}
+        </div>
+        {trend !== false && (
+          <div className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-tighter border ${
+            trend > 0 
+              ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
+              : 'text-rose-600 bg-rose-50 border-rose-100'
+          }`}>
+            {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
           </div>
         )}
+      </div>
+      <div className="space-y-2">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">{label}</p>
+        <h4 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter leading-none">{value}</h4>
       </div>
     </div>
   );
@@ -183,14 +223,24 @@ function StatCard({ label, value, trend, icon }: any) {
 const CustomTooltip = ({ active, payload, label, dark }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className={`${dark ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-900'} text-white p-4 rounded-2xl shadow-2xl text-[10px] font-bold uppercase border`}>
-        <p className="mb-2 opacity-50">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: entry.color}} />
-            {entry.name}: {entry.value}
-          </p>
-        ))}
+      <div className={`${dark ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800'} text-white p-4 rounded-2xl shadow-2xl border min-w-[200px]`}>
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">{label}</p>
+        <div className="space-y-2 border-t border-slate-700 pt-3">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span 
+                  className="w-2.5 h-2.5 rounded-full" 
+                  style={{backgroundColor: entry.color}} 
+                />
+                <span className="text-[9px] uppercase font-bold text-slate-300">{entry.name}</span>
+              </div>
+              <span className="text-sm font-black text-white">
+                {entry.name.includes('Meta') ? entry.value : `S/${(entry.value/1000).toFixed(1)}k`}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

@@ -1,11 +1,7 @@
 "use client";
 
 import React from "react";
-import { 
-  Users, Clock, CheckCircle, Package, 
-  Activity, ArrowUpRight, Hammer, 
-  AlertTriangle, Settings2, PlayCircle 
-} from "lucide-react";
+import { Zap, Truck, Users } from 'lucide-react';
 import DashboardCharts from "./DashboardCharts";
 
 type Usuario = {
@@ -27,27 +23,24 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
     <div className="space-y-8 p-6 bg-[#f9fafb] min-h-screen">
       
       {/* HEADER DE CONTROL */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-slate-900 rounded-[2rem] shadow-2xl shadow-slate-200">
-            <Hammer className="text-emerald-400" size={28} />
-          </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
+              </span>
+              Producción en Vivo
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
               Planta <span className="text-slate-400 font-light">de</span> Confección
             </h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-2">
-              Línea de Producción Activa • {usuario.nombre_completo}
-            </p>
+            <p className="text-slate-500 text-sm font-medium">Línea de producción activa • {usuario.nombre_completo}</p>
           </div>
-        </div>
 
-        <div className="flex gap-2">
-          <button className="p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
-            <Settings2 size={20} className="text-slate-600" />
-          </button>
-          <button className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2">
-            <PlayCircle size={18} /> Iniciar Nuevo Lote
+          <button className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-lg hover:from-emerald-500 hover:to-emerald-400 transition-all shadow-lg shadow-emerald-200 h-fit">
+            Iniciar Nuevo Lote
           </button>
         </div>
       </header>
@@ -57,23 +50,23 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
         <KpiCard 
           title="Lotes en Costura" 
           value="18" 
-          icon={<Activity size={24} />} 
           color="orange" 
           detail="85% capacidad"
+          icon={Zap}
         />
         <KpiCard 
           title="Salida del Día" 
           value="42" 
-          icon={<CheckCircle size={24} />} 
           color="emerald" 
           detail="Meta: 50 prendas"
+          icon={Truck}
         />
         <KpiCard 
           title="Equipo Taller" 
           value="08" 
-          icon={<Users size={24} />} 
           color="blue" 
           detail="4 módulos activos"
+          icon={Users}
         />
       </div>
 
@@ -83,8 +76,7 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
         <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] shadow-xl border border-slate-50">
           <div className="flex justify-between items-center mb-10">
             <div>
-              <h3 className="font-black uppercase text-slate-800 tracking-tight flex items-center gap-2">
-                <Package className="text-orange-500" size={20} />
+              <h3 className="font-black uppercase text-slate-800 tracking-tight">
                 Progreso de Manufactura
               </h3>
               <p className="text-slate-400 text-[10px] font-bold uppercase mt-1">Tiempo real por módulo</p>
@@ -103,8 +95,8 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
                       <h4 className="font-black text-slate-800 uppercase text-sm group-hover:text-orange-600 transition-colors">
                         {lote.prenda}
                       </h4>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-2 mt-1">
-                        <Users size={12} /> {lote.operarios} Operarios asignados
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">
+                        {lote.operarios} Operarios asignados
                       </p>
                     </div>
                   </div>
@@ -130,9 +122,6 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
                     }`}>
                       {lote.prioridad}
                     </span>
-                    <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-slate-900 hover:shadow-md transition-all">
-                      <ArrowUpRight size={18} />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -149,7 +138,6 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
           </div>
 
           <div className="bg-rose-50 p-8 rounded-[3rem] border border-rose-100 relative overflow-hidden">
-            <AlertTriangle className="absolute -right-2 -bottom-2 text-rose-200/50" size={80} />
             <div className="relative z-10">
               <h4 className="text-[10px] font-black text-rose-900 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-ping" />
@@ -162,12 +150,7 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
           </div>
 
           <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
-             <div className="flex items-center gap-3 mb-4">
-               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                 <Users size={20} />
-               </div>
-               <h4 className="text-[10px] font-black text-slate-800 uppercase">Personal en Turno</h4>
-             </div>
+             <h4 className="text-[10px] font-black text-slate-800 uppercase mb-4">Personal en Turno</h4>
              <div className="flex -space-x-3">
                {[1,2,3,4,5].map(i => (
                  <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold">
@@ -186,20 +169,14 @@ export default function DashboardRepresentante({ usuario }: { usuario: Usuario }
   );
 }
 
-function KpiCard({ title, value, icon, color, detail }: any) {
-  const colorMap: any = { 
-    orange: 'bg-orange-50 text-orange-600', 
-    blue: 'bg-blue-50 text-blue-600', 
-    emerald: 'bg-emerald-50 text-emerald-600' 
-  };
-  
+function KpiCard({ title, value, color, detail, icon: Icon }: any) {
   return (
     <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-transparent hover:border-slate-100 transition-all">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${colorMap[color]}`}>
-        {icon}
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon className="w-4 h-4 text-slate-400" />}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-      <div className="flex items-baseline gap-2 mt-1">
+      <div className="flex items-baseline gap-2">
         <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
         <p className="text-[9px] font-bold text-slate-400 uppercase italic">{detail}</p>
       </div>

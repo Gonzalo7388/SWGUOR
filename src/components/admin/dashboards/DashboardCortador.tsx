@@ -1,11 +1,7 @@
 "use client";
 
 import React from "react";
-import { 
-  Scissors, Clock, CheckCircle, AlertCircle, 
-  Layers, Ruler, ChevronRight, Play, 
-  TrendingUp
-} from "lucide-react";
+import { Scissors, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 import DashboardCharts from "./DashboardCharts";
 
 type Usuario = {
@@ -27,30 +23,31 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
     <div className="space-y-8 p-4 md:p-8 bg-[#f8fafc] min-h-screen font-sans">
       
       {/* HEADER OPERATIVO */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-5">
-          <div className="p-4 bg-indigo-600 rounded-[2rem] shadow-xl shadow-indigo-100 rotate-3">
-            <Scissors className="text-white" size={32} />
+      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
+              </span>
+              Estación de Corte
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">Centro de Corte</h1>
+            <p className="text-slate-500 text-sm font-medium">Mesa 01 • Estación de Alta Precisión</p>
           </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Centro de Corte</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="bg-indigo-100 text-indigo-700 text-[9px] font-black px-2 py-0.5 rounded-md uppercase">Mesa 01</span>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Estación de Alta Precisión</p>
+
+          <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4 h-fit">
+            <div className="text-right">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Eficiencia Hoy</p>
+              <p className="text-3xl font-black text-slate-900 leading-none mt-2">94.2%</p>
+            </div>
+            <div className="w-px bg-slate-200 h-px" />
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Turno Active</p>
+              <p className="text-sm font-black text-indigo-600 uppercase mt-2">Mañana</p>
             </div>
           </div>
-        </div>
-
-        <div className="flex gap-4 bg-white p-3 rounded-[2rem] shadow-sm border border-slate-100">
-           <div className="text-right px-4">
-              <p className="text-[9px] font-black text-slate-400 uppercase">Eficiencia Hoy</p>
-              <p className="text-xl font-black text-slate-900">94.2%</p>
-           </div>
-           <div className="w-px bg-slate-100 h-10" />
-           <div className="px-4">
-              <p className="text-[9px] font-black text-slate-400 uppercase">Turno</p>
-              <p className="text-xl font-black text-indigo-600 uppercase italic">Mañana</p>
-           </div>
         </div>
       </header>
 
@@ -59,24 +56,24 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
         <KpiCard 
           title="Cortes Pendientes" 
           value="15" 
-          icon={<Clock size={24} />} 
           color="indigo" 
           detail="Aprox. 320 capas"
+          icon={Scissors}
         />
         <KpiCard 
           title="Completados Hoy" 
           value="23" 
-          icon={<CheckCircle size={24} />} 
           color="emerald" 
           detail="+15% vs ayer"
+          icon={CheckCircle2}
         />
         <KpiCard 
           title="Lotes Urgentes" 
           value="3" 
-          icon={<AlertCircle size={24} />} 
           color="rose" 
           isAlert={true}
           detail="Prioridad de despacho"
+          icon={AlertTriangle}
         />
       </div>
 
@@ -87,9 +84,7 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
           <div className="flex justify-between items-center mb-10">
             <div>
               <h3 className="font-black uppercase text-slate-800 tracking-tight">Orden de Trabajo</h3>
-              <p className="text-slate-400 text-xs font-medium">Siguiente lote en línea de corte</p>
             </div>
-            <Layers className="text-slate-200" size={40} />
           </div>
 
           <div className="space-y-4">
@@ -105,11 +100,11 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
                     <div>
                       <h4 className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors uppercase text-sm">{t.producto}</h4>
                       <div className="flex gap-4 mt-1">
-                        <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                          <Layers size={12} /> {t.capas} capas
+                        <span className="text-[10px] text-slate-500 font-bold">
+                          {t.capas} capas
                         </span>
-                        <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                          <Ruler size={12} /> {t.tela}
+                        <span className="text-[10px] text-slate-500 font-bold">
+                          {t.tela}
                         </span>
                       </div>
                     </div>
@@ -121,8 +116,8 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
                     }`}>
                       {t.prioridad}
                     </span>
-                    <button className="bg-slate-900 text-white p-3 rounded-2xl hover:bg-indigo-600 transition-all">
-                      <Play size={16} fill="white" />
+                    <button className="bg-slate-900 text-white p-3 rounded-2xl hover:bg-indigo-600 transition-all flex items-center justify-center">
+                      <ArrowRight className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -134,8 +129,7 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
         {/* RENDIMIENTO LATERAL (USANDO EL COMPONENTE REFACTOREADO) */}
         <div className="lg:col-span-4 space-y-8">
           <div className="bg-slate-900 p-8 rounded-[3rem] shadow-2xl text-white">
-            <h3 className="font-black uppercase tracking-tighter mb-8 flex items-center gap-2">
-              <TrendingUp className="text-emerald-400" size={18} />
+            <h3 className="font-black uppercase tracking-tighter mb-8">
               Productividad
             </h3>
             
@@ -166,23 +160,22 @@ export default function DashboardCortador({ usuario }: { usuario: Usuario }) {
   );
 }
 
-// SUB-COMPONENTE KPI REFINADO
-function KpiCard({ title, value, icon, color, isAlert, detail }: any) {
+function KpiCard({ title, value, color, isAlert, detail, icon: Icon }: any) {
   const colorMap: any = { 
-    indigo: 'bg-indigo-50 text-indigo-600', 
-    emerald: 'bg-emerald-50 text-emerald-600', 
-    rose: 'bg-rose-50 text-rose-600' 
+    indigo: 'bg-indigo-50', 
+    emerald: 'bg-emerald-50', 
+    rose: 'bg-rose-50' 
   };
   
   return (
     <div className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all group hover:scale-[1.02] ${
       isAlert ? 'border-rose-100 shadow-lg shadow-rose-50' : 'border-transparent shadow-sm hover:border-slate-100'
     }`}>
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:-rotate-3 ${colorMap[color]}`}>
-        {icon}
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon className="w-4 h-4 text-slate-400" />}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{title}</p>
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{title}</p>
-      <div className="mt-2 flex items-baseline gap-2">
+      <div className="flex items-baseline gap-2">
         <p className="text-4xl font-black text-slate-900 tracking-tighter">{value}</p>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{detail}</p>
       </div>

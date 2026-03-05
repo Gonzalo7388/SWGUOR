@@ -1,11 +1,7 @@
 "use client";
 
 import React from "react";
-import { 
-  Clock, CheckCircle, AlertCircle, 
-  ChevronRight, PlayCircle, ClipboardList,
-  User, Star
-} from "lucide-react";
+import { CheckSquare, Zap, AlertTriangle, ClipboardList, AlertCircle, Briefcase } from 'lucide-react';
 import DashboardCharts from "./DashboardCharts";
 
 type Usuario = {
@@ -27,59 +23,59 @@ export default function DashboardAyudante({ usuario }: { usuario: Usuario }) {
     <div className="space-y-8 p-4 md:p-8 bg-[#f8fafc] min-h-screen font-sans">
       
       {/* HEADER PERSONALIZADO */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-xl">
-              <User size={32} />
+      <header className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </span>
+              Jornada Productiva
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 border-4 border-white w-6 h-6 rounded-full" title="En línea" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-              Hola, {usuario.nombre_completo.split('')[0]}
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+              Hola, {usuario.nombre_completo.split(' ')[0]}
             </h1>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
-               Sector: Talleres GUOR • Turno Mañana
-            </p>
+            <p className="text-slate-500 text-sm font-medium">Sector: Talleres GUOR • Turno Mañana</p>
           </div>
-        </div>
 
-        {/* PROGRESO DIARIO */}
-        <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm min-w-[200px]">
-          <div className="flex justify-between items-end mb-2">
-            <span className="text-[10px] font-black uppercase text-slate-400">Meta del día</span>
-            <span className="text-xs font-black text-emerald-600">65%</span>
-          </div>
-          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-            <div className="bg-emerald-500 h-full w-[65%] rounded-full transition-all duration-1000" />
+          {/* PROGRESO DIARIO */}
+          <div className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-100 shadow-sm h-fit min-w-[250px]">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Meta del Día</span>
+              <span className="text-sm font-black text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-lg">65%</span>
+            </div>
+            <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full w-[65%] rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+            </div>
+            <p className="text-[8px] text-slate-400 font-bold mt-3 uppercase tracking-widest">23/35 Tareas completadas</p>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* KPI GRID - ENFOQUE EN CARGA DE TRABAJO */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <KpiCard 
           title="Tareas Pendientes" 
           value="5" 
-          icon={<Clock size={24} />} 
           color="orange" 
           subtitle="Próximas 4 horas"
+          icon={Zap}
         />
         <KpiCard 
           title="Completadas Hoy" 
           value="8" 
-          icon={<CheckCircle size={24} />} 
           color="emerald" 
           subtitle="+2 que ayer"
+          icon={CheckSquare}
         />
         <KpiCard 
           title="Prioridad Alta" 
           value="2" 
-          icon={<AlertCircle size={24} />} 
           color="rose" 
           isAlert={true}
           subtitle="Atención inmediata"
+          icon={AlertTriangle}
         />
       </div>
 
@@ -88,7 +84,7 @@ export default function DashboardAyudante({ usuario }: { usuario: Usuario }) {
         <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] shadow-xl border border-slate-50">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
-              <ClipboardList className="text-slate-400" />
+              <ClipboardList className="w-5 h-5 text-indigo-600" />
               <h3 className="font-black uppercase text-slate-800 tracking-tight">Hoja de Ruta</h3>
             </div>
             <button className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors">
@@ -102,9 +98,15 @@ export default function DashboardAyudante({ usuario }: { usuario: Usuario }) {
                 <div key={t.id} className="group flex items-center justify-between p-5 rounded-[2rem] border border-slate-50 bg-slate-50/30 hover:bg-white hover:shadow-lg transition-all cursor-pointer">
                   <div className="flex items-center gap-5">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      t.prioridad === 'Urgente' ? 'bg-rose-100 text-rose-600' : 'bg-white text-slate-400 shadow-sm'
+                      t.prioridad === 'Urgente' ? 'bg-rose-100' : 'bg-white shadow-sm'
                     }`}>
-                      <PlayCircle size={24} />
+                      {t.prioridad === 'Urgente' ? (
+                        <AlertCircle className="w-6 h-6 text-rose-600" />
+                      ) : t.prioridad === 'Normal' ? (
+                        <CheckSquare className="w-6 h-6 text-slate-400" />
+                      ) : (
+                        <Briefcase className="w-6 h-6 text-slate-400" />
+                      )}
                     </div>
                     <div>
                       <p className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{t.tarea}</p>
@@ -114,13 +116,12 @@ export default function DashboardAyudante({ usuario }: { usuario: Usuario }) {
                         }`}>
                           {t.prioridad}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                          <Clock size={12} /> {t.tiempo}
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {t.tiempo}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="text-slate-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-1" />
                 </div>
               ))
             ) : (
@@ -133,11 +134,7 @@ export default function DashboardAyudante({ usuario }: { usuario: Usuario }) {
 
         {/* LOGROS O NOTIFICACIONES */}
         <div className="bg-slate-900 p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <Star size={160} />
-          </div>
-          <h3 className="font-black uppercase tracking-tighter mb-6 flex items-center gap-2">
-            <Star className="text-yellow-400" size={18} />
+          <h3 className="font-black uppercase tracking-tighter mb-6">
             Mi Desempeño
           </h3>
           
@@ -162,21 +159,21 @@ export default function DashboardAyudante({ usuario }: { usuario: Usuario }) {
   );
 }
 
-function KpiCard({ title, value, icon, color, isAlert, subtitle }: any) {
+function KpiCard({ title, value, color, isAlert, subtitle, icon: Icon }: any) {
   const colors: any = { 
-    rose: 'bg-rose-50 text-rose-600', 
-    emerald: 'bg-emerald-50 text-emerald-600', 
-    orange: 'bg-orange-50 text-orange-600' 
+    rose: 'bg-rose-50', 
+    emerald: 'bg-emerald-50', 
+    orange: 'bg-orange-50' 
   };
 
   return (
     <div className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all hover:shadow-xl group ${
       isAlert ? 'border-rose-100 shadow-lg shadow-rose-50' : 'border-transparent shadow-sm hover:border-slate-100'
     }`}>
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:rotate-3 ${colors[color]}`}>
-        {icon}
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon className="w-4 h-4 text-slate-400" />}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
       <div className="flex items-baseline gap-2">
         <p className="text-4xl font-black text-slate-900 tracking-tighter">{value}</p>
         <span className="text-[10px] font-bold text-slate-400 lowercase">{subtitle}</span>

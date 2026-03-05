@@ -4,7 +4,7 @@
 export enum Role {
   ADMINISTRADOR = 'administrador',
   CORTADOR = 'cortador',
-  DISENADOR = 'diseñador',
+  DISENADOR = 'disenador',
   RECEPCIONISTA = 'recepcionista',
   AYUDANTE = 'ayudante',
   REPRESENTANTE_TALLER = 'representante_taller',
