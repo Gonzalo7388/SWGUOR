@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import * as XLSX from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -90,13 +90,33 @@ const drawHeaderWithLogo = async (doc: jsPDF, title: string, subtitle?: string):
 // EXPORTACIÓN A EXCEL
 // =====================================================
 
-export const exportToExcel = (data: any[], config: ExcelExportConfig) => {
+export const exportToExcel = async (data: any[], config: ExcelExportConfig) => {
   if (data.length === 0) return;
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, config.sheetName || "Datos");
+
+  const workbook = new XLSX.Workbook();
+  const worksheet = workbook.addWorksheet(config.sheetName || "Datos");
+
+  // Columnas basadas en las keys del primer objeto
+  const keys = Object.keys(data[0]);
+  worksheet.columns = keys.map(key => ({
+    header: key,
+    key: key,
+    width: 20
+  }));
+
+  // Agregar filas
+  data.forEach(row => worksheet.addRow(row));
+
+  // Descargar en el navegador
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
   const fecha = new Date().toISOString().split("T")[0];
-  XLSX.writeFile(workbook, `${config.filename}_${fecha}.xlsx`);
+  a.href = url;
+  a.download = `${config.filename}_${fecha}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 // =====================================================
