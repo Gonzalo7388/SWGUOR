@@ -201,13 +201,13 @@ export default function PaginaNuevos() {
       </section>
 
       {/* ── SEPARADOR / MARQUEE ── */}
-      <div className="border-y border-white/5 md:border-gray-200 overflow-hidden bg-[#0d0d0d] md:bg-white">
-        <div className="flex whitespace-nowrap py-3 md:py-4" style={{ animation: 'marquee 20s linear infinite' }}>
+      <div className="border-y border-[#f02d65]/25 md:border-[#f02d65]/20 overflow-hidden bg-[#111111] md:bg-[#151515]">
+        <div className="flex whitespace-nowrap py-3 md:py-4" style={{ animation: 'marquee 14s linear infinite' }}>
           {Array(8).fill(null).map((_, i) => (
             <span key={i}
-              className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] text-white/10 md:text-gray-900/10 px-6 md:px-8"
+              className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.35em] text-white/75 px-6 md:px-8"
             >
-              Nueva Colección · Modas y Estilos GUOR · Mayorista ·&nbsp;
+              Nueva Coleccion · Modas y Estilos GUOR · Mayorista ·&nbsp;
             </span>
           ))}
         </div>
@@ -219,7 +219,7 @@ export default function PaginaNuevos() {
        */}
       <section
         id="catalogo"
-        className="bg-white rounded-t-[2rem] md:rounded-none px-4 md:px-8 lg:px-8 pt-8 md:pt-0 pb-20 max-w-full md:max-w-7xl md:mx-auto md:py-20" style={{ marginTop: '-1.5rem' }}
+        className="bg-white rounded-t-[2rem] md:rounded-none px-4 md:px-8 lg:px-8 pt-10 md:pt-0 pb-20 max-w-full md:max-w-7xl md:mx-auto md:py-20 -mt-3 md:mt-0"
         >
 
         {/* Header sección */}
@@ -228,7 +228,7 @@ export default function PaginaNuevos() {
             {/* Barra decorativa solo desktop */}
             <div className="hidden md:block w-0.5 h-14 bg-[#f02d65] rounded-full" />
             <div>
-              <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.5em] text-gray-400 mb-1">
+              <p className="mt-1 md:mt-0 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.35em] text-gray-500 mb-1.5">
                 Últimos 30 días
               </p>
               <h2 className="text-xl md:text-2xl lg:text-3xl font-bold md:font-light text-gray-900 tracking-wide leading-snug">

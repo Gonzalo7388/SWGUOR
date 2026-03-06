@@ -1,188 +1,101 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { CheckCircle2, LogOut, ShieldCheck, UserCircle2 } from 'lucide-react';
+import { useEcommerce } from '@/app/ecommerce/_contexts/AuthContext';
+
 export default function PerfilPage() {
+  const router = useRouter();
+  const { user, loading, signOut } = useEcommerce();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/ecommerce');
+    }
+  }, [loading, user, router]);
+
+  if (loading) {
+    return <div className="min-h-[60vh] bg-[#FCF7F7]" />;
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const displayName =
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email?.split('@')[0] ||
+    'Cliente GUOR';
+
+  const authProvider = user.app_metadata?.provider || 'google';
+  const providerLabel = authProvider === 'google' ? 'Google' : 'Correo y contrasena';
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/ecommerce');
+  };
+
   return (
-    <div className="min-h-screen bg-linear-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-[#FCF7F7] py-10 md:py-14">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Mi Perfil</h1>
-          <p className="text-gray-600 text-lg">
-            Gestiona tu información personal y preferencias de compra
+        <div className="mb-8 md:mb-10">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-[#8A7676] mb-3">Mi Perfil</p>
+          <h1 className="text-3xl md:text-5xl font-serif text-[#4A3737] leading-tight">
+            Bienvenida, <span className="text-[#B8962D] italic">{displayName}</span>
+          </h1>
+          <p className="text-sm md:text-base text-[#6D5A5A] mt-4">
+            Este panel muestra los datos reales de tu usuario autenticado.
           </p>
         </div>
 
-        {/* Grid de Secciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Tarjeta: Información Personal */}
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-8 border-l-4 border-red-600">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-2xl">
-                👤
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Información Personal</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <article className="bg-white border border-[#E7D7D7] rounded-2xl p-6 shadow-[0_8px_24px_rgba(74,55,55,0.06)]">
+            <div className="flex items-center gap-3 mb-4">
+              <UserCircle2 className="w-6 h-6 text-[#D4AF37]" />
+              <h2 className="font-serif text-xl text-[#4A3737]">Datos de tu cuenta</h2>
             </div>
-            <p className="text-gray-600 mb-6">
-              Actualiza tu información:
-            </p>
-            <ul className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Nombre completo
+            <div className="space-y-3 text-sm text-[#6D5A5A]">
+              <p><span className="font-semibold text-[#4A3737]">Nombre:</span> {displayName}</p>
+              <p><span className="font-semibold text-[#4A3737]">Correo:</span> {user.email}</p>
+              <p><span className="font-semibold text-[#4A3737]">Proveedor:</span> {authProvider}</p>
+              <p><span className="font-semibold text-[#4A3737]">ID Usuario:</span> {user.id}</p>
+            </div>
+          </article>
+
+          <article className="bg-white border border-[#E7D7D7] rounded-2xl p-6 shadow-[0_8px_24px_rgba(74,55,55,0.06)]">
+            <div className="flex items-center gap-3 mb-4">
+              <ShieldCheck className="w-6 h-6 text-[#D4AF37]" />
+              <h2 className="font-serif text-xl text-[#4A3737]">Estado de sesion</h2>
+            </div>
+            <ul className="space-y-2 text-sm text-[#6D5A5A]">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#B8962D] mt-0.5" />
+                Sesion activa con autenticacion: {providerLabel}.
               </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Correo electrónico
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Número de teléfono
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Foto de perfil
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#B8962D] mt-0.5" />
+                Tu correo es usado para identificar tu cuenta.
               </li>
             </ul>
-            <button className="w-full bg-linear-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
-              Editar Perfil
-            </button>
-          </div>
 
-          {/* Tarjeta: Direcciones */}
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-8 border-l-4 border-blue-600">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-2xl">
-                📍
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Mis Direcciones</h2>
+            <div className="mt-6 flex gap-3 flex-wrap">
+              <Link
+                href="/ecommerce/seguimiento-pedido"
+                className="rounded-full border border-[#D4AF37]/40 px-5 py-2 text-xs uppercase tracking-[0.2em] font-semibold text-[#4A3737] hover:border-[#D4AF37]"
+              >
+                Seguimiento
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full bg-[#F5EBEB] px-5 py-2 text-xs uppercase tracking-[0.2em] font-semibold text-[#4A3737] hover:bg-[#EAD7D7]"
+              >
+                <LogOut size={14} /> Cerrar sesion
+              </button>
             </div>
-            <p className="text-gray-600 mb-6">
-              Gestiona tus direcciones de envío:
-            </p>
-            <ul className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="text-blue-600">✓</span> Dirección principal
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-blue-600">✓</span> Dirección de facturación
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-blue-600">✓</span> Múltiples direcciones
-              </li>
-            </ul>
-            <button className="w-full bg-linear-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
-              Gestionar Direcciones
-            </button>
-          </div>
-
-          {/* Tarjeta: Mis Pedidos */}
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-8 border-l-4 border-green-600">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl">
-                📦
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Mis Pedidos</h2>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Revisa y rastrea tus pedidos:
-            </p>
-            <ul className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="text-green-600">✓</span> Historial completo
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-600">✓</span> Rastreo en tiempo real
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-600">✓</span> Estado de devoluciones
-              </li>
-            </ul>
-            <button className="w-full bg-linear-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
-              Ver Mis Pedidos
-            </button>
-          </div>
-
-          {/* Tarjeta: Preferencias */}
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-8 border-l-4 border-purple-600">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl">
-                ⚙️
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Preferencias</h2>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Configura tus preferencias:
-            </p>
-            <ul className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="text-purple-600">✓</span> Notificaciones
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-purple-600">✓</span> Ofertas personalizadas
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-purple-600">✓</span> Privacidad
-              </li>
-            </ul>
-            <button className="w-full bg-linear-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
-              Editar Preferencias
-            </button>
-          </div>
-
-          {/* Tarjeta: Métodos de Pago */}
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-8 border-l-4 border-orange-600">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">
-                💳
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Métodos de Pago</h2>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Administra tus métodos de pago:
-            </p>
-            <ul className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="text-orange-600">✓</span> Tarjetas de crédito
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-orange-600">✓</span> Billeteras digitales
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-orange-600">✓</span> Transferencias bancarias
-              </li>
-            </ul>
-            <button className="w-full bg-linear-to-r from-orange-600 to-orange-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
-              Gestionar Pagos
-            </button>
-          </div>
-
-          {/* Tarjeta: Seguridad */}
-          <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition p-8 border-l-4 border-red-600">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-2xl">
-                🔒
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Seguridad</h2>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Protege tu cuenta:
-            </p>
-            <ul className="space-y-3 mb-6 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Cambiar contraseña
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Verificación en dos pasos
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span> Dispositivos conectados
-              </li>
-            </ul>
-            <button className="w-full bg-linear-to-r from-red-600 to-red-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition">
-              Configurar Seguridad
-            </button>
-          </div>
-        </div>
-
-        {/* Botón de Cerrar Sesión */}
-        <div className="mt-12 flex justify-center">
-          <button className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-red-600 hover:text-red-600 transition">
-            Cerrar Sesión
-          </button>
+          </article>
         </div>
       </div>
     </div>

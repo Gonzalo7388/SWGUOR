@@ -114,9 +114,14 @@ export default function PiePagina() {
           <div className="lg:col-span-3 space-y-6">
             <h4 className="text-[#4A3737] text-xs font-bold uppercase tracking-[0.2em] border-l-2 border-[#D4AF37] pl-3">Atención VIP</h4>
             <ul className="space-y-3 text-[13px] text-[#6D5A5A]">
-              {['Preguntas Frecuentes', 'Guía de Tallas', 'Seguimiento de Pedido', 'Políticas de Envío'].map((item) => (
-                <li key={item}>
-                  <Link href="#" className="hover:text-[#D4AF37] transition-colors">{item}</Link>
+              {[
+                { label: 'Preguntas Frecuentes', href: '/ecommerce/preguntas-frecuentes' },
+                { label: 'Guía de Tallas', href: '/ecommerce/guia-de-tallas' },
+                { label: 'Seguimiento de Pedido', href: '/ecommerce/seguimiento-pedido' },
+                { label: 'Políticas de Envío', href: '/ecommerce/politicas-de-envio' },
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="hover:text-[#D4AF37] transition-colors">{item.label}</Link>
                 </li>
               ))}
             </ul>
@@ -128,7 +133,7 @@ export default function PiePagina() {
             <div className="space-y-4 text-[13px] text-[#6D5A5A]">
               <div className="flex items-start gap-3">
                 <MapPin size={16} className="text-[#D4AF37] shrink-0" />
-                <p>Las Condes, Santiago, Chile <br /><span className="text-[11px] text-[#8A7676] font-light">Atención bajo reserva previa</span></p>
+                <p>Rio Sta. Fe 590, Lima 15434 <br /><span className="text-[11px] text-[#8A7676] font-light">Atención bajo reserva previa</span></p>
               </div>
               <div className="flex items-center gap-3">
                 <Phone size={16} className="text-[#D4AF37] shrink-0" />
@@ -138,7 +143,7 @@ export default function PiePagina() {
               </div>
               <div className="flex items-center gap-3">
                 <Mail size={16} className="text-[#D4AF37] shrink-0" />
-                <p>concierge@swguor.com</p>
+                <p>modasyestilosguor@gmail.com</p>
               </div>
             </div>
           </div>

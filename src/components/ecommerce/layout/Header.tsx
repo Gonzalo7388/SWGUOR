@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, User, Menu, Heart, X, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, Heart, X, ArrowRight, LogOut, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCarrito } from '@/app/ecommerce/_contexts/CartContext';
 import { useFavoritos } from '@/app/ecommerce/_contexts/FavoritosContext';
+import { useEcommerce } from '@/app/ecommerce/_contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import CategoriasDropdown from '@/components/ecommerce/layout/CategoriasDropdown';
 import MobileMenu from '@/components/ecommerce/layout/MobileMenu';
@@ -15,12 +16,22 @@ export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   const { items } = useCarrito();
   const { favoritos } = useFavoritos();
+  const { user, signOut, signInWithEmail, registerWithEmail, signInWithGoogle } = useEcommerce();
   const cantidadOrdenes = items.length;
 
   useEffect(() => {
@@ -38,6 +49,17 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -45,6 +67,96 @@ export default function Header() {
       setIsSearchOpen(false);
     }
   };
+
+  const handleGoogleLogin = async () => {
+    setAuthError('');
+    setAuthSuccess('');
+    const safeEmail = authEmail.trim().toLowerCase();
+
+    if (!safeEmail) {
+      setAuthError('Ingresa tu correo Gmail para continuar con Google.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const { error } = await signInWithGoogle(safeEmail);
+
+      if (error) {
+        setAuthError(error);
+        return;
+      }
+
+      setIsProfileOpen(false);
+      window.location.href = '/ecommerce/perfil';
+    } catch {
+      setAuthError('No fue posible iniciar con Google.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthSuccess('');
+
+    if (!authEmail || !authPassword) {
+      setAuthError('Completa correo y contrasena.');
+      return;
+    }
+
+    if (authMode === 'register' && authPassword !== authConfirmPassword) {
+      setAuthError('Las contrasenas no coinciden.');
+      return;
+    }
+
+    setAuthLoading(true);
+
+    try {
+      if (authMode === 'login') {
+        const { error } = await signInWithEmail(authEmail, authPassword);
+
+        if (error) {
+          setAuthError(error);
+          return;
+        }
+
+        setIsProfileOpen(false);
+        window.location.href = '/ecommerce/perfil';
+        return;
+      }
+
+      const { error } = await registerWithEmail(authEmail, authPassword);
+
+      if (error) {
+        setAuthError(error);
+        return;
+      }
+
+      setAuthSuccess('Cuenta creada y sesion iniciada.');
+      setAuthPassword('');
+      setAuthConfirmPassword('');
+      setIsProfileOpen(false);
+      window.location.href = '/ecommerce/perfil';
+    } catch {
+      setAuthError('Ocurrio un error. Intenta nuevamente.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsProfileOpen(false);
+    window.location.href = '/ecommerce';
+  };
+
+  const userDisplayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'Mi cuenta';
 
   return (
     <>
@@ -163,9 +275,140 @@ export default function Header() {
                 <Search size={24} strokeWidth={2.5} />
               </button>
 
-              <Link href="/ecommerce/login" className="hidden sm:block p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
-                <User size={24} strokeWidth={2.5} />
-              </Link>
+              <div className="relative hidden sm:block" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileOpen((prev) => !prev)}
+                  className={`p-2 transition-colors ${isProfileOpen ? 'text-[#f02d65]' : 'text-gray-700 hover:text-[#f02d65]'}`}
+                  aria-label="Abrir panel de usuario"
+                >
+                  <User size={24} strokeWidth={2.5} />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className="absolute right-0 top-12 w-72 rounded-2xl border border-[#E7D7D7] bg-white p-4 shadow-xl"
+                    >
+                      {user ? (
+                        <div className="space-y-3">
+                          <p className="text-xs uppercase tracking-[0.2em] text-[#8A7676]">Sesion activa</p>
+                          <div>
+                            <p className="text-sm font-semibold text-[#4A3737] truncate">{userDisplayName}</p>
+                            <p className="text-xs text-[#8A7676] truncate">{user.email}</p>
+                          </div>
+                          <Link
+                            href="/ecommerce/perfil"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="block w-full text-center rounded-full border border-[#D4AF37]/40 px-4 py-2 text-xs uppercase tracking-[0.2em] font-semibold text-[#4A3737] hover:border-[#D4AF37]"
+                          >
+                            Ver mi perfil
+                          </Link>
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full flex items-center justify-center gap-2 rounded-full bg-[#f7f2f2] px-4 py-2 text-xs uppercase tracking-[0.2em] font-semibold text-[#4A3737] hover:bg-[#F5EBEB]"
+                          >
+                            <LogOut size={14} /> Cerrar sesion
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-xs uppercase tracking-[0.2em] text-[#8A7676]">Acceso rapido</p>
+                          <div className="flex rounded-full bg-[#F5EBEB] p-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAuthMode('login');
+                                setAuthError('');
+                                setAuthSuccess('');
+                              }}
+                              className={`flex-1 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-semibold ${authMode === 'login' ? 'bg-white text-[#4A3737]' : 'text-[#8A7676]'}`}
+                            >
+                              Ingresar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAuthMode('register');
+                                setAuthError('');
+                                setAuthSuccess('');
+                              }}
+                              className={`flex-1 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-semibold ${authMode === 'register' ? 'bg-white text-[#4A3737]' : 'text-[#8A7676]'}`}
+                            >
+                              Crear
+                            </button>
+                          </div>
+
+                          <form className="space-y-2" onSubmit={handleEmailAuth}>
+                            <input
+                              type="email"
+                              value={authEmail}
+                              onChange={(e) => setAuthEmail(e.target.value)}
+                              placeholder="correo@gmail.com"
+                              className="w-full rounded-xl border border-[#E7D7D7] px-3 py-2 text-xs text-[#4A3737] placeholder:text-[#AA9A9A] focus:outline-none focus:border-[#D4AF37]"
+                            />
+                            <input
+                              type="password"
+                              value={authPassword}
+                              onChange={(e) => setAuthPassword(e.target.value)}
+                              placeholder="Contrasena"
+                              className="w-full rounded-xl border border-[#E7D7D7] px-3 py-2 text-xs text-[#4A3737] placeholder:text-[#AA9A9A] focus:outline-none focus:border-[#D4AF37]"
+                            />
+
+                            {authMode === 'register' && (
+                              <input
+                                type="password"
+                                value={authConfirmPassword}
+                                onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                                placeholder="Confirmar contrasena"
+                                className="w-full rounded-xl border border-[#E7D7D7] px-3 py-2 text-xs text-[#4A3737] placeholder:text-[#AA9A9A] focus:outline-none focus:border-[#D4AF37]"
+                              />
+                            )}
+
+                            {authError && (
+                              <p className="flex items-start gap-1.5 text-[11px] text-red-600">
+                                <AlertCircle size={12} className="mt-0.5 shrink-0" /> {authError}
+                              </p>
+                            )}
+
+                            {authSuccess && (
+                              <p className="flex items-start gap-1.5 text-[11px] text-emerald-600">
+                                <CheckCircle2 size={12} className="mt-0.5 shrink-0" /> {authSuccess}
+                              </p>
+                            )}
+
+                            <button
+                              type="submit"
+                              disabled={authLoading}
+                              className="w-full rounded-full bg-[#D4AF37] px-4 py-2 text-[11px] uppercase tracking-[0.18em] font-semibold text-white hover:bg-[#B8962D] disabled:opacity-70"
+                            >
+                              {authLoading ? 'Procesando...' : authMode === 'login' ? 'Ingresar con correo' : 'Crear cuenta'}
+                            </button>
+                          </form>
+
+                          <button
+                            onClick={handleGoogleLogin}
+                            disabled={authLoading}
+                            className="w-full rounded-full border border-[#E7D7D7] px-4 py-2 text-[11px] uppercase tracking-[0.18em] font-semibold text-[#4A3737] hover:border-[#D4AF37] disabled:opacity-70"
+                          >
+                            {authLoading ? 'Conectando...' : 'Continuar con Google'}
+                          </button>
+
+                          <Link
+                            href="/ecommerce/login"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="block text-center text-[11px] text-[#8A7676] hover:text-[#4A3737] underline underline-offset-2"
+                          >
+                            Abrir login compacto
+                          </Link>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <Link href="/ecommerce/favoritos" className="relative p-2 text-gray-700 hover:text-[#f02d65] transition-colors">
                 <Heart size={24} strokeWidth={2.5} />

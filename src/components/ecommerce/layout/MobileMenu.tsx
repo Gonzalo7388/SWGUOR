@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, ChevronRight, Instagram, Facebook, MessageCircle, User, Loader2, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { X, ChevronRight, Instagram, Facebook, MessageCircle, User, Loader2, Tag, ArrowRight } from 'lucide-react';
 import { CategoriasService } from '@/lib/services/categoriasService';
+import { useEcommerce } from '@/app/ecommerce/_contexts/AuthContext';
 
 interface Categoria {
   id: number;
@@ -20,6 +21,13 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const [productosSubmenuAbierto, setProductosSubmenuAbierto] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useEcommerce();
+
+  const userDisplayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'Mi Cuenta';
 
   useEffect(() => {
     loadCategorias();
@@ -67,21 +75,15 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         {/* ── Nav ── */}
         <nav className="flex-1 overflow-y-auto py-4">
 
-          {/* NEW IN — destacado */}
+          {/* NEW IN */}
           <Link
             href="/ecommerce/new"
             onClick={handleLinkClick}
-            className="group flex items-center justify-between mx-3 px-4 py-3.5 rounded-2xl bg-[#f02d65]/5 border border-[#f02d65]/15 mb-2"
+            className="group block mx-3 px-4 py-3.5 rounded-2xl hover:bg-[#f02d65]/5 active:bg-[#f02d65]/10 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#f02d65] text-white">
-                <Sparkles size={14} />
-              </span>
-              <span className="text-[13px] font-black uppercase tracking-widest text-[#f02d65]">
-                New In
-              </span>
-            </div>
-            <ArrowRight size={15} className="text-[#f02d65] group-active:translate-x-1 transition-transform" />
+            <span className="text-[13px] font-black uppercase tracking-widest text-gray-900 group-hover:text-[#f02d65] transition-colors">
+              New In
+            </span>
           </Link>
 
           {/* Divider */}
@@ -91,20 +93,20 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           <div className="mx-3">
             <button
               onClick={() => setProductosSubmenuAbierto(!productosSubmenuAbierto)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              className="group w-full flex items-center justify-between px-4 py-3.5 rounded-2xl hover:bg-[#f02d65]/5 active:bg-[#f02d65]/10 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <span className={`flex items-center justify-center w-8 h-8 rounded-xl transition-colors ${productosSubmenuAbierto ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
                   <Tag size={14} />
                 </span>
-                <span className="text-[13px] font-black uppercase tracking-widest text-gray-900">
+                <span className="text-[13px] font-black uppercase tracking-widest text-gray-900 group-hover:text-[#f02d65] transition-colors">
                   Productos
                 </span>
               </div>
               <ChevronRight
                 size={16}
                 strokeWidth={2.5}
-                className={`text-gray-400 transition-transform duration-300 ${productosSubmenuAbierto ? 'rotate-90' : ''}`}
+                className={`text-gray-400 group-hover:text-[#f02d65] transition-transform duration-300 ${productosSubmenuAbierto ? 'rotate-90' : ''}`}
               />
             </button>
 
@@ -147,27 +149,24 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             <Link
               href="/ecommerce/nosotros"
               onClick={handleLinkClick}
-              className="flex items-center justify-between px-4 py-3.5 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              className="group flex items-center justify-between px-4 py-3.5 rounded-2xl hover:bg-[#f02d65]/5 active:bg-[#f02d65]/10 transition-colors"
             >
-              <span className="text-[13px] font-black uppercase tracking-widest text-gray-900">
+              <span className="text-[13px] font-black uppercase tracking-widest text-gray-900 group-hover:text-[#f02d65] transition-colors">
                 Nosotros
               </span>
-              <ChevronRight size={16} strokeWidth={2.5} className="text-gray-300" />
+              <ChevronRight size={16} strokeWidth={2.5} className="text-gray-300 group-hover:text-[#f02d65] transition-colors" />
             </Link>
           </div>
 
-          {/* OFERTAS — destacado */}
+          {/* OFERTAS */}
           <div className="mx-3 mt-2">
             <Link
               href="/ecommerce/ofertas"
               onClick={handleLinkClick}
-              className="group flex items-center justify-between px-4 py-3.5 rounded-2xl bg-rose-50 border border-rose-100"
+              className="group block px-4 py-3.5 rounded-2xl hover:bg-[#f02d65]/5 active:bg-[#f02d65]/10 transition-colors"
             >
-              <span className="text-[13px] font-black uppercase tracking-widest text-rose-600">
+              <span className="text-[13px] font-black uppercase tracking-widest text-gray-900 group-hover:text-[#f02d65] transition-colors">
                 Ofertas
-              </span>
-              <span className="text-[11px] font-black text-white bg-rose-500 px-2 py-0.5 rounded-full">
-                %
               </span>
             </Link>
           </div>
@@ -176,12 +175,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         {/* ── Footer ── */}
         <div className="border-t border-gray-100 px-5 py-5 space-y-4">
           <Link
-            href="/ecommerce/login"
+            href={user ? '/ecommerce/perfil' : '/ecommerce/login'}
             onClick={handleLinkClick}
-            className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-gray-900 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest active:scale-[0.98] transition-transform"
+            className={`flex items-center justify-center gap-2.5 w-full py-3.5 bg-gray-900 text-white rounded-2xl text-[12px] font-black active:scale-[0.98] transition-transform ${user ? 'normal-case tracking-wide' : 'uppercase tracking-widest'}`}
           >
             <User size={15} />
-            Mi Cuenta
+            {userDisplayName}
           </Link>
 
           <div className="flex items-center gap-3">
