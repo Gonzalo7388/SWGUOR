@@ -79,10 +79,10 @@ function hasPermission(userRole: string | undefined, route: string | null): bool
 }
 
 // ============================================
-// MIDDLEWARE PRINCIPAL
+// PROXY PRINCIPAL
 // ============================================
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response = NextResponse.next({ request });
 
