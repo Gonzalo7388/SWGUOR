@@ -19,7 +19,7 @@ export default async function Home() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Server Component: cookies().set() no está disponible
+            // Manejo silencioso en Server Components
           }
         },
       },
@@ -30,11 +30,15 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Si hay sesión, redirigir al dashboard
+  // 1. Si el usuario ya está autenticado (es un cliente logueado)
   if (user) {
-    redirect('/Panel-Administrativo/dashboard');
+    // Redirigimos a la ruta del portal de clientes que estamos trabajando
+    redirect('/portal/dashboard');
   }
 
-  // Si no hay sesión, redirigir al ecommerce
-  redirect('/ecommerce');
+  // 2. Si no hay sesión, mostramos la landing corporativa (o redirigimos al login)
+  // Nota: Si prefieres que la landing sea visible para todos, no hagas redirect aquí 
+  // y mueve el diseño de la landing directamente a este archivo. 
+  // Por ahora, lo mandaremos al portal para que inicie sesión.
+  redirect('/portal/dashboard'); 
 }

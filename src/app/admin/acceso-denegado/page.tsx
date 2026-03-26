@@ -26,7 +26,7 @@ export default function AccesoDenegadoPage() {
             </Button>
           </Link>
           
-          <Link href="/admin/login">
+          <Link href="/auth/login">
             <Button variant="outline" className="w-full">
               Cerrar Sesión
             </Button>

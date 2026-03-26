@@ -41,7 +41,7 @@ export const ERROR_MESSAGES = {
  * Rutas de autenticación y navegación
  */
 export const ROUTES = {
-  LOGIN: '/admin/login',
+  LOGIN: '/auth/login',
   DASHBOARD: '/admin/Panel-Administrativo/dashboard',
   ACCESS_DENIED: '/admin/acceso-denegado'
 } as const;

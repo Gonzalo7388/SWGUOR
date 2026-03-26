@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       categorias: {
@@ -89,6 +114,47 @@ export type Database = {
         }
         Relationships: []
       }
+      comprobantes: {
+        Row: {
+          correlativo: string
+          emitido_en: string | null
+          id: number
+          orden_id: number
+          pdf_url: string | null
+          serie: string
+          tipo: string
+          xml_url: string | null
+        }
+        Insert: {
+          correlativo: string
+          emitido_en?: string | null
+          id?: number
+          orden_id: number
+          pdf_url?: string | null
+          serie: string
+          tipo: string
+          xml_url?: string | null
+        }
+        Update: {
+          correlativo?: string
+          emitido_en?: string | null
+          id?: number
+          orden_id?: number
+          pdf_url?: string | null
+          serie?: string
+          tipo?: string
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobantes_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       confecciones: {
         Row: {
           created_at: string
@@ -133,39 +199,121 @@ export type Database = {
           },
         ]
       }
+      cotizacion_items: {
+        Row: {
+          cantidad: number
+          color: string | null
+          cotizacion_id: number
+          id: number
+          moq_aplicado: number
+          precio_snapshot: number
+          producto_id: number
+          subtotal: number
+          talla: string | null
+          variante_id: number | null
+        }
+        Insert: {
+          cantidad: number
+          color?: string | null
+          cotizacion_id: number
+          id?: number
+          moq_aplicado?: number
+          precio_snapshot: number
+          producto_id: number
+          subtotal: number
+          talla?: string | null
+          variante_id?: number | null
+        }
+        Update: {
+          cantidad?: number
+          color?: string | null
+          cotizacion_id?: number
+          id?: number
+          moq_aplicado?: number
+          precio_snapshot?: number
+          producto_id?: number
+          subtotal?: number
+          talla?: string | null
+          variante_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizacion_items_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes_producto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotizaciones: {
         Row: {
           cliente_id: number | null
-          cotizacion_id: string
-          descripcion: string | null
-          estado: Database["public"]["Enums"]["EstadoCotizacion"] | null
-          fecha_creacion: string
+          convertida_en: number | null
+          created_at: string | null
+          descuento_monto: number
+          descuento_pct: number
+          estado: string
           id: number
-          monto: number
-          updated_at: string
-          vencimiento: string | null
+          igv: number
+          notas: string | null
+          numero: string
+          origen_cotizacion_id: number | null
+          pdf_url: string | null
+          subtotal: number
+          total: number
+          updated_at: string | null
+          valida_hasta: string
         }
         Insert: {
           cliente_id?: number | null
-          cotizacion_id: string
-          descripcion?: string | null
-          estado?: Database["public"]["Enums"]["EstadoCotizacion"] | null
-          fecha_creacion?: string
+          convertida_en?: number | null
+          created_at?: string | null
+          descuento_monto?: number
+          descuento_pct?: number
+          estado?: string
           id?: number
-          monto?: number
-          updated_at?: string
-          vencimiento?: string | null
+          igv?: number
+          notas?: string | null
+          numero: string
+          origen_cotizacion_id?: number | null
+          pdf_url?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
+          valida_hasta: string
         }
         Update: {
           cliente_id?: number | null
-          cotizacion_id?: string
-          descripcion?: string | null
-          estado?: Database["public"]["Enums"]["EstadoCotizacion"] | null
-          fecha_creacion?: string
+          convertida_en?: number | null
+          created_at?: string | null
+          descuento_monto?: number
+          descuento_pct?: number
+          estado?: string
           id?: number
-          monto?: number
-          updated_at?: string
-          vencimiento?: string | null
+          igv?: number
+          notas?: string | null
+          numero?: string
+          origen_cotizacion_id?: number | null
+          pdf_url?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
+          valida_hasta?: string
         }
         Relationships: [
           {
@@ -173,6 +321,20 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_convertida_en_fkey"
+            columns: ["convertida_en"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_origen_cotizacion_id_fkey"
+            columns: ["origen_cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -211,7 +373,15 @@ export type Database = {
           updated_at?: string
           usuario_id?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "despachos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       detalles_orden: {
         Row: {
@@ -257,6 +427,47 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direcciones_cliente: {
+        Row: {
+          alias: string
+          ciudad: string | null
+          cliente_id: number
+          created_at: string | null
+          departamento: string | null
+          direccion: string
+          es_principal: boolean | null
+          id: number
+        }
+        Insert: {
+          alias: string
+          ciudad?: string | null
+          cliente_id: number
+          created_at?: string | null
+          departamento?: string | null
+          direccion: string
+          es_principal?: boolean | null
+          id?: number
+        }
+        Update: {
+          alias?: string
+          ciudad?: string | null
+          cliente_id?: number
+          created_at?: string | null
+          departamento?: string | null
+          direccion?: string
+          es_principal?: boolean | null
+          id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direcciones_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
@@ -474,6 +685,44 @@ export type Database = {
           },
         ]
       }
+      precio_historico: {
+        Row: {
+          creado_por: string | null
+          id: number
+          motivo: string | null
+          precio: number
+          producto_id: number
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          creado_por?: string | null
+          id?: number
+          motivo?: string | null
+          precio: number
+          producto_id: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          creado_por?: string | null
+          id?: number
+          motivo?: string | null
+          precio?: number
+          producto_id?: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precio_historico_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           categoria_id: number | null
@@ -523,6 +772,85 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reglas_descuento: {
+        Row: {
+          aplica_a: string | null
+          cantidad_max: number | null
+          cantidad_min: number
+          descuento_pct: number
+          id: number
+          nombre: string
+        }
+        Insert: {
+          aplica_a?: string | null
+          cantidad_max?: number | null
+          cantidad_min: number
+          descuento_pct: number
+          id?: number
+          nombre: string
+        }
+        Update: {
+          aplica_a?: string | null
+          cantidad_max?: number | null
+          cantidad_min?: number
+          descuento_pct?: number
+          id?: number
+          nombre?: string
+        }
+        Relationships: []
+      }
+      reservas_stock: {
+        Row: {
+          cantidad: number
+          cotizacion_id: number | null
+          estado: string
+          expira_en: string
+          id: number
+          orden_id: number | null
+          variante_id: number
+        }
+        Insert: {
+          cantidad: number
+          cotizacion_id?: number | null
+          estado?: string
+          expira_en?: string
+          id?: number
+          orden_id?: number | null
+          variante_id: number
+        }
+        Update: {
+          cantidad?: number
+          cotizacion_id?: number | null
+          estado?: string
+          expira_en?: string
+          id?: number
+          orden_id?: number | null
+          variante_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_stock_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes_producto"
             referencedColumns: ["id"]
           },
         ]
@@ -787,6 +1115,10 @@ export type Database = {
         Args: { p_orden_id: number }
         Returns: undefined
       }
+      reservar_stock_cotizacion: {
+        Args: { p_cotizacion_id: number; p_items: Json }
+        Returns: Json
+      }
       reset_productos_sequence: {
         Args: { new_value?: number }
         Returns: undefined
@@ -844,7 +1176,7 @@ export type Database = {
       EstadoCliente: "activo" | "inactivo" | "suspendido" | "potencial"
       EstadoConfeccion: "corte" | "confeccionando" | "remallado" | "terminado"
       EstadoCotizacion: "pendiente" | "aceptada" | "rechazada" | "expirada"
-      EstadoDespacho: "pendiente" | "en_ruta" | "entregado"
+      EstadoDespacho: "pendiente" | "en_ruta" | "entregado" | "preparando" | "incidencia"
       EstadoOrden:
         | "solicitado"
         | "cotizado"
@@ -1027,6 +1359,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       ColorPrenda: [

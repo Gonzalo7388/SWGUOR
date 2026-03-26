@@ -165,7 +165,7 @@ VALUES ('admin@ejemplo.com', 'Administrador', 'administrador');
 
 ### Ingresa a la aplicación
 
-1. Ve a `http://localhost:3000/admin/login`
+1. Ve a `http://localhost:3000/auth/login`
 2. Usa: 
    - Email: `admin@ejemplo.com`
    - Password: (la que creaste)
@@ -434,7 +434,7 @@ npm run dev
 
 Luego abre en el navegador:
 ```
-http://localhost:3000/admin/login
+http://localhost:3000/auth/login
 ```
 
 **¡Bienvenido a SWGUOR!** 🚀

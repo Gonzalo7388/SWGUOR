@@ -1,90 +1,975 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  schemas   = ["auth", "public"]
 }
 
-// ============================================
-// ENUMS (Sincronizados con imágenes de Supabase)
-// ============================================
+// ==========================================
+// ESQUEMA: auth
+// ==========================================
 
-enum EstadoPedido {
-  pendiente
+model audit_log_entries {
+  instance_id String?   @db.Uuid
+  id          String    @id @db.Uuid
+  payload     Json?     @db.Json
+  created_at  DateTime? @db.Timestamptz(6)
+  ip_address  String    @default("") @db.VarChar(64)
+
+  @@index([instance_id], map: "audit_logs_instance_id_idx")
+  @@schema("auth")
+}
+
+model custom_oauth_providers {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type         String
+  identifier            String    @unique
+  name                  String
+  client_id             String
+  client_secret         String
+  acceptable_client_ids String[]  @default([])
+  scopes                String[]  @default([])
+  pkce_enabled          Boolean   @default(true)
+  attribute_mapping     Json      @default("{}")
+  authorization_params  Json      @default("{}")
+  enabled               Boolean   @default(true)
+  email_optional        Boolean   @default(false)
+  issuer                String?
+  discovery_url         String?
+  skip_nonce_check      Boolean   @default(false)
+  cached_discovery      Json?
+  discovery_cached_at   DateTime? @db.Timestamptz(6)
+  authorization_url     String?
+  token_url             String?
+  userinfo_url          String?
+  jwks_uri              String?
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at])
+  @@index([enabled])
+  @@index([identifier])
+  @@index([provider_type])
+  @@schema("auth")
+}
+
+model flow_state {
+  id                     String                @id @db.Uuid
+  user_id                String?               @db.Uuid
+  auth_code              String?
+  code_challenge_method  code_challenge_method?
+  code_challenge         String?
+  provider_type          String
+  provider_access_token  String?
+  provider_refresh_token String?
+  created_at             DateTime?             @db.Timestamptz(6)
+  updated_at             DateTime?             @db.Timestamptz(6)
+  authentication_method  String
+  auth_code_issued_at    DateTime?             @db.Timestamptz(6)
+  invite_token           String?
+  referrer               String?
+  oauth_client_state_id  String?               @db.Uuid
+  linking_target_id      String?               @db.Uuid
+  email_optional         Boolean               @default(false)
+  saml_relay_states      saml_relay_states[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([auth_code], map: "idx_auth_code")
+  @@index([user_id, authentication_method], map: "idx_user_id_auth_method")
+  @@schema("auth")
+}
+
+model identities {
+  provider_id     String
+  user_id         String    @db.Uuid
+  identity_data   Json
+  provider        String
+  last_sign_in_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+  email           String?   @default(dbgenerated("lower((identity_data ->> 'email'::text))"))
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  users           users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider_id, provider], map: "identities_provider_id_provider_unique")
+  @@index([email])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model instances {
+  id              String    @id @db.Uuid
+  uuid            String?   @db.Uuid
+  raw_base_config String?
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+
+  @@schema("auth")
+}
+
+model mfa_amr_claims {
+  session_id            String   @db.Uuid
+  created_at            DateTime @db.Timestamptz(6)
+  updated_at            DateTime @db.Timestamptz(6)
+  authentication_method String
+  id                    String   @id(map: "amr_id_pk") @db.Uuid
+  sessions              sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, authentication_method], map: "mfa_amr_claims_session_id_authentication_method_pkey")
+  @@schema("auth")
+}
+
+model mfa_challenges {
+  id                     String      @id @db.Uuid
+  factor_id              String      @db.Uuid
+  created_at             DateTime    @db.Timestamptz(6)
+  verified_at            DateTime?   @db.Timestamptz(6)
+  ip_address             String      @db.Inet
+  otp_code               String?
+  web_authn_session_data Json?
+  mfa_factors            mfa_factors @relation(fields: [factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "mfa_challenges_auth_factor_id_fkey")
+
+  @@index([created_at(sort: Desc)], map: "mfa_challenge_created_at_idx")
+  @@schema("auth")
+}
+
+model mfa_factors {
+  id                           String           @id @db.Uuid
+  user_id                      String           @db.Uuid
+  friendly_name                String?
+  factor_type                  factor_type
+  status                       factor_status
+  created_at                   DateTime         @db.Timestamptz(6)
+  updated_at                   DateTime         @db.Timestamptz(6)
+  secret                       String?
+  phone                        String?
+  last_challenged_at           DateTime?        @unique @db.Timestamptz(6)
+  web_authn_credential         Json?
+  web_authn_aaguid             String?          @db.Uuid
+  last_webauthn_challenge_data Json?
+  mfa_challenges               mfa_challenges[]
+  users                        users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, phone], map: "unique_phone_factor_per_user")
+  @@index([user_id, created_at], map: "factor_id_created_at_idx")
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model oauth_authorizations {
+  id                    String                     @id @db.Uuid
+  authorization_id      String                     @unique
+  client_id             String                     @db.Uuid
+  user_id               String?                    @db.Uuid
+  redirect_uri          String
+  scope                 String
+  state                 String?
+  resource              String?
+  code_challenge        String?
+  code_challenge_method code_challenge_method?
+  response_type         oauth_response_type        @default(code)
+  status                oauth_authorization_status @default(pending)
+  authorization_code    String?                    @unique
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  expires_at            DateTime                   @default(dbgenerated("(now() + '00:03:00'::interval)")) @db.Timestamptz(6)
+  approved_at           DateTime?                  @db.Timestamptz(6)
+  nonce                 String?
+  oauth_clients         oauth_clients              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("auth")
+}
+
+model oauth_client_states {
+  id            String   @id @db.Uuid
+  provider_type String
+  code_verifier String?
+  created_at    DateTime @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_oauth_client_states_created_at")
+  @@schema("auth")
+}
+
+model oauth_clients {
+  id                         String                  @id @db.Uuid
+  client_secret_hash         String?
+  registration_type          oauth_registration_type
+  redirect_uris              String
+  grant_types                String
+  client_name                String?
+  client_uri                 String?
+  logo_uri                   String?
+  created_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at                 DateTime?               @db.Timestamptz(6)
+  client_type                oauth_client_type       @default(confidential)
+  token_endpoint_auth_method String
+  oauth_authorizations       oauth_authorizations[]
+  oauth_consents             oauth_consents[]
+  sessions                   sessions[]
+
+  @@index([deleted_at])
+  @@schema("auth")
+}
+
+model oauth_consents {
+  id         String        @id @db.Uuid
+  user_id    String        @db.Uuid
+  client_id  String        @db.Uuid
+  scopes     String
+  granted_at DateTime      @default(now()) @db.Timestamptz(6)
+  revoked_at DateTime?     @db.Timestamptz(6)
+  oauth_clients oauth_clients @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, client_id], map: "oauth_consents_user_client_unique")
+  @@index([user_id, granted_at(sort: Desc)], map: "oauth_consents_user_order_idx")
+  @@schema("auth")
+}
+
+model one_time_tokens {
+  id         String              @id @db.Uuid
+  user_id    String              @db.Uuid
+  token_type one_time_token_type
+  token_hash String
+  relates_to String
+  created_at DateTime            @default(now()) @db.Timestamp(6)
+  updated_at DateTime            @default(now()) @db.Timestamp(6)
+  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, token_type])
+  @@index([relates_to], map: "one_time_tokens_relates_to_hash_idx", type: Hash)
+  @@index([token_hash], map: "one_time_tokens_token_hash_hash_idx", type: Hash)
+  @@schema("auth")
+}
+
+model refresh_tokens {
+  instance_id String?   @db.Uuid
+  id          BigInt    @id @default(autoincrement())
+  token       String?   @unique(map: "refresh_tokens_token_unique") @db.VarChar(255)
+  user_id     String?   @db.VarChar(255)
+  revoked     Boolean?
+  created_at  DateTime? @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  parent      String?   @db.VarChar(255)
+  session_id  String?   @db.Uuid
+  sessions    sessions? @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([instance_id])
+  @@index([instance_id, user_id])
+  @@index([parent])
+  @@index([session_id, revoked])
+  @@index([updated_at(sort: Desc)])
+  @@schema("auth")
+}
+
+model saml_providers {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  entity_id       String        @unique
+  metadata_xml    String
+  metadata_url    String?
+  attribute_mapping Json?
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  name_id_format  String?
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model saml_relay_states {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  request_id      String
+  for_email       String?
+  redirect_to     String?
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  flow_state_id   String?       @db.Uuid
+  flow_state      flow_state?   @relation(fields: [flow_state_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)])
+  @@index([for_email])
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model schema_migrations {
+  version String @id @db.VarChar(255)
+
+  @@schema("auth")
+}
+
+model sessions {
+  id                     String           @id @db.Uuid
+  user_id                String           @db.Uuid
+  created_at             DateTime?        @db.Timestamptz(6)
+  updated_at             DateTime?        @db.Timestamptz(6)
+  factor_id              String?          @db.Uuid
+  aal                    aal_level?
+  not_after              DateTime?        @db.Timestamptz(6)
+  refreshed_at           DateTime?        @db.Timestamp(6)
+  user_agent             String?
+  ip                     String?          @db.Inet
+  tag                    String?
+  oauth_client_id        String?          @db.Uuid
+  refresh_token_hmac_key String?
+  refresh_token_counter  BigInt?
+  scopes                 String?
+  mfa_amr_claims         mfa_amr_claims[]
+  refresh_tokens         refresh_tokens[]
+  oauth_clients          oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([not_after(sort: Desc)])
+  @@index([oauth_client_id])
+  @@index([user_id])
+  @@index([user_id, created_at], map: "user_id_created_at_idx")
+  @@schema("auth")
+}
+
+model sso_domains {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  domain          String
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model sso_providers {
+  id                String              @id @db.Uuid
+  resource_id       String?
+  created_at        DateTime?           @db.Timestamptz(6)
+  updated_at        DateTime?           @db.Timestamptz(6)
+  disabled          Boolean?
+  saml_providers    saml_providers[]
+  saml_relay_states saml_relay_states[]
+  sso_domains       sso_domains[]
+
+  @@index([resource_id], map: "sso_providers_resource_id_pattern_idx")
+  @@schema("auth")
+}
+
+model users {
+  instance_id                 String?                @db.Uuid
+  id                          String                 @id @db.Uuid
+  aud                         String?                @db.VarChar(255)
+  role                        String?                @db.VarChar(255)
+  email                       String?                @db.VarChar(255)
+  encrypted_password          String?                @db.VarChar(255)
+  email_confirmed_at          DateTime?              @db.Timestamptz(6)
+  invited_at                  DateTime?              @db.Timestamptz(6)
+  confirmation_token          String?                @db.VarChar(255)
+  confirmation_sent_at        DateTime?              @db.Timestamptz(6)
+  recovery_token              String?                @db.VarChar(255)
+  recovery_sent_at            DateTime?              @db.Timestamptz(6)
+  email_change_token_new      String?                @db.VarChar(255)
+  email_change                String?                @db.VarChar(255)
+  email_change_sent_at        DateTime?              @db.Timestamptz(6)
+  last_sign_in_at             DateTime?              @db.Timestamptz(6)
+  raw_app_meta_data           Json?
+  raw_user_meta_data          Json?
+  is_super_admin              Boolean?
+  created_at                  DateTime?              @db.Timestamptz(6)
+  updated_at                  DateTime?              @db.Timestamptz(6)
+  phone                       String?                @unique
+  phone_confirmed_at          DateTime?              @db.Timestamptz(6)
+  phone_change                String?                @default("")
+  phone_change_token          String?                @default("") @db.VarChar(255)
+  phone_change_sent_at        DateTime?              @db.Timestamptz(6)
+  confirmed_at                DateTime?              @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current  String?                @default("") @db.VarChar(255)
+  email_change_confirm_status Int?                   @default(0) @db.SmallInt
+  banned_until                DateTime?              @db.Timestamptz(6)
+  reauthentication_token      String?                @default("") @db.VarChar(255)
+  reauthentication_sent_at    DateTime?              @db.Timestamptz(6)
+  is_sso_user                 Boolean                @default(false)
+  deleted_at                  DateTime?              @db.Timestamptz(6)
+  is_anonymous                Boolean                @default(false)
+  identities                  identities[]
+  mfa_factors                 mfa_factors[]
+  oauth_authorizations        oauth_authorizations[]
+  oauth_consents              oauth_consents[]
+  one_time_tokens             one_time_tokens[]
+  sessions                    sessions[]
+  webauthn_challenges         webauthn_challenges[]
+  webauthn_credentials        webauthn_credentials[]
+  precio_historico            precio_historico[]
+  usuarios                    usuarios?
+  clientes                    clientes[]
+
+  @@index([instance_id])
+  @@index([is_anonymous])
+  @@schema("auth")
+}
+
+model webauthn_challenges {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?  @db.Uuid
+  challenge_type String
+  session_data   Json
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  expires_at     DateTime @db.Timestamptz(6)
+  users          users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model webauthn_credentials {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  credential_id    Bytes     @unique
+  public_key       Bytes
+  attestation_type String    @default("")
+  aaguid           String?   @db.Uuid
+  sign_count       BigInt    @default(0)
+  transports       Json      @default("[]")
+  backup_eligible  Boolean   @default(false)
+  backed_up        Boolean   @default(false)
+  friendly_name    String    @default("")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  last_used_at     DateTime? @db.Timestamptz(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@schema("auth")
+}
+
+// ==========================================
+// ESQUEMA: public
+// ==========================================
+
+model categorias {
+  id          BigInt      @id @default(autoincrement())
+  nombre      String      @unique
+  descripcion String?
+  created_at  DateTime    @default(now())
+  orden       BigInt?
+  activo      Boolean?
+  imagen      String?
+  updated_at  DateTime?   @default(now()) @db.Timestamp(6)
+  productos   productos[]
+
+  @@schema("public")
+}
+
+model clientes {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ruc                 BigInt
+  razon_social        String?               @db.VarChar
+  email               String?               @db.VarChar
+  telefono            BigInt?
+  direccion           String?               @db.VarChar
+  activo              EstadoCliente?        @default(activo)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  auth_id             String?               @unique @db.Uuid
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  tipo                TipoCliente?          @default(corporativo)
+  users               users?                @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cotizaciones        cotizaciones[]
+  direcciones_cliente direcciones_cliente[]
+  ordenes             ordenes[]
+  usuarios            usuarios[]
+
+  @@index([auth_id], map: "idx_clientes_auth_id")
+  @@schema("public")
+}
+
+model comprobantes {
+  id          BigInt    @id @default(autoincrement())
+  orden_id    BigInt
+  tipo        String
+  serie       String
+  correlativo String
+  pdf_url     String?
+  xml_url     String?
+  emitido_en  DateTime? @default(now()) @db.Timestamptz(6)
+  ordenes     ordenes   @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model confecciones {
+  id            BigInt           @id @default(autoincrement())
+  pedido_id     BigInt
+  taller_id     BigInt
+  estado        EstadoConfeccion @default(corte)
+  fecha_inicio  DateTime
+  fecha_fin     DateTime?
+  observaciones String?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime
+  talleres      talleres         @relation(fields: [taller_id], references: [id])
+
+  @@schema("public")
+}
+
+model cotizacion_items {
+  id                 BigInt              @id @default(autoincrement())
+  cotizacion_id      BigInt
+  producto_id        BigInt
+  variante_id        BigInt?
+  precio_snapshot    Decimal             @db.Decimal(10, 2)
+  cantidad           Int
+  talla              String?
+  color              String?
+  subtotal           Decimal             @db.Decimal(12, 2)
+  moq_aplicado       Int                 @default(400)
+  cotizaciones       cotizaciones        @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos          productos           @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model cotizaciones {
+  id                   BigInt             @id @default(autoincrement())
+  numero               String             @unique
+  cliente_id           String?            @db.Uuid
+  estado               String             @default("borrador")
+  subtotal             Decimal            @default(0) @db.Decimal(12, 2)
+  descuento_pct        Decimal            @default(0) @db.Decimal(5, 2)
+  descuento_monto      Decimal            @default(0) @db.Decimal(12, 2)
+  igv                  Decimal            @default(0) @db.Decimal(12, 2)
+  total                Decimal            @default(0) @db.Decimal(12, 2)
+  notas                String?
+  valida_hasta         DateTime           @db.Date
+  pdf_url              String?
+  convertida_en        BigInt?
+  origen_cotizacion_id BigInt?
+  created_at           DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?          @default(now()) @db.Timestamptz(6)
+  cotizacion_items     cotizacion_items[]
+  clientes             clientes?          @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes              ordenes?           @relation(fields: [convertida_en], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones         cotizaciones?      @relation("cotizacionesTocotizaciones", fields: [origen_cotizacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_cotizaciones   cotizaciones[]     @relation("cotizacionesTocotizaciones")
+  reservas_stock       reservas_stock[]
+
+  @@schema("public")
+}
+
+model despachos {
+  id                BigInt         @id @default(autoincrement())
+  pedido_id         BigInt
+  fecha_despacho    DateTime
+  created_at        DateTime       @default(now())
+  direccion_entrega String
+  fecha_entrega     DateTime?
+  updated_at        DateTime
+  usuario_id        BigInt
+  estado            EstadoDespacho @default(pendiente)
+  pedidos           pedidos        @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios          usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model detalles_orden {
+  id              BigInt          @id @default(autoincrement())
+  orden_id        BigInt
+  producto_id     BigInt
+  cantidad        Int
+  precio_unitario Decimal         @db.Decimal(12, 2)
+  subtotal        Decimal         @db.Decimal(12, 2)
+  talla           TallaProductos?
+  color           String?
+  ordenes         ordenes         @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos       productos       @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "detalles_orden_producto_fkey")
+
+  @@schema("public")
+}
+
+model direcciones_cliente {
+  id           BigInt    @id @default(autoincrement())
+  cliente_id   String?   @db.Uuid
+  alias        String
+  direccion    String
+  ciudad       String?
+  departamento String?
+  es_principal Boolean?  @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  clientes     clientes? @relation(fields: [cliente_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model insumo {
+  id                     BigInt                   @id(map: "inventario_pkey") @default(autoincrement())
+  nombre                 String
+  tipo                   TipoInsumo
+  unidad_medida          UnidadMedida             @default(unidades)
+  stock_actual           Int                      @default(0)
+  stock_minimo           Int                      @default(10)
+  precio_unitario        Decimal?                 @db.Decimal(10, 2)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  proveedor              String?
+  movimientos_inventario movimientos_inventario[]
+
+  @@schema("public")
+}
+
+model movimientos_inventario {
+  id              BigInt          @id(map: "lista_materiales_pkey") @default(autoincrement())
+  producto_id     BigInt?
+  insumo_id       BigInt?
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  cantidad        Float?
+  motivo          String?
+  usuario_id      BigInt?
+  tipo_movimiento TipoMovimiento?
+  insumo          insumo?         @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos       productos?      @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios        usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model ordenes {
+  id             BigInt           @id @default(autoincrement())
+  user_id        BigInt?
+  cliente_id     String?          @db.Uuid
+  subtotal       Decimal          @default(0) @db.Decimal(12, 2)
+  impuestos      Decimal          @default(0) @db.Decimal(12, 2)
+  total          Decimal          @default(0) @db.Decimal(12, 2)
+  estado         EstadoOrden?     @default(solicitado)
+  metodo_pago    MetodoPago?
+  payment_id     String?
+  notas_internas String?
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  comprobantes   comprobantes[]
+  cotizaciones   cotizaciones[]
+  detalles_orden detalles_orden[]
+  cliente        clientes?        @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          usuarios?        @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pedidos        pedidos[]
+  reservas_stock reservas_stock[]
+  ventas         ventas[]
+
+  @@schema("public")
+}
+
+model pedidos {
+  id                       BigInt           @id @default(autoincrement())
+  fecha_pedido             DateTime?        @default(now()) @db.Timestamptz(6)
+  estado                   EstadoPedido?    @default(pendiente)
+  prioridad                PrioridadPedido? @default(normal)
+  created_by               String?          @default(dbgenerated("auth.uid()")) @db.Uuid
+  created_at               DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?        @db.Timestamptz(6)
+  updated_by               String?          @default(dbgenerated("auth.uid()")) @db.Uuid
+  orden_id                 BigInt?
+  producto_id              BigInt?
+  talla                    TallaProductos?
+  cantidad                 Int?             @default(1)
+  precio_unitario          Decimal?         @default(0) @db.Decimal(12, 2)
+  nombre_producto_snapshot String?
+  especificaciones         Json?
+  despachos                despachos[]
+  ordenes                  ordenes?         @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos                productos?       @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model precio_historico {
+  id            BigInt    @id @default(autoincrement())
+  producto_id   BigInt
+  precio        Decimal   @db.Decimal(10, 2)
+  motivo        String?
+  vigente_desde DateTime  @default(now()) @db.Timestamptz(6)
+  vigente_hasta DateTime? @db.Timestamptz(6)
+  creado_por    String?   @db.Uuid
+  users         users?    @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos     productos @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model productos {
+  id                     BigInt                   @id @default(autoincrement())
+  nombre                 String
+  descripcion            String?
+  created_at             DateTime                 @default(now())
+  imagen                 String?
+  precio                 Float
+  stock                  Int                      @default(0)
+  updated_at             DateTime
+  estado                 EstadoProducto           @default(activo)
+  sku                    String                   @unique
+  destacado              Boolean?                 @default(false)
+  categoria_id           BigInt?
+  cotizacion_items       cotizacion_items[]
+  detalles_orden         detalles_orden[]
+  movimientos_inventario movimientos_inventario[]
+  pedidos                pedidos[]
+  precio_historico       precio_historico[]
+  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto     variantes_producto[]
+
+  @@index([estado], map: "idx_productos_estado")
+  @@index([nombre], map: "idx_productos_nombre")
+  @@schema("public")
+}
+
+model reglas_descuento {
+  id            BigInt  @id @default(autoincrement())
+  nombre        String
+  cantidad_min  Int
+  cantidad_max  Int?
+  descuento_pct Decimal @db.Decimal(5, 2)
+  aplica_a      String? @default("global")
+
+  @@schema("public")
+}
+
+model reservas_stock {
+  id                 BigInt             @id @default(autoincrement())
+  variante_id        BigInt
+  cotizacion_id      BigInt?
+  orden_id           BigInt?
+  cantidad           Int
+  expira_en          DateTime           @default(dbgenerated("(now() + '00:30:00'::interval)")) @db.Timestamptz(6)
+  estado             String             @default("activa")
+  cotizaciones       cotizaciones?      @relation(fields: [cotizacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes            ordenes?           @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model talleres {
+  id           BigInt              @id @default(autoincrement())
+  nombre       String
+  direccion    String
+  telefono     String
+  email        String?             @unique
+  created_at   DateTime            @default(now())
+  updated_at   DateTime
+  ruc          String              @unique
+  contacto     String
+  especialidad EspecialidadTaller?
+  estado       EstadoTaller        @default(activo)
+  confecciones confecciones[]
+
+  @@schema("public")
+}
+
+model usuarios {
+  id                     BigInt                   @id @default(autoincrement())
+  email                  String                   @unique
+  nombre_completo        String
+  telefono               String?
+  estado                 EstadoUsuario?           @default(activo)
+  rol                    rol?                     @default(administrador)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  auth_id                String?                  @unique @db.Uuid
+  ultimo_acceso          DateTime?                @db.Timestamptz(6)
+  created_by             String?                  @db.Uuid
+  cliente_id             String?                  @db.Uuid
+  avatar_url             String?
+  cliente                clientes?                @relation(fields: [cliente_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  users                  users?                   @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  movimientos_inventario movimientos_inventario[]
+  ventas                 ventas[]
+  ordenes                ordenes[]
+  despachos              despachos[]
+
+  @@schema("public")
+}
+
+model variantes_producto {
+  id               BigInt             @id @default(autoincrement())
+  producto_id      BigInt
+  nombre           String             @db.VarChar(100)
+  color            ColorPrenda
+  talla            TallaProductos
+  estado           EstadoProducto     @default(activo)
+  precio_adicional Decimal            @default(0.00) @db.Decimal(10, 2)
+  stock_adicional  Int                @default(0)
+  sku              String             @unique(map: "unique_variant_sku") @db.VarChar(100)
+  imagen_url       String?
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  cotizacion_items cotizacion_items[]
+  reservas_stock   reservas_stock[]
+  productos        productos          @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([producto_id, talla, color], map: "unique_producto_talla_color")
+  @@index([producto_id], map: "idx_variantes_producto_id")
+  @@schema("public")
+}
+
+model ventas {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orden_id           BigInt
+  vendedor_id        BigInt?
+  subtotal           Decimal          @default(0) @db.Decimal(12, 2)
+  impuestos          Decimal          @default(0) @db.Decimal(12, 2)
+  total              Decimal          @default(0) @db.Decimal(12, 2)
+  metodo_pago        MetodoPago?
+  numero_comprobante String?
+  created_at         DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?        @default(now()) @db.Timestamptz(6)
+  tipo_comprobante   TipoComprobante?
+  vendedor           usuarios?        @relation(fields: [vendedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes            ordenes          @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_ventas_fecha_pago")
+  @@index([orden_id], map: "idx_ventas_orden_link")
+  @@schema("public")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum aal_level {
+  aal1
+  aal2
+  aal3
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+  @@schema("auth")
+}
+
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
+  @@schema("auth")
+}
+
+enum oauth_client_type {
+  public
+  confidential
+  @@schema("auth")
+}
+
+enum oauth_registration_type {
+  dynamic
+  manual
+  @@schema("auth")
+}
+
+enum oauth_response_type {
+  code
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+  @@schema("auth")
+}
+
+enum ColorPrenda {
+  Blanco
+  Negro
+  Gris
+  Beige
+  Marr_n_pastel  @map("Marrón pastel")
+  Azul_jean      @map("Azul jean")
+  Azul_marino    @map("Azul marino")
+  Rojo
+  Rosa_pastel    @map("Rosa pastel")
+  Morado_claro   @map("Morado claro")
+  Verde_olivo    @map("Verde olivo")
+  Amarillo
+  Naranja
+  Multicolor
+  nico           @map("Único")
+  Vino
+  Camel
+  Crema
+  Celeste
+  Amarillo_lim_n @map("Amarillo limón")
+  @@schema("public")
+}
+
+enum EspecialidadTaller {
   corte
+  confecci_n @map("confección")
+  bordado
+  estampado
   costura
-  acabado
-  completado
-  cancelado
+  acabados
+  otro
+  @@schema("public")
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+  @@schema("public")
+}
+
+enum EstadoCliente {
+  activo
+  inactivo
+  suspendido
+  potencial
+  @@schema("public")
 }
 
 enum EstadoConfeccion {
-  pendiente
   corte
   confeccionando
   remallado
   terminado
+  @@schema("public")
+}
+
+enum EstadoCotizacion {
+  pendiente
+  aceptada
+  rechazada
+  expirada
+  @@schema("public")
 }
 
 enum EstadoDespacho {
   pendiente
   en_ruta
   entregado
-}
-
-enum rol {
-  administrador
-  cortador
-  diseñador
-  recepcionista
-  ayudante
-  representante_taller
-}
-
-enum EstadoUsuario {
-  activo
-  inactivo
-  suspendido
-}
-
-enum PrioridadPedido {
-  baja
-  normal
-  alta
-  urgente
-}
-
-enum EstadoProducto {
-  activo
-  inactivo
-  agotado
-  descontinuado
-}
-
-enum EspecialidadTaller {
-  corte
-  confeccion
-  bordado
-  estampado
-  costura
-  acabados
-  otro
-}
-
-enum EstadoTaller {
-  activo
-  inactivo
-  suspendido
-}
-
-enum EstadoPago {
-  pendiente
-  pagado_parcial
-  pagado
-  vencido
+  @@schema("public")
 }
 
 enum EstadoOrden {
@@ -95,28 +980,47 @@ enum EstadoOrden {
   en_proceso
   finalizado
   cancelado
+  @@schema("public")
 }
 
-enum TipoComprobante {
-  boleta
-  factura
-  nota_venta
+enum EstadoPago {
+  pendiente
+  pagado_parcial
+  pagado
+  vencido
+  @@schema("public")
 }
 
-// Nota: TallaProductos en tu imagen es un tipo de dato, 
-// pero usualmente se maneja como String o Enum personalizado en modelos.
-enum TallaProductos {
-  XS
-  S
-  M
-  L
-  XL
-  XXL
-  N28 // Prisma no permite números al inicio del enum
-  N30
-  N32
-  N34
-  @@map("TallaProductos")
+enum EstadoPedido {
+  pendiente
+  corte
+  costura
+   acabado
+  completado
+  cancelado
+  @@schema("public")
+}
+
+enum EstadoProducto {
+  activo
+  inactivo
+  agotado
+  descontinuado
+  @@schema("public")
+}
+
+enum EstadoTaller {
+  activo
+  inactivo
+  suspendido
+  @@schema("public")
+}
+
+enum EstadoUsuario {
+  activo
+  inactivo
+  suspendido
+  @@schema("public")
 }
 
 enum MetodoPago {
@@ -126,13 +1030,61 @@ enum MetodoPago {
   plin
   visa
   mastercard
+  @@schema("public")
 }
 
-enum EstadoCliente {
-  activo
-  inactivo
-  suspendido
-  potencial
+enum PrioridadPedido {
+  baja
+  normal
+  alta
+  urgente
+  @@schema("public")
+}
+
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  @@schema("public")
+}
+
+enum TipoCategoria {
+  producto
+  insumo
+  @@schema("public")
+}
+
+enum TipoCliente {
+  corporativo
+  minorista
+  distribuidor
+  @@schema("public")
+}
+
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
+  @@schema("public")
+}
+
+enum TipoInsumo {
+  tela
+  hilo
+  avio
+  boton
+  cierre
+  @@schema("public")
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+  @@schema("public")
 }
 
 enum UnidadMedida {
@@ -142,285 +1094,15 @@ enum UnidadMedida {
   docenas
   kilogramos
   set
+  @@schema("public")
 }
 
-enum TipoInsumo {
-  tela
-  hilo
-  avio
-  boton
-  cierre
-}
-
-enum EstadoCotizacion {
-  pendiente
-  aceptada
-  rechazada
-  expirada
-}
-
-enum TipoCliente {
-  corporativo
-  minorista
-  distribuidor
-}
-
-enum TipoCategoria {
-  producto
-  insumo
-}
-
-enum EstadoCategoria {
-  activo
-  inactivo
-}
-
-enum ColorPrenda {
-  Blanco
-  Negro
-  Gris
-  Beige
-  Marron_pastel // Prisma no permite espacios
-  Azul_jean
-  Azul_marino
-  Rojo
-  Rosa_pastel
-  Morado_claro
-  Verde_olivo
-  Amarillo
-  Naranja
-  Multicolor
-  Unico
-  Vino
-  Camel
-  Crema
-  Celeste
-  Amarillo_limon
-  @@map("ColorPrenda")
-}
-
-enum TipoMovimiento {
-  entrada
-  salida
-  ajuste
-}
-
-// ============================================
-// MODELOS
-// ============================================
-
-model categorias {
-  id          BigInt    @id @default(autoincrement())
-  nombre      String    @unique
-  descripcion String?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime? @default(now()) @updatedAt
-  orden       BigInt?
-  activo      Boolean?  @default(true)
-  imagen      String?
-  
-  productos   productos[]
-  inventario  inventario[]
-
-  @@map("categorias")
-}
-
-model clientes {
-  id           BigInt         @id @default(autoincrement())
-  ruc          BigInt
-  razon_social String?
-  email        String?
-  telefono     BigInt?
-  direccion    String?
-  tipo         TipoCliente    @default(minorista)
-  activo       EstadoCliente  @default(activo)
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @default(now()) @updatedAt
-  auth_id      String?        @unique @db.Uuid
-
-  pedidos pedidos[]
-
-  @@map("clientes")
-}
-
-model usuarios {
-  id              BigInt         @id @default(autoincrement())
-  email           String         @unique
-  nombre_completo String
-  telefono        String?
-  estado          EstadoUsuario  @default(activo)
-  rol             rol            @default(ayudante)
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
-  auth_id         String?        @unique @db.Uuid
-  ultimo_acceso   DateTime?
-  avatar_url      String?
-  created_by      String?        @db.Uuid
-
-  despachos despachos[]
-
-  @@map("usuarios")
-}
-
-model productos {
-  id           BigInt         @id @default(autoincrement())
-  nombre       String
-  descripcion  String?
-  created_at   DateTime       @default(now())
-  categoria_id BigInt
-  imagen       String?
-  precio       Float
-  stock        Int            @default(0)
-  stock_minimo Int            @default(0)
-  updated_at   DateTime       @updatedAt
-  estado       EstadoProducto @default(activo)
-  sku          String         @unique
-
-  categoria        categorias           @relation(fields: [categoria_id], references: [id])
-  detalles_pedido  detalles_pedido[]
-  variantes        variantes_producto[]
-  lista_materiales lista_materiales[]
-  inventario       inventario[]
-
-  @@map("productos")
-}
-
-model pedidos {
-  id                       BigInt           @id @default(autoincrement())
-  cliente_id               BigInt?
-  fecha_pedido             DateTime?        @default(now())
-  fecha_entrega_estimada   DateTime?
-  estado                   EstadoPedido?    @default(pendiente)
-  prioridad                PrioridadPedido? @default(normal)
-  total                    Decimal          @db.Decimal(10, 2)
-  notas                    String?
-  direccion_envio          String?
-  created_at               DateTime         @default(now())
-  updated_at               DateTime?        @updatedAt
-  orden_id                 String?          @unique
-  metodo_pago              String?
-  
-  cliente                  clientes?        @relation(fields: [cliente_id], references: [id])
-  detalles                 detalles_pedido[]
-
-  @@map("pedidos")
-}
-
-model detalles_pedido {
-  id              BigInt   @id @default(autoincrement())
-  pedido_id       BigInt
-  producto_id     BigInt
-  cantidad        Int
-  talla           String
-  color           String?
-  precio_unitario Decimal  @db.Decimal(10, 2)
-  subtotal        Decimal  @db.Decimal(10, 2)
-  created_at      DateTime @default(now())
-  
-  pedido          pedidos   @relation(fields: [pedido_id], references: [id])
-  producto        productos @relation(fields: [producto_id], references: [id])
-
-  @@map("detalles_pedido")
-}
-
-model variantes_producto {
-  id               BigInt      @id @default(autoincrement())
-  producto_id      BigInt?
-  nombre           String
-  talla            String?
-  color            String?
-  precio_adicional Decimal?    @default(0) @db.Decimal(10, 2)
-  stock_adicional  Int?        @default(0)
-  sku              String?     @unique
-  activo           Boolean?    @default(true)
-  created_at       DateTime?   @default(now())
-  updated_at       DateTime?   @default(now()) @updatedAt
-  
-  producto         productos?  @relation(fields: [producto_id], references: [id])
-
-  @@map("variantes_producto")
-}
-
-model talleres {
-  id           BigInt             @id @default(autoincrement())
-  nombre       String
-  direccion    String
-  telefono     String
-  email        String?
-  ruc          String             @unique
-  contacto     String
-  estado       EstadoTaller       @default(activo)
-  created_at   DateTime           @default(now())
-  updated_at   DateTime           @updatedAt
-  confecciones confecciones[]
-
-  @@map("talleres")
-}
-
-model confecciones {
-  id            BigInt            @id @default(autoincrement())
-  pedido_id     BigInt
-  taller_id     BigInt
-  estado        EstadoConfeccion  @default(pendiente)
-  fecha_inicio  DateTime          @default(now())
-  fecha_fin     DateTime?
-  observaciones String?
-  created_at    DateTime          @default(now())
-  updated_at    DateTime          @updatedAt
-  
-  taller        talleres          @relation(fields: [taller_id], references: [id])
-
-  @@map("confecciones")
-}
-
-model despachos {
-  id                BigInt          @id @default(autoincrement())
-  pedido_id         BigInt
-  usuario_id        BigInt
-  estado            EstadoDespacho  @default(pendiente)
-  direccion_entrega String
-  fecha_despacho    DateTime        @default(now())
-  fecha_entrega     DateTime?
-  created_at        DateTime        @default(now())
-  updated_at        DateTime        @updatedAt
-  
-  usuario           usuarios        @relation(fields: [usuario_id], references: [id])
-
-  @@map("despachos")
-}
-
-model inventario {
-  id             BigInt        @id @default(autoincrement())
-  sku            String?       @unique
-  nombre         String
-  tipo           TipoInsumo
-  unidad_medida  UnidadMedida  @default(unidades)
-  stock_actual   Int           @default(0)
-  stock_minimo   Int           @default(10)
-  costo_unitario Decimal?      @db.Decimal(10, 2)
-  precio_venta   Decimal?      @db.Decimal(10, 2)
-  categoria_id   BigInt?
-  producto_id    BigInt?
-  created_at     DateTime      @default(now())
-  updated_at     DateTime      @updatedAt
-  
-  categoria      categorias?   @relation(fields: [categoria_id], references: [id])
-  producto       productos?    @relation(fields: [producto_id], references: [id])
-  lista_materiales lista_materiales[]
-
-  @@map("inventario")
-}
-
-model lista_materiales {
-  id                 BigInt     @id @default(autoincrement())
-  producto_id        BigInt?
-  insumo_id          BigInt?
-  cantidad_requerida Float?
-  created_at         DateTime   @default(now())
-  updated_at         DateTime?  @updatedAt
-  
-  producto           productos? @relation(fields: [producto_id], references: [id])
-  insumo             inventario? @relation(fields: [insumo_id], references: [id])
-
-  @@map("lista_materiales")
+enum rol {
+  administrador
+  cortador
+  dise_ador            @map("diseñador")
+  recepcionista
+  ayudante
+  representante_taller
+  @@schema("public")
 }

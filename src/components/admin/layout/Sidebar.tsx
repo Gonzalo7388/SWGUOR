@@ -130,7 +130,7 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
   const handleLogout = async () => {
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
-    router.replace('/admin/login');
+    router.replace('/auth/login');
   };
 
   const toggleMenu = (title: string) => {

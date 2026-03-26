@@ -1,10 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { userCache } from '@/lib/cache';
 
-// CONFIGURACIÓN DE PERMISOS POR ROL
-
+// 1. CONFIGURACIÓN DE PERMISOS EXTENDIDA
 const routePermissions: Record<string, string[]> = {
+  // --- Rutas Administrativas (Staff) ---
   '/admin/Panel-Administrativo/dashboard': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
   '/admin/Panel-Administrativo/usuarios': ['administrador'],
   '/admin/Panel-Administrativo/clientes': ['administrador', 'recepcionista'],
@@ -19,80 +18,27 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista'],
   '/admin/Panel-Administrativo/pagos': ['administrador'],
   '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
+
+  // --- Rutas del Portal B2B (Clientes) ---
+  '/portal/dashboard': ['cliente'],
+  '/portal/productos': ['cliente'],
+  '/portal/cotizaciones': ['cliente'],
+  '/portal/ordenes': ['cliente'],
+  '/portal/perfil': ['cliente'],
 };
 
-const ESTADO_ACTIVO = 'ACTIVO'; // Cambiado a mayúsculas
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-// FUNCIONES AUXILIARES
-
-/**
- * Obtiene el usuario desde caché o BD con manejo de TTL
- */
-async function getUserData(userId: string, supabase: any) {
-  const cached = userCache.get(userId);
-  
-  // Validar caché con TTL
-  if (cached && cached.timestamp && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-
-  // Consultar BD si no hay caché válido
-  try {
-    const { data: usuarioData, error } = await supabase
-      .from('usuarios')
-      .select('id, rol, estado, auth_id')
-      .eq('auth_id', userId)
-      .maybeSingle();
-
-    if (error || !usuarioData) {
-      return null;
-    }
-
-    // Actualizar caché (timestamp se genera automáticamente)
-    userCache.set(userId, usuarioData);
-
-    return usuarioData;
-  } catch (err) {
-    console.error('Error fetching user data:', err);
-    return null;
-  }
-}
-
-/**
- * Encuentra la ruta coincidente más específica
- */
-function findMatchingRoute(pathname: string): string | null {
-  return Object.keys(routePermissions)
-    .filter(route => pathname === route || pathname.startsWith(route + '/'))
-    .sort((a, b) => b.length - a.length)[0] || null;
-}
-
-/**
- * Verifica si el usuario tiene permisos para la ruta
- */
-function hasPermission(userRole: string | undefined, route: string | null): boolean {
-  if (!route || !userRole) return true; // Si no hay ruta específica, permitir
-  
-  const allowedRoles = routePermissions[route];
-  return allowedRoles?.includes(userRole.toLowerCase()) ?? true;
-}
-
-// ============================================
-// PROXY PRINCIPAL
-// ============================================
+const ESTADO_ACTIVO = 'ACTIVO';
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response = NextResponse.next({ request });
 
-  // Rutas públicas - permitir sin validación
-  const publicPaths = ['/admin/login', '/admin/acceso-denegado', '/admin/auth/signout'];
+  // 2. RUTAS PÚBLICAS ÚNICAS
+  const publicPaths = ['/auth/login', '/auth/register', '/admin/acceso-denegado'];
   if (publicPaths.some(path => pathname.startsWith(path))) {
     return response;
   }
 
-  // Crear cliente Supabase con manejo de cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -109,60 +55,51 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Validar autenticación
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (authError) {
-    console.error('Auth error in middleware:', authError.message);
-  }
-
-  // Protección de rutas administrativas
-  if (pathname.startsWith('/admin/Panel-Administrativo')) {
-    // Sin usuario autenticado -> redirigir a login
+  // 3. PROTECCIÓN DE RUTAS PRIVADAS (/admin y /portal)
+  if (pathname.startsWith('/admin') || pathname.startsWith('/portal')) {
+    
+    // Si no hay sesión, todos van al MISMO login
     if (!user) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname); // Guardamos a dónde quería ir
+      return NextResponse.redirect(loginUrl);
     }
 
-    // Obtener datos del usuario con caché inteligente
-    const usuario = await getUserData(user.id, supabase);
+    // Obtenemos los datos del usuario (Rol y Estado)
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('rol, estado')
+      .eq('auth_id', user.id)
+      .single();
 
-    if (!usuario) {
-      // Usuario no encontrado en BD -> limpiar sesión
-      userCache.delete(user.id);
-      return NextResponse.redirect(
-        new URL('/admin/login?error=usuario_no_encontrado', request.url)
-      );
+    // Validar cuenta activa
+    if (!usuario || usuario.estado?.toUpperCase() !== ESTADO_ACTIVO) {
+      return NextResponse.redirect(new URL('/auth/login?error=cuenta_inactiva', request.url));
     }
 
-    // Validar estado activo
-    const estadoNormalizado = usuario.estado?.toString().toUpperCase().trim();
-    if (estadoNormalizado !== ESTADO_ACTIVO) {
-      userCache.delete(user.id);
-      return NextResponse.redirect(
-        new URL('/admin/login?error=usuario_inactivo', request.url)
-      );
-    }
-
-    // Validar permisos por rol
     const userRole = usuario.rol?.toLowerCase();
-    const matchedRoute = findMatchingRoute(pathname);
 
-    if (!hasPermission(userRole, matchedRoute)) {
-      return NextResponse.redirect(
-        new URL('/admin/acceso-denegado', request.url)
-      );
+    // 4. VALIDACIÓN CRUZADA (Seguridad de Tesis)
+    // Evitar que un cliente entre a /admin y que un admin entre a /portal
+    if (pathname.startsWith('/admin') && userRole === 'cliente') {
+      return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
+    }
+    
+    if (pathname.startsWith('/portal') && userRole !== 'cliente') {
+      // Si un admin entra a /portal, lo mandamos a su dashboard administrativo
+      return NextResponse.redirect(new URL('/admin/Panel-Administrativo/dashboard', request.url));
     }
 
-    // Agregar header con rol del usuario (útil para layouts)
-    response.headers.set('x-user-role', usuario.rol);
-    response.headers.set('x-user-id', usuario.id.toString());
-  }
+    // 5. VALIDACIÓN DE PERMISOS ESPECÍFICOS (RBAC)
+    // Buscamos si la ruta actual requiere un rol específico
+    const matchedRoute = Object.keys(routePermissions)
+      .find(route => pathname.startsWith(route));
 
-  // Redirigir usuarios logueados desde login al dashboard
-  if (user && pathname === '/admin/login') {
-    return NextResponse.redirect(
-      new URL('/admin/Panel-Administrativo/dashboard', request.url)
-    );
+    if (matchedRoute && !routePermissions[matchedRoute].includes(userRole)) {
+      return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
+    }
   }
 
   return response;
@@ -170,13 +107,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Coincidir con todas las rutas de /admin excepto:
-     * - _next/static (archivos estáticos)
-     * - _next/image (optimización de imágenes)
-     * - favicon.ico (icono del sitio)
-     * - archivos con extensiones (svg, png, jpg, etc)
-     */
-    '/admin/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/admin/:path*',
+    '/portal/:path*',
   ],
 };
