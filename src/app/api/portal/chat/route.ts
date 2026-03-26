@@ -3,7 +3,6 @@ export const fetchCache = 'force-no-store';
 
 import { NextResponse } from 'next/server';
 import { SchemaType, Tool } from "@google/generative-ai";
-import prisma from '@/lib/prisma'; 
 import { getEscalaPorCantidad } from '@/lib/logic/cotizaciones-logic'; 
 import { model } from '@/lib/gemini';
 
@@ -50,7 +49,7 @@ const tools: Tool[] = [
 export async function POST(req: Request) {
   try {
     const { messages, cliente_id } = await req.json();
-
+    const { default: prisma } = await import('@/lib/prisma');
     const cliente = await prisma.clientes.findUnique({
       where: { id: cliente_id },
       select: { razon_social: true }
@@ -108,6 +107,7 @@ export async function POST(req: Request) {
 async function ejecutarTool(nombre: string, args: any) {
   switch (nombre) {
     case 'consultar_inventario':
+      const { default: prisma } = await import('@/lib/prisma');
       const productos = await prisma.productos.findMany({
         where: { 
           nombre: { contains: args.busqueda, mode: 'insensitive' },
