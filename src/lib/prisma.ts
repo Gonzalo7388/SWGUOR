@@ -1,15 +1,31 @@
 import { PrismaClient } from '@prisma/client';
 
+interface PrismaConfig {
+  datasources?: {
+    db?: {
+      url?: string;
+    };
+  };
+  log?: ('query' | 'error' | 'warn' | 'info')[];
+}
+
 const prismaClientSingleton = () => {
-  if (!process.env.DATABASE_URL) {
-    // Esto evita que falle silenciosamente y te da un error claro en los logs
-    console.error("CRÍTICO: DATABASE_URL no está definida en las variables de entorno.");
-  }
-  return new PrismaClient();
+  const config: PrismaConfig = {
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  };
+
+  return new PrismaClient(config as any); 
+
 };
 
 declare global {
-  var prisma: ReturnType<typeof prismaClientSingleton> | undefined;
+  // eslint-disable-next-line no-var
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
 const prisma = globalThis.prisma ?? prismaClientSingleton();
