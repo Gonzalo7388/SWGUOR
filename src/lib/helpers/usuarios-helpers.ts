@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Usuario, ClienteB2B } from '@/types';
 
