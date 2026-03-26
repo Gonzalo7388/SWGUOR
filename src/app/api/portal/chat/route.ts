@@ -44,6 +44,7 @@ const tools: Tool[] = [
   },
 ];
 
+export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const { messages, cliente_id } = await req.json();
