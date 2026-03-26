@@ -7,6 +7,7 @@ import type { Database, InsumoInsert, InsumoUpdate } from '@/types'
 
 async function getSupabase() {
   const cookieStore = await cookies()
+  // Mantenemos Database aquí para el autocompletado general
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -24,33 +25,27 @@ async function getSupabase() {
 export async function saveInsumo(data: any, id?: number | null) {
   const supabase = await getSupabase()
 
-  if (id) {
-    const updateData: InsumoUpdate = {
-      nombre: data.nombre,
-      tipo: data.tipo,
-      unidad_medida: data.unidad_medida,
-      stock_actual: data.stock_actual,
-      stock_minimo: data.stock_minimo,
-    }
+  // Preparamos los datos exactamente como los espera el SQL
+  const insumoData = {
+    nombre: data.nombre,
+    tipo: data.tipo,
+    unidad_medida: data.unidad_medida,
+    stock_actual: Number(data.stock_actual),
+    stock_minimo: Number(data.stock_minimo),
+    precio_unitario: data.precio_unitario ? Number(data.precio_unitario) : null,
+    proveedor: data.proveedor || null,
+  }
 
-    const { error } = await supabase
-      .from('insumo')
-      .update(updateData)
+  if (id) {
+
+    const { error } = await (supabase.from('insumo') as any)
+      .update(insumoData)
       .eq('id', id)
 
     if (error) throw new Error(error.message)
   } else {
-    const insertData: InsumoInsert = {
-      nombre: data.nombre,
-      tipo: data.tipo,
-      unidad_medida: data.unidad_medida,
-      stock_actual: data.stock_actual,
-      stock_minimo: data.stock_minimo,
-    }
-
-    const { error } = await supabase
-      .from('insumo')
-      .insert(insertData)
+    const { error } = await (supabase.from('insumo') as any)
+      .insert([insumoData])
 
     if (error) throw new Error(error.message)
   }
@@ -61,8 +56,7 @@ export async function saveInsumo(data: any, id?: number | null) {
 export async function deleteInsumo(id: number) {
   const supabase = await getSupabase()
   
-  const { error } = await supabase
-    .from('insumo')
+  const { error } = await (supabase.from('insumo') as any)
     .delete()
     .eq('id', id)
   

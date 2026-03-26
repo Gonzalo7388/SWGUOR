@@ -4,10 +4,16 @@
  */
 
 import { useCallback, useState } from 'react';
-import { obtenerOrdenes, crearOrden, cambiarEstadoOrden, verificarStock } from '@/lib/helpers/orden-helpers';
+// CORRECCIÓN: Se importan todas las funciones necesarias del helper correcto
+import { 
+  obtenerOrdenes, 
+  crearOrden, 
+  cambiarEstadoOrden, 
+  verificarStock 
+} from '@/lib/helpers/ordenes-helpers';
 import type { Orden, OrdenInsert, EstadoOrden, MetodoPago } from '@/types';
 
-// Tipos que no existen en @/types → definidos localmente
+// Tipos locales para el estado del hook
 interface FiltrosOrden {
   estado?: EstadoOrden;
   fecha_desde?: string;
@@ -64,6 +70,7 @@ export function useOrdenes(): UseOrdenesState & UseOrdenesActions {
   const obtener = useCallback(async (filtros?: FiltrosOrden) => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
+      // Llamada al helper corregida
       const { data, error } = await obtenerOrdenes(filtros);
 
       if (error) {
@@ -73,7 +80,7 @@ export function useOrdenes(): UseOrdenesState & UseOrdenesActions {
 
       setState(prev => ({
         ...prev,
-        ordenes: data || [],
+        ordenes: (data as OrdenCompleta[]) || [],
         cargando: false
       }));
     } catch (err: any) {
@@ -92,7 +99,7 @@ export function useOrdenes(): UseOrdenesState & UseOrdenesActions {
     ) => {
       setState(prev => ({ ...prev, cargando: true, error: null }));
       try {
-        const { data, error } = await crearOrden(ordenData, detalles);
+        const { error } = await crearOrden(ordenData, detalles);
 
         if (error) {
           setState(prev => ({ ...prev, error, cargando: false }));
@@ -132,6 +139,7 @@ export function useOrdenes(): UseOrdenesState & UseOrdenesActions {
           return false;
         }
 
+        // Actualización optimista del estado local
         setState(prev => ({
           ...prev,
           ordenes: prev.ordenes.map((o: OrdenCompleta) =>

@@ -87,9 +87,9 @@ export default function ProductosPage() {
       "SKU": p.sku,
       "Producto": p.nombre,
       "Categoría": categorias.find(c => c.id === p.categoria_id)?.nombre || "Sin categoría",
-      "Stock": p.stock,
-      "Precio": p.precio,
-      "Estado": p.stock === 0 ? "Agotado" : p.stock <= 5 ? "Bajo Stock" : "Disponible"
+      "Stock": p.stock_actual,
+      "Precio": p.precio_base,
+      "Estado": p.stock_actual === 0 ? "Agotado" : p.stock_actual <= 5 ? "Bajo Stock" : "Disponible"
     }));
     exportToExcel(dataToExport as any, { filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}` });
     toast.success("Excel generado correctamente");

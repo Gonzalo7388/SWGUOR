@@ -20,14 +20,38 @@ export const ESTADOS_COTIZACION: Record<string, { label: string; color: string; 
 };
 
 // ─── ÓRDENES DE VENTA/PRODUCCIÓN ──────────────────────────────────────────────
-export const ESTADOS_ORDEN: Record<EstadoOrden, { label: string; color: string; bgColor: string }> = {
-  solicitado: { label: 'Solicitado',    color: 'text-blue-700',    bgColor: 'bg-blue-100' },
-  cotizado:   { label: 'Cotizado',      color: 'text-purple-700',  bgColor: 'bg-purple-100' },
-  aprobado:   { label: 'Aprobado',      color: 'text-green-700',   bgColor: 'bg-green-100' },
-  pagado:     { label: 'Pagado',        color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  en_proceso: { label: 'En Producción', color: 'text-orange-700',  bgColor: 'bg-orange-100' },
-  finalizado: { label: 'Listo p/ Entrega', color: 'text-teal-700', bgColor: 'bg-teal-100' },
-  cancelado:  { label: 'Cancelado',     color: 'text-red-700',     bgColor: 'bg-red-100' },
+export const ESTADOS_ORDEN = {
+  solicitado: { label: 'Solicitado', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  cotizado:   { label: 'Cotizado', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  aprobado:   { label: 'Aprobado', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  pagado:     { label: 'Pagado', color: 'text-teal-700', bgColor: 'bg-teal-100' },
+  en_proceso: { label: 'En Proceso', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  finalizado: { label: 'Finalizado', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  cancelado:  { label: 'Cancelado', color: 'text-rose-700', bgColor: 'bg-rose-100' },
+};
+
+// ─── PAGOS ───────────────────────────────────────────────────────────────
+export const ESTADOS_PAGO: Record<string, { label: string, color: string, bgColor: string }> = {
+  pendiente: { label: 'Pendiente', color: 'text-amber-700', bgColor: 'bg-amber-100' },
+  parcial:   { label: 'Pago Parcial', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  completado: { label: 'Completado', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  reembolsado: { label: 'Reembolsado', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+};
+
+// ─── PRIORIDADES DE PEDIDO (CUS-08) ──────────────────────────────────────────
+export const PRIORIDADES_PEDIDO: Record<string, { label: string, color: string, bgColor: string }> = {
+  baja:   { label: 'Baja', color: 'text-slate-600', bgColor: 'bg-slate-100' },
+  media:  { label: 'Media', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  alta:   { label: 'Alta', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  urgente: { label: 'Urgente', color: 'text-rose-600', bgColor: 'bg-rose-100' },
+};
+
+// ─── UNIDADES DE MEDIDA ──────────────────────────────────────────────────────
+export const UNIDADES_MEDIDA: Record<string, { label: string }> = {
+  metros: { label: 'm' },
+  unidades: { label: 'und' },
+  conos: { label: 'conos' },
+  yardas: { label: 'yd' },
 };
 
 // ─── SEGUIMIENTO LOGÍSTICO (CUS-12) ──────────────────────────────────────────
@@ -44,6 +68,18 @@ export const TIPOS_CLIENTE: Record<string, { label: string; color: string; bgCol
   corporativo:  { label: 'Corp. Premium', color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
   distribuidor: { label: 'Distribuidor',  color: 'text-violet-700', bgColor: 'bg-violet-100' },
   minorista:    { label: 'Minorista B2B', color: 'text-sky-700',    bgColor: 'bg-sky-100' },
+};
+
+// ── ROLES DE USUARIO ─────────────────────────────────────────────────────────
+export const ROLES_USUARIO = {
+  administrador: 'Administrador',
+  vendedor: 'Vendedor',
+  cliente: 'Cliente B2B',
+  taller: 'Representante de Taller',
+  disenador: 'Diseñador',
+  cortador: 'Cortador',
+  ayudante: 'Ayudante',
+  recepcionista: 'Recepcionista',
 };
 
 // ─── REGLAS DE NEGOCIO B2B ───────────────────────────────────────────────────
@@ -78,3 +114,9 @@ export function getEstadoInfo(
 export const LISTA_ESTADOS_COTIZACION = Object.keys(ESTADOS_COTIZACION);
 export const LISTA_ESTADOS_ORDEN = Object.keys(ESTADOS_ORDEN) as EstadoOrden[];
 export const LISTA_ESTADOS_DESPACHO = Object.keys(ESTADOS_DESPACHO) as EstadoDespacho[];
+export const ESTADOS_CONFECCION: Record<string, { label: string; color: string; bgColor: string }> = {
+  corte:          { label: 'En Corte',      color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  confeccionando: { label: 'Confeccionando', color: 'text-blue-700',   bgColor: 'bg-blue-100' },
+  remallado:      { label: 'Remallado',     color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  terminado:      { label: 'Terminado',     color: 'text-green-700',  bgColor: 'bg-green-100' },
+};

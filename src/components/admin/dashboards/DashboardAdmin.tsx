@@ -10,15 +10,8 @@ import {
   RefreshCw, Package, Clock, CheckCircle2,
   AlertCircle, ArrowRight, Eye,
 } from 'lucide-react';
-import { Insumo, EstadoOrden, Orden } from '@/types';
-import {
-  ESTADOS_ORDEN,
-  ESTADOS_PAGO,
-  PRIORIDADES_PEDIDO,
-  ROLES_USUARIO,
-  TIPOS_CLIENTE,
-  UNIDADES_MEDIDA,
-} from '@/lib/constants/estados';
+import { Insumo, EstadoOrden, Orden, OrdenConCliente } from '@/types';
+import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, ROLES_USUARIO } from '@/lib/constants/estados';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -30,11 +23,16 @@ interface DashboardStats {
 }
 
 interface ApiData {
-  kpis:           DashboardStats & Record<string, any>;
-  chartIngresos:  { created_at: string; total: number }[];
+  kpis: {
+    total_ventas: number;    // Antes totalVentas
+    total_clientes: number;  // Antes totalClientes
+    stock_alerta: number;    // Antes stockBajo
+    nuevas_ordenes: number;  // Antes pedidosNuevos
+  } & Record<string, any>;
+  chartIngresos: { created_at: string; total: number }[];
   chartProductos: { cantidad: number; productos: { nombre: string } | null }[];
-  recentOrders:   (Orden & { clientes: { razon_social: string; tipo_cliente?: string } | null })[];
-  criticalStock:  Insumo[];
+  recentOrders: OrdenConCliente[]; // Usando el nuevo tipo
+  criticalStock: Insumo[];
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────

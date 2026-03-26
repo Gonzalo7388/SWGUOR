@@ -63,15 +63,18 @@ export default function CategoriasTable({ data, onEdit, onDelete }: Props) {
 
                   {/* Estado — usa "activo" (boolean) */}
                   <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:shadow-md transition-all">
-                    <Badge className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase ${
-                      categoria.activo
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                        : 'bg-rose-50 text-rose-600 border-rose-100'
-                    }`} variant="outline">
-                      {categoria.activo ? (
-                        <><CheckCircle className="w-3 h-3 mr-1" /> Activo</>
+                    <Badge 
+                      className={
+                        categoria.estado === 'activo' 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-50" 
+                          : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-50"
+                      }
+                      variant="outline"
+                    >
+                      {categoria.estado === 'activo' ? (
+                        <span className="flex items-center gap-1.5"><CheckCircle size={10}/> Activo</span>
                       ) : (
-                        <><XCircle className="w-3 h-3 mr-1" /> Inactivo</>
+                        <span className="flex items-center gap-1.5"><XCircle size={10}/> Inactivo</span>
                       )}
                     </Badge>
                   </td>

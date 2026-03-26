@@ -4,19 +4,22 @@ import { useState, useEffect, useReducer, useCallback, useRef } from "react";
 import { User, Lock, Save, AlertCircle, CheckCircle2, Shield, Calendar, Camera, Eye, EyeOff, Mail, Phone, Loader2 } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import { updateUsuario, getUsuarioData } from "@/lib/helpers/usuario-helpers";
+import { updateUsuario, getUsuarioData } from "@/lib/helpers/usuarios-helpers";
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 interface UsuarioData {
+  id: string;
   nombre_completo: string;
   email: string;
-  telefono: string | null;
-  avatar_url: string | null;
+  rol: string;
+  estado: string;
+  telefono?: string | null;
+  avatar_url?: string | null;
   created_at: string;
-  ultimo_acceso: string | null;
+  ultimo_acceso?: string | null;
 }
 
 interface ProfileState {
@@ -171,7 +174,7 @@ export default function PerfilPage() {
   const { usuario, isLoading: loadingPermisos } = usePermissions();
   const [state, dispatch] = useReducer(profileReducer, INITIAL_STATE);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutRef = useRef<any>(null);
   const hasLoadedData = useRef(false);
 
   // ============================================================================
@@ -189,15 +192,15 @@ export default function PerfilPage() {
   // Auto-clear feedback messages
   useEffect(() => {
     if (state.success || state.error) {
-      timeoutRef.current = setTimeout(() => {
-        dispatch({ type: 'CLEAR_FEEDBACK' });
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+      dispatch({ type: 'CLEAR_FEEDBACK' });
       }, 5000);
       
-      return () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      };
+      return () => clearTimeout(timeoutRef.current);
     }
-  }, [state.success, state.error]);
+ }, [state.success, state.error]);
+
 
   // ============================================================================
   // HANDLERS
@@ -208,7 +211,7 @@ export default function PerfilPage() {
     
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
-      const { data, error } = await getUsuarioData(usuario.id);
+      const { data, error } = await getUsuarioData(String(usuario.id));
 
       if (error) throw new Error('Error al cargar datos');
       if (data) {
@@ -263,7 +266,7 @@ export default function PerfilPage() {
         .getPublicUrl(filePath);
 
       // Update database
-      const { error: updateError } = await updateUsuario(usuario.id, {
+      const { error: updateError } = await updateUsuario(String(usuario.id), {
         avatar_url: publicUrl,
       });
 
@@ -332,7 +335,7 @@ export default function PerfilPage() {
         updateData.email = state.email.trim().toLowerCase();
       }
 
-      const { error: updateError } = await updateUsuario(usuario.id, updateData);
+      const { error: updateError } = await updateUsuario(String(usuario.id), updateData);
       if (updateError) throw updateError;
 
       dispatch({
@@ -559,8 +562,8 @@ export default function PerfilPage() {
                     <div>
                       <p className="text-xs text-gray-500 uppercase tracking-wide">Miembro desde</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {usuario.created_at
-                          ? new Date(usuario.created_at).toLocaleDateString('es-ES', {
+                        {(usuario as any).created_at
+                          ? new Date((usuario as any).created_at).toLocaleDateString('es-ES', {
                               day: 'numeric',
                               month: 'long',
                               year: 'numeric',

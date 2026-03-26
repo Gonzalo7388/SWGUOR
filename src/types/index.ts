@@ -1,15 +1,117 @@
+/**
+ * ENUMS Y TIPOS DE ESTADO
+ * Basados en los tipos personalizados de tu base de datos
+ */
+
+export type EstadoCliente = 'activo' | 'inactivo' | 'suspendido' | 'potencial';
+
 export type EstadoCotizacion = 'borrador' | 'pendiente' | 'aceptada' | 'rechazada' | 'expirada' | 'convertida';
-export type EstadoOrden = 'solicitado' | 'cotizado' | 'aprobado' | 'pagado' | 'en_proceso' | 'finalizado' | 'cancelado';
+
+export type EstadoOrden = 
+  | 'solicitado' 
+  | 'cotizado' 
+  | 'aprobado' 
+  | 'pagado' 
+  | 'en_proceso' 
+  | 'finalizado' 
+  | 'cancelado';
+
+export type UnidadMedida = 'unidades' | 'metros' | 'rollos' | 'kilogramos' | 'conos' | string;
+
+export type EstadoProducto = 'activo' | 'inactivo' | 'agotado' | 'descontinuado';
+
 export type EstadoDespacho = 'pendiente' | 'preparando' | 'en_ruta' | 'entregado' | 'incidencia';
 
-export interface ClienteB2B {
-  id: string;
-  razonSocial: string;
-  ruc: string;
-  tipo: 'corporativo' | 'distribuidor' | 'minorista';
-  email: string;
+export type EstadoConfeccion = 'corte' | 'confeccionando' | 'remallado' | 'terminado';
+
+export type MetodoPago = 'transferencia' | 'efectivo' | 'tarjeta' | 'credito';
+
+export type TipoInsumo = 'materia_prima' | 'producto_terminado' | 'empaque' | string;
+
+export type RolUsuario = 
+  | 'administrador' 
+  | 'cortador' 
+  | 'diseñador' 
+  | 'recepcionista' 
+  | 'ayudante' 
+  | 'representante_taller' 
+  | 'cliente' 
+  | 'vendedor';
+
+export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido';
+
+/**
+ * INTERFACES DE ENTIDADES
+ */
+
+export interface Usuario {
+  id: number;
+  auth_id: string; // El UUID de Supabase Auth
+  nombre_completo: string;
+  rol: RolUsuario;
+  estado: EstadoUsuario;
+  email?: string;
+  avatar_url?: string;
 }
 
+// Basada en tu esquema de tabla public.ordenes
+export interface Orden {
+  id: number;
+  user_id: string; // UUID (auth.users)
+  cliente_id: number | null;
+  subtotal: number;
+  impuestos: number;
+  total: number;
+  estado: EstadoOrden;
+  metodo_pago: MetodoPago | null;
+  payment_id: string | null;
+  notas_internas: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface Categoria {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  slug?: string;
+  estado: 'activo' | 'inactivo';
+  created_at: string;
+}
+
+export interface Insumo {
+  id: number;
+  nombre: string;
+  tipo: TipoInsumo;
+  unidad_medida: UnidadMedida;
+  stock_actual: number;
+  stock_minimo: number;
+  precio_unitario: number | null;
+  proveedor: string | null;       
+  created_at: string;
+}
+
+export interface ClienteB2B {
+ id: string;
+  razon_social: string;
+  ruc: string;
+  email?: string;
+  telefono?: string;
+  direccion?: string;
+  activo: EstadoCliente; 
+  created_at: string;
+}
+
+/**
+ * TIPOS PARA OPERACIONES (Omitiendo IDs generados y fechas)
+ */
+export type OrdenInsert = Omit<Orden, 'id' | 'created_at' | 'updated_at'>;
+export type InsumoInsert = Omit<Insumo, 'id' | 'created_at'>;
+export type InsumoUpdate = Partial<InsumoInsert>;
+
+/**
+ * TIPOS ADICIONALES PARA COMPONENTES
+ */
 export interface ProductoPortal {
   id: string;
   nombre: string;
@@ -18,3 +120,43 @@ export interface ProductoPortal {
   stockActual: number;
   categoria: string;
 }
+
+export interface Producto {
+  id: number;
+  nombre: string;
+  sku: string;
+  descripcion?: string;
+  precio_base: number;      // Usamos snake_case para que coincida con la DB
+  stock_actual: number;     // Usamos snake_case para que coincida con la DB
+  categoria_id: number | null;
+  estado: EstadoProducto;
+  imagen_url?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export type OrdenConCliente = Orden & {
+  clientes: {
+    razon_social: string;
+    ruc?: string | null;
+    tipo_cliente?: string;
+  } | null;
+};
+
+export type Database = {
+  public: {
+    Tables: {
+      insumo: {
+        Row: Insumo;
+        Insert: InsumoInsert;
+        Update: InsumoUpdate;
+      };
+      clientes: {
+        Row: ClienteB2B;
+      };
+      categorias: {
+        Row: Categoria;
+      };
+    };
+  };
+};
