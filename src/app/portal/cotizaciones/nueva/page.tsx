@@ -13,7 +13,7 @@ const TALLAS_ORDEN = ['XS','S','M','L','XL','XXL','28','30','32','34'];
 
 export default function NuevaCotizacionPage() {
   const router  = useRouter();
-  const { cliente, items, resumen, agregarItem, limpiarCotizacion } = usePortal();
+  const { cliente, items, resumen, agregarAlBorrador, limpiarBorrador } = usePortal();
 
   // Búsqueda de productos
   const [busqueda,      setBusqueda]      = useState('');
@@ -53,7 +53,7 @@ export default function NuevaCotizacionPage() {
     const variante = producto.variantes?.find(
       (v: any) => v.talla === sel.talla && v.color === sel.color
     );
-    agregarItem({
+    agregarAlBorrador({
       producto_id:     producto.id,
       variante_id:     variante?.id ?? sel.variante_id,
       nombre:          producto.nombre,
@@ -107,7 +107,7 @@ export default function NuevaCotizacionPage() {
         }
 
         const { id } = await res.json();
-        limpiarCotizacion();
+        limpiarBorrador();
         toast.success(accion === 'borrador' ? 'Borrador guardado' : 'Cotización enviada a GUOR');
         router.push(`/portal/cotizaciones/${id}`);
       } catch (e: any) {

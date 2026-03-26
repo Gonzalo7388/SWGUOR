@@ -12,35 +12,43 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function DetalleCotizacionPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string; // Forzamos el tipo a string para Supabase
   const router = useRouter();
+  
   const [cot, setCot] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDetalle = async () => {
-      const { data, error } = await getSupabaseBrowserClient()
-        .from('cotizaciones')
-        .select(`
-          *,
-          items:cotizacion_items(
-            id, cantidad, precio_unitario, subtotal,
-            producto:productos(nombre, sku, imagen_url)
-          )
-        `)
-        .eq('id', id)
-        .single();
+    // Si por alguna razón el ID no está presente, no ejecutamos la consulta
+    if (!id) return;
 
-      if (error) {
+    const fetchDetalle = async () => {
+      try {
+        const { data, error } = await getSupabaseBrowserClient()
+          .from('cotizaciones')
+          .select(`
+            *,
+            items:cotizacion_items(
+              id, cantidad, precio_unitario, subtotal,
+              producto:productos(nombre, sku, imagen_url)
+            )
+          `)
+          .eq('id', id) // Ahora TS sabe que 'id' es un string
+          .single();
+
+        if (error) throw error;
+        setCot(data);
+      } catch (error) {
         toast.error("No se pudo cargar la cotización");
         router.push('/portal/cotizaciones');
-      } else {
-        setCot(data);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     fetchDetalle();
-  }, [id]);
+  }, [id, router]);
 
   if (loading) return <div className="p-20 text-center animate-pulse text-slate-400">Cargando detalles...</div>;
   if (!cot) return null;

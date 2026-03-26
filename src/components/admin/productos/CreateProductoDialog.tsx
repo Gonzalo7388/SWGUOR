@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { generateSKU } from "@/lib/utils/producto-utils";
-import { calcularMargen } from "@/lib/helpers/products-helpers";
+import { calcularMargen } from "@/lib/helpers/productos-helpers";
 import { useProducts } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

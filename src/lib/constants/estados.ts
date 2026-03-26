@@ -73,7 +73,6 @@ export const TIPOS_CLIENTE: Record<string, { label: string; color: string; bgCol
 // ── ROLES DE USUARIO ─────────────────────────────────────────────────────────
 export const ROLES_USUARIO = {
   administrador: 'Administrador',
-  vendedor: 'Vendedor',
   cliente: 'Cliente B2B',
   taller: 'Representante de Taller',
   disenador: 'Diseñador',

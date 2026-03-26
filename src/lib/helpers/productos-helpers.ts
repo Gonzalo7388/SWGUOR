@@ -1,11 +1,51 @@
-import { createClient } from '@/lib/supabase/server';
 import type { ProductoPortal, Insumo, InsumoInsert } from '@/types';
+
+/**
+ * PRODUCTOS (Panel Administrativo & API)
+ */
+export async function obtenerProductos(supabase: any, filtros?: any) {
+  let query = supabase
+    .from('productos')
+    .select(`
+      *,
+      categorias (nombre)
+    `);
+
+  if (filtros?.categoria_id) query = query.eq('categoria_id', filtros.categoria_id);
+  if (filtros?.estado) query = query.eq('estado', filtros.estado);
+  if (filtros?.busqueda) query = query.ilike('nombre', `%${filtros.busqueda}%`);
+
+  return await query.order('created_at', { ascending: false });
+}
+
+export async function crearProducto(supabase: any, datos: any) {
+  return await supabase
+    .from('productos')
+    .insert([datos])
+    .select()
+    .single();
+}
+
+export async function actualizarProducto(supabase: any, id: number, datos: any) {
+  return await supabase
+    .from('productos')
+    .update(datos)
+    .eq('id', id)
+    .select()
+    .single();
+}
+
+export async function eliminarProducto(supabase: any, id: number) {
+  return await supabase
+    .from('productos')
+    .delete()
+    .eq('id', id);
+}
 
 /**
  * PRODUCTOS DEL PORTAL (Venta B2B)
  */
-export const obtenerProductosPortal = async (): Promise<ProductoPortal[]> => {
-  const supabase = await createClient();
+export const obtenerProductosPortal = async (supabase: any): Promise<ProductoPortal[]> => {
   const { data, error } = await supabase
     .from('productos')
     .select(`
@@ -19,11 +59,10 @@ export const obtenerProductosPortal = async (): Promise<ProductoPortal[]> => {
     .eq('activo', true);
 
   if (error) {
-    console.error('Error al obtener productos:', error);
+    console.error('Error al obtener productos portal:', error);
     return [];
   }
 
-  // Mapeo para que coincida con tu interfaz ProductoPortal
   return data.map((p: any) => ({
     id: p.id.toString(),
     nombre: p.nombre,
@@ -37,8 +76,7 @@ export const obtenerProductosPortal = async (): Promise<ProductoPortal[]> => {
 /**
  * INSUMOS (Materia Prima / Taller)
  */
-export const obtenerInsumos = async (): Promise<Insumo[]> => {
-  const supabase = await createClient();
+export const obtenerInsumos = async (supabase: any): Promise<Insumo[]> => {
   const { data, error } = await supabase
     .from('insumos')
     .select('*')
@@ -48,8 +86,7 @@ export const obtenerInsumos = async (): Promise<Insumo[]> => {
   return data as Insumo[];
 };
 
-export const crearInsumo = async (insumo: InsumoInsert) => {
-  const supabase = await createClient();
+export const crearInsumo = async (supabase: any, insumo: InsumoInsert) => {
   const { data, error } = await supabase
     .from('insumos')
     .insert([insumo])
@@ -61,12 +98,26 @@ export const crearInsumo = async (insumo: InsumoInsert) => {
 };
 
 /**
- * UTILITARIOS DE INVENTARIO
+ * ACTUALIZAR STOCK (Lógica para el PATCH de tu API)
  */
-export const actualizarStockFisico = async (id: number, cantidad: number, operacion: 'sumar' | 'restar') => {
-  const supabase = await createClient();
-  
-  // Primero obtenemos el stock actual
+export const actualizarStockInsumo = async (supabase: any, id: number, nuevoStock: number) => {
+  try {
+    const { error } = await supabase
+      .from('insumos')
+      .update({ stock_actual: nuevoStock })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * UTILITARIOS
+ */
+export const actualizarStockFisico = async (supabase: any, id: number, cantidad: number, operacion: 'sumar' | 'restar') => {
   const { data: insumo } = await supabase
     .from('insumos')
     .select('stock_actual')
@@ -89,3 +140,8 @@ export const actualizarStockFisico = async (id: number, cantidad: number, operac
   if (error) throw error;
   return data;
 };
+
+export function calcularMargen(costo: number, precio: number) {
+  if (!costo || !precio) return 0;
+  return ((precio - costo) / precio) * 100;
+}

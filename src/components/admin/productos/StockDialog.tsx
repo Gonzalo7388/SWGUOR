@@ -50,8 +50,8 @@ export default function StockDialog({ isOpen, onClose, onSuccess, producto }: St
       // Calculamos el nuevo stock para enviarlo a la API
       const nuevoStock =
         tipo === "sumar"
-          ? producto.stock + cantidadNum
-          : Math.max(0, producto.stock - cantidadNum);
+          ? producto.stock_actual + cantidadNum
+          : Math.max(0, producto.stock_actual - cantidadNum);
 
       const response = await fetch(`/api/admin/productos?id=${producto.id}`, {
         method: "PATCH",
@@ -83,8 +83,8 @@ export default function StockDialog({ isOpen, onClose, onSuccess, producto }: St
   };
 
   const nuevoStockCalculado = tipo === "sumar" 
-    ? producto.stock + (parseInt(cantidad) || 0)
-    : Math.max(0, producto.stock - (parseInt(cantidad) || 0));
+    ? producto.stock_actual + (parseInt(cantidad) || 0)
+    : Math.max(0, producto.stock_actual - (parseInt(cantidad) || 0));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -104,7 +104,7 @@ export default function StockDialog({ isOpen, onClose, onSuccess, producto }: St
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gray-50 rounded-3xl p-4 text-center border border-gray-100">
               <p className="text-[10px] font-black uppercase text-gray-400">Actual</p>
-              <p className="text-2xl font-black text-gray-900">{producto.stock}</p>
+              <p className="text-2xl font-black text-gray-900">{producto.stock_actual}</p>
             </div>
             <div className={`rounded-3xl p-4 text-center border transition-colors ${
               tipo === "sumar" ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100"

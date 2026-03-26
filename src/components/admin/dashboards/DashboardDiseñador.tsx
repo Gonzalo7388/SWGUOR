@@ -163,10 +163,22 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
   const handleViewFile = async (productoId: number) => {
     try {
       const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase.from('productos').select('imagen').eq('id', productoId).single();
+      
+      const { data, error } = await supabase
+      .from('productos')
+      .select('imagen')
+      .eq('id', productoId)
+      .single() as { data: { imagen: string | null } | null, error: any };
+
       if (error) throw error;
-      if (data?.imagen) window.open(data.imagen, '_blank');
-      else toast.error('Imagen no disponible');
+
+      if (data?.imagen) {
+        window.open(data.imagen, '_blank');
+      } else {
+        toast.error('Imagen no disponible', {
+          description: 'Este producto aún no tiene una ficha técnica o imagen cargada.'
+        });
+      }
     } catch (error: any) {
       toast.error('Error al abrir archivo', { description: error.message });
     }

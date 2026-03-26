@@ -11,7 +11,7 @@ import {
   AlertCircle, ArrowRight, Eye,
 } from 'lucide-react';
 import { Insumo, EstadoOrden, Orden, OrdenConCliente } from '@/types';
-import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, ROLES_USUARIO } from '@/lib/constants/estados';
+import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, ROLES_USUARIO, TIPOS_CLIENTE, UNIDADES_MEDIDA } from '@/lib/constants/estados';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 

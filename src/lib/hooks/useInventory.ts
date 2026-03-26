@@ -1,18 +1,12 @@
-/**
- * Hook personalizado para manejar inventario
- * Proporciona funciones para obtener, actualizar y gestionar el inventario
- */
+"use client";
 
 import { useCallback, useState } from 'react';
+import { createClient } from '@/lib/supabase/client'; // IMPORTANTE: Cliente de navegador
 import {
   obtenerInsumos,
   crearInsumo,
-  actualizarStockInsumo,
-  descontarStock,
-  incrementarStock,
-  obtenerProductos,
-  obtenerInsumosStockBajo,
-} from '@/lib/helpers/products-helpers';
+  actualizarStockFisico,
+} from '@/lib/helpers/productos-helpers';
 import type { Insumo, InsumoInsert, TipoInsumo } from '@/types';
 
 interface UseInventarioState {
@@ -24,22 +18,10 @@ interface UseInventarioState {
   error: string | null;
 }
 
-interface UseInventarioActions {
-  obtenerInsumosList: (tipo?: TipoInsumo) => Promise<void>;
-  obtenerInventario: (productoId: number) => Promise<void>;
-  crearInsumoNuevo: (insumoData: InsumoInsert) => Promise<boolean>;
-  actualizarStock: (inventarioId: number, nuevoStock: number) => Promise<boolean>;
-  descontar: (inventarioId: number, cantidad: number) => Promise<boolean>;
-  incrementar: (inventarioId: number, cantidad: number) => Promise<boolean>;
-  obtenerAgotados: () => Promise<void>;
-  obtenerBajoStock: () => Promise<void>;
-  limpiar: () => void;
-}
-
 /**
- * Hook para gestionar inventario
+ * Hook para gestionar inventario desde el Cliente
  */
-export function useInventario(): UseInventarioState & UseInventarioActions {
+export function useInventario() {
   const [state, setState] = useState<UseInventarioState>({
     insumos: [],
     inventarioActual: null,
@@ -49,244 +31,78 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
     error: null
   });
 
+  const supabase = createClient(); // Inicializamos el cliente una vez
+
   const obtenerInsumosList = useCallback(async (tipo?: TipoInsumo) => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      const { data, error } = await obtenerInsumos(tipo);
-
-      if (error) {
-        setState(prev => ({ ...prev, error, cargando: false }));
-        return;
-      }
-
+      // Pasamos 'supabase' como primer argumento
+      const data = await obtenerInsumos(supabase); 
+      
       setState(prev => ({
         ...prev,
         insumos: data || [],
         cargando: false
       }));
     } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error obteniendo insumos',
-        cargando: false
-      }));
+      setState(prev => ({ ...prev, error: err.message, cargando: false }));
     }
-  }, []);
-
-  const obtenerInventario = useCallback(async (productoId: number) => {
-    setState(prev => ({ ...prev, cargando: true, error: null }));
-    try {
-      const { data, error } = await obtenerInventarioPorProducto(productoId);
-
-      if (error) {
-        setState(prev => ({ ...prev, error, cargando: false }));
-        return;
-      }
-
-      setState(prev => ({
-        ...prev,
-        inventarioActual: data,
-        cargando: false
-      }));
-    } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error obteniendo inventario',
-        cargando: false
-      }));
-    }
-  }, []);
+  }, [supabase]);
 
   const crearInsumoNuevo = useCallback(async (insumoData: InsumoInsert) => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      const { data, error } = await crearInsumo(insumoData);
+      const data = await crearInsumo(supabase, insumoData);
 
-      if (error) {
-        setState(prev => ({ ...prev, error, cargando: false }));
-        return false;
-      }
-
-      // Agregar a la lista
       setState(prev => ({
         ...prev,
         insumos: [data as Insumo, ...prev.insumos],
         cargando: false
       }));
-
       return true;
     } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error creando insumo',
-        cargando: false
-      }));
+      setState(prev => ({ ...prev, error: err.message, cargando: false }));
       return false;
     }
-  }, []);
+  }, [supabase]);
 
-  const actualizarStock = useCallback(async (inventarioId: number, nuevoStock: number) => {
+  const actualizarStock = useCallback(async (id: number, cantidad: number, operacion: 'sumar' | 'restar') => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      const { success, error } = await actualizarStockInsumo(inventarioId, nuevoStock);
+      const data = await actualizarStockFisico(supabase, id, cantidad, operacion);
 
-      if (error || !success) {
-        setState(prev => ({
-          ...prev,
-          error: error || 'Error actualizando stock',
-          cargando: false
-        }));
-        return false;
-      }
+      if (!data) throw new Error("No se pudo actualizar el stock");
 
-      // Actualizar localmente
+      // Actualizar estado local
       setState(prev => ({
         ...prev,
-        insumos: prev.insumos.map(i =>
-          i.id === inventarioId ? { ...i, stock_actual: nuevoStock } : i
-        ),
-        inventarioActual:
-          prev.inventarioActual?.id === inventarioId
-            ? { ...prev.inventarioActual, stock_actual: nuevoStock }
-            : prev.inventarioActual,
+        insumos: prev.insumos.map(i => i.id === id ? data : i),
         cargando: false
       }));
-
       return true;
     } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error actualizando stock',
-        cargando: false
-      }));
+      setState(prev => ({ ...prev, error: err.message, cargando: false }));
       return false;
     }
-  }, []);
-
-  const descontar = useCallback(async (inventarioId: number, cantidad: number) => {
-    setState(prev => ({ ...prev, cargando: true, error: null }));
-    try {
-      const { success, nuevoStock, error } = await descontarStock(inventarioId, cantidad);
-
-      if (error || !success) {
-        setState(prev => ({
-          ...prev,
-          error: error || 'Error descontando stock',
-          cargando: false
-        }));
-        return false;
-      }
-
-      setState(prev => ({
-        ...prev,
-        insumos: prev.insumos.map(i =>
-          i.id === inventarioId ? { ...i, stock_actual: nuevoStock || 0 } : i
-        ),
-        inventarioActual:
-          prev.inventarioActual?.id === inventarioId
-            ? { ...prev.inventarioActual, stock_actual: nuevoStock || 0 }
-            : prev.inventarioActual,
-        cargando: false
-      }));
-
-      return true;
-    } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error descontando stock',
-        cargando: false
-      }));
-      return false;
-    }
-  }, []);
-
-  const incrementar = useCallback(async (inventarioId: number, cantidad: number) => {
-    setState(prev => ({ ...prev, cargando: true, error: null }));
-    try {
-      const { success, nuevoStock, error } = await incrementarStock(inventarioId, cantidad);
-
-      if (error || !success) {
-        setState(prev => ({
-          ...prev,
-          error: error || 'Error incrementando stock',
-          cargando: false
-        }));
-        return false;
-      }
-
-      setState(prev => ({
-        ...prev,
-        insumos: prev.insumos.map(i =>
-          i.id === inventarioId ? { ...i, stock_actual: nuevoStock || 0 } : i
-        ),
-        inventarioActual:
-          prev.inventarioActual?.id === inventarioId
-            ? { ...prev.inventarioActual, stock_actual: nuevoStock || 0 }
-            : prev.inventarioActual,
-        cargando: false
-      }));
-
-      return true;
-    } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error incrementando stock',
-        cargando: false
-      }));
-      return false;
-    }
-  }, []);
-
-  const obtenerAgotados = useCallback(async () => {
-    setState(prev => ({ ...prev, cargando: true, error: null }));
-    try {
-      const { data, error } = await obtenerInsumos();
-
-      if (error) {
-        setState(prev => ({ ...prev, error, cargando: false }));
-        return;
-      }
-
-      // Filtra localmente los que tienen stock 0
-      const agotados = (data || []).filter(i => i.stock_actual === 0);
-      setState(prev => ({
-      ...prev,
-      productosAgotados: agotados,
-      cargando: false
-    }));
-    
-    } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error obteniendo productos agotados',
-        cargando: false
-      }));
-    }
-  }, []);
+  }, [supabase]);
 
   const obtenerBajoStock = useCallback(async () => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      const { data, error } = await obtenerInsumosStockBajo();
-
-      if (error) {
-        setState(prev => ({ ...prev, error, cargando: false }));
-        return;
-      }
+      // Nota: Si no tienes esta función en el helper, 
+      // puedes filtrar los 'insumos' locales o crearla.
+      const data = await obtenerInsumos(supabase);
+      const bajoStock = data.filter(i => i.stock_actual <= (i.stock_minimo || 5));
 
       setState(prev => ({
         ...prev,
-        productosStockBajo: data || [],
+        productosStockBajo: bajoStock,
         cargando: false
       }));
     } catch (err: any) {
-      setState(prev => ({
-        ...prev,
-        error: err.message || 'Error obteniendo productos con stock bajo',
-        cargando: false
-      }));
+      setState(prev => ({ ...prev, error: err.message, cargando: false }));
     }
-  }, []);
+  }, [supabase]);
 
   const limpiar = useCallback(() => {
     setState({
@@ -302,17 +118,9 @@ export function useInventario(): UseInventarioState & UseInventarioActions {
   return {
     ...state,
     obtenerInsumosList,
-    obtenerInventario,
     crearInsumoNuevo,
     actualizarStock,
-    descontar,
-    incrementar,
-    obtenerAgotados,
     obtenerBajoStock,
     limpiar
   };
 }
-function obtenerInventarioPorProducto(productoId: number): { data: any; error: any; } | PromiseLike<{ data: any; error: any; }> {
-  throw new Error('Function not implemented.');
-}
-

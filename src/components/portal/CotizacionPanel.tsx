@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function CotizadorPanel({ onEnviar, isSending }: Props) {
-  const { items, resumen, actualizarCantidad, eliminarItem } = usePortal();
+  const { items, resumen, actualizarCantidad, eliminarDelBorrador: eliminarItem } = usePortal();
 
   const itemsConMoqError = items.filter(i => i.cantidad < MOQ_MINIMO);
   const puedeEnviar      = items.length > 0 && itemsConMoqError.length === 0;

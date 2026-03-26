@@ -95,7 +95,15 @@ export const ROLES_INFO: Record<
     descripcion: 'Responsable de taller externo',
     color: 'bg-green-100 text-green-800',
     nivel: 2
-  }
+  },
+
+  cliente: {
+    label: 'Cliente',
+    descripcion: 'Acceso al portal de compras',
+    color: 'bg-blue-50 text-blue-700',
+    nivel: 0
+  },
+
 };
 
 /**
@@ -199,7 +207,13 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'cambiar_estado_pedido',
     'ver_confecciones',
     'editar_confecciones'
-  ]
+  ],
+  
+  cliente: [
+    'ver_productos',
+    'ver_pedidos',
+    'crear_pedido'
+  ],
 };
 
 /**

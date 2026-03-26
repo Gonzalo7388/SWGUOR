@@ -85,7 +85,7 @@ const PortalContext = createContext<PortalCtx | null>(null);
 export function PortalProvider({ children }: { children: ReactNode }) {
   const [cliente, setCliente]   = useState<ClientePortal | null>(null);
   const [loading, setLoading]   = useState(true);
-  const [items,   setItems]     = useState<ItemCotizacion[]>([]);
+  const [items, setItems]       = useState<ItemCotizacion[]>([]);
   const [stats,   setStats]     = useState({
     cotizaciones_activas: 0, ordenes_activas: 0, despachos_en_ruta: 0,
   });
@@ -107,9 +107,9 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         // Cargar stats del portal
         const [cotRes, ordRes, dspRes] = await Promise.all([
           supabase.from('cotizaciones').select('id', { count: 'exact', head: true })
-            .eq('cliente_id', data.id).in('estado', ['borrador', 'enviada', 'aprobada']),
+            .eq('cliente_id', data).in('estado', ['borrador', 'enviada', 'aprobada']),
           supabase.from('ordenes').select('id', { count: 'exact', head: true })
-            .eq('cliente_id', data.id).not('estado', 'in', '(finalizado,cancelado)'),
+            .eq('cliente_id', data).not('estado', 'in', '(finalizado,cancelado)'),
           supabase.from('despachos').select('id', { count: 'exact', head: true })
             .eq('estado', 'en_ruta'),
         ]);
@@ -127,27 +127,33 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   const resumen = useMemo(() => calcularResumen(items), [items]);
 
   const agregarAlBorrador = useCallback((nuevoItem: any) => {
-    setItems(prev => {
-      // B2B: Buscamos si ya existe por ID de producto (o variante)
-      const idx = prev.findIndex(i => i.producto_id === nuevoItem.id || i.variante_id === nuevoItem.id);
+    // Tipamos explícitamente 'prev' como un array de ItemCotizacion
+    setItems((prev: ItemCotizacion[]) => { 
+      // Ahora TS sabe que 'prev' es un array de items y no 'never'
+      const idx = prev.findIndex(i => i.producto_id === nuevoItem.id);
       
       if (idx >= 0) {
         return prev.map((i, n) => n === idx
-          ? { ...i, cantidad: i.cantidad + (nuevoItem.cantidad || 1), subtotal: (i.cantidad + (nuevoItem.cantidad || 1)) * i.precio_unitario }
+          ? { 
+              ...i, 
+              cantidad: i.cantidad + (nuevoItem.cantidad || 1), 
+              subtotal: (i.cantidad + (nuevoItem.cantidad || 1)) * i.precio_unitario 
+            }
           : i
         );
       }
-      // Si es nuevo, lo preparamos con los campos que requiere ItemCotizacion
+
+      // Preparar el nuevo item formateado
       const itemFormateado: ItemCotizacion = {
         producto_id: nuevoItem.id,
-        variante_id: nuevoItem.id, // Simplificación para la demo
+        variante_id: nuevoItem.id,
         nombre: nuevoItem.nombre,
-        sku: `SKU-${nuevoItem.id.toString().slice(0,5)}`,
+        sku: `SKU-${nuevoItem.id.toString().slice(0, 5)}`,
         imagen: nuevoItem.imagen || nuevoItem.imagen_url,
         precio_unitario: nuevoItem.precio || nuevoItem.precio_base,
         cantidad: nuevoItem.cantidad || 1,
-        talla: 'M', // Valor por defecto
-        color: 'Estándar', // Valor por defecto
+        talla: 'M',
+        color: 'Estándar',
         subtotal: (nuevoItem.cantidad || 1) * (nuevoItem.precio || nuevoItem.precio_base),
         stock_disponible: 1000
       };

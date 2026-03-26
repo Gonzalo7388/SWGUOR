@@ -39,12 +39,13 @@ const ProductoRow = memo(({
   canEdit: boolean;
   canDelete: boolean;
 }) => {
-  const hasImage = p.imagen && p.imagen.trim() !== '';
-  const publicUrl = hasImage ? `${STORAGE_URL}${p.imagen}` : null;
+  const hasImage = p.imagen_url && p.imagen_url.trim() !== '';
+  const publicUrl = hasImage ? `${STORAGE_URL}${p.imagen_url}` : null;
   const hasFicha = (p as any).ficha_url; 
   
   const categoriaNombre = categorias.find(c => c.id === p.categoria_id)?.nombre || 'Sin categoría';
-  const badge = getEstadoInfo(p.estado, 'producto') || {
+  
+  const badge = getEstadoInfo(p.estado, 'orden' as any) || {
     label: p.estado || 'Desconocido',
     color: 'text-slate-500',
     bgColor: 'bg-slate-100'
@@ -85,7 +86,7 @@ const ProductoRow = memo(({
               {p.nombre}
             </div>
             <div className="text-pink-600 font-black text-sm mt-1">
-              S/ {p.precio?.toFixed(2)}
+              S/ {p.precio_base?.toFixed(2)}
             </div>
           </div>
         </div>
@@ -103,7 +104,7 @@ const ProductoRow = memo(({
       <td className="bg-white border-y border-slate-100 text-center shadow-sm">
         <div className="flex flex-col items-center">
           <span className="text-lg font-black text-slate-900">
-            {p.stock}
+            {p.stock_actual}
           </span>
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Unidades</span>
         </div>
@@ -121,7 +122,7 @@ const ProductoRow = memo(({
       <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm">
         <div className="flex justify-end items-center gap-2">
           <TooltipProvider>
-            {/* Ficha */}
+            {/* Botón Ficha */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="icon" onClick={() => onFicha(p)} className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${hasFicha ? 'text-pink-600 border-pink-100 bg-pink-50' : 'text-slate-400 hover:text-pink-600 hover:bg-pink-50'}`}>
@@ -131,7 +132,7 @@ const ProductoRow = memo(({
               <TooltipContent className="text-[10px] font-bold uppercase">Patrón / Ficha</TooltipContent>
             </Tooltip>
 
-            {/* Stock */}
+            {/* Botón Stock */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="icon" onClick={() => onStock(p)} className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all">
@@ -141,17 +142,23 @@ const ProductoRow = memo(({
               <TooltipContent className="text-[10px] font-bold uppercase">Inventario</TooltipContent>
             </Tooltip>
 
-            {/* Editar */}
+            {/* Botón Editar */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => canEdit && onEdit(p)} disabled={!canEdit} className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${!canEdit ? 'opacity-30 cursor-not-allowed' : 'text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50'}`}>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => canEdit && onEdit(p)} 
+                  disabled={!canEdit} 
+                  className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${!canEdit ? 'opacity-30 cursor-not-allowed' : 'text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50'}`}
+                >
                   {canEdit ? <Edit2 size={16} /> : <Lock size={14} />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="text-[10px] font-bold uppercase">{canEdit ? 'Editar' : 'Bloqueado'}</TooltipContent>
             </Tooltip>
 
-            {/* Eliminar */}
+            {/* Botón Eliminar */}
             {canDelete && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -186,7 +193,12 @@ interface ProductosTableProps {
 export default function ProductosTable({ 
   data, 
   categorias, 
-  ...actions 
+  canDelete = false,
+  canEdit = false,
+  onEdit,
+  onDelete,
+  onStock,
+  onFicha
 }: ProductosTableProps) {
   return (
     <div className="space-y-4">
@@ -217,9 +229,12 @@ export default function ProductosTable({
                   key={p.id} 
                   p={p} 
                   categorias={categorias} 
-                  canEdit={actions.canEdit || false}
-                  canDelete={actions.canDelete || false}
-                  {...actions} 
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onStock={onStock}
+                  onFicha={onFicha}
                 />
               ))
             )}

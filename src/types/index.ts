@@ -35,8 +35,7 @@ export type RolUsuario =
   | 'recepcionista' 
   | 'ayudante' 
   | 'representante_taller' 
-  | 'cliente' 
-  | 'vendedor';
+  | 'cliente';
 
 export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido';
 
@@ -119,6 +118,26 @@ export interface ProductoPortal {
   precioBase: number;
   stockActual: number;
   categoria: string;
+}
+
+// Basada en tu tabla de ventas
+export interface Venta {
+  id: number;
+  orden_id: number;
+  cliente_id: number | null;
+  vendedor_id?: string | null;
+  tipo_comprobante: 'boleta' | 'factura' | 'nota_venta';
+  numero_comprobante: string;
+  subtotal: number;
+  impuestos: number;
+  total: number;
+  fecha_emision: string;
+  created_at: string;
+  // Opcional: si sueles traer los datos del cliente unidos
+  clientes?: {
+    razon_social: string;
+    ruc?: string | null;
+  } | null;
 }
 
 export interface Producto {
