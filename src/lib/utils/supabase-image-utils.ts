@@ -7,6 +7,18 @@ const supabase = createClient();
  * @param bucket - Nombre del bucket
  * @returns Path relativo del archivo subido
  */
+
+export function getSupabaseImageUrl(
+  imagePath: string | null | undefined,
+  bucket: string = "productos"
+): string | null {
+  if (!imagePath) return null;
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(imagePath);
+
+  return data?.publicUrl ?? null;
+}
+
 export async function uploadProductImage(file: File, bucket: string = 'productos'): Promise<string | null> {
   try {
     const fileExt = file.name.split('.').pop();
