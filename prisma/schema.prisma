@@ -1098,6 +1098,7 @@ enum UnidadMedida {
 }
 
 enum rol {
+  gerente_general
   administrador
   cortador
   dise_ador            @map("diseñador")

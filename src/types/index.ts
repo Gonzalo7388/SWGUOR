@@ -29,6 +29,7 @@ export type MetodoPago = 'transferencia' | 'efectivo' | 'tarjeta' | 'credito';
 export type TipoInsumo = 'materia_prima' | 'producto_terminado' | 'empaque' | string;
 
 export type RolUsuario = 
+  | 'gerente_general'
   | 'administrador' 
   | 'cortador' 
   | 'diseñador' 

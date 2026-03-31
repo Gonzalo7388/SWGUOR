@@ -1,17 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { generateSKU } from "@/lib/utils/producto-utils";
-import { calcularMargen } from "@/lib/helpers/productos-helpers";
 import { useProducts } from "@/lib/hooks/useProducts";
+import { uploadProductImage } from "@/lib/utils/supabase-image-utils"; // Debes crear esta función
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -24,119 +22,87 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, X } from "lucide-react";
 
-export default function CreateProductoDialog({
-  isOpen,
-  onClose,
-  onSuccess,
-  categorias,
-}: any) {
-  const { refetch } = useProducts();
+export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categorias }: any) {
+  const { productos, refetch } = useProducts();
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
     sku: "",
     precio: "",
-    costo: "",
-    margen: "",
-    stock: "0",
-    stock_minimo: "400",
     categoria_id: "",
-    estado: "activo",
-    imagen_url: "",
+    stock_minimo: "400",
   });
 
-  // Lógica para subir imagen a Supabase Storage (vía API o directa)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `productos/${fileName}`;
-      
-      toast.info("Subida de imagen preparada (Configura Storage para activar)");
-      // setFormData({ ...formData, imagen_url: publicUrl });
-    } finally {
-      setUploading(false);
+  // Generación automática de SKU (ID 68)
+  useEffect(() => {
+    if (formData.nombre && formData.categoria_id) {
+      const cat = categorias.find((c: any) => c.id.toString() === formData.categoria_id);
+      const nextId = (productos?.length || 0) + 1; 
+      const newSKU = generateSKU(formData.nombre, cat?.nombre || "CAT", nextId);
+      setFormData(prev => ({ ...prev, sku: newSKU }));
     }
-  };
+  }, [formData.nombre, formData.categoria_id, productos, categorias]);
 
-  // Calcular margen automáticamente
-  const handleCostoChange = (costo: string) => {
-    if (formData.precio && costo) {
-      const margen = calcularMargen(
-        Number(formData.precio),
-        Number(costo)
-      );
-      setFormData({ ...formData, costo, margen: margen.toFixed(2) });
-    } else {
-      setFormData({ ...formData, costo });
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(selectedFile);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.categoria_id) return toast.error("Selecciona una categoría");
+    
     setLoading(true);
 
-    const categoriaSeleccionada = categorias.find(
-      (c: any) => c.id.toString() === formData.categoria_id
-    );
-
-    const categoriaNombre = categoriaSeleccionada?.nombre || "CAT";
-
-    // Generamos un SKU temporal usando el timestamp para evitar colisiones antes de la DB
-    const tempId = Date.now().toString().slice(-4);
-    const skuGenerado = generateSKU(formData.nombre, categoriaNombre, tempId);
-
     try {
+      let finalPath = null;
+
+      // 1. Subir imagen al Storage si existe
+      if (file) {
+        finalPath = await uploadProductImage(file); // Retorna el path del archivo
+      }
+
+      // 2. Preparar objeto exacto para public.productos
+      const productoData = {
+        nombre: formData.nombre,
+        descripcion: formData.descripcion || null,
+        sku: formData.sku,
+        precio: parseFloat(formData.precio),
+        stock: 0, // Default inicial
+        categoria_id: parseInt(formData.categoria_id),
+        imagen: finalPath, // Nombre del archivo en el bucket
+        estado: 'activo',
+        destacado: false,
+        updated_at: new Date().toISOString() // Requerido por constraint NOT NULL
+      };
+
       const response = await fetch('/api/admin/productos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          descripcion: formData.descripcion,
-          sku: skuGenerado,
-          precio: Number(formData.precio),
-          costo: formData.costo ? Number(formData.costo) : null,
-          margen: formData.margen ? Number(formData.margen) : null,
-          stock: Number(formData.stock),
-          stock_minimo: Number(formData.stock_minimo),
-          categoria_id: Number(formData.categoria_id),
-          estado: formData.estado,
-          imagen: formData.imagen_url,
-        }),
+        body: JSON.stringify(productoData),
       });
 
       const result = await response.json();
 
-      if (!response.ok) throw new Error(result.error || "Error al crear");
+      if (!response.ok) throw new Error(result.error || "Error al guardar");
 
-      toast.success(`Producto ${skuGenerado} creado correctamente`);
-      refetch(); // Refrescar lista de productos
+      toast.success(`Producto ${formData.sku} creado correctamente`);
+      refetch();
       onSuccess();
       onClose();
-      
-      // Limpiar form
-      setFormData({
-        nombre: "",
-        descripcion: "",
-        sku: "",
-        precio: "",
-        costo: "",
-        margen: "",
-        stock: "0",
-        stock_minimo: "400",
-        categoria_id: "",
-        estado: "activo",
-        imagen_url: "",
-      });
     } catch (error: any) {
+      console.error("Error al guardar:", error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -145,80 +111,100 @@ export default function CreateProductoDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-4xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-black">Nueva Prenda</DialogTitle>
-          <DialogDescription>Completa los detalles del producto.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md rounded-3xl p-0 bg-white border-none shadow-2xl overflow-hidden">
+        <div className="p-6">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-slate-800">Nueva Prenda</DialogTitle>
+            <p className="text-sm text-slate-500">Configura el nuevo producto para el inventario.</p>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Selector de Imagen */}
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-3xl p-6 hover:bg-gray-50 transition-colors relative cursor-pointer">
-            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageUpload} accept="image/*" />
-            <ImageIcon className="w-8 h-8 text-gray-400 mb-2" />
-            <p className="text-xs font-bold text-gray-500">{uploading ? "Subiendo..." : "Click para subir foto"}</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Nombre</Label>
-            <Input className="rounded-xl border-gray-200" value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} placeholder="Ej: Vestido Gala Noche" required />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">SKU (Sistema)</Label>
-              <Input className="rounded-xl bg-gray-50 cursor-not-allowed" placeholder="Generado por sistema" disabled />
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            {/* PREVISUALIZACIÓN DE IMAGEN */}
+            <div className="relative flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-slate-50 min-h-[140px]">
+              {imagePreview ? (
+                <div className="relative w-full h-32">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                    onClick={() => { setImagePreview(null); setFile(null); }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="cursor-pointer flex flex-col items-center">
+                  <ImageIcon className="w-8 h-8 text-pink-500 mb-2" />
+                  <span className="text-xs font-bold text-slate-500">Añadir foto del producto</span>
+                  <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
+                </label>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Precio (S/)</Label>
-              <Input type="number" step="0.01" className="rounded-xl border-gray-200" value={formData.precio} onChange={(e) => setFormData({...formData, precio: e.target.value})} required />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Costo (S/)</Label>
-              <Input type="number" step="0.01" className="rounded-xl border-gray-200" value={formData.costo} onChange={(e) => handleCostoChange(e.target.value)} placeholder="Costo de venta" />
+              <Label className="text-[10px] font-black uppercase text-slate-400">Nombre de la Prenda</Label>
+              <Input 
+                value={formData.nombre}
+                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                className="rounded-xl border-slate-200" 
+                required 
+              />
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Margen %</Label>
-              <Input type="number" step="0.1" className="rounded-xl bg-gray-50 cursor-not-allowed" value={formData.margen} disabled placeholder="Auto-calculado" />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Categoría</Label>
-            <Select onValueChange={(val) => setFormData({...formData, categoria_id: val})}>
-              <SelectTrigger className="rounded-xl border-gray-200">
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map((cat: any) => (
-                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Stock Inicial</Label>
-              <Input type="number" className="rounded-xl bg-gray-100" value={formData.stock} disabled />
-              <p className="text-[9px] text-pink-500 font-bold">Carga exclusiva de Taller</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">SKU (Auto)</Label>
+                <Input value={formData.sku} disabled className="bg-slate-50 font-mono text-pink-600 font-bold rounded-xl" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">Precio Venta (S/)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  value={formData.precio}
+                  onChange={(e) => setFormData({...formData, precio: e.target.value})}
+                  className="rounded-xl border-slate-200" 
+                  required 
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Stock Mínimo</Label>
-              <Input type="number" className="rounded-xl" value={formData.stock_minimo} onChange={(e) => setFormData({...formData, stock_minimo: e.target.value})} />
-            </div>
-          </div>
 
-          <DialogFooter className="pt-4 gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl font-bold">Cancelar</Button>
-            <Button type="submit" disabled={loading} className="rounded-xl bg-pink-600 hover:bg-pink-700 font-black px-8">
-              {loading ? <Loader2 className="animate-spin mr-2" /> : "Guardar Producto"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400">Categoría</Label>
+              <Select onValueChange={(val) => setFormData({...formData, categoria_id: val})}>
+                <SelectTrigger className="rounded-xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Seleccionar categoría..." />
+                </SelectTrigger>
+                {/* FIX DE TRANSPARENCIA PARA TAILWIND V3.4 */}
+                <SelectContent 
+                  position="popper" 
+                  className="z-[9999] bg-white border border-slate-200 shadow-xl rounded-xl"
+                >
+                  {categorias.map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()} className="cursor-pointer">
+                      {cat.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter className="pt-4 flex gap-2">
+              <Button type="button" variant="ghost" onClick={onClose} className="flex-1 rounded-xl">
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar Producto"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

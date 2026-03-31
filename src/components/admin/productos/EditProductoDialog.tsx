@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Save, Lock } from "lucide-react";
+import { Loader2, Save, Lock, Info } from "lucide-react";
 
 interface EditProductoDialogProps {
   isOpen: boolean;
@@ -64,13 +64,6 @@ export default function EditProductoDialog({
     }
   }, [isOpen, producto]);
 
-    const handleClose = () => {
-    onClose(); // Primero cerramos el modal (visual)
-    setTimeout(() => {
-      onSuccess(); // Luego refrescamos los datos (pesado)
-    }, 100); 
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -82,7 +75,6 @@ export default function EditProductoDialog({
         descripcion: formData.descripcion || null,
         precio: parseFloat(formData.precio),
         categoria_id: parseInt(formData.categoria_id),
-        // Mantenemos SKU y Stock intactos ya que son protegidos
         sku: formData.sku,
         stock: parseInt(formData.stock),
         estado: formData.estado,
@@ -110,66 +102,78 @@ export default function EditProductoDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md rounded-3xl border-none shadow-2xl overflow-hidden p-0 bg-gray-50">
-        <div className="bg-white p-6">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black flex items-center gap-2">
-              <span className="bg-pink-100 text-pink-600 p-2 rounded-xl">
+      <DialogContent 
+        style={{ background: '#ffffff',
+          opacity: 1,
+          visibility: 'visible',
+        }} 
+        className="max-w-md rounded-3xl border-none shadow-2xl overflow-hidden p-0 !bg-white !opacity-100 z-[9999]"
+      >
+        
+        {/* Cabecera con fondo blanco forzado */}
+        <div className="flex flex-col bg-white w-full h-full">
+          <DialogHeader className="!bg-white">
+            <DialogTitle className="text-xl font-black flex items-center gap-2 text-slate-800">
+              <div className="bg-pink-100 text-pink-600 p-2 rounded-xl">
                 <Save className="w-5 h-5" />
-              </span>
+              </div>
               EDITAR PRENDA
             </DialogTitle>
-            <DialogDescription className="font-medium text-gray-500">
-              Solo los campos de información comercial son editables.
+            <DialogDescription className="font-medium text-slate-500 mt-2 flex items-center gap-2">
+              <Info className="w-4 h-4 text-pink-400" />
+              Los campos con candado son solo de lectura.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Nombre editable */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Nombre Comercial</Label>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 !bg-white">
+          
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Comercial</Label>
             <Input
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="rounded-xl border-gray-200 focus:ring-pink-500 font-bold"
+              className="rounded-xl border-gray-200 focus:border-pink-500 focus:ring-pink-500 font-bold h-11 bg-white"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* SKU Bloqueado */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-1">
+            {/* SKU (LECTURA) */}
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-1">
                 <Lock className="w-2.5 h-2.5" /> SKU
               </Label>
-              <Input value={formData.sku} disabled className="rounded-xl bg-gray-100 font-mono text-gray-500 cursor-not-allowed border-dashed" />
+              <div className="h-11 flex items-center px-4 rounded-xl bg-slate-50 text-slate-500 font-mono text-xs border border-dashed border-slate-200 uppercase">
+                {formData.sku}
+              </div>
             </div>
-            {/* Precio editable */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Precio Venta (S/)</Label>
+
+            {/* PRECIO (EDITABLE) */}
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Precio Venta (S/)</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.precio}
                 onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-                className="rounded-xl border-gray-200 font-black text-pink-600 focus:ring-pink-500"
+                className="rounded-xl border-gray-200 font-black text-pink-600 focus:border-pink-500 h-11 bg-white"
                 required
               />
             </div>
           </div>
 
-          {/* Categoría editable */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Línea / Categoría</Label>
+          {/* CATEGORÍA */}
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Línea / Categoría</Label>
             <Select
               value={formData.categoria_id}
               onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
             >
-              <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+              <SelectTrigger className="rounded-xl border-gray-200 bg-white h-11 font-semibold text-slate-700">
                 <SelectValue placeholder="Seleccionar categoría" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {categorias.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id.toString()}>
                     {cat.nombre}
@@ -179,52 +183,47 @@ export default function EditProductoDialog({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Stock Bloqueado */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-1">
+          {/* STOCK (LECTURA) */}
+          <div className="grid grid-cols-2 gap-4 items-end">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-1">
                 <Lock className="w-2.5 h-2.5" /> Stock Físico
               </Label>
-              <div className="h-10 flex items-center px-4 rounded-xl bg-gray-100 text-gray-600 font-bold border border-dashed">
-                {formData.stock} unidades
+              <div className="h-11 flex items-center px-4 rounded-xl bg-slate-50 text-slate-600 font-bold border border-dashed border-slate-200">
+                {formData.stock} und.
               </div>
             </div>
-            {/* Estado Informativo */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Estado Stock</Label>
-              <div className={`h-10 flex items-center px-4 rounded-xl text-[10px] font-black uppercase border ${
+            
+            <div className={`h-11 flex items-center justify-center px-4 rounded-xl text-[10px] font-black uppercase border mb-[2px] ${
                 parseInt(formData.stock) === 0 ? "bg-red-50 text-red-600 border-red-100" : 
+                parseInt(formData.stock) <= 5 ? "bg-orange-50 text-orange-600 border-orange-100" : 
                 "bg-emerald-50 text-emerald-600 border-emerald-100"
               }`}>
                 {parseInt(formData.stock) === 0 ? "Agotado" : 
-
                 parseInt(formData.stock) <= 5 ? "Bajo Stock" : "Suficiente"}
-              </div>
             </div>
           </div>
 
-          {/* Descripción editable */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Descripción de la Prenda</Label>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Notas / Descripción</Label>
             <Textarea
               value={formData.descripcion}
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-              className="rounded-xl border-gray-200 resize-none focus:ring-pink-500"
-              rows={3}
-              placeholder="Detalles sobre el material, tallas o cuidados..."
+              className="rounded-xl border-gray-200 resize-none focus:border-pink-500 min-h-[80px] bg-white"
+              placeholder="Detalles sobre el material..."
             />
           </div>
 
-          <DialogFooter className="pt-4 bg-gray-50 -mx-6 -mb-6 p-6">
-            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl font-bold text-gray-500">
+          <DialogFooter className="pt-6 border-t border-gray-100 mt-4 flex gap-3 !bg-white">
+            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl font-bold text-slate-400 hover:bg-slate-100 flex-1">
               Descartar
             </Button>
             <Button 
               type="submit" 
               disabled={loading} 
-              className="bg-pink-600 hover:bg-pink-700 text-white rounded-xl px-10 font-black transition-all active:scale-95 shadow-lg shadow-pink-100"
+              className="bg-pink-600 hover:bg-pink-700 text-white rounded-xl px-8 font-black transition-all active:scale-95 shadow-lg shadow-pink-100 flex-1"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "GUARDAR CAMBIOS"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ACTUALIZAR"}
             </Button>
           </DialogFooter>
         </form>

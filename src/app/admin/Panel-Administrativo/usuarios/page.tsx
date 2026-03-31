@@ -185,7 +185,6 @@ export default function UsuariosPage() {
           />
         )}
 
-        {/* Paginación idéntica a Clientes */}
         <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
           <p className="text-xs text-gray-500">
             Mostrando <span className="font-bold text-gray-900">{usuarios.length}</span> de <span className="font-bold text-gray-900">{currentTotalForPagination}</span>
@@ -204,7 +203,7 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* Diálogos Dinámicos (como en Clientes) */}
+      {/* Diálogos Dinámico */}
       <CreateUsuarioDialog 
         isOpen={dialogMode === "new"} 
         onClose={() => setDialogMode(null)} 
@@ -223,7 +222,7 @@ export default function UsuariosPage() {
   );
 }
 
-// StatCard con cursor-pointer y estilos de tu ClientesPage
+// StatCard con cursor-pointer 
 function StatCard({ title, value, icon, isActive, color, onClick }: any) {
   const styles: any = {
     pink: { active: "border-pink-500 ring-pink-50 bg-white", icon: "bg-pink-600 text-white", text: "text-pink-600" },

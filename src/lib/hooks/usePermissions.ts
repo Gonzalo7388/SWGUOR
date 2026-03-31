@@ -7,6 +7,18 @@ interface AppPermissions {
 }
 
 const ROLE_PERMISSIONS: { [role: string]: AppPermissions } = {
+  gerente_general: {
+    usuarios: ['view', 'create', 'edit', 'delete', 'export'],
+    categorias: ['view', 'create', 'edit', 'delete', 'export'],
+    clientes: ['view', 'create', 'edit', 'delete', 'export'],
+    productos: ['view', 'create', 'edit', 'delete', 'export'],
+    pedidos: ['view', 'create', 'edit', 'delete', 'export'],
+    inventario: ['view', 'create', 'edit', 'delete', 'export'],
+    talleres: ['view', 'create', 'edit', 'delete', 'export'],
+    ventas: ['view', 'create', 'edit', 'delete', 'export'],
+    reportes: ['view', 'create', 'edit', 'delete', 'export'],
+    configuracion: ['view', 'edit'],
+  },
   administrador: {
     usuarios: ['view', 'create', 'edit', 'delete', 'export'],
     categorias: ['view', 'create', 'edit', 'delete', 'export'],

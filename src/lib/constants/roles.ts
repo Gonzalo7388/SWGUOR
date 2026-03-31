@@ -60,6 +60,12 @@ export const ROLES_INFO: Record<
     nivel: number;
   }
 > = {
+  gerente_general: {
+    label: 'Gerente General',
+    descripcion: 'Acceso total al sistema',
+    color: 'bg-red-100 text-red-800',
+    nivel: 6
+  },
   administrador: {
     label: 'Administrador',
     descripcion: 'Acceso total al sistema',
@@ -110,6 +116,27 @@ export const ROLES_INFO: Record<
  * Matriz de permisos por rol
  */
 export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
+  gerente_general: [
+    // Dashboard
+    'ver_dashboard',
+    // Órdenes
+    'ver_ordenes',
+    // Pedidos
+    'ver_pedidos',
+    // Inventario
+    'ver_inventario',
+    // Productos
+    'ver_productos',
+    // Clientes
+    'ver_clientes',
+    // Usuarios
+    'ver_usuarios',
+    // Reportes
+    'ver_reportes',
+    // Despachos
+    'ver_despachos'
+  ],
+
   administrador: [
     // Dashboard
     'ver_dashboard',

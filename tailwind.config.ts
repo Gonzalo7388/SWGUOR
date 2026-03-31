@@ -9,31 +9,58 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Colores principales del logo
+        // --- CONEXIÓN CON SHADCN (Lo que arregla la transparencia) ---
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        // -----------------------------------------------------------
+
+        // Tus colores personalizados (Mantenidos)
         primary: {
-          50: '#fef8f3',   // Beige muy claro
-          100: '#fef0e6',  // Beige claro
-          200: '#fcdec7',  // Beige suave
-          300: '#f9c79d',  // Dorado claro
-          400: '#f5a869',  // Dorado medio
-          500: '#d4945a',  // Dorado del logo
-          600: '#b87947',  // Dorado oscuro
-          700: '#935f38',  // Café dorado
-          800: '#77502f',  // Café
-          900: '#624128',  // Café oscuro
+          DEFAULT: '#d4945a', // Dorado del logo como default
+          50: '#fef8f3',
+          100: '#fef0e6',
+          200: '#fcdec7',
+          300: '#f9c79d',
+          400: '#f5a869',
+          500: '#d4945a',
+          600: '#b87947',
+          700: '#935f38',
+          800: '#77502f',
+          900: '#624128',
         },
         accent: {
-          50: '#fef6f8',   // Rosa muy claro
-          100: '#fdedf1',  // Rosa claro
-          200: '#fbd9e3',  // Rosa suave del logo
-          300: '#f8b8cc',  // Rosa medio
-          400: '#f48dae',  // Rosa
-          500: '#eb6591',  // Rosa vibrante
-          600: '#d94876',  // Rosa oscuro
-          700: '#b8365f',  // Rosa profundo
-          800: '#982d50',  // Rosa muy oscuro
-          900: '#7f2846',  // Rosa burgundy
+          DEFAULT: '#fbd9e3', // Rosa suave como default
+          50: '#fef6f8',
+          100: '#fdedf1',
+          200: '#fbd9e3',
+          300: '#f8b8cc',
+          400: '#f48dae',
+          500: '#eb6591',
+          600: '#d94876',
+          700: '#b8365f',
+          800: '#982d50',
+          900: '#7f2846',
         },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -41,7 +68,8 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  // Plugin necesario para las animaciones del Dialog
+  plugins: [require("tailwindcss-animate")],
 };
 
 export default config;
