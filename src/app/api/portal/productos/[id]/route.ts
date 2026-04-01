@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 // Orden canónico de tallas
-const ORDEN_TALLAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34'];
+const ORDEN_TALLAS = ['XS', 'S', 'M', 'L', 'XL', '28', '30', '32', '34'];
 const ordenarTallas = (tallas: string[]) =>
   [...tallas].sort((a, b) => {
     const ia = ORDEN_TALLAS.indexOf(a);
