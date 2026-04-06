@@ -288,8 +288,12 @@ export default function PerfilPage() {
     
     try {
       dispatch({ type: 'SET_SAVING', saving: true });
-      dispatch({ type: 'CLEAR_FEEDBACK' });
-
+      dispatch({ type: 'CLEAR_FEEDBACK' }); 
+    //
+    if(!state.nombreCompleto || !state.email){
+      dispatch({ type: 'SET_ERROR', message: 'El nombre y correo es requerido' });
+      return;
+    }
       // Validate nombre
       if (!state.nombreCompleto.trim()) {
         dispatch({ type: 'SET_ERROR', message: 'El nombre es requerido' });
@@ -336,7 +340,12 @@ export default function PerfilPage() {
       }
 
       const { error: updateError } = await updateUsuario(String(usuario.id), updateData);
-      if (updateError) throw updateError;
+
+      if (updateError) {
+        dispatch({ type: 'SET_ERROR', message: updateError.message|| 'Error al actualizar el perfil' });
+        return;
+      }
+        //throw updateError;
 
       dispatch({
         type: 'SET_SUCCESS',
@@ -361,7 +370,7 @@ export default function PerfilPage() {
 
       // Validate all fields present
       if (!state.currentPassword || !state.newPassword || !state.confirmPassword) {
-        dispatch({ type: 'SET_ERROR', message: 'Completa todos los campos' });
+        dispatch({ type: 'SET_ERROR', message: 'Todos los campos son obligatorios' });
         return;
       }
 
@@ -371,6 +380,17 @@ export default function PerfilPage() {
         dispatch({ type: 'SET_ERROR', message: passwordValidation.error! });
         return;
       }
+      //C
+      if (state.currentPassword==state.newPassword){
+        dispatch({ type: 'SET_ERROR', message: 'La nueva contraseña no puede ser igual a la actual.' });
+        return
+      }
+
+      if (state.newPassword.length < 6) {
+        dispatch({type: 'SET_ERROR', message: 'La nueva contraseña debe tener al menos 8 caracteres'});
+        return;
+      }
+
 
       // Validate passwords match
       if (state.newPassword !== state.confirmPassword) {
@@ -381,6 +401,9 @@ export default function PerfilPage() {
       const supabase = getSupabaseBrowserClient();
 
       // Verify current password by trying to sign in
+
+  
+
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: state.email,
         password: state.currentPassword,
@@ -395,6 +418,8 @@ export default function PerfilPage() {
       const { error: updateError } = await supabase.auth.updateUser({
         password: state.newPassword,
       });
+
+
 
       if (updateError) throw updateError;
 
@@ -448,7 +473,7 @@ export default function PerfilPage() {
   const isAdmin = usuario.rol?.toLowerCase() === 'administrador';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-rose-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
@@ -498,7 +523,8 @@ export default function PerfilPage() {
                         <User className="w-12 h-12 text-gray-400" />
                       </div>
                     )}
-                    
+
+                    {/*
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={state.uploadingImage}
@@ -511,6 +537,7 @@ export default function PerfilPage() {
                       )}
                     </button>
                     
+
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -518,6 +545,8 @@ export default function PerfilPage() {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
+                    */}
+
                   </div>
 
                   <h3 className="font-medium text-lg text-gray-900 mt-4 mb-1">
