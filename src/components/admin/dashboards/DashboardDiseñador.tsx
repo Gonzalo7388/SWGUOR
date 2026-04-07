@@ -106,7 +106,7 @@ export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
         priority: 'normal'
       })));
 
-      const pedidosData = (pedidosRes.data as DBPedido[]) || [];
+      const pedidosData = (pedidosRes.data as unknown as DBPedido[]) || [];
       setAssignedOrders(pedidosData.map((pedido: DBPedido) => ({
         id: pedido.id,
         product: pedido.nombre_producto_snapshot || 'Sin descripción', // campo correcto

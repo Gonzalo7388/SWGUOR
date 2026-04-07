@@ -7,7 +7,8 @@ import { Search, Users, RefreshCw, UserCheck, UserMinus, ChevronLeft, ChevronRig
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import { EstadoUsuario } from "@/types";
+import type { Database } from "@/types/database";
+type EstadoUsuario = Database['public']['Enums']['EstadoUsuario'];
 
 // Componentes dinámicos
 const UsuariosTable = dynamic(() => import("@/components/admin/usuarios/UsuarioTable"));

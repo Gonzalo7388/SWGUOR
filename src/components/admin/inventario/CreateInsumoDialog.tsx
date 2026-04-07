@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Loader2, X, PackagePlus } from "lucide-react";
-import { Categoria } from "@/types";
+import type { Database } from "@/types/database";
+type Categoria = Database['public']['Tables']['categorias']['Row'];
 import { toast } from "sonner";
 
 interface Props {

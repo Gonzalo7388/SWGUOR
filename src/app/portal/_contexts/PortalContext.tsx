@@ -107,9 +107,9 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         // Cargar stats del portal
         const [cotRes, ordRes, dspRes] = await Promise.all([
           supabase.from('cotizaciones').select('id', { count: 'exact', head: true })
-            .eq('cliente_id', data).in('estado', ['borrador', 'enviada', 'aprobada']),
+            .eq('cliente_id', data.id).in('estado', ['borrador', 'enviada', 'aprobada']),
           supabase.from('ordenes').select('id', { count: 'exact', head: true })
-            .eq('cliente_id', data).not('estado', 'in', '(finalizado,cancelado)'),
+            .eq('cliente_id', data.id).not('estado', 'in', '(finalizado,cancelado)'),
           supabase.from('despachos').select('id', { count: 'exact', head: true })
             .eq('estado', 'en_ruta'),
         ]);

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Producto, Categoria } from "@/types";
+import type { Database } from "@/types/database";
+type Producto = Database['public']['Tables']['productos']['Row'];
+type Categoria = Database['public']['Tables']['categorias']['Row'];
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,8 +58,8 @@ export default function EditProductoDialog({
         nombre: producto.nombre || "",
         descripcion: producto.descripcion || "",
         sku: producto.sku || "",
-        precio: producto.precio_base?.toString() || "0",
-        stock: producto.stock_actual?.toString() || "0",
+        precio: producto.precio?.toString() || "0",
+        stock: producto.stock?.toString() || "0",
         categoria_id: producto.categoria_id?.toString() || "",
         estado: producto.estado || "activo",
       });
