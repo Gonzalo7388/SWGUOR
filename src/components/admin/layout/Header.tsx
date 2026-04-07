@@ -3,7 +3,9 @@
   import { Bell, ChevronRight, Home, User } from "lucide-react";
   import { usePathname } from "next/navigation";
   import Link from "next/link";
-  import type { Usuario } from '@/types';
+  import type { Database } from '@/types/database';
+  
+  type Usuario = Database['public']['Tables']['usuarios']['Row'];
   import { NotificationDropdown } from "./NotificationDropdown";
 
   interface AdminHeaderProps {

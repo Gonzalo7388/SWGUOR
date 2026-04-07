@@ -11,8 +11,10 @@ import {
   BarChart3, Crown
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Usuario } from '@/types';
+import type { Database } from '@/types/database';
 import { LucideIcon } from 'lucide-react';
+
+type Usuario = Database['public']['Tables']['usuarios']['Row'];
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
 type NavItem = {
