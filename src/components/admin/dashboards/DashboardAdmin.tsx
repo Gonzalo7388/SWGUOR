@@ -10,7 +10,12 @@ import {
   RefreshCw, Package, Clock, CheckCircle2,
   AlertCircle, ArrowRight, Eye,
 } from 'lucide-react';
-import { Insumo, EstadoOrden, Orden, OrdenConCliente } from '@/types';
+import type { Database } from '@/types/database';
+
+type Insumo = Database['public']['Tables']['insumo']['Row'];
+type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
+type Orden = Database['public']['Tables']['ordenes']['Row'];
+type OrdenConCliente = Orden & { clientes: { razon_social: string } | null };
 import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, ROLES_USUARIO, TIPOS_CLIENTE, UNIDADES_MEDIDA } from '@/lib/constants/estados';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────

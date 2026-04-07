@@ -4,7 +4,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { Usuario } from '@/types';
+import type { Database } from '@/types/database';
+
+type Usuario = Database['public']['Tables']['usuarios']['Row'];
 import { useRouter } from 'next/navigation';
 import { Upload, Eye, CheckCircle, AlertCircle, ClipboardList, Layers, FileText, Inbox } from 'lucide-react';
 
