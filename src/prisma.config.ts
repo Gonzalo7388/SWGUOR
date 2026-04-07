@@ -1,7 +1,7 @@
-// src/prisma.config.ts (O muévelo a la raíz si puedes)
-export default {
+import { defineConfig } from 'prisma/config'
+
+export default defineConfig({
   datasource: {
     url: process.env.DATABASE_URL,
-    directUrl: process.env.DIRECT_URL,
   },
-}
+})
