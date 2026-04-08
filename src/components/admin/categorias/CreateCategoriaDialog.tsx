@@ -123,7 +123,5 @@ export default function CreateCategoriaDialog({ isOpen, onClose, onSuccess }: an
         </div>
       </DialogContent>
     </Dialog>
-      </DialogContent>
-    </Dialog>
   );
 }
