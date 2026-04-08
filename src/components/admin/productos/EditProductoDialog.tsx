@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import type { Database } from "@/types/database";
-type Producto = Database['public']['Tables']['productos']['Row'];
-type Categoria = Database['public']['Tables']['categorias']['Row'];
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +23,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Save, Lock, Info } from "lucide-react";
+
+type Producto = Database['public']['Tables']['productos']['Row'];
+type Categoria = Database['public']['Tables']['categorias']['Row'];
 
 interface EditProductoDialogProps {
   isOpen: boolean;

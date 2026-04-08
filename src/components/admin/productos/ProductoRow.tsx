@@ -7,8 +7,6 @@ import {
   FileText, Paperclip, CheckCircle2 
 } from "lucide-react";
 import type { Database } from "@/types/database";
-type Producto = Database['public']['Tables']['productos']['Row'];
-type Categoria = Database['public']['Tables']['categorias']['Row'];
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -18,6 +16,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getEstadoInfo } from "@/lib/constants/estados";
+
+type Producto = Database['public']['Tables']['productos']['Row'];
+type Categoria = Database['public']['Tables']['categorias']['Row'];
 
 const STORAGE_URL = "https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/";
 

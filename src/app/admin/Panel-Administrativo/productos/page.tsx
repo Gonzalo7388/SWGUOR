@@ -20,7 +20,6 @@ const ProductosTable = dynamic(() => import("@/components/admin/productos/Produc
 const CreateProductoDialog = dynamic(() => import("@/components/admin/productos/CreateProductoDialog"));
 const EditProductoDialog = dynamic(() => import("@/components/admin/productos/EditProductoDialog"));
 const DeleteProductoDialog = dynamic(() => import("@/components/admin/productos/DeleteProductoDialog"));
-const StockDialog = dynamic(() => import("@/components/admin/productos/StockDialog"));
 
 export default function ProductosPage() {
   const { can, isLoading: authLoading, usuario } = usePermissions();
@@ -250,10 +249,7 @@ export default function ProductosPage() {
           {dialogMode === "delete" && (
             <DeleteProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} />
           )}
-          {dialogMode === "stock" && (
-            <StockDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} />
-          )}
-          
+
         </>
       )}
     </div>

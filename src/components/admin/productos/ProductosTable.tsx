@@ -14,9 +14,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { memo } from "react";
-
-const STORAGE_URL = "https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/";
-
 // --- COMPONENTE DE FILA (Optimizado) ---
 const ProductoRow = memo(({ 
   p, 
@@ -37,25 +34,29 @@ const ProductoRow = memo(({
   canEdit: boolean;
   canDelete: boolean;
 }) => {
-  const hasImage = p.imagen && p.imagen.trim() !== '';
-  const publicUrl = hasImage ? `${STORAGE_URL}${p.imagen}` : null;
+  // 1. Extraemos SOLO el nombre del archivo para evitar que la URL se duplique
+  const rawImage = String(p.imagen || "").trim();
+  const fileName = rawImage.split('/').pop(); 
+
+  // 2. Construimos la URL limpia apuntando directamente al bucket de Supabase
+  const publicUrl = fileName && fileName !== "null" && fileName !== ""
+    ? `https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/${fileName}` 
+    : null;
   const hasFicha = (p as any).ficha_url; 
 
   const categoriaNombre = categorias.find(c => c.id === p.categoria_id)?.nombre || 'Sin categoría';
 
-  return (
+   return (
     <tr className="group transition-all duration-200">
       {/* Detalle Producto */}
       <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 relative bg-slate-50 rounded-xl border border-slate-100 shrink-0 overflow-hidden">
             {publicUrl ? (
-              <Image 
+              <img 
                 src={publicUrl} 
                 alt={p.nombre || "Producto"} 
-                fill 
-                sizes="56px"
-                className="object-cover group-hover:scale-110 transition-transform duration-500"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
@@ -142,20 +143,6 @@ const ProductoRow = memo(({
               <TooltipContent side="top">
                 <p className="text-[10px] font-bold uppercase">Documentación Técnica</p>
               </TooltipContent>
-            </Tooltip>
-
-            {/* Movimientos Stock */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" size="icon" 
-                  onClick={() => onStock(p)}
-                  className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
-                >
-                  <BarChart3 size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p className="text-[10px] font-bold uppercase">Gestionar Stock</p></TooltipContent>
             </Tooltip>
 
             {/* Editar */}
