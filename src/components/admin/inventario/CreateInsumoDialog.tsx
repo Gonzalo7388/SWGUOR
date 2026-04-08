@@ -238,3 +238,5 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
