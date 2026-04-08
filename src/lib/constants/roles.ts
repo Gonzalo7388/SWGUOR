@@ -11,7 +11,7 @@ export type RolUsuario =
   | 'gerente_general'
   | 'administrador'
   | 'recepcionista'
-  | 'disenador'       // sin tilde — valor real en BD
+  | 'disenador'
   | 'cortador'
   | 'ayudante'
   | 'representante_taller'
@@ -32,76 +32,91 @@ export type PermissionKey =
   | 'crear_orden'
   | 'editar_orden'
   | 'eliminar_orden'
+  | 'exportar_ordenes'
   // Pedidos
   | 'ver_pedidos'
   | 'crear_pedido'
   | 'editar_pedido'
   | 'cancelar_pedido'
   | 'cambiar_estado_pedido'
+  |  'exportar_pedidos'
   // Inventario
   | 'ver_inventario'
   | 'crear_inventario'
   | 'editar_inventario'
   | 'eliminar_inventario'
   | 'ajustar_stock'
+  | 'exportar_inventario'
   // Productos
   | 'ver_productos'
   | 'crear_producto'
   | 'editar_producto'
   | 'eliminar_producto'
+  | 'exportar_productos'
   // Variantes
   | 'ver_variantes'
   | 'crear_variante'
   | 'editar_variante'
   | 'eliminar_variante'
+  | 'exportar_variantes'
   // Categorías
   | 'ver_categorias'
   | 'crear_categoria'
   | 'editar_categoria'
   | 'eliminar_categoria'
+  | 'exportar_categorias'
   // Clientes
   | 'ver_clientes'
   | 'editar_cliente'
   | 'eliminar_cliente'
+  | 'exportar_clientes'
   // Usuarios
   | 'ver_usuarios'
   | 'crear_usuario'
   | 'editar_usuario'
   | 'eliminar_usuario'
+  | 'exportar_usuarios'
   // Reportes
   | 'ver_reportes'
   | 'filtrar_reportes'
+  | 'exportar_reportes'
   // Despachos
   | 'ver_despachos'
   | 'crear_despacho'
   | 'editar_despacho'
   | 'actualizar_estado_despacho'
+  | 'exportar_despachos'
   // Confecciones
   | 'ver_confecciones'
   | 'crear_confeccion'
   | 'editar_confecciones'
   | 'actualizar_estado_confeccion'
+  | 'exportar_confecciones'
   // Talleres
   | 'ver_talleres'
   | 'crear_taller'
   | 'editar_taller'
   | 'eliminar_taller'
+  | 'exportar_talleres'
   // Pagos
   | 'ver_pagos'
   | 'registrar_pago'
+  | 'exportar_pagos'
   // Cotizaciones
   | 'ver_cotizaciones'
   | 'editar_cotizacion'
   | 'aprobar_cotizacion'
+  | 'exportar_cotizaciones'
   // Materiales
   | 'ver_materiales'
   | 'crear_material'
   | 'editar_material'
   | 'eliminar_material'
+  | 'exportar_materiales'
   // Ventas
   | 'ver_ventas'
   | 'editar_venta'
-  | 'eliminar_venta'
+  | 'exportar_ventas'
   // Configuración
   | 'ver_configuracion'
   | 'editar_configuracion';
@@ -124,71 +139,71 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
 
   gerente_general: [
     'ver_dashboard', 'exportar_data',
-    'ver_ordenes',
-    'ver_pedidos',
-    'ver_inventario',
-    'ver_productos', 'ver_variantes', 'ver_categorias',
-    'ver_clientes',
-    'ver_usuarios',
+    'ver_ordenes', 'exportar_ordenes',
+    'ver_pedidos', 'exportar_pedidos',
+    'ver_inventario', 'exportar_inventario',
+    'ver_productos', 'exportar_productos', 'ver_variantes', 'exportar_variantes', 'ver_categorias', 'exportar_categorias',
+    'ver_clientes', 'exportar_clientes',
+    'ver_usuarios', 'exportar_usuarios',
     'ver_reportes', 'filtrar_reportes',
-    'ver_despachos',
-    'ver_confecciones',
-    'ver_talleres',
-    'ver_pagos',
-    'ver_cotizaciones',
-    'ver_materiales',
-    'ver_ventas',
-    'ver_configuracion',
+    'ver_despachos', 'exportar_despachos',
+    'ver_confecciones', 'exportar_confecciones',
+    'ver_talleres', 'exportar_talleres',
+    'ver_pagos', 'exportar_pagos',
+    'ver_cotizaciones', 'exportar_cotizaciones',
+    'ver_materiales', 'exportar_materiales',
+    'ver_ventas', 'exportar_ventas',
+    'ver_configuracion', 'editar_configuracion',
   ],
 
   administrador: [
     'ver_dashboard', 'exportar_data',
     // Órdenes
-    'ver_ordenes', 'crear_orden', 'editar_orden', 'eliminar_orden',
+    'ver_ordenes', 'crear_orden', 'editar_orden', 'eliminar_orden', 'exportar_ordenes',
     // Pedidos
-    'ver_pedidos', 'crear_pedido', 'editar_pedido', 'cancelar_pedido', 'cambiar_estado_pedido',
+    'ver_pedidos', 'crear_pedido', 'editar_pedido', 'cancelar_pedido', 'cambiar_estado_pedido', 'exportar_pedidos',
     // Inventario
-    'ver_inventario', 'crear_inventario', 'editar_inventario', 'eliminar_inventario', 'ajustar_stock',
+    'ver_inventario', 'crear_inventario', 'editar_inventario', 'eliminar_inventario', 'ajustar_stock', 'exportar_inventario',
     // Productos
-    'ver_productos', 'crear_producto', 'editar_producto', 'eliminar_producto',
+    'ver_productos', 'crear_producto', 'editar_producto', 'eliminar_producto', 'exportar_productos',
     // Variantes
-    'ver_variantes', 'crear_variante', 'editar_variante', 'eliminar_variante',
+    'ver_variantes', 'crear_variante', 'editar_variante', 'eliminar_variante', 'exportar_variantes',
     // Categorías
-    'ver_categorias', 'crear_categoria', 'editar_categoria', 'eliminar_categoria',
+    'ver_categorias', 'crear_categoria', 'editar_categoria', 'eliminar_categoria', 'exportar_categorias',
     // Clientes
-    'ver_clientes', 'editar_cliente', 'eliminar_cliente',
+    'ver_clientes', 'editar_cliente', 'eliminar_cliente', 'exportar_clientes',
     // Usuarios
-    'ver_usuarios', 'crear_usuario', 'editar_usuario', 'eliminar_usuario',
+    'ver_usuarios', 'crear_usuario', 'editar_usuario', 'eliminar_usuario', 'exportar_usuarios',
     // Reportes
-    'ver_reportes', 'filtrar_reportes',
+    'ver_reportes', 'filtrar_reportes', 'exportar_reportes',
     // Despachos
-    'ver_despachos', 'crear_despacho', 'editar_despacho',
+    'ver_despachos', 'crear_despacho', 'editar_despacho', 'exportar_despachos',
     // Confecciones
-    'ver_confecciones', 'crear_confeccion', 'editar_confecciones',
+    'ver_confecciones', 'crear_confeccion', 'editar_confecciones', 'exportar_confecciones',
     // Talleres
-    'ver_talleres', 'crear_taller', 'editar_taller', 'eliminar_taller',
+    'ver_talleres', 'crear_taller', 'editar_taller', 'eliminar_taller', 'exportar_talleres',
     // Pagos
-    'ver_pagos', 'registrar_pago',
+    'ver_pagos', 'registrar_pago', 'exportar_pagos',
     // Cotizaciones
     'ver_cotizaciones', 'editar_cotizacion', 'aprobar_cotizacion',
     // Materiales
-    'ver_materiales', 'crear_material', 'editar_material', 'eliminar_material',
+    'ver_materiales', 'crear_material', 'editar_material', 'eliminar_material', 'exportar_materiales',
     // Ventas
-    'ver_ventas', 'editar_venta', 'eliminar_venta',
+    'ver_ventas', 'editar_venta', 'exportar_ventas',
     // Configuración
     'ver_configuracion', 'editar_configuracion',
   ],
 
   recepcionista: [
     'ver_dashboard',
-    'ver_ordenes', 'crear_orden', 'editar_orden',
-    'ver_pedidos', 'crear_pedido', 'editar_pedido', 'cancelar_pedido',
-    'ver_inventario',
-    'ver_productos', 'ver_variantes',
-    'ver_clientes', 'editar_cliente',
-    'ver_pagos', 'registrar_pago',
+    'ver_ordenes', 'crear_orden', 'editar_orden', 'exportar_ordenes',
+    'ver_pedidos', 'crear_pedido', 'editar_pedido', 'cancelar_pedido', 'exportar_pedidos',
+    'ver_inventario', 'exportar_inventario',
+    'ver_productos', 'ver_variantes', 'exportar_productos', 'exportar_variantes',
+    'ver_clientes', 'editar_cliente', 'exportar_clientes',
+    'ver_pagos', 'registrar_pago', 'exportar_pagos',
     'ver_cotizaciones', 'editar_cotizacion', 'aprobar_cotizacion',
-    'ver_despachos', 'crear_despacho',
+    'ver_despachos', 'crear_despacho', 'exportar_despachos',
   ],
 
   disenador: [

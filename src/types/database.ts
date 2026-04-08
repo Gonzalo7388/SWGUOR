@@ -75,7 +75,6 @@ export type Database = {
       clientes: {
         Row: {
           activo: Database["public"]["Enums"]["EstadoCliente"] | null
-          auth_id: string | null
           created_at: string
           direccion: string | null
           email: string | null
@@ -85,10 +84,10 @@ export type Database = {
           telefono: number | null
           tipo: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at: string
+          usuario_id: number | null
         }
         Insert: {
           activo?: Database["public"]["Enums"]["EstadoCliente"] | null
-          auth_id?: string | null
           created_at?: string
           direccion?: string | null
           email?: string | null
@@ -98,10 +97,10 @@ export type Database = {
           telefono?: number | null
           tipo?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
+          usuario_id?: number | null
         }
         Update: {
           activo?: Database["public"]["Enums"]["EstadoCliente"] | null
-          auth_id?: string | null
           created_at?: string
           direccion?: string | null
           email?: string | null
@@ -111,8 +110,17 @@ export type Database = {
           telefono?: number | null
           tipo?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
+          usuario_id?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comprobantes: {
         Row: {
