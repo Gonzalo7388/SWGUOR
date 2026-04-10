@@ -2,43 +2,40 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  AreaChart, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
   TrendingUp, Users, AlertTriangle, ShoppingCart,
   RefreshCw, Package, Clock, CheckCircle2,
-  AlertCircle, ArrowRight, Eye,
+  AlertCircle, ArrowRight, Eye, AlertOctagon,
 } from 'lucide-react';
+import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE, UNIDADES_MEDIDA } from '@/lib/constants/estados';
 import type { Database } from '@/types/database';
-
-type Insumo = Database['public']['Tables']['insumo']['Row'];
-type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
-type Orden = Database['public']['Tables']['ordenes']['Row'];
-type OrdenConCliente = Orden & { clientes: { razon_social: string } | null };
-import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, ROLES_USUARIO, TIPOS_CLIENTE, UNIDADES_MEDIDA } from '@/lib/constants/estados';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
-interface DashboardStats {
-  totalVentas:   number;
-  totalClientes: number;
-  stockBajo:     number;
-  pedidosNuevos: number;
-}
+type Insumo        = Database['public']['Tables']['insumo']['Row'];
+type EstadoOrden   = Database['public']['Enums']['EstadoOrden'];
+type Orden         = Database['public']['Tables']['ordenes']['Row'];
+type OrdenConCliente = Orden & { clientes: { razon_social: string; tipo?: string } | null };
 
 interface ApiData {
   kpis: {
-    total_ventas: number;    // Antes totalVentas
-    total_clientes: number;  // Antes totalClientes
-    stock_alerta: number;    // Antes stockBajo
-    nuevas_ordenes: number;  // Antes pedidosNuevos
-  } & Record<string, any>;
-  chartIngresos: { created_at: string; total: number }[];
-  chartProductos: { cantidad: number; productos: { nombre: string } | null }[];
-  recentOrders: OrdenConCliente[]; // Usando el nuevo tipo
-  criticalStock: Insumo[];
+    total_ventas:   number;
+    total_clientes: number;
+    stock_alerta:   number;
+    nuevas_ordenes: number;
+  };
+  chartIngresos:   { created_at: string; total: number }[];
+  chartProductos:  { cantidad: number; productos: { nombre: string } | null }[];
+  recentOrders:    OrdenConCliente[];
+  criticalStock:   Insumo[];
 }
+
+// ─── CONSTANTES DE MÓDULO ─────────────────────────────────────────────────────
+
+const CHART_COLORS = ['#C9A86C', '#6366F1', '#EC4899', '#0EA5E9', '#10B981'];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -55,7 +52,6 @@ function groupByDate(rows: { created_at: string; total: number }[]) {
 
 // ─── STATUS HELPERS ───────────────────────────────────────────────────────────
 
-// Íconos visuales por estado de orden
 const ESTADO_ICONS: Record<string, React.ReactNode> = {
   solicitado: <Clock size={11} />,
   cotizado:   <Clock size={11} />,
@@ -66,7 +62,6 @@ const ESTADO_ICONS: Record<string, React.ReactNode> = {
   cancelado:  <AlertCircle size={11} />,
 };
 
-/** Convierte bg-X-100 + text-X-700 → clase de badge con borde */
 const toBadgeCls = (color: string, bgColor: string) =>
   `${bgColor.replace('100', '50')} ${color} border ${bgColor.replace('bg-', 'border-').replace('100', '200')}`;
 
@@ -77,18 +72,6 @@ function getOrdenStatus(estado: string) {
   return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor), icon: ESTADO_ICONS[key] ?? null };
 }
 
-function getPagoStatus(estado: string) {
-  const cfg = ESTADOS_PAGO[estado?.toLowerCase()];
-  if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
-  return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor) };
-}
-
-function getPrioridad(p: string) {
-  const cfg = PRIORIDADES_PEDIDO[p?.toLowerCase()];
-  if (!cfg) return { label: p ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
-  return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor) };
-}
-
 function getTipoCliente(tipo: string) {
   const cfg = TIPOS_CLIENTE[tipo?.toLowerCase()];
   return cfg?.label ?? tipo ?? '—';
@@ -96,7 +79,7 @@ function getTipoCliente(tipo: string) {
 
 // ─── TOOLTIPS ─────────────────────────────────────────────────────────────────
 
-const AreaTip = ({ active, payload, label }: any) => {
+const AreaTip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-[#0D1B2A] border border-[#C9A86C]/20 rounded-xl px-3 py-2.5 shadow-xl">
@@ -106,7 +89,7 @@ const AreaTip = ({ active, payload, label }: any) => {
   );
 };
 
-const BarTip = ({ active, payload }: any) => {
+const BarTip = ({ active, payload }: { active?: boolean; payload?: { payload: { fullName: string; sales: number } }[] }) => {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
@@ -141,8 +124,7 @@ function KpiCard({ label, value, icon: Icon, accentColor, loading, danger, subLa
       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-1.5">{label}</p>
       {loading
         ? <Sk className="h-9 w-24" />
-        : <p className={`text-[2rem] font-black tracking-tighter leading-none ${danger ? 'text-rose-500' : 'text-slate-900'}`}
-            style={{ fontFamily: "'Georgia', serif" }}>
+        : <p className={`text-[2rem] font-black tracking-tighter leading-none ${danger ? 'text-rose-500' : 'text-slate-900'}`}>
             {value}
           </p>
       }
@@ -156,7 +138,6 @@ function KpiCard({ label, value, icon: Icon, accentColor, loading, danger, subLa
 // ─── PIPELINE FUNNEL ─────────────────────────────────────────────────────────
 
 function PipelineBar({ orders }: { orders: ApiData['recentOrders'] }) {
-  // Usa ESTADOS_ORDEN para las etapas — excluye cancelado del flujo
   const stages = (Object.entries(ESTADOS_ORDEN) as [EstadoOrden, { label: string; color: string; bgColor: string }][])
     .filter(([key]) => key !== 'cancelado')
     .map(([key, cfg]) => {
@@ -171,7 +152,7 @@ function PipelineBar({ orders }: { orders: ApiData['recentOrders'] }) {
       return { key, label: cfg.label, color: colorMap[key] ?? '#94A3B8' };
     });
 
-  const total = orders.filter(o => o.estado !== 'cancelado').length || 1;
+  const total     = orders.filter(o => o.estado !== 'cancelado').length || 1;
   const cancelados = orders.filter(o => o.estado === 'cancelado').length;
 
   return (
@@ -211,16 +192,20 @@ export default function AdminDashboard() {
   const [data,       setData]       = useState<ApiData | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error,      setError]      = useState<string | null>(null);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
+    setError(null);
     try {
       const res  = await fetch(`/api/admin/dashboard?days=${filter}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setData(json);
-    } catch (e: any) {
-      console.error('Dashboard:', e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error desconocido';
+      console.error('Dashboard:', msg);
+      setError(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -229,22 +214,40 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const kpis        = data?.kpis;
-  const salesChart  = data ? groupByDate(data.chartIngresos ?? []) : [];
-  const CHART_COLORS = ['#C9A86C', '#6366F1', '#EC4899', '#0EA5E9', '#10B981'];
-  const topProducts  = (data?.chartProductos ?? []).map((p, i) => {
-    const max = Math.max(...(data?.chartProductos ?? []).map(x => x.cantidad), 1);
-    return {
+  const kpis       = data?.kpis;
+  const salesChart = data ? groupByDate(data.chartIngresos ?? []) : [];
+
+  const topProducts = (() => {
+    const items = data?.chartProductos ?? [];
+    const max   = Math.max(...items.map(x => x.cantidad), 1);
+    return items.map((p, i) => ({
       name:     (p.productos?.nombre ?? 'Producto').split(' ').slice(0, 2).join(' '),
       fullName: p.productos?.nombre ?? 'Producto',
       sales:    p.cantidad,
       pct:      Math.round((p.cantidad / max) * 100),
       color:    CHART_COLORS[i % CHART_COLORS.length],
-    };
-  });
+    }));
+  })();
 
   const orders        = data?.recentOrders  ?? [];
   const criticalStock = data?.criticalStock ?? [];
+  const pendientes    = orders.filter(o => o.estado === 'solicitado').length;
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center p-6">
+        <div className="p-4 rounded-full bg-rose-50">
+          <AlertOctagon className="w-8 h-8 text-rose-400" />
+        </div>
+        <h2 className="text-base font-bold text-slate-800">Error al cargar el panel</h2>
+        <p className="text-sm text-slate-400 max-w-sm">{error}</p>
+        <button onClick={() => fetchData()}
+          className="mt-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-700 transition-all">
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-6">
@@ -261,8 +264,7 @@ export default function AdminDashboard() {
               En vivo · GUOR v2
             </p>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none"
-            style={{ fontFamily: "'Georgia', serif" }}>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
             Panel Ejecutivo B2B
           </h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -478,7 +480,7 @@ export default function AdminDashboard() {
               <tbody>
                 {orders.map((o) => {
                   const st   = getOrdenStatus(o.estado ?? '');
-                  const tipo = getTipoCliente((o.clientes as any)?.tipo ?? '');
+                  const tipo = getTipoCliente(o.clientes?.tipo ?? '');
                   return (
                     <tr key={o.id} className="group">
                       <td className="py-2.5 pl-5 bg-slate-50 group-hover:bg-slate-100 rounded-l-xl transition-colors">
@@ -521,14 +523,11 @@ export default function AdminDashboard() {
             </table>
           )}
 
-          {/* Insight: órdenes pendientes */}
-          {!loading && orders.filter(o => o.estado === 'solicitado').length > 0 && (
+          {!loading && pendientes > 0 && (
             <div className="mx-5 mb-4 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2.5">
               <AlertCircle size={13} className="text-blue-500 shrink-0" />
               <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">
-                {orders.filter(o => o.estado === 'solicitado').length} orden
-                {orders.filter(o => o.estado === 'solicitado').length !== 1 ? 'es' : ''} pendiente
-                {orders.filter(o => o.estado === 'solicitado').length !== 1 ? 's' : ''} — requieren cotización
+                {pendientes} orden{pendientes !== 1 ? 'es' : ''} pendiente{pendientes !== 1 ? 's' : ''} — requieren cotización
               </p>
             </div>
           )}
@@ -560,7 +559,6 @@ export default function AdminDashboard() {
                   ? Math.min(Math.round((item.stock_actual / item.stock_minimo) * 100), 100)
                   : 100;
                 const crit = pct < 30;
-                // Usa UNIDADES_MEDIDA para mostrar la etiqueta correcta
                 const unidadLabel = UNIDADES_MEDIDA[item.unidad_medida ?? '']?.label ?? item.unidad_medida ?? '';
                 return (
                   <div key={item.id}
