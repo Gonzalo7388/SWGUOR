@@ -105,7 +105,6 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
   const { can, isAdmin } = usePermissions();
 
   const [openMenus, setOpenMenus] = useState<string[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const filteredNavItems = useMemo(() => {
@@ -132,11 +131,11 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
   const handleLogout = async () => {
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
-    router.replace('/auth/login');
+    // Usar window.location para una redirección más limpia que evita estados transitorios
+    window.location.href = '/auth/login';
   };
 
   const toggleMenu = (title: string) => {
-    if (isCollapsed) setIsCollapsed(false);
     setOpenMenus(prev =>
       prev.includes(title)
         ? prev.filter(item => item !== title)
@@ -164,14 +163,9 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
 
       {/* Sidebar */}
       <aside
-        onMouseEnter={() => setIsCollapsed(false)}
-        onMouseLeave={() => {
-          setIsCollapsed(true);
-          setOpenMenus([]);
-        }}
         className={cn(
           "flex flex-col h-screen transition-all duration-300 ease-in-out border-r border-slate-100",
-          isCollapsed ? "w-20" : "w-72",
+          "w-72",
           "fixed lg:sticky top-0 z-40 bg-[#fffdf7]",
           "overflow-hidden",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -180,62 +174,19 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
 
         {/* Header - Logo */}
         <div className="h-24 flex items-center justify-center border-b border-slate-100/50">
-          {!isCollapsed ? (
-            <div className="flex items-center gap-3 w-full px-6 animate-in fade-in duration-300">
-              {/* Contenedor del logo actualizado */}
-              <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center">
-                <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="font-extrabold text-slate-950 text-xl leading-tight truncate tracking-tighter">GUOR</h1>
-                <p className="text-[10px] uppercase tracking-widest text-rose-600 font-bold truncate">
-                  Admin Panel
-                </p>
-              </div>
-            </div>
-          ) : (
-            /* Contenedor del logo colapsado actualizado */
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+          <div className="flex items-center gap-3 w-full px-6 animate-in fade-in duration-300">
+            {/* Contenedor del logo */}
+            <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center">
               <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
             </div>
-          )}
-        </div>
-
-        {/* PERFIL - Usuario */}
-        {!isCollapsed && usuario.nombre_completo && (
-          <div className="px-4 mt-6 mb-4 animate-in fade-in duration-500">
-            <Link
-              href="/admin/Panel-Administrativo/perfil"
-              onClick={() => setIsMobileOpen(false)}
-              className="group block"
-            >
-              <div className="bg-white p-3 rounded-2xl border border-slate-100 flex items-center gap-4 transition-all hover:border-rose-100 hover:shadow-sm">
-
-                {/* Avatar */}
-                <div className="relative w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
-                  <span className="flex items-center justify-center h-full text-slate-500 font-bold text-lg">
-                    {usuario?.nombre_completo?.charAt(0)}
-                  </span>
-                  {isAdmin && (
-                    <div className="absolute -bottom-0.5 -right-0.5 bg-amber-400 p-1 rounded-full border-2 border-white">
-                      <Crown size={10} className="text-white" strokeWidth={3} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Texto */}
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black text-slate-950 truncate leading-snug">
-                    {usuario.nombre_completo}
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5 truncate">
-                    {usuario.rol?.replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-            </Link>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-extrabold text-slate-950 text-xl leading-tight truncate tracking-tighter">GUOR</h1>
+              <p className="text-[10px] uppercase tracking-widest text-rose-600 font-bold truncate">
+                Admin Panel
+              </p>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Navegación - Contenedor Principal */}
         <nav className="flex-1 px-3 mt-4 space-y-1.5 overflow-y-auto custom-scrollbar">
@@ -254,17 +205,14 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
                       "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-semibold text-sm",
                       isActive
                         ? "bg-rose-50 text-rose-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                      isCollapsed && "justify-center"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     )}
                   >
                     <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                    {!isCollapsed && (
-                      <>
-                        <span className="flex-1 text-left">{item.title}</span>
-                        <ChevronDown size={16} className={cn("transition-transform text-slate-400", isOpen && "rotate-180")} />
-                      </>
-                    )}
+                    <>
+                      <span className="flex-1 text-left">{item.title}</span>
+                      <ChevronDown size={16} className={cn("transition-transform text-slate-400", isOpen && "rotate-180")} />
+                    </>
                   </button>
                 ) : (
                   <Link
@@ -274,17 +222,16 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
                       "flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-semibold text-sm",
                       pathname === item.href
                         ? "bg-rose-50 text-rose-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                      isCollapsed && "justify-center"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     )}
                   >
                     <Icon size={22} strokeWidth={pathname === item.href ? 2.5 : 2} />
-                    {!isCollapsed && <span>{item.title}</span>}
+                    <span>{item.title}</span>
                   </Link>
                 )}
 
                 {/* Submenu animado */}
-                {!isCollapsed && isOpen && item.subItems && (
+                {isOpen && item.subItems && (
                   <div className="ml-10 mt-1 space-y-1 animate-in slide-in-from-top-1 duration-200">
                     {item.subItems.map(sub => (
                       <Link
@@ -311,13 +258,10 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
         <div className="p-4 border-t border-slate-100/50">
           <button
             onClick={handleLogout}
-            className={cn(
-              "flex items-center gap-3 w-full p-3.5 rounded-2xl text-slate-500 hover:text-white hover:bg-slate-950 transition-all",
-              isCollapsed && "justify-center"
-            )}
+            className="flex items-center gap-3 w-full p-3.5 rounded-2xl text-slate-500 hover:text-white hover:bg-slate-950 transition-all"
           >
             <LogOut size={22} />
-            {!isCollapsed && <span className="text-sm font-bold">Cerrar Sesión</span>}
+            <span className="text-sm font-bold">Cerrar Sesión</span>
           </button>
         </div>
       </aside>
