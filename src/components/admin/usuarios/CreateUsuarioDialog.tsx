@@ -68,6 +68,10 @@ export default function CreateUsuarioDialog({ isOpen, onClose, onSuccess }: any)
                 name="nombre_completo" 
                 placeholder="Ej. Juan Pérez"
                 required 
+                pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$"
+                title="Solo se permiten letras, espacios y acentos"
+                onInvalid={(e: any) => e.target.setCustomValidity('Por favor ingresa solo letras sin números ni símbolos')}
+                onInput={(e: any) => e.target.setCustomValidity('')}
                 className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
               />
             </div>

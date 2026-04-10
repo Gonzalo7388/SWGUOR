@@ -240,53 +240,48 @@ export async function PATCH(req: Request) {
   }
 }
 
-// DELETE: Eliminar usuario
+// DELETE — Soft delete (cambia estado a inactivo)
 export async function DELETE(req: Request) {
   const supabase = await createClient();
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    const idRaw = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'ID requerido' }, 
-        { status: 400 }
-      );
-    }
+    if (!idRaw) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    // Verificar que el usuario existe antes de eliminar
+    const id = Number(idRaw);
+    if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
+    // Verificar que existe
     const { data: existingUser, error: fetchError } = await supabase
       .from('usuarios')
-      .select('id, nombre_completo')
+      .select('id, nombre_completo, estado')
       .eq('id', id)
       .single();
 
     if (fetchError || !existingUser) {
-      return NextResponse.json(
-        { error: 'Usuario no encontrado' }, 
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    const { error } = await supabase
+    if (existingUser.estado === 'inactivo') {
+      return NextResponse.json({ error: 'El usuario ya está inactivo' }, { status: 400 });
+    }
+
+    // Soft delete: marcar como inactivo
+    const { data, error } = await supabase
       .from('usuarios')
-      .delete()
-      .eq('id', id);
+      .update({ estado: 'inactivo', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error eliminando usuario:', error);
-      throw error;
-    }
+    if (error) throw error;
 
     return NextResponse.json({ 
-      message: 'Usuario eliminado correctamente',
-      deletedUser: existingUser 
+      message: 'Usuario desactivado correctamente', 
+      deletedUser: data 
     });
   } catch (error: any) {
-    console.error('Error en DELETE /api/usuarios:', error);
-    return NextResponse.json(
-      { error: error.message || 'Error al eliminar usuario' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Error al eliminar usuario' }, { status: 500 });
   }
 }

@@ -19,6 +19,7 @@ const ROLES_SISTEMA: { value: RolUsuario; label: string }[] = [
   { value: "cortador", label: "Cortador" },
   { value: "ayudante", label: "Ayudante" },
   { value: "representante_taller", label: "Representante de Taller" },
+  { value: "cliente", label: "Cliente" },
 ];
 
 export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario }: any) {
@@ -88,6 +89,10 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
                 defaultValue={usuario?.nombre_completo} 
                 required 
                 placeholder="Nombre del colaborador"
+                pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$"
+                title="Solo se permiten letras, espacios y acentos"
+                onInvalid={(e: any) => e.target.setCustomValidity('Por favor ingresa solo letras sin números ni símbolos')}
+                onInput={(e: any) => e.target.setCustomValidity('')}
                 className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
               />
             </div>
