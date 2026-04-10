@@ -1,0 +1,58 @@
+model clientes {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ruc                 BigInt
+  razon_social        String?               @db.VarChar
+  email               String?               @db.VarChar
+  telefono            BigInt?
+  direccion           String?               @db.VarChar
+  activo              EstadoCliente?        @default(activo)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  auth_id             String?               @unique @db.Uuid
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  tipo                TipoCliente?          @default(corporativo)
+  users               users?                @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cotizaciones        cotizaciones[]
+  direcciones_cliente direcciones_cliente[]
+  ordenes             ordenes[]
+  usuarios            usuarios[]
+
+  @@index([auth_id], map: "idx_clientes_auth_id")
+  @@schema("public")
+}
+
+model direcciones_cliente {
+  id           BigInt    @id @default(autoincrement())
+  cliente_id   String?   @db.Uuid
+  alias        String
+  direccion    String
+  ciudad       String?
+  departamento String?
+  es_principal Boolean?  @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  clientes     clientes? @relation(fields: [cliente_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model usuarios {
+  id                     BigInt                   @id @default(autoincrement())
+  email                  String                   @unique
+  nombre_completo        String
+  telefono               String?
+  estado                 EstadoUsuario?           @default(activo)
+  rol                    rol?                     @default(administrador)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  auth_id                String?                  @unique @db.Uuid
+  ultimo_acceso          DateTime?                @db.Timestamptz(6)
+  created_by             String?                  @db.Uuid
+  cliente_id             String?                  @db.Uuid
+  cliente                clientes?                @relation(fields: [cliente_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  users                  users?                   @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  movimientos_inventario movimientos_inventario[]
+  ventas                 ventas[]
+  ordenes                ordenes[]
+  despachos              despachos[]
+
+  @@schema("public")
+}

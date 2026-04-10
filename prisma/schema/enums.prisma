@@ -1,0 +1,300 @@
+enum aal_level {
+  aal1
+  aal2
+  aal3
+
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+
+  @@schema("auth")
+}
+
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
+
+  @@schema("auth")
+}
+
+enum oauth_client_type {
+  public
+  confidential
+
+  @@schema("auth")
+}
+
+enum oauth_registration_type {
+  dynamic
+  manual
+
+  @@schema("auth")
+}
+
+enum oauth_response_type {
+  code
+
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}
+
+enum ColorPrenda {
+  Blanco
+  Negro
+  Gris
+  Beige
+  Marr_n_pastel  @map("Marrón pastel")
+  Azul_jean      @map("Azul jean")
+  Azul_marino    @map("Azul marino")
+  Rojo
+  Rosa_pastel    @map("Rosa pastel")
+  Morado_claro   @map("Morado claro")
+  Verde_olivo    @map("Verde olivo")
+  Amarillo
+  Naranja
+  Multicolor
+  nico           @map("Único")
+  Vino
+  Camel
+  Crema
+  Celeste
+  Amarillo_lim_n @map("Amarillo limón")
+
+  @@schema("public")
+}
+
+enum EspecialidadTaller {
+  corte
+  confecci_n @map("confección")
+  bordado
+  estampado
+  costura
+  acabados
+  otro
+
+  @@schema("public")
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+
+  @@schema("public")
+}
+
+enum EstadoCliente {
+  activo
+  inactivo
+  suspendido
+  potencial
+
+  @@schema("public")
+}
+
+enum EstadoConfeccion {
+  corte
+  confeccionando
+  remallado
+  terminado
+
+  @@schema("public")
+}
+
+enum EstadoCotizacion {
+  pendiente
+  aceptada
+  rechazada
+  expirada
+
+  @@schema("public")
+}
+
+enum EstadoDespacho {
+  pendiente
+  en_ruta
+  entregado
+
+  @@schema("public")
+}
+
+enum EstadoOrden {
+  solicitado
+  cotizado
+  aprobado
+  pagado
+  en_proceso
+  finalizado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoPago {
+  pendiente
+  pagado_parcial
+  pagado
+  vencido
+
+  @@schema("public")
+}
+
+enum EstadoPedido {
+  pendiente
+  corte
+  costura
+  acabado
+  completado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoProducto {
+  activo
+  inactivo
+  agotado
+  descontinuado
+
+  @@schema("public")
+}
+
+enum EstadoTaller {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum EstadoUsuario {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia_bcp
+  yape
+  plin
+  visa
+  mastercard
+
+  @@schema("public")
+}
+
+enum PrioridadPedido {
+  baja
+  normal
+  alta
+  urgente
+
+  @@schema("public")
+}
+
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+
+  @@schema("public")
+}
+
+enum TipoCategoria {
+  producto
+  insumo
+
+  @@schema("public")
+}
+
+enum TipoCliente {
+  corporativo
+  minorista
+  distribuidor
+
+  @@schema("public")
+}
+
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
+
+  @@schema("public")
+}
+
+enum TipoInsumo {
+  tela
+  hilo
+  avio
+  boton
+  cierre
+
+  @@schema("public")
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+
+  @@schema("public")
+}
+
+enum UnidadMedida {
+  metros
+  unidades
+  conos
+  docenas
+  kilogramos
+  set
+
+  @@schema("public")
+}
+
+enum rol {
+  gerente_general
+  administrador
+  cortador
+  dise_ador            @map("diseñador")
+  recepcionista
+  ayudante
+  representante_taller
+
+  @@schema("public")
+}

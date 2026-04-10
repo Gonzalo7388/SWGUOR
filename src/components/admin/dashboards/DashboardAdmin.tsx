@@ -1,210 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-} from 'recharts';
-import {
-  TrendingUp, Users, AlertTriangle, ShoppingCart,
-  RefreshCw, Package, Clock, CheckCircle2,
-  AlertCircle, ArrowRight, Eye,
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  TrendingUp, Users, AlertTriangle, ShoppingCart, RefreshCw, 
+  Package, CheckCircle2, AlertCircle, ArrowRight, Eye, Calendar, ChevronDown
 } from 'lucide-react';
-import type { Database } from '@/types/database';
 
-type Insumo = Database['public']['Tables']['insumo']['Row'];
-type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
-type Orden = Database['public']['Tables']['ordenes']['Row'];
-type OrdenConCliente = Orden & { clientes: { razon_social: string } | null };
-import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, ROLES_USUARIO, TIPOS_CLIENTE, UNIDADES_MEDIDA } from '@/lib/constants/estados';
-
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
-
-interface DashboardStats {
-  totalVentas:   number;
-  totalClientes: number;
-  stockBajo:     number;
-  pedidosNuevos: number;
-}
-
-interface ApiData {
-  kpis: {
-    total_ventas: number;    // Antes totalVentas
-    total_clientes: number;  // Antes totalClientes
-    stock_alerta: number;    // Antes stockBajo
-    nuevas_ordenes: number;  // Antes pedidosNuevos
-  } & Record<string, any>;
-  chartIngresos: { created_at: string; total: number }[];
-  chartProductos: { cantidad: number; productos: { nombre: string } | null }[];
-  recentOrders: OrdenConCliente[]; // Usando el nuevo tipo
-  criticalStock: Insumo[];
-}
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-
-function groupByDate(rows: { created_at: string; total: number }[]) {
-  const acc: Record<string, number> = {};
-  for (const r of rows) {
-    const d = new Date(r.created_at).toLocaleDateString('es-PE', {
-      day: '2-digit', month: 'short',
-    });
-    acc[d] = (acc[d] ?? 0) + Number(r.total);
-  }
-  return Object.entries(acc).map(([date, monto]) => ({ date, monto }));
-}
-
-// ─── STATUS HELPERS ───────────────────────────────────────────────────────────
-
-// Íconos visuales por estado de orden
-const ESTADO_ICONS: Record<string, React.ReactNode> = {
-  solicitado: <Clock size={11} />,
-  cotizado:   <Clock size={11} />,
-  aprobado:   <CheckCircle2 size={11} />,
-  pagado:     <CheckCircle2 size={11} />,
-  en_proceso: <AlertCircle size={11} />,
-  finalizado: <CheckCircle2 size={11} />,
-  cancelado:  <AlertCircle size={11} />,
-};
-
-/** Convierte bg-X-100 + text-X-700 → clase de badge con borde */
-const toBadgeCls = (color: string, bgColor: string) =>
-  `${bgColor.replace('100', '50')} ${color} border ${bgColor.replace('bg-', 'border-').replace('100', '200')}`;
-
-function getOrdenStatus(estado: string) {
-  const key = estado?.toLowerCase() as EstadoOrden;
-  const cfg  = ESTADOS_ORDEN[key];
-  if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: null };
-  return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor), icon: ESTADO_ICONS[key] ?? null };
-}
-
-function getPagoStatus(estado: string) {
-  const cfg = ESTADOS_PAGO[estado?.toLowerCase()];
-  if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
-  return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor) };
-}
-
-function getPrioridad(p: string) {
-  const cfg = PRIORIDADES_PEDIDO[p?.toLowerCase()];
-  if (!cfg) return { label: p ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
-  return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor) };
-}
-
-function getTipoCliente(tipo: string) {
-  const cfg = TIPOS_CLIENTE[tipo?.toLowerCase()];
-  return cfg?.label ?? tipo ?? '—';
-}
-
-// ─── TOOLTIPS ─────────────────────────────────────────────────────────────────
-
-const AreaTip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#0D1B2A] border border-[#C9A86C]/20 rounded-xl px-3 py-2.5 shadow-xl">
-      <p className="text-[10px] tracking-widest uppercase text-[#C9A86C] mb-0.5">{label}</p>
-      <p className="text-white font-bold text-sm">S/ {Number(payload[0].value).toLocaleString('es-PE')}</p>
-    </div>
-  );
-};
-
-const BarTip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
-  return (
-    <div className="bg-[#0D1B2A] border border-white/10 rounded-xl px-3 py-2.5 shadow-xl">
-      <p className="text-slate-400 text-[10px] uppercase tracking-widest mb-1">Producto</p>
-      <p className="text-white text-xs font-medium mb-1.5 max-w-[180px]">{p.fullName}</p>
-      <p className="text-[#C9A86C] font-bold text-sm">{p.sales} uds.</p>
-    </div>
-  );
-};
-
-// ─── SKELETON ────────────────────────────────────────────────────────────────
-
-const Sk = ({ className = '', style }: { className?: string; style?: React.CSSProperties }) => (
-  <div className={`animate-pulse bg-slate-100 rounded-lg ${className}`} style={style} />
-);
-
-// ─── KPI CARD ────────────────────────────────────────────────────────────────
-
-function KpiCard({ label, value, icon: Icon, accentColor, loading, danger, subLabel }: {
-  label: string; value: string | number; icon: React.ElementType;
-  accentColor: string; loading: boolean; danger?: boolean; subLabel?: string;
-}) {
-  return (
-    <div className="relative bg-white rounded-2xl p-5 border border-slate-100 shadow-sm overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: accentColor }} />
-      <div className="flex items-start justify-between mb-3">
-        <div className="p-2 rounded-xl bg-slate-50">
-          <Icon className="w-4 h-4 text-slate-400" />
-        </div>
-      </div>
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-1.5">{label}</p>
-      {loading
-        ? <Sk className="h-9 w-24" />
-        : <p className={`text-[2rem] font-black tracking-tighter leading-none ${danger ? 'text-rose-500' : 'text-slate-900'}`}
-            style={{ fontFamily: "'Georgia', serif" }}>
-            {value}
-          </p>
-      }
-      {subLabel && !loading && (
-        <p className="text-[10px] text-slate-400 mt-1.5">{subLabel}</p>
-      )}
-    </div>
-  );
-}
-
-// ─── PIPELINE FUNNEL ─────────────────────────────────────────────────────────
-
-function PipelineBar({ orders }: { orders: ApiData['recentOrders'] }) {
-  // Usa ESTADOS_ORDEN para las etapas — excluye cancelado del flujo
-  const stages = (Object.entries(ESTADOS_ORDEN) as [EstadoOrden, { label: string; color: string; bgColor: string }][])
-    .filter(([key]) => key !== 'cancelado')
-    .map(([key, cfg]) => {
-      const colorMap: Record<string, string> = {
-        solicitado: '#3B82F6',
-        cotizado:   '#9333EA',
-        aprobado:   '#16A34A',
-        pagado:     '#0D9488',
-        en_proceso: '#EA580C',
-        finalizado: '#0F766E',
-      };
-      return { key, label: cfg.label, color: colorMap[key] ?? '#94A3B8' };
-    });
-
-  const total = orders.filter(o => o.estado !== 'cancelado').length || 1;
-  const cancelados = orders.filter(o => o.estado === 'cancelado').length;
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-black text-slate-800 tracking-tight">Pipeline de Órdenes</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Flujo operativo · {orders.length} total
-            {cancelados > 0 && <span className="text-rose-400 ml-1">· {cancelados} cancelada{cancelados !== 1 ? 's' : ''}</span>}
-          </p>
-        </div>
-      </div>
-      <div className="grid grid-cols-6 gap-2">
-        {stages.map((s) => {
-          const count = orders.filter(o => o.estado === s.key).length;
-          const pct   = Math.round((count / total) * 100);
-          return (
-            <div key={s.key} className="text-center">
-              <div className="h-14 bg-slate-50 rounded-xl relative flex items-end overflow-hidden mb-1.5">
-                <div className="w-full rounded-xl transition-all duration-700"
-                  style={{ height: `${Math.max(pct, 5)}%`, background: s.color, opacity: 0.85 }} />
-              </div>
-              <p className="text-xs font-black text-slate-800">{count}</p>
-              <p className="text-[9px] text-slate-400 font-medium mt-0.5 leading-tight">{s.label}</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── MAIN ────────────────────────────────────────────────────────────────────
+// Modulares locales
+import { ApiData } from './types';
+import { groupByDate, AreaTip, getOrdenStatus, getTipoCliente, Sk } from './DashboardUtils';
+import { KpiCard, PipelineBar } from './DashboardWidgets';
+import { UNIDADES_MEDIDA } from '@/lib/constants/estados';
 
 export default function AdminDashboard() {
   const [filter,     setFilter]     = useState('30');
@@ -229,9 +36,10 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const kpis        = data?.kpis;
-  const salesChart  = data ? groupByDate(data.chartIngresos ?? []) : [];
+  const kpis         = data?.kpis;
+  const salesChart   = data ? groupByDate(data.chartIngresos ?? []) : [];
   const CHART_COLORS = ['#C9A86C', '#6366F1', '#EC4899', '#0EA5E9', '#10B981'];
+  
   const topProducts  = (data?.chartProductos ?? []).map((p, i) => {
     const max = Math.max(...(data?.chartProductos ?? []).map(x => x.cantidad), 1);
     return {
@@ -266,89 +74,85 @@ export default function AdminDashboard() {
             Panel Ejecutivo B2B
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Modas Estilos GUOR S.A.C. · Últimos{' '}
-            <strong className="text-slate-600">{filter} días</strong>
+            Modas Estilos GUOR S.A.C. · Filtrando por:{' '}
+            <strong className="text-[#C9A86C]">
+              {filter === '7D' ? 'Últimos 7 días' : 
+               filter === '30D' ? 'Últimos 30 días' : 
+               filter === '90D' ? 'Últimos 90 días' :
+               filter === 'THIS_MONTH' ? 'Este Mes' :
+               filter === 'LAST_MONTH' ? 'Mes Pasado' :
+               filter === 'THIS_YEAR' ? 'Este Año' : 'Histórico Completo'}
+            </strong>
           </p>
         </div>
+        
+        {/* NUEVO FILTRO DE FECHA */}
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => fetchData(true)}
-            className="p-2 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 transition-all shadow-sm">
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex bg-white border border-slate-200 rounded-xl p-0.5 gap-0.5 shadow-sm">
-            {(['7', '30', '90'] as const).map((d) => (
-              <button key={d} onClick={() => setFilter(d)}
-                className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all ${
-                  filter === d ? 'bg-[#0D1B2A] text-[#C9A86C]' : 'text-slate-400 hover:text-slate-700'
-                }`}>
-                {d}D
-              </button>
-            ))}
+          
+          <div className="relative flex items-center bg-[#0D1B2A] border border-[#0D1B2A] rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md transition-all group cursor-pointer">
+            <Calendar className="w-4 h-4 text-[#C9A86C] mr-2.5" />
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-transparent text-[11px] font-bold uppercase tracking-widest text-white outline-none appearance-none pr-6 cursor-pointer w-[140px]"
+            >
+              <option value="7D" className="bg-slate-800 text-white">Últimos 7 Días</option>
+              <option value="30D" className="bg-slate-800 text-white">Últimos 30 Días</option>
+              <option value="90D" className="bg-slate-800 text-white">Últimos 90 Días</option>
+              
+              <option disabled className="bg-slate-900 text-slate-500 font-bold">── MENSUAL ──</option>
+              
+              <option value="THIS_MONTH" className="bg-slate-800 text-white">Este Mes</option>
+              <option value="LAST_MONTH" className="bg-slate-800 text-white">Mes Pasado</option>
+              
+              <option disabled className="bg-slate-900 text-slate-500 font-bold">── ANUAL ──</option>
+              
+              <option value="THIS_YEAR" className="bg-slate-800 text-white">Este Año</option>
+              <option value="ALL" className="bg-slate-800 text-white">Histórico</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none group-hover:text-white transition-colors" />
           </div>
         </div>
       </div>
 
       {/* ── KPIs ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          label="Facturación B2B"
-          value={`S/ ${Number(kpis?.total_ventas ?? 0).toLocaleString('es-PE')}`}
-          icon={TrendingUp}
-          accentColor="linear-gradient(90deg,#C9A86C,#E8C98A)"
-          loading={loading}
-          subLabel="Ingresos del período"
-        />
-        <KpiCard
-          label="Clientes Activos"
-          value={Number(kpis?.total_clientes ?? 0)}
-          icon={Users}
-          accentColor="linear-gradient(90deg,#6366F1,#818CF8)"
-          loading={loading}
-          subLabel="Cuentas corporativas"
-        />
-        <KpiCard
-          label="Alertas Stock"
-          value={Number(kpis?.stock_alerta ?? 0)}
-          icon={AlertTriangle}
-          accentColor={Number(kpis?.stock_alerta) > 0
-            ? 'linear-gradient(90deg,#F43F5E,#FB7185)'
-            : 'linear-gradient(90deg,#10B981,#34D399)'}
-          loading={loading}
-          danger={Number(kpis?.stock_alerta) > 0}
-          subLabel="Insumos bajo mínimo"
-        />
-        <KpiCard
-          label="Órdenes del Período"
-          value={Number(kpis?.nuevas_ordenes ?? 0)}
-          icon={ShoppingCart}
-          accentColor="linear-gradient(90deg,#0EA5E9,#38BDF8)"
-          loading={loading}
-          subLabel="Pedidos registrados"
-        />
+        <KpiCard label="Facturación B2B" value={`S/ ${Number(kpis?.total_ventas ?? 0).toLocaleString('es-PE')}`}
+          icon={TrendingUp} accentColor="linear-gradient(90deg,#C9A86C,#E8C98A)" loading={loading} subLabel="Ingresos del período" />
+        <KpiCard label="Clientes Activos" value={Number(kpis?.total_clientes ?? 0)}
+          icon={Users} accentColor="linear-gradient(90deg,#6366F1,#818CF8)" loading={loading} subLabel="Cuentas corporativas" />
+        <KpiCard label="Alertas Stock" value={Number(kpis?.stock_alerta ?? 0)} icon={AlertTriangle}
+          accentColor={Number(kpis?.stock_alerta) > 0 ? 'linear-gradient(90deg,#F43F5E,#FB7185)' : 'linear-gradient(90deg,#10B981,#34D399)'}
+          loading={loading} danger={Number(kpis?.stock_alerta) > 0} subLabel="Insumos bajo mínimo" />
+        <KpiCard label="Órdenes del Período" value={Number(kpis?.nuevas_ordenes ?? 0)}
+          icon={ShoppingCart} accentColor="linear-gradient(90deg,#0EA5E9,#38BDF8)" loading={loading} subLabel="Pedidos registrados" />
       </div>
 
       {/* ── PIPELINE ───────────────────────────────────────────── */}
-      {loading
-        ? <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <Sk className="h-5 w-48 mb-4" />
-            <div className="grid grid-cols-6 gap-2">
-              {[70, 50, 85, 40, 60, 30].map((h, i) => (
-                <div key={i} className="text-center">
-                  <div className="h-14 bg-slate-50 rounded-xl overflow-hidden flex items-end mb-1.5">
-                    <Sk className="w-full" style={{ height: `${h}%` }} />
-                  </div>
-                  <Sk className="h-3 w-6 mx-auto mb-1" />
-                  <Sk className="h-2.5 w-10 mx-auto" />
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <Sk className="h-5 w-48 mb-4" />
+          <div className="grid grid-cols-6 gap-2">
+            {[70, 50, 85, 40, 60, 30].map((h, i) => (
+              <div key={i} className="text-center">
+                <div className="h-14 bg-slate-50 rounded-xl overflow-hidden flex items-end mb-1.5">
+                  <Sk className="w-full" style={{ height: `${h}%` }} />
                 </div>
-              ))}
-            </div>
+                <Sk className="h-3 w-6 mx-auto mb-1" />
+                <Sk className="h-2.5 w-10 mx-auto" />
+              </div>
+            ))}
           </div>
-        : <PipelineBar orders={orders} />
-      }
+        </div>
+      ) : <PipelineBar orders={orders} />}
 
       {/* ── CHARTS ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-12 gap-4 min-w-0">
-
+        
         {/* Área ventas */}
         <div className="col-span-12 lg:col-span-8 min-w-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-6 pt-5 pb-3 flex items-start justify-between border-b border-slate-50">
@@ -520,7 +324,7 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           )}
-
+          
           {/* Insight: órdenes pendientes */}
           {!loading && orders.filter(o => o.estado === 'solicitado').length > 0 && (
             <div className="mx-5 mb-4 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2.5">
@@ -560,7 +364,6 @@ export default function AdminDashboard() {
                   ? Math.min(Math.round((item.stock_actual / item.stock_minimo) * 100), 100)
                   : 100;
                 const crit = pct < 30;
-                // Usa UNIDADES_MEDIDA para mostrar la etiqueta correcta
                 const unidadLabel = UNIDADES_MEDIDA[item.unidad_medida ?? '']?.label ?? item.unidad_medida ?? '';
                 return (
                   <div key={item.id}

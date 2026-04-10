@@ -1,0 +1,45 @@
+model insumo {
+  id                     BigInt                   @id(map: "inventario_pkey") @default(autoincrement())
+  nombre                 String
+  tipo                   TipoInsumo
+  unidad_medida          UnidadMedida             @default(unidades)
+  stock_actual           Int                      @default(0)
+  stock_minimo           Int                      @default(10)
+  precio_unitario        Decimal?                 @db.Decimal(10, 2)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  proveedor              String?
+  movimientos_inventario movimientos_inventario[]
+
+  @@schema("public")
+}
+
+model movimientos_inventario {
+  id              BigInt          @id(map: "lista_materiales_pkey") @default(autoincrement())
+  producto_id     BigInt?
+  insumo_id       BigInt?
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  cantidad        Float?
+  motivo          String?
+  usuario_id      BigInt?
+  tipo_movimiento TipoMovimiento?
+  insumo          insumo?         @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos       productos?      @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios        usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model reservas_stock {
+  id                 BigInt             @id @default(autoincrement())
+  variante_id        BigInt
+  cotizacion_id      BigInt?
+  orden_id           BigInt?
+  cantidad           Int
+  expira_en          DateTime           @default(dbgenerated("(now() + '00:30:00'::interval)")) @db.Timestamptz(6)
+  estado             String             @default("activa")
+  cotizaciones       cotizaciones?      @relation(fields: [cotizacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes            ordenes?           @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
