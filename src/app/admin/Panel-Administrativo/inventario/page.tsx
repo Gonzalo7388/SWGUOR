@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { 
   FileSpreadsheet, Plus, Search,
   AlertTriangle, XCircle, BarChart3, ChevronLeft, ChevronRight, 
-  FileText, Factory, Layers, RefreshCw
+  FileText, Layers, RefreshCw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dynamic from "next/dynamic";

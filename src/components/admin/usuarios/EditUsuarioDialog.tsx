@@ -22,9 +22,17 @@ const ROLES_SISTEMA: { value: RolUsuario; label: string }[] = [
   { value: "cliente", label: "Cliente" },
 ];
 
-export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario }: any) {
+export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario, isAdmin = false }: any) {
   const [loading, setLoading] = useState(false);
   const [rolSeleccionado, setRolSeleccionado] = useState<RolUsuario>(usuario?.rol);
+
+  // Función para filtrar caracteres en tiempo real
+  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Solo permite letras (incluyendo acentos), espacios y la letra ñ
+    const filtered = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    e.target.value = filtered;
+  };
 
   useEffect(() => {
     if (usuario) {
@@ -89,25 +97,27 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
                 defaultValue={usuario?.nombre_completo} 
                 required 
                 placeholder="Nombre del colaborador"
-                pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$"
-                title="Solo se permiten letras, espacios y acentos"
-                onInvalid={(e: any) => e.target.setCustomValidity('Por favor ingresa solo letras sin números ni símbolos')}
-                onInput={(e: any) => e.target.setCustomValidity('')}
+                onChange={handleNombreChange}
                 className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
               />
+              <p className="text-[9px] text-slate-400 italic">Solo se permiten letras, espacios y acentos</p>
             </div>
 
             {/* Campo: Email (Informativo o editable según tu lógica) */}
-            <div className="space-y-2 opacity-80">
+            <div className="space-y-2" style={{ opacity: isAdmin ? 1 : 0.8 }}>
               <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5" /> Correo Electrónico
+                {isAdmin && <span className="text-pink-600">*</span>}
               </Label>
               <Input 
                 name="email" 
+                type="email"
                 defaultValue={usuario?.email} 
-                disabled 
-                className="bg-slate-100 border-dashed cursor-not-allowed h-11"
+                disabled={!isAdmin}
+                placeholder="correo@modasguor.com"
+                className={isAdmin ? "bg-slate-50 border-slate-200 focus:bg-white transition-all h-11" : "bg-slate-100 border-dashed cursor-not-allowed h-11"}
               />
+              {!isAdmin && <p className="text-[10px] text-slate-400 italic">* Solo administradores pueden editar el correo</p>}
             </div>
 
             {/* Campo: Rol con Estilo */}
