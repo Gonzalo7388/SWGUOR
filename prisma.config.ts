@@ -1,3 +1,4 @@
+import 'dotenv/config' // <--- ¡Añade esta línea mágica al principio!
 import { defineConfig } from '@prisma/config'
 
 export default defineConfig({

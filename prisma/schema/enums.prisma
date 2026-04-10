@@ -131,10 +131,12 @@ enum EstadoConfeccion {
 }
 
 enum EstadoCotizacion {
-  pendiente
-  aceptada
+  borrador
+  enviada
+  aprobada
   rechazada
   expirada
+  convertida
 
   @@schema("public")
 }
@@ -143,6 +145,8 @@ enum EstadoDespacho {
   pendiente
   en_ruta
   entregado
+  preparando
+  incidencia
 
   @@schema("public")
 }
@@ -232,6 +236,10 @@ enum TallaProductos {
   XL
   XXL
 
+  // 28 @map("28")
+  // 30 @map("30")
+  // 32 @map("32")
+  // 34 @map("34")
   @@schema("public")
 }
 
@@ -287,14 +295,24 @@ enum UnidadMedida {
   @@schema("public")
 }
 
-enum rol {
-  gerente_general
+enum RolPersonal {
   administrador
   cortador
-  dise_ador            @map("diseñador")
+  disenador
   recepcionista
   ayudante
   representante_taller
+  cliente
+  gerente
+
+  @@schema("public")
+}
+
+enum estado_ficha {
+  borrador
+  en_revision
+  aprobada
+  obsoleta
 
   @@schema("public")
 }

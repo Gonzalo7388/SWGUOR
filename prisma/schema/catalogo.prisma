@@ -2,11 +2,11 @@ model categorias {
   id          BigInt      @id @default(autoincrement())
   nombre      String      @unique
   descripcion String?
-  created_at  DateTime    @default(now())
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
   orden       BigInt?
   activo      Boolean?
   imagen      String?
-  updated_at  DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?   @default(now()) @db.Timestamptz(6)
   productos   productos[]
 
   @@schema("public")
@@ -16,19 +16,21 @@ model productos {
   id                     BigInt                   @id @default(autoincrement())
   nombre                 String
   descripcion            String?
-  created_at             DateTime                 @default(now())
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
   imagen                 String?
   precio                 Float
   stock                  Int                      @default(0)
-  updated_at             DateTime
+  updated_at             DateTime                 @db.Timestamptz(6)
   estado                 EstadoProducto           @default(activo)
   sku                    String                   @unique
   destacado              Boolean?                 @default(false)
   categoria_id           BigInt?
+  ficha_tecnica          Json?                    @default("{\"medidas\": {}, \"materiales\": [], \"instrucciones\": \"\"}")
+  moq                    Int                      @default(400)
   cotizacion_items       cotizacion_items[]
-  detalles_orden         detalles_orden[]
+  fichas_tecnicas        fichas_tecnicas[]
   movimientos_inventario movimientos_inventario[]
-  pedidos                pedidos[]
+  pedido_items           pedido_items[]
   precio_historico       precio_historico[]
   categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
@@ -39,7 +41,7 @@ model productos {
 }
 
 model variantes_producto {
-  id               BigInt             @id @default(autoincrement())
+  id               BigInt                @id @default(autoincrement())
   producto_id      BigInt
   nombre           String             @db.VarChar(100)
   color            ColorPrenda
@@ -52,11 +54,13 @@ model variantes_producto {
   created_at       DateTime?          @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
   cotizacion_items cotizacion_items[]
+  pedido_items     pedido_items[]
   reservas_stock   reservas_stock[]
   productos        productos          @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([producto_id, talla, color], map: "unique_producto_talla_color")
   @@index([producto_id], map: "idx_variantes_producto_id")
+  @@index([talla, color], map: "idx_variantes_busqueda_cliente", where: raw("(estado = 'activo'::\"EstadoProducto\")"))
   @@schema("public")
 }
 
@@ -75,12 +79,15 @@ model precio_historico {
 }
 
 model reglas_descuento {
-  id            BigInt  @id @default(autoincrement())
+  id            BigInt         @id @default(autoincrement())
   nombre        String
   cantidad_min  Int
   cantidad_max  Int?
-  descuento_pct Decimal @db.Decimal(5, 2)
-  aplica_a      String? @default("global")
+  descuento_pct Decimal        @db.Decimal(5, 2)
+  aplica_a      String?        @default("global")
+  cotizaciones  cotizaciones[]
 
   @@schema("public")
 }
+
+

@@ -1,22 +1,20 @@
 model pedidos {
-  id                       BigInt           @id @default(autoincrement())
-  fecha_pedido             DateTime?        @default(now()) @db.Timestamptz(6)
-  estado                   EstadoPedido?    @default(pendiente)
-  prioridad                PrioridadPedido? @default(normal)
-  created_by               String?          @default(dbgenerated("auth.uid()")) @db.Uuid
-  created_at               DateTime         @default(now()) @db.Timestamptz(6)
-  updated_at               DateTime?        @db.Timestamptz(6)
-  updated_by               String?          @default(dbgenerated("auth.uid()")) @db.Uuid
-  orden_id                 BigInt?
-  producto_id              BigInt?
-  talla                    TallaProductos?
-  cantidad                 Int?             @default(1)
-  precio_unitario          Decimal?         @default(0) @db.Decimal(12, 2)
-  nombre_producto_snapshot String?
-  especificaciones         Json?
-  despachos                despachos[]
-  ordenes                  ordenes?         @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  productos                productos?       @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             BigInt           @id @default(autoincrement())
+  cliente_id     BigInt?
+  estado         EstadoPedido?    @default(pendiente)
+  prioridad      PrioridadPedido? @default(normal)
+  notas_cliente  String?
+  created_by     String?          @default(dbgenerated("uid()")) @db.Uuid
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  notas_pedido   String?
+  total_estimado Decimal?         @default(0) @db.Decimal(12, 2)
+  total_unidades Int              @default(0)
+  moq_aplicado   Int              @default(400)
+  cotizaciones   cotizaciones[]
+  pedido_items   pedido_items[]
+  clientes       clientes?        @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -26,11 +24,11 @@ model confecciones {
   pedido_id     BigInt
   taller_id     BigInt
   estado        EstadoConfeccion @default(corte)
-  fecha_inicio  DateTime
-  fecha_fin     DateTime?
+  fecha_inicio  DateTime         @db.Timestamptz(6)
+  fecha_fin     DateTime?        @db.Timestamptz(6)
   observaciones String?
-  created_at    DateTime         @default(now())
-  updated_at    DateTime
+  created_at    DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime         @db.Timestamptz(6)
   talleres      talleres         @relation(fields: [taller_id], references: [id])
 
   @@schema("public")
@@ -42,8 +40,8 @@ model talleres {
   direccion    String
   telefono     String
   email        String?             @unique
-  created_at   DateTime            @default(now())
-  updated_at   DateTime
+  created_at   DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime            @db.Timestamptz(6)
   ruc          String              @unique
   contacto     String
   especialidad EspecialidadTaller?
@@ -52,6 +50,7 @@ model talleres {
 
   @@schema("public")
 }
+
 model despachos {
   id                BigInt         @id @default(autoincrement())
   pedido_id         BigInt
@@ -62,8 +61,55 @@ model despachos {
   updated_at        DateTime
   usuario_id        BigInt
   estado            EstadoDespacho @default(pendiente)
-  pedidos           pedidos        @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   usuarios          usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model detalle_ficha_insumos {
+  id               BigInt           @id @default(autoincrement())
+  id_ficha         BigInt?
+  id_insumo        BigInt?
+  consumo_unitario Float?           @db.Real
+  merma_permitida  Float?           @db.Real
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  fichas_tecnicas  fichas_tecnicas? @relation(fields: [id_ficha], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  insumo           insumo?          @relation(fields: [id_insumo], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ficha_medidas {
+  id              BigInt           @id @default(autoincrement())
+  id_ficha        BigInt?
+  punto_medida    String?          @db.VarChar
+  talla           String?          @db.VarChar
+  valor_cm        Float?           @db.Real
+  tolerancia      Float?           @db.Real
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  fichas_tecnicas fichas_tecnicas? @relation(fields: [id_ficha], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fichas_tecnicas {
+  id                    BigInt                  @id @default(autoincrement())
+  id_producto           BigInt?
+  version               String?                 @db.VarChar
+  descripcion_detallada String?
+  sam_total             Float?                  @db.Real
+  costo_estimado        Float?                  @db.Real
+  imagen_geometral      String?                 @db.VarChar
+  estado                estado_ficha?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  detalle_ficha_insumos detalle_ficha_insumos[]
+  ficha_medidas         ficha_medidas[]
+  productos             productos?              @relation(fields: [id_producto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("fichas-tecnicas")
   @@schema("public")
 }
