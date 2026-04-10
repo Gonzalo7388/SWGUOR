@@ -68,9 +68,9 @@ export default function CotizacionesPage() {
 
       setStats({
         total: datosFormateados.length,
-        pendientes: datosFormateados.filter(c => c.estado === "pendiente").length,
-        aceptadas: datosFormateados.filter(c => c.estado === "aceptada").length,
-        totalValor: datosFormateados.filter(c => c.estado !== "rechazada").reduce((sum, c) => sum + c.monto, 0)
+        pendientes: datosFormateados.filter((c: Cotizacion) => c.estado === "pendiente").length,
+        aceptadas: datosFormateados.filter((c: Cotizacion) => c.estado === "aceptada").length,
+        totalValor: datosFormateados.filter((c: Cotizacion) => c.estado !== "rechazada").reduce((sum: number, c: Cotizacion) => sum + c.monto, 0)
       });
     } catch (error) {
       console.error("Error cargando cotizaciones:", error);

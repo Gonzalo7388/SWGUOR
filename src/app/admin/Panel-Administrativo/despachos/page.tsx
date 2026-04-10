@@ -72,9 +72,9 @@ export default function DespachosPage() {
 
       setStats({
         total: datosFormateados.length,
-        preparando: datosFormateados.filter(d => d.estado === "preparando").length,
-        transito: datosFormateados.filter(d => d.estado === "transito").length,
-        entregados: datosFormateados.filter(d => d.estado === "entregado").length
+        preparando: datosFormateados.filter((d: Despacho) => d.estado === "preparando").length,
+        transito: datosFormateados.filter((d: Despacho) => d.estado === "transito").length,
+        entregados: datosFormateados.filter((d: Despacho) => d.estado === "entregado").length
       });
     } catch (error) {
       console.error("Error cargando despachos:", error);
