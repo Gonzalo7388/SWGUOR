@@ -13,13 +13,13 @@ export type EstadoUsuario = typeof ESTADOS_USUARIO[keyof typeof ESTADOS_USUARIO]
  */
 export const ROLES_USUARIO = {
   ADMINISTRADOR: 'administrador',
+  GERENTE: 'gerente',
+  CLIENTE: 'cliente',
   RECEPCIONISTA: 'recepcionista',
   DISEÑADOR: 'disenador',
   CORTADOR: 'cortador',
   AYUDANTE: 'ayudante',
   REPRESENTANTE_TALLER: 'representante_taller',
-  GERENTE: 'gerente',
-  CLIENTE: 'cliente'
 } as const;
 
 export type RolUsuario = typeof ROLES_USUARIO[keyof typeof ROLES_USUARIO];

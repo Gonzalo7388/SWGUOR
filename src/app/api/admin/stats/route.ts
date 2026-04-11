@@ -1,60 +1,157 @@
-import { createClient } from '@/lib/supabase/server';
+export const runtime = 'nodejs';
+import { prisma } from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  const supabase = await createClient();
-
+export async function GET(req: Request) {
   try {
-    // Traemos pedidos con fecha_entrega para medir puntualidad
-    const { data: pedidos, error } = await supabase
-      .from('pedidos')
-      .select('fecha_pedido, fecha_entrega, total, estado, cliente_id');
+    const { searchParams } = new URL(req.url);
+    const periodo = searchParams.get('periodo') || 'mensual'; // 'mensual' | 'semanal'
 
-    // Traemos stock crítico
-    const { data: productos } = await supabase
-      .from('productos')
-      .select('nombre, stock')
-      .lte('stock', 50); // Ajustar según necesidad textil
+    const ahora = new Date();
+    const inicioAno = new Date(ahora.getFullYear(), 0, 1);
 
-    if (error) throw error;
+    // ── Agregaciones en paralelo ──
+    const [
+      ordenesStats,
+      ventasStats,
+      pedidosPorEstado,
+      ventasMensuales,
+      stockCritico,
+      produccionStats,
+    ] = await Promise.all([
+      // 1. Totales de órdenes
+      prisma.ordenes.aggregate({
+        _count: { id: true },
+        _sum: { total_orden: true },
+        _avg: { total_orden: true },
+      }),
 
-    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const ventasMensuales = meses.map(mes => ({ name: mes, ventas: 0, pedidos: 0 }));
+      // 2. Totales de ventas
+      prisma.ventas.aggregate({
+        _count: { id: true },
+        _sum: { total: true },
+        _avg: { total: true },
+      }),
 
-    let pedidosAtrasados = 0;
+      // 3. Pedidos agrupados por estado
+      prisma.pedidos.groupBy({
+        by: ['estado'],
+        _count: { id: true },
+        _sum: { total_estimado: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+
+      // 4. Ventas mensuales del año en curso
+      prisma.ventas.groupBy({
+        by: ['created_at'],
+        _sum: { total: true },
+        _count: { id: true },
+        where: { created_at: { gte: inicioAno } },
+        orderBy: { created_at: 'asc' },
+      }),
+
+      // 5. Stock crítico de productos
+      prisma.productos.findMany({
+        where: { stock: { lte: 50 } },
+        select: { id: true, nombre: true, stock: true, estado: true },
+        orderBy: { stock: 'asc' },
+        take: 20,
+      }),
+
+      // 6. Producción: confecciones por estado
+      prisma.confecciones.groupBy({
+        by: ['estado'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+    ]);
+
+    // ── Calcular pedidos atrasados ──
+    // Pedidos en estado pendiente cuya fecha_prometida_entrega (en ordenes vinculadas) ya pasó
+    const pedidosPendientes = await prisma.pedidos.findMany({
+      where: { estado: 'pendiente' },
+      include: {
+        cotizaciones: {
+          select: { valida_hasta: true },
+        },
+      },
+    });
+
     const hoy = new Date();
+    let pedidosAtrasados = 0;
 
-    pedidos?.forEach((p) => {
-      const fecha = new Date(p.fecha_pedido);
-      const mesIndex = fecha.getMonth();
-      
-      if (p.estado !== 'CANCELADO') {
-        ventasMensuales[mesIndex].ventas += Number(p.total) || 0;
-        ventasMensuales[mesIndex].pedidos += 1;
-      }
-
-      // Lógica de cumplimiento: si está pendiente y pasó la fecha de entrega
-      if (p.estado === 'PENDIENTE' && p.fecha_entrega && new Date(p.fecha_entrega) < hoy) {
+    for (const p of pedidosPendientes) {
+      const fechaLimite = p.cotizaciones?.[0]?.valida_hasta;
+      if (fechaLimite && new Date(fechaLimite) < hoy) {
         pedidosAtrasados++;
       }
-    });
+    }
 
-    return NextResponse.json({
-      summary: {
-        totalVentas: pedidos?.reduce((acc, p) => acc + (Number(p.total) || 0), 0) || 0,
-        totalPedidos: pedidos?.length || 0,
-        pendientes: pedidos?.filter(p => p.estado === 'PENDIENTE').length || 0,
-        atrasados: pedidosAtrasados, // MÉTRICA CRÍTICA PARA TEXTIL
-        stockCritico: productos?.length || 0
-      },
-      ventasMensuales,
-      estadosData: [
-        { name: 'En Corte', value: pedidos?.filter(p => p.estado === 'CORTE').length || 0, color: '#f59e0b' },
-        { name: 'En Confección', value: pedidos?.filter(p => p.estado === 'CONFECCION').length || 0, color: '#3b82f6' },
-        { name: 'Completados', value: pedidos?.filter(p => p.estado === 'COMPLETADO').length || 0, color: '#10b981' },
-      ]
-    });
-  } catch (error) {
-    return NextResponse.json({ error: 'Error' }, { status: 500 });
+    // ── Agrupar ventas mensuales por mes real ──
+    const meses = [
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+    ];
+    const ventasPorMes = meses.map((name, idx) => ({
+      name,
+      mes: idx + 1,
+      ventas: 0,
+      count: 0,
+    }));
+
+    for (const v of ventasMensuales) {
+      if (v.created_at) {
+        const mesIdx = v.created_at.getMonth();
+        ventasPorMes[mesIdx].ventas += Number(v._sum.total ?? 0);
+        ventasPorMes[mesIdx].count += v._count.id;
+      }
+    }
+
+    // ── Estados de producción con colores ──
+    const estadoColorMap: Record<string, string> = {
+      corte: '#f59e0b',
+      confeccionando: '#3b82f6',
+      remallado: '#8b5cf6',
+      terminado: '#10b981',
+    };
+
+    const estadosProduccion = produccionStats.map((p) => ({
+      name: p.estado,
+      value: p._count.id,
+      color: estadoColorMap[p.estado] ?? '#6b7280',
+    }));
+
+    // ── Resumen ──
+    const summary = {
+      totalVentas: Number(ventasStats._sum.total ?? 0),
+      totalOrdenes: ordenesStats._count.id,
+      totalPedidos: pedidosPorEstado.reduce((sum, p) => sum + p._count.id, 0),
+      promedioOrden: Number(ordenesStats._avg.total_orden ?? 0),
+      promedioVenta: Number(ventasStats._avg.total ?? 0),
+      pendientes: pedidosPorEstado.find((p) => p.estado === 'pendiente')?._count.id ?? 0,
+      atrasados: pedidosAtrasados,
+      stockCritico: stockCritico.length,
+      confeccionesEnCurso: produccionStats
+        .filter((p) => p.estado !== 'terminado')
+        .reduce((sum, p) => sum + p._count.id, 0),
+    };
+
+    return NextResponse.json(
+      serializeBigInt({
+        summary,
+        ventasMensuales: ventasPorMes,
+        pedidosPorEstado: pedidosPorEstado.map((p) => ({
+          estado: p.estado,
+          count: p._count.id,
+          total_estimado: Number(p._sum.total_estimado ?? 0),
+        })),
+        estadosProduccion,
+        stockCritico,
+      })
+    );
+  } catch (error: any) {
+    console.error('Error en stats API:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

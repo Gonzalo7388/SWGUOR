@@ -1,18 +1,21 @@
 import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+// Asegúrate de que DATABASE_URL esté en tu .env y apunte a Supabase (puerto 5432 o 6543 si es pgbouncer)
+const connectionString = `${process.env.DATABASE_URL}`;
+
+// Instanciamos el pool de conexiones de pg
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter, // <-- ¡AQUÍ ESTÁ LA MAGIA QUE FALTA!
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : [],
   });
-};
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
-}
-
-const prisma = globalThis.prisma ?? prismaClientSingleton();
-
-export default prisma;
-
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

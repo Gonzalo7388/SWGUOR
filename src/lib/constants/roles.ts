@@ -120,7 +120,13 @@ export type PermissionKey =
   | 'exportar_ventas'
   // Configuración
   | 'ver_configuracion'
-  | 'editar_configuracion';
+  | 'editar_configuracion'
+  // Proveedores
+  | 'ver_proveedores'
+  | 'crear_proveedores'
+  | 'editar_proveedores'
+  | 'eliminar_proveedores'
+  | 'exportar_proveedores';
 
 // ─────────────────────────────────────────────
 // PERMISOS POR RECURSO (usados en el hook usePermissions)
@@ -155,6 +161,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_materiales', 'exportar_materiales',
     'ver_ventas', 'exportar_ventas',
     'ver_configuracion', 'editar_configuracion',
+    // Proveedores
+    'ver_proveedores', 'exportar_proveedores',
   ],
 
   administrador: [
@@ -193,6 +201,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_ventas', 'editar_ventas', 'exportar_ventas',
     // Configuración
     'ver_configuracion', 'editar_configuracion',
+    // Proveedores
+    'ver_proveedores', 'crear_proveedores', 'editar_proveedores', 'eliminar_proveedores', 'exportar_proveedores',
   ],
 
   recepcionista: [

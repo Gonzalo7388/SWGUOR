@@ -1,0 +1,391 @@
+enum aal_level {
+  aal1
+  aal2
+  aal3
+
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+
+  @@schema("auth")
+}
+
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
+
+  @@schema("auth")
+}
+
+enum oauth_client_type {
+  public
+  confidential
+
+  @@schema("auth")
+}
+
+enum oauth_registration_type {
+  dynamic
+  manual
+
+  @@schema("auth")
+}
+
+enum oauth_response_type {
+  code
+
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}
+
+enum ColorPrenda {
+  Blanco
+  Negro
+  Gris
+  Beige
+  Marr_n_pastel  @map("Marrón pastel")
+  Azul_jean      @map("Azul jean")
+  Azul_marino    @map("Azul marino")
+  Rojo
+  Rosa_pastel    @map("Rosa pastel")
+  Morado_claro   @map("Morado claro")
+  Verde_olivo    @map("Verde olivo")
+  Amarillo
+  Naranja
+  Multicolor
+  nico           @map("Único")
+  Vino
+  Camel
+  Crema
+  Celeste
+  Amarillo_lim_n @map("Amarillo limón")
+
+  @@schema("public")
+}
+
+enum EspecialidadTaller {
+  corte
+  confecci_n @map("confección")
+  bordado
+  estampado
+  costura
+  acabados
+  otro
+
+  @@schema("public")
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+
+  @@schema("public")
+}
+
+enum EstadoCliente {
+  activo
+  inactivo
+  suspendido
+  potencial
+
+  @@schema("public")
+}
+
+enum EstadoConfeccion {
+  corte
+  confeccionando
+  remallado
+  terminado
+
+  @@schema("public")
+}
+
+enum EstadoCotizacion {
+  borrador
+  enviada
+  aprobada
+  rechazada
+  expirada
+  convertida
+
+  @@schema("public")
+}
+
+enum EstadoDespacho {
+  pendiente
+  en_ruta
+  entregado
+  preparando
+  incidencia
+
+  @@schema("public")
+}
+
+enum EstadoOrden {
+  solicitado
+  cotizado
+  aprobado
+  pagado
+  en_proceso
+  finalizado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoPago {
+  pendiente
+  pagado_parcial
+  pagado
+  vencido
+
+  @@schema("public")
+}
+
+enum EstadoPedido {
+  pendiente
+  corte
+  costura
+  acabado
+  completado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoProducto {
+  activo
+  inactivo
+  agotado
+  descontinuado
+
+  @@schema("public")
+}
+
+enum EstadoTaller {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum EstadoUsuario {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia_bcp
+  yape
+  plin
+  visa
+  mastercard
+
+  @@schema("public")
+}
+
+enum PrioridadPedido {
+  baja
+  normal
+  alta
+  urgente
+
+  @@schema("public")
+}
+
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  T28 @map("28")
+  T30 @map("30")
+  T32 @map("32")
+  T34 @map("34")
+
+  @@schema("public")
+}
+enum TipoCategoria {
+  producto
+  insumo
+
+  @@schema("public")
+}
+
+enum TipoCliente {
+  corporativo
+  minorista
+  distribuidor
+
+  @@schema("public")
+}
+
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
+
+  @@schema("public")
+}
+
+enum TipoInsumo {
+  tela
+  hilo
+  avio
+  boton
+  cierre
+  empaque
+  otro
+
+  @@schema("public")
+}
+
+enum CategoriaInsumo {
+  tela
+  avios
+  empaque
+  hilo
+  etiquetas
+  forro
+  otro
+
+  @@schema("public")
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+
+  @@schema("public")
+}
+
+enum TipoAsiento {
+  debe   // Débito (cargos)
+  haber  // Crédito (abonos)
+
+  @@schema("public")
+}
+
+enum TipoIncidencia {
+  averia_maquina
+  falta_material
+  error_diseno
+  defecto_corte
+  defecto_confeccion
+  retraso
+  otro
+
+  @@schema("public")
+}
+
+enum EtapaProduccion {
+  diseno
+  patronaje
+  corte
+  confeccion
+  remallado
+  bordado_estampado
+  control_calidad
+  acabado
+  listo_entrega
+
+  @@schema("public")
+}
+
+enum SeveridadIncidencia {
+  baja
+  media
+  alta
+  critica
+
+  @@schema("public")
+}
+
+enum CuentaContable {
+  caja             // Caja y Bancos (Activo)
+  bancos           // Bancos (Activo)
+  cuentas_por_cobrar // Cuentas por Cobrar (Activo)
+  inventario       // Inventario (Activo)
+  ventas           // Ingresos por Ventas (Ingreso)
+  costo_ventas     // Costo de Ventas (Gasto)
+  cuentas_por_pagar // Cuentas por Pagar (Pasivo)
+  capital          // Capital Social (Patrimonio)
+  igv              // Impuestos (Pasivo)
+  descuentos       // Descuentos sobre Ventas (Contra Ingreso)
+  gastos_operativos // Gastos Operativos (Gasto)
+
+  @@schema("public")
+}
+
+enum UnidadMedida {
+  metros
+  unidades
+  conos
+  docenas
+  kilogramos
+  set
+
+  @@schema("public")
+}
+
+enum RolPersonal {
+  administrador
+  cortador
+  disenador
+  recepcionista
+  ayudante
+  representante_taller
+  cliente
+  gerente
+
+  @@schema("public")
+}
+
+enum estado_ficha {
+  borrador
+  en_revision
+  aprobada
+  obsoleta
+
+  @@schema("public")
+}
+
+

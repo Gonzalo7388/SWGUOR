@@ -11,7 +11,7 @@ import { UserCog, ShieldCheck, User, Mail } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { Database } from "@/types/database";
 
-type RolUsuario    = Database['public']['Enums']['rol'];
+type RolUsuario    = Database['public']['Enums']['RolPersonal'];
 
 // Tipado estricto basado en el esquema real
 type UsuarioRow = Database['public']['Tables']['usuarios']['Row'];

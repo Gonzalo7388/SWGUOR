@@ -1,119 +1,140 @@
-import { createClient } from '@/lib/supabase/server';
+export const runtime = 'nodejs';
+import { prisma } from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
 // GET: Obtener todos los talleres
 export async function GET() {
-  const supabase = await createClient();
-
   try {
-    const { data, error } = await supabase
-      .from('talleres')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const talleres = await prisma.talleres.findMany({
+      include: {
+        _count: {
+          select: { confecciones: true },
+        },
+      },
+      orderBy: { nombre: 'asc' },
+    });
 
-    if (error) {
-      console.error('Error fetching talleres:', error);
-      throw error;
-    }
-
-    console.log(`Successfully fetched ${data?.length || 0} talleres`);
-    return NextResponse.json(data);
+    return NextResponse.json(serializeBigInt(talleres));
   } catch (error: any) {
-    console.error('Failed to fetch talleres:', error.message);
+    console.error('Error fetching talleres:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 // POST: Crear un nuevo taller
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  
   try {
     const body = await req.json();
-    
-    // Validación básica de campos obligatorios
+
     if (!body.nombre || !body.ruc || !body.contacto || !body.telefono || !body.direccion) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('talleres')
-      .insert([{
+    const taller = await prisma.talleres.create({
+      data: {
         nombre: body.nombre,
         ruc: body.ruc,
         contacto: body.contacto,
         telefono: body.telefono,
-        email: body.email || null,
+        email: body.email ?? null,
         direccion: body.direccion,
-        especialidad: body.especialidad || null,
-        estado: body.estado || 'activo',
-        updated_at: body.updated_at || new Date().toISOString()
-      }])
-      .select();
+        especialidad: body.especialidad ?? null,
+        estado: body.estado ?? 'activo',
+      },
+    });
 
-    if (error) throw error;
-
-    console.log('Successfully created taller:', data[0].nombre);
-    return NextResponse.json(data[0], { status: 201 });
+    return NextResponse.json(serializeBigInt(taller), { status: 201 });
   } catch (error: any) {
-    console.error('Failed to create taller:', error.message);
+    console.error('Error creating taller:', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'Ya existe un taller con ese RUC o email' }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// PATCH: Actualizar un taller
-export async function PATCH(req: Request) {
-  const supabase = await createClient();
-  
+// PUT: Actualizar un taller + registrar incidencias si se incluyen
+export async function PUT(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-
     const body = await req.json();
+    const { id, ...updates } = body;
 
-    if (!id) return NextResponse.json({ error: 'ID no proporcionado' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    }
 
-    const { data, error } = await supabase
-      .from('talleres')
-      .update({
-        ...body,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select();
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Actualizar taller
+      const tallerData: Record<string, unknown> = {};
+      if (updates.nombre !== undefined) tallerData.nombre = updates.nombre;
+      if (updates.direccion !== undefined) tallerData.direccion = updates.direccion;
+      if (updates.telefono !== undefined) tallerData.telefono = updates.telefono;
+      if (updates.email !== undefined) tallerData.email = updates.email;
+      if (updates.contacto !== undefined) tallerData.contacto = updates.contacto;
+      if (updates.especialidad !== undefined) tallerData.especialidad = updates.especialidad;
+      if (updates.estado !== undefined) tallerData.estado = updates.estado;
 
-    if (error) throw error;
-    
-    console.log('Successfully updated taller:', id);
-    return NextResponse.json(data[0]);
+      const taller = await tx.talleres.update({
+        where: { id: BigInt(id) },
+        data: tallerData,
+      });
 
+      // 2. Si se incluyen incidencias, registrarlas
+      if (updates.incidencias && Array.isArray(updates.incidencias)) {
+        for (const inc of updates.incidencias) {
+          await tx.incidencias_taller.create({
+            data: {
+              orden_id: inc.orden_id ? BigInt(inc.orden_id) : BigInt(id), // fallback al taller como referencia
+              confeccion_id: inc.confeccion_id ? BigInt(inc.confeccion_id) : null,
+              tipo: inc.tipo,
+              severidad: inc.severidad ?? 'media',
+              descripcion: inc.descripcion,
+              reportado_por: inc.reportado_por ? BigInt(inc.reportado_por) : null,
+              asignado_a: inc.asignado_a ? BigInt(inc.asignado_a) : null,
+              impacto_horas: inc.impacto_horas ?? null,
+              foto_url: inc.foto_url ?? null,
+            },
+          });
+        }
+      }
+
+      return taller;
+    });
+
+    return NextResponse.json(serializeBigInt(result));
   } catch (error: any) {
-    console.error('Failed to update taller:', error.message);
+    console.error('Error updating taller:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Taller no encontrado' }, { status: 404 });
+    }
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'Ya existe un taller con ese RUC o email' }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// DELETE: Eliminar un taller por ID
+// DELETE: Eliminar un taller
 export async function DELETE(req: Request) {
-  const supabase = await createClient();
-  
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    }
 
-    const { error } = await supabase
-      .from('talleres')
-      .delete()
-      .eq('id', id);
+    await prisma.talleres.delete({
+      where: { id: BigInt(id) },
+    });
 
-    if (error) throw error;
-
-    console.log('Successfully deleted taller:', id);
     return NextResponse.json({ message: 'Eliminado correctamente' });
   } catch (error: any) {
-    console.error('Failed to delete taller:', error.message);
+    console.error('Error deleting taller:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Taller no encontrado' }, { status: 404 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -139,10 +139,23 @@ export type Database = {
       clientes: {
         Row: {
           activo: Database["public"]["Enums"]["EstadoCliente"] | null
+          apellido_materno: string | null
+          apellido_paterno: string | null
+          categoria_cliente: string | null
+          codigo_cliente: string | null
           created_at: string
-          direccion: string | null
+          direccion_fiscal: string | null
           email: string | null
+          estado_comercial: string | null
+          forma_pago_defecto: string | null
           id: number
+          impuesto_defecto: string | null
+          lista_precios: string | null
+          metodo_comercial: string | null
+          moneda_defecto: string | null
+          nombre: string | null
+          nombre_comercial: string | null
+          pais: string | null
           razon_social: string | null
           ruc: number
           telefono: number | null
@@ -152,10 +165,23 @@ export type Database = {
         }
         Insert: {
           activo?: Database["public"]["Enums"]["EstadoCliente"] | null
+          apellido_materno?: string | null
+          apellido_paterno?: string | null
+          categoria_cliente?: string | null
+          codigo_cliente?: string | null
           created_at?: string
-          direccion?: string | null
+          direccion_fiscal?: string | null
           email?: string | null
+          estado_comercial?: string | null
+          forma_pago_defecto?: string | null
           id?: number
+          impuesto_defecto?: string | null
+          lista_precios?: string | null
+          metodo_comercial?: string | null
+          moneda_defecto?: string | null
+          nombre?: string | null
+          nombre_comercial?: string | null
+          pais?: string | null
           razon_social?: string | null
           ruc: number
           telefono?: number | null
@@ -165,10 +191,23 @@ export type Database = {
         }
         Update: {
           activo?: Database["public"]["Enums"]["EstadoCliente"] | null
+          apellido_materno?: string | null
+          apellido_paterno?: string | null
+          categoria_cliente?: string | null
+          codigo_cliente?: string | null
           created_at?: string
-          direccion?: string | null
+          direccion_fiscal?: string | null
           email?: string | null
+          estado_comercial?: string | null
+          forma_pago_defecto?: string | null
           id?: number
+          impuesto_defecto?: string | null
+          lista_precios?: string | null
+          metodo_comercial?: string | null
+          moneda_defecto?: string | null
+          nombre?: string | null
+          nombre_comercial?: string | null
+          pais?: string | null
           razon_social?: string | null
           ruc?: number
           telefono?: number | null
@@ -180,7 +219,7 @@ export type Database = {
           {
             foreignKeyName: "clientes_usuario_id_fkey"
             columns: ["usuario_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
@@ -543,7 +582,7 @@ export type Database = {
             foreignKeyName: "detalle_ficha_insumos_id_ficha_fkey"
             columns: ["id_ficha"]
             isOneToOne: false
-            referencedRelation: "fichas-tecnicas"
+            referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
           {
@@ -752,12 +791,12 @@ export type Database = {
             foreignKeyName: "ficha_medidas_id_ficha_fkey"
             columns: ["id_ficha"]
             isOneToOne: false
-            referencedRelation: "fichas-tecnicas"
+            referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
         ]
       }
-      "fichas-tecnicas": {
+      fichas_tecnicas: {
         Row: {
           costo_estimado: number | null
           created_at: string

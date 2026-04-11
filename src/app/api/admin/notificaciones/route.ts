@@ -1,73 +1,150 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+export const runtime = 'nodejs';
+import { prisma } from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  );
-
+export async function GET(req: Request) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    // Consultas en paralelo para rendimiento
+    const [insumosBajoStock, pedidosPendientes, despachosAtrasados, ordenesSinPago] =
+      await Promise.all([
+        // 1. Alertas de stock — insumos bajo mínimo
+        prisma.insumo.findMany({
+          where: {},
+          select: { id: true, nombre: true, stock_actual: true, stock_minimo: true, categoria_insumo: true },
+          orderBy: { stock_actual: 'asc' },
+          take: 20,
+        }),
 
-    // 1. Consultas en paralelo para mejor rendimiento (Performance Optimization)
-    const [resProductos, resPedidos, resDespachos] = await Promise.all([
-      supabase.from('productos').select('id, nombre, stock').lt('stock', 400),
-      supabase.from('pedidos').select('id, cliente_nombre').eq('estado', 'pendiente'),
-      supabase.from('despachos').select('id, id_pedido').lt('fecha_entrega', new Date().toISOString()).neq('estado', 'entregado')
-    ]);
+        // 2. Pedidos pendientes de gestión
+        prisma.pedidos.findMany({
+          where: { estado: 'pendiente' },
+          include: {
+            clientes: { select: { razon_social: true } },
+          },
+          orderBy: { created_at: 'asc' },
+          take: 20,
+        }),
 
-    // 2. Formateo de Notificaciones
-    const notificacionesRealtime = [
-      // Alertas de Stock (Regla < 400)
-      ...(resProductos.data?.map(p => ({
-        id: `stock-${p.id}`,
-        tipo: 'inventario',
+        // 3. Despachos atrasados (fecha_despacho pasada y no entregado)
+        prisma.despachos.findMany({
+          where: {
+            fecha_despacho: { lt: new Date() },
+            estado: { not: 'entregado' },
+          },
+          orderBy: { fecha_despacho: 'asc' },
+          take: 20,
+        }),
+
+        // 4. Órdenes con saldo pendiente vencido (más de 7 días sin pagar)
+        prisma.ordenes.findMany({
+          where: {
+            saldo_pendiente: { gt: 0 },
+            created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          },
+          include: {
+            cliente: { select: { razon_social: true } },
+          },
+          orderBy: { created_at: 'asc' },
+          take: 20,
+        }),
+      ]);
+
+    // Filtrar insumos con stock bajo (Prisma no soporta field refs directos en where)
+    const insumosAlerta = insumosBajoStock.filter(
+      (i) => i.stock_actual <= i.stock_minimo
+    );
+
+    // ── Construir notificaciones ──
+    const notificaciones: Notificacion[] = [
+      // Alertas de Stock
+      ...insumosAlerta.map((i) => ({
+        id: `stock-${i.id.toString()}`,
+        tipo: 'inventario' as const,
         titulo: 'ALERTA DE STOCK',
-        descripcion: `${p.nombre} está por debajo del mínimo (Actual: ${p.stock} / Mín: 400).`,
-        importante: true,
-        fecha: new Date().toISOString()
-      })) || []),
+        descripcion: `${i.nombre} está por debajo del mínimo (Actual: ${i.stock_actual} / Mín: ${i.stock_minimo}). Categoría: ${i.categoria_insumo}.`,
+        importante: true as const,
+        fecha: new Date().toISOString(),
+      })),
 
       // Pedidos Pendientes
-      ...(resPedidos.data?.map(p => ({
-        id: `ped-${p.id}`,
-        tipo: 'orden',
+      ...pedidosPendientes.map((p) => ({
+        id: `ped-${p.id.toString()}`,
+        tipo: 'orden' as const,
         titulo: 'PEDIDO PENDIENTE',
-        descripcion: `Nueva orden de ${p.cliente_nombre || 'Cliente'} esperando gestión.`,
-        importante: false,
-        fecha: new Date().toISOString()
-      })) || []),
+        descripcion: `Pedido de ${p.clientes?.razon_social ?? 'Cliente'} esperando gestión. Prioridad: ${p.prioridad ?? 'normal'}.`,
+        importante: (p.prioridad === 'urgente' || p.prioridad === 'alta') as boolean,
+        fecha: p.created_at?.toISOString() ?? new Date().toISOString(),
+      })),
 
       // Despachos Atrasados
-      ...(resDespachos.data?.map(d => ({
-        id: `desp-${d.id}`,
-        tipo: 'urgente',
+      ...despachosAtrasados.map((d) => ({
+        id: `desp-${d.id.toString()}`,
+        tipo: 'urgente' as const,
         titulo: 'DESPACHO ATRASADO',
-        descripcion: `El despacho para el pedido #${d.id_pedido} ha superado la fecha límite.`,
-        importante: true,
-        fecha: new Date().toISOString()
-      })) || [])
+        descripcion: `El despacho para el pedido #${d.pedido_id.toString()} ha superado la fecha límite (${new Date(d.fecha_despacho).toLocaleDateString()}).`,
+        importante: true as const,
+        fecha: new Date().toISOString(),
+      })),
+
+      // Órdenes con pago vencido
+      ...ordenesSinPago.map((o) => ({
+        id: `pago-${o.id.toString()}`,
+        tipo: 'pago' as const,
+        titulo: 'PAGO PENDIENTE',
+        descripcion: `Orden de ${o.cliente?.razon_social ?? 'Cliente'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
+        importante: Number(o.saldo_pendiente ?? 0) > 1000,
+        fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
+      })),
     ];
 
-    // 3. Respuesta con KPIs actualizados
-    return NextResponse.json({
-      data: notificacionesRealtime,
-      kpis: {
-        sinLeer: notificacionesRealtime.length,
-        total: notificacionesRealtime.length,
-        urgentes: notificacionesRealtime.filter(n => n.importante).length
-      },
-      count: notificacionesRealtime.length
+    // Ordenar por importancia y fecha
+    notificaciones.sort((a, b) => {
+      if (a.importante !== b.importante) return a.importante ? -1 : 1;
+      return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
     });
 
-  } catch (error) {
+    // KPIs de notificaciones
+    const kpis = {
+      sinLeer: notificaciones.length,
+      total: notificaciones.length,
+      urgentes: notificaciones.filter((n) => n.importante).length,
+      porTipo: {
+        inventario: notificaciones.filter((n) => n.tipo === 'inventario').length,
+        orden: notificaciones.filter((n) => n.tipo === 'orden').length,
+        urgente: notificaciones.filter((n) => n.tipo === 'urgente').length,
+        pago: notificaciones.filter((n) => n.tipo === 'pago').length,
+      },
+    };
+
+    return NextResponse.json(
+      serializeBigInt({
+        data: notificaciones,
+        kpis,
+        count: notificaciones.length,
+      })
+    );
+  } catch (error: any) {
     console.error('[API_NOTIF] Error:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error.message,
+        data: [],
+        kpis: { sinLeer: 0, total: 0, urgentes: 0, porTipo: {} },
+        count: 0,
+      },
+      { status: 500 }
+    );
   }
 }
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+type Notificacion = {
+  id: string;
+  tipo: 'inventario' | 'orden' | 'urgente' | 'pago';
+  titulo: string;
+  descripcion: string;
+  importante: boolean;
+  fecha: string;
+};
