@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,17 +29,30 @@ export default function LoginPage() {
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.error);
+        
+        const role = data.role.toLowerCase();
 
-        if (['administrador', 'recepcionista', 'disenador'].includes(data.role.toLowerCase())) {
-        // Si es personal de la empresa, va al Panel Administrativo
-        router.push('/admin/Panel-Administrativo/dashboard');
-        } else if (data.role.toLowerCase() === 'cliente') {
-        // Si es socio comercial, va al Portal B2B
-        router.push('/portal/dashboard');
-        } else {
-        throw new Error('Rol no reconocido por el sistema.');
+        // 1. Roles administrativos y operativos
+        const rolesAdminOperativos = [
+          'administrador', 
+          'recepcionista', 
+          'disenador', 
+          'cortador', 
+          'ayudante', 
+          'representante_taller'
+        ];
+
+        if (rolesAdminOperativos.includes(role)) {
+          router.push('/admin/Panel-Administrativo/dashboard');
+        } 
+        // 2. Roles de clientes
+        else if (role === 'cliente') {
+          router.push('/portal/dashboard');
+        } 
+        // 3. Error si el rol no existe en ninguna lista
+        else {
+          throw new Error('Rol no reconocido por el sistema.');
         }
-
     } catch (err: any) {
         setError(err.message);
         setLoading(false);

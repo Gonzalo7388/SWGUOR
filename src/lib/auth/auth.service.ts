@@ -1,4 +1,3 @@
-// lib/auth/auth.service.ts
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { invalidateUserCache } from "@/lib/cache";
 import type { Database } from "@/types/database";
@@ -9,6 +8,18 @@ import type { Database } from "@/types/database";
 
 // Usar tipo generado desde la base de datos
 export type Usuario = Database['public']['Tables']['usuarios']['Row'];
+
+export const ROLES_SISTEMA = {
+  administrador: 'administrador',
+  recepcionista: 'recepcionista',
+  diseñador: 'diseñador',
+  cortador: 'cortador',
+  ayudante: 'ayudante',
+  representante_taller: 'representante_taller',
+  cliente: 'cliente'
+} as const;
+
+export type RolValido = typeof ROLES_SISTEMA[keyof typeof ROLES_SISTEMA];
 
 export interface LoginResult {
   success: boolean;
@@ -135,14 +146,12 @@ export async function loginUser(
     const usuario = await fetchUserByAuthId(authData.user.id);
 
     if (!usuario) {
-      // Si no existe en BD, cerrar sesión de Auth
       await getSupabaseBrowserClient().auth.signOut();
-      return { 
-        success: false, 
-        error: ERROR_MESSAGES.USER_NOT_FOUND 
-      };
+      return { success: false, error: ERROR_MESSAGES.USER_NOT_FOUND };
     }
 
+    console.log('[Auth] Usuario autenticado con rol:', usuario.rol);
+    
     // 3. Validar estado activo
     if (!isUserActive(usuario.estado ?? undefined)) {
       await getSupabaseBrowserClient().auth.signOut();
@@ -246,12 +255,14 @@ export async function getCurrentUser(): Promise<Usuario | null> {
 /**
  * Verifica si el usuario tiene un rol específico
  */
-export async function hasRole(allowedRoles: string[]): Promise<boolean> {
+export async function hasRole(allowedRoles: RolValido[]): Promise<boolean> {
   const usuario = await getCurrentUser();
   
   if (!usuario || !usuario.rol) {
     return false;
   }
 
-  return allowedRoles.includes(usuario.rol.toLowerCase());
+  // Aseguramos que la comparación sea case-insensitive
+  const rolUsuario = usuario.rol.toLowerCase().trim();
+  return allowedRoles.some(r => r.toLowerCase() === rolUsuario);
 }
