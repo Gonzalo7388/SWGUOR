@@ -15,6 +15,8 @@ export type EstadoUsuario = typeof ESTADOS_USUARIO[keyof typeof ESTADOS_USUARIO]
  */
 export const ROLES_USUARIO = {
   ADMINISTRADOR: 'administrador',
+  GERENTE: 'gerente',
+  CLIENTE: 'cliente',
   RECEPCIONISTA: 'recepcionista',
   DISEÑADOR: 'disenador',
   CORTADOR: 'cortador',

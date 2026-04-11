@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────
 
 export type RolUsuario =
-  | 'gerente_general'
+  | 'gerente'
   | 'administrador'
   | 'recepcionista'
   | 'disenador'
@@ -144,7 +144,7 @@ export type PermisosRecurso = {
 
 export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
 
-  gerente_general: [
+  gerente: [
     'ver_dashboard', 'exportar_data',
     'ver_ordenes', 'exportar_ordenes',
     'ver_pedidos', 'exportar_pedidos',
@@ -334,7 +334,7 @@ export const ROLES_INFO: Record<RolUsuario, {
   color: string;
   nivel: number;
 }> = {
-  gerente_general:      { label: 'Gerente General',         descripcion: 'Visibilidad total del sistema',     color: 'bg-red-100 text-red-800',       nivel: 6 },
+  gerente:      { label: 'Gerente General',         descripcion: 'Visibilidad total del sistema',     color: 'bg-red-100 text-red-800',       nivel: 6 },
   administrador:        { label: 'Administrador',            descripcion: 'Acceso operativo total',            color: 'bg-red-100 text-red-800',       nivel: 5 },
   recepcionista:        { label: 'Recepcionista',            descripcion: 'Maneja órdenes y clientes',         color: 'bg-blue-100 text-blue-800',     nivel: 3 },
   disenador:            { label: 'Diseñador',                descripcion: 'Responsable del diseño de prendas', color: 'bg-purple-100 text-purple-800', nivel: 2 },

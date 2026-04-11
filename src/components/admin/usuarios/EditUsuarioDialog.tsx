@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { UserCog, ShieldCheck, User, Mail, Fingerprint } from "lucide-react";
 import type { Database } from "@/types/database";
-type RolUsuario = Database['public']['Enums']['rol'];
+type RolUsuario = Database['public']['Enums']['RolPersonal'];
 
 const ROLES_SISTEMA: { value: RolUsuario; label: string }[] = [
   { value: "gerente", label: "Gerente General" },

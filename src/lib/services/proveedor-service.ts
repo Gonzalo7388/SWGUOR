@@ -45,7 +45,7 @@ interface ProveedorRow {
   estado: string;
   created_at: Date;
   updated_at: Date;
-  _count?: { insumos: number; ordenes_compra: number };
+  _count?: { insumo: number; ordenes_compra: number };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -79,8 +79,8 @@ export async function getProveedores(
     prisma.proveedores.findMany({
       where,
       include: {
-        _count: {
-          select: { insumos: true, ordenes_compra: true },
+       _count: {
+          select: { insumo: true, ordenes_compra: true },
         },
       },
       orderBy: { razon_social: 'asc' },
@@ -131,7 +131,7 @@ export async function upsertProveedor(
       },
       include: {
         _count: {
-          select: { insumos: true, ordenes_compra: true },
+          select: { insumo: true, ordenes_compra: true },
         },
       },
     }) as Promise<ProveedorRow>;
@@ -151,7 +151,7 @@ export async function upsertProveedor(
     },
     include: {
       _count: {
-        select: { insumos: true, ordenes_compra: true },
+        select: { insumo: true, ordenes_compra: true },
       },
     },
   }) as Promise<ProveedorRow>;
@@ -199,7 +199,7 @@ export async function getProveedorById(id: bigint | number) {
         take: 10,
       },
       _count: {
-        select: { insumos: true, ordenes_compra: true },
+        select: { insumo: true, ordenes_compra: true },
       },
     },
   });

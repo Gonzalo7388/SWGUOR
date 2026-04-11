@@ -1,4 +1,3 @@
-// lib/auth/auth.service.ts
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { invalidateUserCache } from "@/lib/cache";
 import type { Database } from "@/types/database";
