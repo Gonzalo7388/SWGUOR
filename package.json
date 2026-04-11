@@ -7,6 +7,9 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "db:generate": "prisma generate --schema=prisma/schema",
+    "db:push": "prisma db push --schema=prisma/schema",
+    "db:studio": "prisma studio --schema=prisma/schema",
     "generate:variantes": "ts-node -P tsconfig.json scripts/generate-variantes.ts",
     "create:admin": "tsx scripts/create-admin-user.ts",
     "check:users": "tsx scripts/check-users.ts",
@@ -80,6 +83,6 @@
     "typescript": "^5"
   },
   "prisma": {
-    "schema": "prisma/schema/main.prisma"
+    "schema": "prisma/schema/"
   }
 }

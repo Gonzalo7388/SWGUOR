@@ -1,0 +1,67 @@
+model insumo {
+  id                     BigInt                   @id(map: "inventario_pkey") @default(autoincrement())
+  nombre                 String
+  tipo                   TipoInsumo
+  categoria_insumo       CategoriaInsumo          @default(otro)  // Para alertas de dashboard
+  unidad_medida          UnidadMedida             @default(unidades)
+  stock_actual           Int                      @default(0)
+  stock_minimo           Int                      @default(10)
+  stock_maximo           Int?                     // Límite superior para overstock alerts
+  precio_unitario        Decimal?                 @db.Decimal(10, 2)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  proveedor_id           BigInt?                  // Vinculo al proveedor de este insumo
+  ubicacion_almacen      String?                  @db.VarChar(100)  // Estante / zona
+  alerta_bajo_stock      Boolean?                 @default(true)    // Activa alertas de stock mínimo
+  // Relaciones
+  proveedores            proveedores?             @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  detalle_ficha_insumos  detalle_ficha_insumos[]
+  movimientos_inventario movimientos_inventario[]
+
+  @@index([categoria_insumo], map: "idx_insumos_categoria")
+  @@index([stock_actual], map: "idx_insumos_stock")
+  @@index([proveedor_id], map: "idx_insumos_proveedor")
+  @@schema("public")
+}
+
+model movimientos_inventario {
+  id                BigInt             @id(map: "lista_materiales_pkey") @default(autoincrement())
+  producto_id       BigInt?
+  insumo_id         BigInt?
+  cantidad          Float?
+  motivo            String?
+  usuario_id        BigInt?
+  tipo_movimiento   TipoMovimiento?
+  created_at        DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  // Campos de valorización para auditoría contable
+  costo_unitario    Decimal?           @db.Decimal(12, 2)
+  stock_anterior    Float?
+  stock_posterior   Float?
+  // Campos de referencia vincular a Orden, Compra o Ajuste
+  referencia_tipo   String?            @db.VarChar(50)  // 'ORDEN', 'COMPRA', 'AJUSTE', 'VENTA'
+  referencia_id     BigInt?
+  // Relaciones
+  insumo            insumo?            @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos         productos?         @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios          usuarios?          @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([referencia_tipo, referencia_id], map: "idx_movimientos_referencia")
+  @@index([created_at(sort: Desc)], map: "idx_movimientos_fecha")
+  @@schema("public")
+}
+
+model reservas_stock {
+  id                 BigInt             @id @default(autoincrement())
+  variante_id        BigInt
+  cotizacion_id      BigInt?
+  orden_id           BigInt?
+  cantidad           Int
+  expira_en          DateTime           @default(dbgenerated("(now() + '00:30:00'::interval)")) @db.Timestamptz(6)
+  estado             String             @default("activa")
+  // Relaciones
+  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes            ordenes?           @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
