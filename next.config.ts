@@ -4,6 +4,18 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   productionBrowserSourceMaps: false,
 
+  /**
+   * PRISMA 7 + NEXT.JS 16 FIX:
+   * 'serverExternalPackages' obliga a Next.js a tratar a Prisma como un paquete 
+   * de Node.js puro, evitando que Turbopack intente usar la versión WASM/Edge.
+   */
+  serverExternalPackages: ['@prisma/client'],
+
+  /**
+   * 'transpilePackages' asegura que los tipos generados por tus múltiples 
+   * archivos .prisma se resuelvan correctamente en el servidor.
+   */
+
   images: {
     formats: ['image/avif', 'image/webp'],
     unoptimized: false,

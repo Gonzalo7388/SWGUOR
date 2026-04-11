@@ -1,4 +1,5 @@
-import prisma from '@/lib/prisma';
+export const runtime = 'nodejs';
+import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 

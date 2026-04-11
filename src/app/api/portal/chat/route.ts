@@ -1,9 +1,10 @@
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
 import { NextResponse } from 'next/server';
 import { SchemaType, Tool } from '@google/generative-ai';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { model } from '@/lib/gemini';

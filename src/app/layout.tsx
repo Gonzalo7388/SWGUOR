@@ -39,7 +39,7 @@ export default function RootLayout({
           inter.variable,
           inter.className
         )}
-      >
+      suppressHydrationWarning>
         {/* Notificaciones globales con diseño moderno */}
         <Toaster 
           position="top-right" 
