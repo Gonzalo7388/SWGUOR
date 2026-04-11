@@ -77,7 +77,7 @@ export async function PATCH(req: Request) {
     const body = await req.json();
 
     // Pasamos el cliente 'supabase' como primer argumento
-    const { data, error } = await actualizarProducto(supabase, parseInt(id), body);
+    const { data, error } = await actualizarProducto(supabase, id, body);
 
     if (error) throw error;
     
@@ -98,7 +98,7 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
     // Pasamos el cliente 'supabase' como primer argumento
-    const { error } = await eliminarProducto(supabase, parseInt(id));
+    const { error } = await eliminarProducto(supabase, id);
 
     if (error) throw error;
 
