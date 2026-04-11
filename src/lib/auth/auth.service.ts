@@ -14,6 +14,7 @@ export const ROLES_SISTEMA = {
   recepcionista: 'recepcionista',
   diseñador: 'diseñador',
   cortador: 'cortador',
+  gerente: 'gerente',
   ayudante: 'ayudante',
   representante_taller: 'representante_taller',
   cliente: 'cliente'

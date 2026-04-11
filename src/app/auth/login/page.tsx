@@ -39,7 +39,8 @@ export default function LoginPage() {
           'disenador', 
           'cortador', 
           'ayudante', 
-          'representante_taller'
+          'representante_taller',
+          'gerente'
         ];
 
         if (rolesAdminOperativos.includes(role)) {
