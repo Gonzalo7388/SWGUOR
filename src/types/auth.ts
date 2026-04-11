@@ -28,7 +28,7 @@ export {
 // ─────────────────────────────────────────────
 
 export enum Role {
-  GERENTE_GENERAL      = 'gerente_general',
+  GERENTE_GENERAL      = 'gerente',
   ADMINISTRADOR        = 'administrador',
   RECEPCIONISTA        = 'recepcionista',
   DISENADOR            = 'disenador',
