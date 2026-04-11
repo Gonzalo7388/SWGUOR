@@ -2,20 +2,19 @@ import { createClient } from '@/lib/supabase/server';
 import { obtenerInsumos, crearInsumo, actualizarStockInsumo } from '@/lib/helpers/productos-helpers';
 import { NextResponse } from 'next/server';
 
+// GET: Obtener todos los insumos
 export async function GET(req: Request) {
   try {
     const supabase = await createClient();
-    const { searchParams } = new URL(req.url);
-    
-    // Ahora pasamos supabase como primer argumento
+    // Los helpers deben estar preparados para manejar el cliente de supabase
     const data = await obtenerInsumos(supabase); 
-
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+// POST: Crear nuevo insumo
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -25,7 +24,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nombre y Stock Inicial son obligatorios' }, { status: 400 });
     }
 
-    // Pasamos supabase y el objeto de datos
     const data = await crearInsumo(supabase, {
       nombre:          body.nombre,
       tipo:            body.tipo,
@@ -33,7 +31,6 @@ export async function POST(req: Request) {
       stock_actual:    body.stock_actual,
       stock_minimo:    body.stock_minimo ?? 0,
       precio_unitario: body.precio_unitario ?? null,
-      proveedor:       body.proveedor ?? null,
     });
 
     return NextResponse.json(data, { status: 201 });
@@ -42,6 +39,7 @@ export async function POST(req: Request) {
   }
 }
 
+// DELETE: Eliminar un insumo
 export async function DELETE(req: Request) {
   try {
     const supabase = await createClient();
@@ -50,11 +48,11 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    // Corregido: nombre de tabla 'insumos' y quitamos el 'as any' innecesario
+    // ELIMINADO: parseInt(id) -> El ID ahora es un String (UUID)
     const { error } = await supabase
-      .from('insumos')
+      .from('insumo') // Asegúrate de que la tabla sea 'insumo' (singular) según tu SQL
       .delete()
-      .eq('id', parseInt(id));
+      .eq('id', id);
 
     if (error) throw error;
 
@@ -64,6 +62,7 @@ export async function DELETE(req: Request) {
   }
 }
 
+// PATCH: Actualizar stock
 export async function PATCH(req: Request) {
   try {
     const supabase = await createClient();
@@ -73,17 +72,16 @@ export async function PATCH(req: Request) {
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     const body = await req.json();
 
-    // Ahora pasamos supabase al helper
-    const { success, error } = await actualizarStockInsumo(supabase, parseInt(id), body.stock_actual);
+    // ELIMINADO: parseInt(id) -> Pasamos el ID como String directamente
+    const { success, error } = await actualizarStockInsumo(supabase, id, body.stock_actual);
 
     if (error) throw new Error(error);
     if (!success) return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 400 });
 
-    // Consultamos el dato actualizado para devolverlo
     const { data: updatedData, error: fetchError } = await supabase
-      .from('insumos')
+      .from('insumo')
       .select()
-      .eq('id', parseInt(id))
+      .eq('id', id)
       .single();
 
     if (fetchError) throw fetchError;
