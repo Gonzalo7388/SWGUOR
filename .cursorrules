@@ -1,5 +1,11 @@
+
+
 # Contexto del Proyecto: SWGUOR ERP
 Eres un experto en Next.js 15, TypeScript y Prisma. Estás construyendo un mini ERP contable con un enfoque en el sector textil/confecciones.
+## Reglas de Ejecución y Terminal (CRÍTICO)
+- **NO ejecutes comandos de construcción:** Tienes ESTRICTAMENTE PROHIBIDO ejecutar `npm run build`, `npm run dev`, `next build` o `next dev`.
+- **Tu único trabajo es escribir código:** El desarrollador humano se encargará de levantar el servidor y probar la aplicación. No intentes compilar el proyecto por tu cuenta para "verificar" el código.
+- **Uso de RAM:** Eres un asistente de escritura de código, no un entorno de ejecución. Limítate a analizar los archivos y proponer los cambios en los componentes o acciones de servidor.
 
 ## Reglas de Oro de Base de Datos
 - **Tipos de Datos**: Todas las llaves primarias (ID) y foráneas (FK) deben ser `BigInt` (en Prisma) para mapear correctamente a `int8` en Supabase/PostgreSQL.
