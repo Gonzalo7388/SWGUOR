@@ -12,7 +12,7 @@ export type Usuario = Database['public']['Tables']['usuarios']['Row'];
 export const ROLES_SISTEMA = {
   administrador: 'administrador',
   recepcionista: 'recepcionista',
-  diseñador: 'diseñador',
+  diseñador: 'disenador',
   cortador: 'cortador',
   gerente: 'gerente',
   ayudante: 'ayudante',
