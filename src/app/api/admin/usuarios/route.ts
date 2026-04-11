@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/types/database';
 
-type RolUsuario    = Database['public']['Enums']['rol'];
+type RolUsuario    = Database['public']['Enums']['RolPersonal'];
 type EstadoUsuario = Database['public']['Enums']['EstadoUsuario'];
 
 // Valores válidos extraídos del schema (enum de Supabase)
