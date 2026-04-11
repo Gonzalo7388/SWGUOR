@@ -39,6 +39,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      asientos_contables: {
+        Row: {
+          created_at: string
+          cuenta: Database["public"]["Enums"]["CuentaContable"]
+          descripcion: string | null
+          fecha: string
+          id: number
+          monto: number
+          orden_id: number | null
+          pago_id: number | null
+          tipo: Database["public"]["Enums"]["TipoAsiento"]
+          usuario_id: number | null
+          venta_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cuenta: Database["public"]["Enums"]["CuentaContable"]
+          descripcion?: string | null
+          fecha?: string
+          id?: number
+          monto: number
+          orden_id?: number | null
+          pago_id?: number | null
+          tipo: Database["public"]["Enums"]["TipoAsiento"]
+          usuario_id?: number | null
+          venta_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cuenta?: Database["public"]["Enums"]["CuentaContable"]
+          descripcion?: string | null
+          fecha?: string
+          id?: number
+          monto?: number
+          orden_id?: number | null
+          pago_id?: number | null
+          tipo?: Database["public"]["Enums"]["TipoAsiento"]
+          usuario_id?: number | null
+          venta_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asientos_contables_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asientos_contables_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_orden"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asientos_contables_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias: {
         Row: {
           activo: boolean | null
@@ -82,7 +146,7 @@ export type Database = {
           razon_social: string | null
           ruc: number
           telefono: number | null
-          tipo: Database["public"]["Enums"]["TipoCliente"] | null
+          TipoCliente: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at: string
           usuario_id: number | null
         }
@@ -95,7 +159,7 @@ export type Database = {
           razon_social?: string | null
           ruc: number
           telefono?: number | null
-          tipo?: Database["public"]["Enums"]["TipoCliente"] | null
+          TipoCliente?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
           usuario_id?: number | null
         }
@@ -108,7 +172,7 @@ export type Database = {
           razon_social?: string | null
           ruc?: number
           telefono?: number | null
-          tipo?: Database["public"]["Enums"]["TipoCliente"] | null
+          TipoCliente?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
           usuario_id?: number | null
         }
@@ -164,6 +228,7 @@ export type Database = {
           id: number
           observaciones: string | null
           pedido_id: number
+          responsable_id: number | null
           taller_id: number
           updated_at: string
         }
@@ -175,8 +240,9 @@ export type Database = {
           id?: number
           observaciones?: string | null
           pedido_id: number
+          responsable_id?: number | null
           taller_id: number
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -186,10 +252,25 @@ export type Database = {
           id?: number
           observaciones?: string | null
           pedido_id?: number
+          responsable_id?: number | null
           taller_id?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "confecciones_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "confecciones_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "confecciones_taller_id_fkey"
             columns: ["taller_id"]
@@ -198,6 +279,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      configuracion_sistema: {
+        Row: {
+          categoria: string
+          clave: string
+          descripcion: string | null
+          id: number
+          tipo_dato: string
+          updated_at: string
+          updated_by: string | null
+          valor: string
+        }
+        Insert: {
+          categoria?: string
+          clave: string
+          descripcion?: string | null
+          id?: number
+          tipo_dato?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor: string
+        }
+        Update: {
+          categoria?: string
+          clave?: string
+          descripcion?: string | null
+          id?: number
+          tipo_dato?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string
+        }
+        Relationships: []
       }
       cotizacion_items: {
         Row: {
@@ -253,16 +367,22 @@ export type Database = {
       }
       cotizaciones: {
         Row: {
+          aprobacion_automatica: boolean | null
+          aprobado_at: string | null
           cliente_id: number | null
           costo_envio: number | null
+          costo_total_estimado: number | null
           created_at: string | null
           direccion_despacho: string | null
           estado: string | null
+          expira_at: string | null
           id: number
           id_regla_descuento: number | null
           igv: number | null
           metodo_pago: Database["public"]["Enums"]["MetodoPago"] | null
+          moneda: string
           monto_descuento: number | null
+          notas_internas: string | null
           numero: string
           pedido_id: number | null
           subtotal: number | null
@@ -271,16 +391,22 @@ export type Database = {
           valida_hasta: string
         }
         Insert: {
+          aprobacion_automatica?: boolean | null
+          aprobado_at?: string | null
           cliente_id?: number | null
           costo_envio?: number | null
+          costo_total_estimado?: number | null
           created_at?: string | null
           direccion_despacho?: string | null
           estado?: string | null
+          expira_at?: string | null
           id?: number
           id_regla_descuento?: number | null
           igv?: number | null
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
+          moneda?: string
           monto_descuento?: number | null
+          notas_internas?: string | null
           numero: string
           pedido_id?: number | null
           subtotal?: number | null
@@ -289,16 +415,22 @@ export type Database = {
           valida_hasta: string
         }
         Update: {
+          aprobacion_automatica?: boolean | null
+          aprobado_at?: string | null
           cliente_id?: number | null
           costo_envio?: number | null
+          costo_total_estimado?: number | null
           created_at?: string | null
           direccion_despacho?: string | null
           estado?: string | null
+          expira_at?: string | null
           id?: number
           id_regla_descuento?: number | null
           igv?: number | null
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
+          moneda?: string
           monto_descuento?: number | null
+          notas_internas?: string | null
           numero?: string
           pedido_id?: number | null
           subtotal?: number | null
@@ -350,7 +482,7 @@ export type Database = {
           fecha_entrega?: string | null
           id?: number
           pedido_id: number
-          updated_at: string
+          updated_at?: string
           usuario_id: number
         }
         Update: {
@@ -365,6 +497,13 @@ export type Database = {
           usuario_id?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "despachos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "despachos_usuario_id_fkey"
             columns: ["usuario_id"]
@@ -457,6 +596,129 @@ export type Database = {
           },
         ]
       }
+      estados_produccion: {
+        Row: {
+          activo: boolean
+          completado_en: string | null
+          created_at: string
+          duracion_minutos: number | null
+          etapa: Database["public"]["Enums"]["EtapaProduccion"]
+          id: number
+          iniciado_en: string
+          observaciones: string | null
+          orden_id: number
+          updated_at: string | null
+          usuario_id: number | null
+        }
+        Insert: {
+          activo?: boolean
+          completado_en?: string | null
+          created_at?: string
+          duracion_minutos?: number | null
+          etapa: Database["public"]["Enums"]["EtapaProduccion"]
+          id?: number
+          iniciado_en?: string
+          observaciones?: string | null
+          orden_id: number
+          updated_at?: string | null
+          usuario_id?: number | null
+        }
+        Update: {
+          activo?: boolean
+          completado_en?: string | null
+          created_at?: string
+          duracion_minutos?: number | null
+          etapa?: Database["public"]["Enums"]["EtapaProduccion"]
+          id?: number
+          iniciado_en?: string
+          observaciones?: string | null
+          orden_id?: number
+          updated_at?: string | null
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estados_produccion_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estados_produccion_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_cliente: {
+        Row: {
+          atencion_personal: number | null
+          calidad_producto: number | null
+          canal: string | null
+          cliente_id: number
+          comentarios: string | null
+          created_at: string
+          enviado_en: string | null
+          id: number
+          orden_id: number
+          puntuacion: number
+          recomendaria: boolean | null
+          respondido_en: string | null
+          tiempo_entrega: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          atencion_personal?: number | null
+          calidad_producto?: number | null
+          canal?: string | null
+          cliente_id: number
+          comentarios?: string | null
+          created_at?: string
+          enviado_en?: string | null
+          id?: number
+          orden_id: number
+          puntuacion: number
+          recomendaria?: boolean | null
+          respondido_en?: string | null
+          tiempo_entrega?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          atencion_personal?: number | null
+          calidad_producto?: number | null
+          canal?: string | null
+          cliente_id?: number
+          comentarios?: string | null
+          created_at?: string
+          enviado_en?: string | null
+          id?: number
+          orden_id?: number
+          puntuacion?: number
+          recomendaria?: boolean | null
+          respondido_en?: string | null
+          tiempo_entrega?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_cliente_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ficha_medidas: {
         Row: {
           created_at: string
@@ -539,71 +801,198 @@ export type Database = {
           },
         ]
       }
+      incidencias_taller: {
+        Row: {
+          asignado_a: number | null
+          confeccion_id: number | null
+          created_at: string
+          descripcion: string
+          fecha_reporte: string
+          fecha_resolucion: string | null
+          foto_url: string | null
+          id: number
+          impacto_horas: number | null
+          orden_id: number
+          reportado_por: number | null
+          resuelto: boolean
+          severidad: Database["public"]["Enums"]["SeveridadIncidencia"]
+          solucion: string | null
+          tipo: Database["public"]["Enums"]["TipoIncidencia"]
+          updated_at: string | null
+        }
+        Insert: {
+          asignado_a?: number | null
+          confeccion_id?: number | null
+          created_at?: string
+          descripcion: string
+          fecha_reporte?: string
+          fecha_resolucion?: string | null
+          foto_url?: string | null
+          id?: number
+          impacto_horas?: number | null
+          orden_id: number
+          reportado_por?: number | null
+          resuelto?: boolean
+          severidad?: Database["public"]["Enums"]["SeveridadIncidencia"]
+          solucion?: string | null
+          tipo: Database["public"]["Enums"]["TipoIncidencia"]
+          updated_at?: string | null
+        }
+        Update: {
+          asignado_a?: number | null
+          confeccion_id?: number | null
+          created_at?: string
+          descripcion?: string
+          fecha_reporte?: string
+          fecha_resolucion?: string | null
+          foto_url?: string | null
+          id?: number
+          impacto_horas?: number | null
+          orden_id?: number
+          reportado_por?: number | null
+          resuelto?: boolean
+          severidad?: Database["public"]["Enums"]["SeveridadIncidencia"]
+          solucion?: string | null
+          tipo?: Database["public"]["Enums"]["TipoIncidencia"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidencias_taller_asignado_a_fkey"
+            columns: ["asignado_a"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidencias_taller_confeccion_id_fkey"
+            columns: ["confeccion_id"]
+            isOneToOne: false
+            referencedRelation: "confecciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidencias_taller_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidencias_taller_reportado_por_fkey"
+            columns: ["reportado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insumo: {
         Row: {
+          alerta_bajo_stock: boolean | null
+          categoria_insumo: Database["public"]["Enums"]["CategoriaInsumo"]
           created_at: string
           id: number
           nombre: string
           precio_unitario: number | null
-          proveedor: string | null
+          proveedor_id: number | null
           stock_actual: number
+          stock_maximo: number | null
           stock_minimo: number
           tipo: Database["public"]["Enums"]["TipoInsumo"]
+          ubicacion_almacen: string | null
           unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at: string | null
         }
         Insert: {
+          alerta_bajo_stock?: boolean | null
+          categoria_insumo?: Database["public"]["Enums"]["CategoriaInsumo"]
           created_at?: string
           id?: number
           nombre: string
           precio_unitario?: number | null
-          proveedor?: string | null
+          proveedor_id?: number | null
           stock_actual?: number
+          stock_maximo?: number | null
           stock_minimo?: number
           tipo: Database["public"]["Enums"]["TipoInsumo"]
+          ubicacion_almacen?: string | null
           unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at?: string | null
         }
         Update: {
+          alerta_bajo_stock?: boolean | null
+          categoria_insumo?: Database["public"]["Enums"]["CategoriaInsumo"]
           created_at?: string
           id?: number
           nombre?: string
           precio_unitario?: number | null
-          proveedor?: string | null
+          proveedor_id?: number | null
           stock_actual?: number
+          stock_maximo?: number | null
           stock_minimo?: number
           tipo?: Database["public"]["Enums"]["TipoInsumo"]
+          ubicacion_almacen?: string | null
           unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "insumo_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movimientos_inventario: {
         Row: {
           cantidad: number | null
+          costo_unitario: number | null
           created_at: string
           id: number
           insumo_id: number | null
           motivo: string | null
           producto_id: number | null
+          referencia_id: number | null
+          referencia_tipo: string | null
+          stock_anterior: number | null
+          stock_posterior: number | null
           tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"] | null
+          updated_at: string | null
           usuario_id: number | null
         }
         Insert: {
           cantidad?: number | null
+          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           motivo?: string | null
           producto_id?: number | null
+          referencia_id?: number | null
+          referencia_tipo?: string | null
+          stock_anterior?: number | null
+          stock_posterior?: number | null
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
+          updated_at?: string | null
           usuario_id?: number | null
         }
         Update: {
           cantidad?: number | null
+          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           motivo?: string | null
           producto_id?: number | null
+          referencia_id?: number | null
+          referencia_tipo?: string | null
+          stock_anterior?: number | null
+          stock_posterior?: number | null
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
+          updated_at?: string | null
           usuario_id?: number | null
         }
         Relationships: [
@@ -633,39 +1022,63 @@ export type Database = {
       ordenes: {
         Row: {
           cliente_id: number | null
+          costo_envio_real: number | null
           cotizacion_id: number | null
           created_at: string | null
+          entregado_cliente_at: string | null
+          enviado_taller_at: string | null
           estado: Database["public"]["Enums"]["EstadoOrden"] | null
           estado_pago: string | null
           fecha_prometida_entrega: string | null
           id: number
           metodo_pago: Database["public"]["Enums"]["MetodoPago"] | null
+          prioridad: string | null
+          proveedor_id: number | null
+          recibido_taller_at: string | null
+          saldo_pendiente: number | null
+          total_orden: number
           total_pagado: number | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           cliente_id?: number | null
+          costo_envio_real?: number | null
           cotizacion_id?: number | null
           created_at?: string | null
+          entregado_cliente_at?: string | null
+          enviado_taller_at?: string | null
           estado?: Database["public"]["Enums"]["EstadoOrden"] | null
           estado_pago?: string | null
           fecha_prometida_entrega?: string | null
           id?: number
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
+          prioridad?: string | null
+          proveedor_id?: number | null
+          recibido_taller_at?: string | null
+          saldo_pendiente?: number | null
+          total_orden?: number
           total_pagado?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           cliente_id?: number | null
+          costo_envio_real?: number | null
           cotizacion_id?: number | null
           created_at?: string | null
+          entregado_cliente_at?: string | null
+          enviado_taller_at?: string | null
           estado?: Database["public"]["Enums"]["EstadoOrden"] | null
           estado_pago?: string | null
           fecha_prometida_entrega?: string | null
           id?: number
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
+          prioridad?: string | null
+          proveedor_id?: number | null
+          recibido_taller_at?: string | null
+          saldo_pendiente?: number | null
+          total_orden?: number
           total_pagado?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -683,6 +1096,67 @@ export type Database = {
             columns: ["cotizacion_id"]
             isOneToOne: false
             referencedRelation: "cotizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagos_orden: {
+        Row: {
+          comprobante_url: string | null
+          created_at: string
+          fecha_pago: string
+          id: number
+          metodo_pago: Database["public"]["Enums"]["MetodoPago"]
+          monto: number
+          notas: string | null
+          orden_id: number
+          updated_at: string | null
+          usuario_id: number | null
+        }
+        Insert: {
+          comprobante_url?: string | null
+          created_at?: string
+          fecha_pago?: string
+          id?: number
+          metodo_pago: Database["public"]["Enums"]["MetodoPago"]
+          monto: number
+          notas?: string | null
+          orden_id: number
+          updated_at?: string | null
+          usuario_id?: number | null
+        }
+        Update: {
+          comprobante_url?: string | null
+          created_at?: string
+          fecha_pago?: string
+          id?: number
+          metodo_pago?: Database["public"]["Enums"]["MetodoPago"]
+          monto?: number
+          notas?: string | null
+          orden_id?: number
+          updated_at?: string | null
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_orden_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_orden_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -743,10 +1217,12 @@ export type Database = {
           created_by: string | null
           estado: Database["public"]["Enums"]["EstadoPedido"] | null
           id: number
+          moq_aplicado: number
           notas_cliente: string | null
           notas_pedido: string | null
           prioridad: Database["public"]["Enums"]["PrioridadPedido"] | null
           total_estimado: number | null
+          total_unidades: number
           updated_at: string | null
         }
         Insert: {
@@ -755,10 +1231,12 @@ export type Database = {
           created_by?: string | null
           estado?: Database["public"]["Enums"]["EstadoPedido"] | null
           id?: number
+          moq_aplicado?: number
           notas_cliente?: string | null
           notas_pedido?: string | null
           prioridad?: Database["public"]["Enums"]["PrioridadPedido"] | null
           total_estimado?: number | null
+          total_unidades?: number
           updated_at?: string | null
         }
         Update: {
@@ -767,10 +1245,12 @@ export type Database = {
           created_by?: string | null
           estado?: Database["public"]["Enums"]["EstadoPedido"] | null
           id?: number
+          moq_aplicado?: number
           notas_cliente?: string | null
           notas_pedido?: string | null
           prioridad?: Database["public"]["Enums"]["PrioridadPedido"] | null
           total_estimado?: number | null
+          total_unidades?: number
           updated_at?: string | null
         }
         Relationships: [
@@ -785,7 +1265,7 @@ export type Database = {
       }
       personal_interno: {
         Row: {
-          cargo: Database["public"]["Enums"]["rol"] | null
+          cargo: Database["public"]["Enums"]["RolPersonal"] | null
           created_at: string | null
           dni: number | null
           estado: boolean | null
@@ -796,7 +1276,7 @@ export type Database = {
           usuario_id: number | null
         }
         Insert: {
-          cargo?: Database["public"]["Enums"]["rol"] | null
+          cargo?: Database["public"]["Enums"]["RolPersonal"] | null
           created_at?: string | null
           dni?: number | null
           estado?: boolean | null
@@ -807,7 +1287,7 @@ export type Database = {
           usuario_id?: number | null
         }
         Update: {
-          cargo?: Database["public"]["Enums"]["rol"] | null
+          cargo?: Database["public"]["Enums"]["RolPersonal"] | null
           created_at?: string | null
           dni?: number | null
           estado?: boolean | null
@@ -875,6 +1355,7 @@ export type Database = {
           ficha_tecnica: Json | null
           id: number
           imagen: string | null
+          moq: number
           nombre: string
           precio: number
           sku: string
@@ -890,6 +1371,7 @@ export type Database = {
           ficha_tecnica?: Json | null
           id?: number
           imagen?: string | null
+          moq?: number
           nombre: string
           precio: number
           sku: string
@@ -905,6 +1387,7 @@ export type Database = {
           ficha_tecnica?: Json | null
           id?: number
           imagen?: string | null
+          moq?: number
           nombre?: string
           precio?: number
           sku?: string
@@ -920,6 +1403,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      proveedores: {
+        Row: {
+          categoria_suministro: string
+          contacto: string
+          created_at: string
+          direccion: string
+          email: string
+          estado: string
+          id: number
+          razon_social: string
+          ruc: string
+          telefono: string
+          updated_at: string
+        }
+        Insert: {
+          categoria_suministro: string
+          contacto: string
+          created_at?: string
+          direccion: string
+          email: string
+          estado?: string
+          id?: number
+          razon_social: string
+          ruc: string
+          telefono: string
+          updated_at?: string
+        }
+        Update: {
+          categoria_suministro?: string
+          contacto?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          estado?: string
+          id?: number
+          razon_social?: string
+          ruc?: string
+          telefono?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       reglas_descuento: {
         Row: {
@@ -978,6 +1503,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "reservas_stock_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservas_stock_variante_id_fkey"
             columns: ["variante_id"]
             isOneToOne: false
@@ -1013,7 +1545,7 @@ export type Database = {
           nombre: string
           ruc: string
           telefono: string
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           contacto?: string
@@ -1035,55 +1567,44 @@ export type Database = {
       usuarios: {
         Row: {
           auth_id: string | null
-          cliente_id: number | null
           created_at: string | null
           created_by: string | null
           email: string
           estado: Database["public"]["Enums"]["EstadoUsuario"] | null
           id: number
           nombre_completo: string
-          rol: Database["public"]["Enums"]["rol"] | null
+          rol: Database["public"]["Enums"]["RolPersonal"] | null
           telefono: number | null
           ultimo_acceso: string | null
           updated_at: string | null
         }
         Insert: {
           auth_id?: string | null
-          cliente_id?: number | null
           created_at?: string | null
           created_by?: string | null
           email: string
           estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
           id?: number
           nombre_completo: string
-          rol?: Database["public"]["Enums"]["rol"] | null
+          rol?: Database["public"]["Enums"]["RolPersonal"] | null
           telefono?: number | null
           ultimo_acceso?: string | null
           updated_at?: string | null
         }
         Update: {
           auth_id?: string | null
-          cliente_id?: number | null
           created_at?: string | null
           created_by?: string | null
           email?: string
           estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
           id?: number
           nombre_completo?: string
-          rol?: Database["public"]["Enums"]["rol"] | null
+          rol?: Database["public"]["Enums"]["RolPersonal"] | null
           telefono?: number | null
           ultimo_acceso?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "usuarios_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       variantes_producto: {
         Row: {
@@ -1141,50 +1662,106 @@ export type Database = {
       ventas: {
         Row: {
           created_at: string | null
+          estado_pago: string
           id: string
           impuestos: number
           metodo_pago: Database["public"]["Enums"]["MetodoPago"] | null
           numero_comprobante: string | null
           orden_id: number
+          referencia_pago: string | null
           subtotal: number
           tipo_comprobante:
             | Database["public"]["Enums"]["TipoComprobante"]
             | null
           total: number
           updated_at: string | null
+          usuario_id: number | null
           vendedor_id: string | null
         }
         Insert: {
           created_at?: string | null
+          estado_pago?: string
           id?: string
           impuestos?: number
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
           numero_comprobante?: string | null
           orden_id: number
+          referencia_pago?: string | null
           subtotal?: number
           tipo_comprobante?:
             | Database["public"]["Enums"]["TipoComprobante"]
             | null
           total?: number
           updated_at?: string | null
+          usuario_id?: number | null
           vendedor_id?: string | null
         }
         Update: {
           created_at?: string | null
+          estado_pago?: string
           id?: string
           impuestos?: number
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"] | null
           numero_comprobante?: string | null
           orden_id?: number
+          referencia_pago?: string | null
           subtotal?: number
           tipo_comprobante?:
             | Database["public"]["Enums"]["TipoComprobante"]
             | null
           total?: number
           updated_at?: string | null
+          usuario_id?: number | null
           vendedor_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ventas_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ventas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ventas_anuladas: {
+        Row: {
+          fecha_anulacion: string
+          id: number
+          monto_devuelto: number
+          motivo: string
+          venta_id: string
+        }
+        Insert: {
+          fecha_anulacion?: string
+          id?: number
+          monto_devuelto: number
+          motivo: string
+          venta_id: string
+        }
+        Update: {
+          fecha_anulacion?: string
+          id?: number
+          monto_devuelto?: number
+          motivo?: string
+          venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventas_anuladas_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1196,7 +1773,7 @@ export type Database = {
         Returns: undefined
       }
       check_user_role: {
-        Args: { allowed_roles: Database["public"]["Enums"]["rol"][] }
+        Args: { allowed_roles: Database["public"]["Enums"]["RolPersonal"][] }
         Returns: boolean
       }
       convertir_cotizacion_a_orden: {
@@ -1222,7 +1799,10 @@ export type Database = {
         Returns: undefined
       }
       get_dashboard_stats: { Args: never; Returns: Json }
-      get_my_role: { Args: never; Returns: Database["public"]["Enums"]["rol"] }
+      get_my_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["RolPersonal"]
+      }
       get_user_id: { Args: never; Returns: number }
       get_user_role: { Args: never; Returns: string }
       has_role: { Args: { required_role: string }; Returns: boolean }
@@ -1242,7 +1822,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_role: {
-        Args: { allowed_roles: Database["public"]["Enums"]["rol"][] }
+        Args: { allowed_roles: Database["public"]["Enums"]["RolPersonal"][] }
         Returns: boolean
       }
       is_staff: { Args: never; Returns: boolean }
@@ -1287,6 +1867,14 @@ export type Database = {
       }
     }
     Enums: {
+      CategoriaInsumo:
+        | "tela"
+        | "avios"
+        | "empaque"
+        | "hilo"
+        | "etiquetas"
+        | "forro"
+        | "otro"
       ColorPrenda:
         | "Blanco"
         | "Negro"
@@ -1308,6 +1896,18 @@ export type Database = {
         | "Crema"
         | "Celeste"
         | "Amarillo limón"
+      CuentaContable:
+        | "caja"
+        | "bancos"
+        | "cuentas_por_cobrar"
+        | "inventario"
+        | "ventas"
+        | "costo_ventas"
+        | "cuentas_por_pagar"
+        | "capital"
+        | "igv"
+        | "descuentos"
+        | "gastos_operativos"
       EspecialidadTaller:
         | "corte"
         | "confección"
@@ -1352,6 +1952,16 @@ export type Database = {
       EstadoProducto: "activo" | "inactivo" | "agotado" | "descontinuado"
       EstadoTaller: "activo" | "inactivo" | "suspendido"
       EstadoUsuario: "activo" | "inactivo" | "suspendido"
+      EtapaProduccion:
+        | "diseno"
+        | "patronaje"
+        | "corte"
+        | "confeccion"
+        | "remallado"
+        | "bordado_estampado"
+        | "control_calidad"
+        | "acabado"
+        | "listo_entrega"
       MetodoPago:
         | "efectivo"
         | "transferencia_bcp"
@@ -1360,7 +1970,7 @@ export type Database = {
         | "visa"
         | "mastercard"
       PrioridadPedido: "baja" | "normal" | "alta" | "urgente"
-      rol:
+      RolPersonal:
         | "administrador"
         | "cortador"
         | "disenador"
@@ -1369,6 +1979,7 @@ export type Database = {
         | "representante_taller"
         | "cliente"
         | "gerente"
+      SeveridadIncidencia: "baja" | "media" | "alta" | "critica"
       TallaProductos:
         | "XS"
         | "S"
@@ -1380,10 +1991,26 @@ export type Database = {
         | "30"
         | "32"
         | "34"
+      TipoAsiento: "debe" | "haber"
       TipoCategoria: "producto" | "insumo"
       TipoCliente: "corporativo" | "minorista" | "distribuidor"
       TipoComprobante: "boleta" | "factura" | "nota_venta"
-      TipoInsumo: "tela" | "hilo" | "avio" | "boton" | "cierre"
+      TipoIncidencia:
+        | "averia_maquina"
+        | "falta_material"
+        | "error_diseno"
+        | "defecto_corte"
+        | "defecto_confeccion"
+        | "retraso"
+        | "otro"
+      TipoInsumo:
+        | "tela"
+        | "hilo"
+        | "avio"
+        | "boton"
+        | "cierre"
+        | "empaque"
+        | "otro"
       TipoMovimiento: "entrada" | "salida" | "ajuste"
       UnidadMedida:
         | "metros"
@@ -1522,6 +2149,15 @@ export const Constants = {
   },
   public: {
     Enums: {
+      CategoriaInsumo: [
+        "tela",
+        "avios",
+        "empaque",
+        "hilo",
+        "etiquetas",
+        "forro",
+        "otro",
+      ],
       ColorPrenda: [
         "Blanco",
         "Negro",
@@ -1543,6 +2179,19 @@ export const Constants = {
         "Crema",
         "Celeste",
         "Amarillo limón",
+      ],
+      CuentaContable: [
+        "caja",
+        "bancos",
+        "cuentas_por_cobrar",
+        "inventario",
+        "ventas",
+        "costo_ventas",
+        "cuentas_por_pagar",
+        "capital",
+        "igv",
+        "descuentos",
+        "gastos_operativos",
       ],
       EspecialidadTaller: [
         "corte",
@@ -1593,6 +2242,17 @@ export const Constants = {
       EstadoProducto: ["activo", "inactivo", "agotado", "descontinuado"],
       EstadoTaller: ["activo", "inactivo", "suspendido"],
       EstadoUsuario: ["activo", "inactivo", "suspendido"],
+      EtapaProduccion: [
+        "diseno",
+        "patronaje",
+        "corte",
+        "confeccion",
+        "remallado",
+        "bordado_estampado",
+        "control_calidad",
+        "acabado",
+        "listo_entrega",
+      ],
       MetodoPago: [
         "efectivo",
         "transferencia_bcp",
@@ -1602,7 +2262,7 @@ export const Constants = {
         "mastercard",
       ],
       PrioridadPedido: ["baja", "normal", "alta", "urgente"],
-      rol: [
+      RolPersonal: [
         "administrador",
         "cortador",
         "disenador",
@@ -1612,6 +2272,7 @@ export const Constants = {
         "cliente",
         "gerente",
       ],
+      SeveridadIncidencia: ["baja", "media", "alta", "critica"],
       TallaProductos: [
         "XS",
         "S",
@@ -1624,10 +2285,28 @@ export const Constants = {
         "32",
         "34",
       ],
+      TipoAsiento: ["debe", "haber"],
       TipoCategoria: ["producto", "insumo"],
       TipoCliente: ["corporativo", "minorista", "distribuidor"],
       TipoComprobante: ["boleta", "factura", "nota_venta"],
-      TipoInsumo: ["tela", "hilo", "avio", "boton", "cierre"],
+      TipoIncidencia: [
+        "averia_maquina",
+        "falta_material",
+        "error_diseno",
+        "defecto_corte",
+        "defecto_confeccion",
+        "retraso",
+        "otro",
+      ],
+      TipoInsumo: [
+        "tela",
+        "hilo",
+        "avio",
+        "boton",
+        "cierre",
+        "empaque",
+        "otro",
+      ],
       TipoMovimiento: ["entrada", "salida", "ajuste"],
       UnidadMedida: [
         "metros",
