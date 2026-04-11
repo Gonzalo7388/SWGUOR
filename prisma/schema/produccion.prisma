@@ -1,3 +1,11 @@
+// ============================================================
+//  PRODUCCIÓN — Pedidos, Confecciones, Talleres, Despachos
+//  + Incidencias de Taller
+//  + Estados de Producción (tracking por etapa)
+//  + Feedback de Cliente
+//  + Fichas Técnicas
+// ============================================================
+
 model pedidos {
   id             BigInt           @id @default(autoincrement())
   cliente_id     BigInt?
@@ -13,6 +21,8 @@ model pedidos {
   moq_aplicado   Int              @default(400)
   cotizaciones   cotizaciones[]
   pedido_items   pedido_items[]
+  confecciones   confecciones[]
+  despachos      despachos[]
   clientes       clientes?        @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users          users?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -28,9 +38,16 @@ model confecciones {
   fecha_fin     DateTime?        @db.Timestamptz(6)
   observaciones String?
   created_at    DateTime         @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime         @db.Timestamptz(6)
-  talleres      talleres         @relation(fields: [taller_id], references: [id])
+  updated_at    DateTime         @default(now()) @db.Timestamptz(6)
+  responsable_id BigInt?         // Usuario asignado (cortador, jefe taller)
+  // Relaciones
+  pedido        pedidos          @relation(fields: [pedido_id], references: [id])
+  taller        talleres         @relation(fields: [taller_id], references: [id])
+  responsable   usuarios?        @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  incidencias_taller incidencias_taller[]
 
+  @@index([pedido_id], map: "idx_confecciones_pedido")
+  @@index([responsable_id], map: "idx_confecciones_responsable")
   @@schema("public")
 }
 
@@ -41,7 +58,7 @@ model talleres {
   telefono     String
   email        String?             @unique
   created_at   DateTime            @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime            @db.Timestamptz(6)
+  updated_at   DateTime            @default(now()) @db.Timestamptz(6)
   ruc          String              @unique
   contacto     String
   especialidad EspecialidadTaller?
@@ -58,14 +75,123 @@ model despachos {
   created_at        DateTime       @default(now())
   direccion_entrega String
   fecha_entrega     DateTime?
-  updated_at        DateTime
+  updated_at        DateTime       @default(now())
   usuario_id        BigInt
   estado            EstadoDespacho @default(pendiente)
-  usuarios          usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // Relaciones
+  pedido            pedidos        @relation(fields: [pedido_id], references: [id])
+  usuario           usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([pedido_id], map: "idx_despachos_pedido")
   @@schema("public")
 }
 
+// ============================================================
+//  INCIDENCIAS DE TALLER
+//  Registro de fallas/obstáculos en producción
+// ============================================================
+model incidencias_taller {
+  id                BigInt              @id @default(autoincrement())
+  orden_id          BigInt
+  confeccion_id     BigInt?
+  tipo              TipoIncidencia
+  severidad         SeveridadIncidencia @default(media)
+  descripcion       String
+  // Registro y resolución
+  reportado_por     BigInt?             // Usuario que reporta
+  asignado_a        BigInt?             // Usuario responsable de resolver
+  fecha_reporte     DateTime            @default(now()) @db.Timestamptz(6)
+  fecha_resolucion  DateTime?           @db.Timestamptz(6)
+  resuelto          Boolean             @default(false)
+  solucion          String?             // Detalle de cómo se resolvió
+  impacto_horas     Float?              // Horas de retraso estimadas
+  // Evidencia
+  foto_url          String?             @db.VarChar(500)
+  // Auditoría
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  // Relaciones
+  ordenes           ordenes             @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  confecciones      confecciones?       @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario_reporta   usuarios?           @relation("incidencia_reporta", fields: [reportado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario_resuelve  usuarios?           @relation("incidencia_resuelve", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([orden_id], map: "idx_incidencias_orden")
+  @@index([tipo], map: "idx_incidencias_tipo")
+  @@index([severidad], map: "idx_incidencias_severidad")
+  @@index([resuelto], map: "idx_incidencias_resuelto")
+  @@index([fecha_reporte(sort: Desc)], map: "idx_incidencias_fecha")
+  @@schema("public")
+}
+
+// ============================================================
+//  ESTADOS DE PRODUCCIÓN
+//  Trackea el tiempo que pasa un pedido en cada etapa
+// ============================================================
+model estados_produccion {
+  id                BigInt          @id @default(autoincrement())
+  orden_id          BigInt
+  etapa             EtapaProduccion
+  // Control de tiempos
+  iniciado_en       DateTime        @default(now()) @db.Timestamptz(6)
+  completado_en     DateTime?       @db.Timestamptz(6)
+  duracion_minutos  Int?            // Calculado al completar
+  // Responsable de la etapa
+  usuario_id        BigInt?
+  observaciones     String?
+  // Estado actual
+  activo            Boolean         @default(true)  // true = en curso, false = completado/saltado
+  // Auditoría
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?       @default(now()) @db.Timestamptz(6)
+  // Relaciones
+  ordenes           ordenes         @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios          usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([orden_id], map: "idx_estados_prod_orden")
+  @@index([etapa], map: "idx_estados_prod_etapa")
+  @@index([activo], map: "idx_estados_prod_activo")
+  @@index([iniciado_en(sort: Desc)], map: "idx_estados_prod_inicio")
+  @@schema("public")
+}
+
+// ============================================================
+//  FEEDBACK DE CLIENTE
+//  Satisfacción post-entrega vinculado a orden y cliente
+// ============================================================
+model feedback_cliente {
+  id                BigInt      @id @default(autoincrement())
+  orden_id          BigInt
+  cliente_id        BigInt
+  // Puntuación 1-5
+  puntuacion        Int         // 1 = muy insatisfecho, 5 = muy satisfecho
+  // Dimensiones opcionales de evaluación
+  calidad_producto  Int?        // 1-5
+  tiempo_entrega    Int?        // 1-5
+  atencion_personal  Int?       // 1-5
+  // Comentarios
+  comentarios       String?
+  recomendaria      Boolean?    // ¿Recomendaría el servicio?
+  // Metadata
+  enviado_en        DateTime?   @db.Timestamptz(6)  // Cuándo se envió la encuesta
+  respondido_en     DateTime?   @db.Timestamptz(6)  // Cuándo respondió el cliente
+  canal             String?     @db.VarChar(50)      // email, whatsapp, presencial, web
+  // Auditoría
+  created_at        DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?   @default(now()) @db.Timestamptz(6)
+  // Relaciones
+  ordenes           ordenes     @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  clientes          clientes    @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([orden_id], map: "idx_feedback_orden")
+  @@index([cliente_id], map: "idx_feedback_cliente")
+  @@index([puntuacion], map: "idx_feedback_puntuacion")
+  @@schema("public")
+}
+
+// ============================================================
+//  FICHAS TÉCNICAS (con RLS — requieren setup adicional)
+// ============================================================
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model detalle_ficha_insumos {

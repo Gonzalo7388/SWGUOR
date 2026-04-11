@@ -15,6 +15,7 @@ model clientes {
   direcciones_cliente direcciones_cliente[]
   ordenes             ordenes[]
   pedidos             pedidos[]
+  feedback_cliente    feedback_cliente[]
 
   @@schema("public")
 }
@@ -42,14 +43,22 @@ model usuarios {
   rol                    RolPersonal?
   created_at             DateTime?                @default(now()) @db.Timestamptz(6)
   updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
-  auth_id                String?                  @unique @db.Uuid
   ultimo_acceso          DateTime?                @db.Timestamptz(6)
   created_by             String?                  @db.Uuid
+  auth_id                String?                  @unique @db.Uuid
+  // Relaciones
   clientes               clientes?
   despachos              despachos[]
   movimientos_inventario movimientos_inventario[]
+  pagos_orden            pagos_orden[]            @relation("usuario_pagos")
+  ventas                 ventas[]
   personal_interno       personal_interno[]
   users                  users?                   @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // Producción
+  confecciones           confecciones[]
+  estados_produccion     estados_produccion[]
+  incidencias_reportadas incidencias_taller[]     @relation("incidencia_reporta")
+  incidencias_resueltas  incidencias_taller[]     @relation("incidencia_resuelve")
 
   @@schema("public")
 }

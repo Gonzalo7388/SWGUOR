@@ -235,14 +235,13 @@ enum TallaProductos {
   L
   XL
   XXL
+  T28 @map("28")
+  T30 @map("30")
+  T32 @map("32")
+  T34 @map("34")
 
-  // 28 @map("28")
-  // 30 @map("30")
-  // 32 @map("32")
-  // 34 @map("34")
   @@schema("public")
 }
-
 enum TipoCategoria {
   producto
   insumo
@@ -272,6 +271,20 @@ enum TipoInsumo {
   avio
   boton
   cierre
+  empaque
+  otro
+
+  @@schema("public")
+}
+
+enum CategoriaInsumo {
+  tela
+  avios
+  empaque
+  hilo
+  etiquetas
+  forro
+  otro
 
   @@schema("public")
 }
@@ -280,6 +293,64 @@ enum TipoMovimiento {
   entrada
   salida
   ajuste
+
+  @@schema("public")
+}
+
+enum TipoAsiento {
+  debe   // Débito (cargos)
+  haber  // Crédito (abonos)
+
+  @@schema("public")
+}
+
+enum TipoIncidencia {
+  averia_maquina
+  falta_material
+  error_diseno
+  defecto_corte
+  defecto_confeccion
+  retraso
+  otro
+
+  @@schema("public")
+}
+
+enum EtapaProduccion {
+  diseno
+  patronaje
+  corte
+  confeccion
+  remallado
+  bordado_estampado
+  control_calidad
+  acabado
+  listo_entrega
+
+  @@schema("public")
+}
+
+enum SeveridadIncidencia {
+  baja
+  media
+  alta
+  critica
+
+  @@schema("public")
+}
+
+enum CuentaContable {
+  caja             // Caja y Bancos (Activo)
+  bancos           // Bancos (Activo)
+  cuentas_por_cobrar // Cuentas por Cobrar (Activo)
+  inventario       // Inventario (Activo)
+  ventas           // Ingresos por Ventas (Ingreso)
+  costo_ventas     // Costo de Ventas (Gasto)
+  cuentas_por_pagar // Cuentas por Pagar (Pasivo)
+  capital          // Capital Social (Patrimonio)
+  igv              // Impuestos (Pasivo)
+  descuentos       // Descuentos sobre Ventas (Contra Ingreso)
+  gastos_operativos // Gastos Operativos (Gasto)
 
   @@schema("public")
 }
@@ -316,3 +387,5 @@ enum estado_ficha {
 
   @@schema("public")
 }
+
+

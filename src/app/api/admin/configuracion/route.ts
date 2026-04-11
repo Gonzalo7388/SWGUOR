@@ -1,87 +1,170 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+// Claves de configuración por defecto
+const CONFIG_DEFAULTS: Record<string, { valor: string; categoria: string; descripcion: string; tipo_dato: string }> = {
+  // Empresa
+  'empresa_nombre': { valor: 'GUOR - Modas y Estilos', categoria: 'empresa', descripcion: 'Nombre de la empresa', tipo_dato: 'string' },
+  'empresa_ruc': { valor: '20123456789', categoria: 'empresa', descripcion: 'RUC de la empresa', tipo_dato: 'string' },
+  'empresa_telefono': { valor: '+51 987654321', categoria: 'empresa', descripcion: 'Teléfono de contacto', tipo_dato: 'string' },
+  'empresa_email': { valor: 'info@guor.com', categoria: 'empresa', descripcion: 'Email corporativo', tipo_dato: 'string' },
+  'empresa_direccion': { valor: 'Av. Principal 123, Lima', categoria: 'empresa', descripcion: 'Dirección fiscal', tipo_dato: 'string' },
+  'empresa_ciudad': { valor: 'Lima', categoria: 'empresa', descripcion: 'Ciudad', tipo_dato: 'string' },
+  'empresa_pais': { valor: 'Perú', categoria: 'empresa', descripcion: 'País', tipo_dato: 'string' },
+
+  // Tienda
+  'tienda_nombre': { valor: 'GUOR Shop', categoria: 'tienda', descripcion: 'Nombre de la tienda', tipo_dato: 'string' },
+  'tienda_descripcion': { valor: 'Tienda de ropa y textiles', categoria: 'tienda', descripcion: 'Descripción', tipo_dato: 'string' },
+  'tienda_moneda': { valor: 'PEN', categoria: 'tienda', descripcion: 'Moneda por defecto', tipo_dato: 'string' },
+  'tienda_zona_horaria': { valor: 'America/Lima', categoria: 'tienda', descripcion: 'Zona horaria', tipo_dato: 'string' },
+
+  // Impuestos
+  'impuesto_igv': { valor: '18', categoria: 'impuestos', descripcion: 'Porcentaje de IGV', tipo_dato: 'number' },
+  'impuesto_descuento_default': { valor: '0', categoria: 'impuestos', descripcion: 'Descuento por defecto %', tipo_dato: 'number' },
+
+  // Producción
+  'produccion_moq_default': { valor: '400', categoria: 'produccion', descripcion: 'MOQ por defecto', tipo_dato: 'number' },
+  'produccion_stock_alert_pct': { valor: '20', categoria: 'produccion', descripcion: '% stock mínimo para alerta', tipo_dato: 'number' },
+};
+
+// GET: Leer toda la configuración agrupada por categoría
+export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
+    const { searchParams } = new URL(req.url);
+    const categoria = searchParams.get('categoria');
 
-    // Obtener todos los usuarios
-    const { data: usuarios, error: usuariosError } = await supabase
-      .from('usuarios')
-      .select('id, email, nombre_completo, rol, estado')
-      .limit(50);
+    const where: Record<string, unknown> = {};
+    if (categoria) where.categoria = categoria;
 
-    if (usuariosError) {
-      console.error('Error fetching usuarios:', usuariosError);
-      return NextResponse.json(
-        { error: 'Error al obtener usuarios' },
-        { status: 500 }
-      );
+    const configs = await prisma.configuracion_sistema.findMany({
+      where,
+      orderBy: [{ categoria: 'asc' }, { clave: 'asc' }],
+    });
+
+    // Si no hay registros, inicializar con valores por defecto
+    if (configs.length === 0) {
+      await inicializarConfiguracion();
+      const configsInit = await prisma.configuracion_sistema.findMany({
+        orderBy: [{ categoria: 'asc' }, { clave: 'asc' }],
+      });
+      return NextResponse.json(serializeBigInt({
+        data: agruparPorCategoria(configsInit),
+        flat: serializeBigInt(configsInit),
+      }));
     }
 
-    // Configuración por defecto (en un caso real, esto vendría de una tabla de configuración)
-    const config = {
-      empresa: {
-        nombreEmpresa: 'GUOR - Modas y Estilos',
-        ruc: '20123456789',
-        contacto: '+51 987654321',
-        email: 'info@guor.com',
-        direccion: 'Av. Principal 123, Lima',
-        ciudad: 'Lima',
-        pais: 'Perú'
-      },
-      tienda: {
-        nombreTienda: 'GUOR Shop',
-        descripcion: 'Tienda de ropa y textiles',
-        moneda: 'PEN',
-        zonaHoraria: 'America/Lima'
-      },
-      usuarios: usuarios || [],
-      pagos: {
-        metodos: [
-          { nombre: 'Tarjeta Crédito', activo: true },
-          { nombre: 'Transferencia Bancaria', activo: true },
-          { nombre: 'Efectivo', activo: false },
-          { nombre: 'Billetera Digital', activo: true }
-        ]
-      },
-      impuestos: {
-        igv: 18,
-        descuentoDefault: 0
-      }
-    };
-
-    return NextResponse.json({ data: config });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json(serializeBigInt({
+      data: agruparPorCategoria(configs),
+      flat: serializeBigInt(configs),
+    }));
+  } catch (error: any) {
+    console.error('Error fetching configuracion:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+// PATCH: Actualizar uno o varios ajustes
+export async function PATCH(req: Request) {
   try {
-    const supabase = createClient();
-    const body = await request.json();
+    const body = await req.json();
+    const { settings, updated_by } = body;
 
-    // En un caso real, esto guardaría en una tabla de configuración
-    // Por ahora, simulamos que se guarda correctamente
-    console.log('Guardando configuración:', body);
+    if (!settings || typeof settings !== 'object') {
+      return NextResponse.json(
+        { error: 'Se requiere un objeto "settings" con las claves a actualizar' },
+        { status: 400 }
+      );
+    }
 
-    // Aquí iría la lógica para guardar en base de datos
-    // const { data, error } = await supabase.from('configuracion').upsert(body);
+    const entries = Object.entries(settings);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Configuración guardada correctamente'
+    // Validar que las claves existan
+    const existingConfigs = await prisma.configuracion_sistema.findMany({
+      where: { clave: { in: entries.map(([k]) => k) } },
     });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+
+    const existingKeys = new Set(existingConfigs.map((c) => c.clave));
+
+    // Actualizar existentes
+    const updates = entries
+      .filter(([key]) => existingKeys.has(key))
+      .map(([clave, valor]) =>
+        prisma.configuracion_sistema.update({
+          where: { clave },
+          data: {
+            valor: String(valor),
+            updated_by: updated_by ?? null,
+          },
+        })
+      );
+
+    // Crear las que no existan
+    const creates = entries
+      .filter(([key]) => !existingKeys.has(key))
+      .map(([clave, valor]) => {
+        const def = CONFIG_DEFAULTS[clave];
+        return prisma.configuracion_sistema.create({
+          data: {
+            clave,
+            valor: String(valor),
+            categoria: def?.categoria ?? 'general',
+            descripcion: def?.descripcion ?? null,
+            tipo_dato: def?.tipo_dato ?? 'string',
+            updated_by: updated_by ?? null,
+          },
+        });
+      });
+
+    const results = await prisma.$transaction([...updates, ...creates]);
+
+    // Devolver configuración actualizada
+    const allConfigs = await prisma.configuracion_sistema.findMany({
+      orderBy: [{ categoria: 'asc' }, { clave: 'asc' }],
+    });
+
+    return NextResponse.json(serializeBigInt({
+      success: true,
+      updated: results.length,
+      data: agruparPorCategoria(allConfigs),
+    }));
+  } catch (error: any) {
+    console.error('Error updating configuracion:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Configuración no encontrada' }, { status: 404 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function agruparPorCategoria(configs: { clave: string; valor: string; categoria: string; tipo_dato: string }[]) {
+  const grouped: Record<string, Record<string, string | number | boolean>> = {};
+
+  for (const c of configs) {
+    if (!grouped[c.categoria]) grouped[c.categoria] = {};
+    grouped[c.categoria][c.clave] = parsearValor(c.valor, c.tipo_dato);
+  }
+
+  return grouped;
+}
+
+function parsearValor(valor: string, tipo: string): string | number | boolean {
+  if (tipo === 'number') return Number(valor);
+  if (tipo === 'boolean') return valor === 'true';
+  return valor;
+}
+
+async function inicializarConfiguracion() {
+  const entries = Object.entries(CONFIG_DEFAULTS);
+  await prisma.configuracion_sistema.createMany({
+    data: entries.map(([clave, def]) => ({
+      clave,
+      valor: def.valor,
+      categoria: def.categoria,
+      descripcion: def.descripcion,
+      tipo_dato: def.tipo_dato,
+    })),
+  });
 }

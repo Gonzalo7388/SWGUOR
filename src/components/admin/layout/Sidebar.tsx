@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, Menu, X,
   LogOut, Boxes, Truck, FileText, Scissors, Building,
   DollarSign, Bell, Grid3x3, ChevronDown, Settings, User,
-  BarChart3, Crown
+  BarChart3, Crown, Handshake
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Database } from '@/types/database';
@@ -66,6 +66,14 @@ const navItems: NavItem[] = [
       { title: 'Inventario', href: '/admin/Panel-Administrativo/inventario', icon: Boxes },
       { title: 'Confecciones', href: '/admin/Panel-Administrativo/confecciones', icon: Scissors },
       { title: 'Talleres', href: '/admin/Panel-Administrativo/talleres', icon: Building },
+    ],
+  },
+  {
+    title: 'Abastecimiento',
+    icon: Handshake,
+    roles: ['administrador'],
+    subItems: [
+      { title: 'Proveedores', href: '/admin/Panel-Administrativo/proveedores', icon: Handshake },
     ],
   },
   {

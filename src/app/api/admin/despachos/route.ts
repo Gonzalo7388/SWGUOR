@@ -1,137 +1,228 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+const ESTADOS_VALIDOS = ['pendiente', 'en_ruta', 'entregado', 'preparando', 'incidencia'] as const;
+
+// GET: Listado de despachos con filtros
+export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
-    const searchParams = request.nextUrl.searchParams;
-    const estadoFilter = searchParams.get('estado');
+    const { searchParams } = new URL(req.url);
+    const estado = searchParams.get('estado');
+    const pedidoId = searchParams.get('pedido_id');
+    const usuarioId = searchParams.get('usuario_id');
 
-    let query = supabase
-      .from('despachos')
-      .select(`
-        *,
-        usuario:usuarios (id, nombre_completo),
-        pedido:pedidos (
-          id,
-          cliente_id,
-          direccion_envio,
-          cliente:clientes (id, razon_social)
-        )
-      `)
-      .order('created_at', { ascending: false });
+    const where: Record<string, unknown> = {};
+    if (estado && estado !== 'todos') where.estado = estado;
+    if (pedidoId) where.pedido_id = BigInt(pedidoId);
+    if (usuarioId) where.usuario_id = BigInt(usuarioId);
 
-    if (estadoFilter && estadoFilter !== 'todos') {
-      query = query.eq('estado', estadoFilter);
-    }
+    const despachos = await prisma.despachos.findMany({
+      where,
+      include: {
+        pedido: {
+          include: {
+            clientes: { select: { id: true, razon_social: true } },
+          },
+        },
+        usuario: { select: { id: true, nombre_completo: true } },
+      },
+      orderBy: { fecha_despacho: 'desc' },
+    });
 
-    const { data: despachos, error } = await query;
-
-    if (error) {
-      console.error('Error fetching despachos:', error);
-      return NextResponse.json(
-        { error: 'Error al obtener despachos' },
-        { status: 500 }
-      );
-    }
-
-    // Formato de respuesta
-    const formattedData = (despachos || []).map((desp: any) => ({
-      id: desp.id,
-      despacho_id: `DSP-${String(desp.id).padStart(6, '0')}`,
-      orden: desp.pedido?.id || 'N/A',
-      cliente: desp.pedido?.cliente?.razon_social || 'N/A',
-      direccion: desp.direccion_entrega || desp.pedido?.direccion_envio || 'N/A',
-      estado: desp.estado,
-      transportista: getTransportista(desp.id),
-      tracking: `TRK-${String(desp.id).padStart(8, '0')}`,
-      fechaEntrega: desp.fecha_entrega || null,
-      fechaDespacho: desp.fecha_despacho,
-      usuario: desp.usuario?.nombre_completo || 'N/A'
+    const data = despachos.map((d) => ({
+      ...serializeBigInt(d),
+      despacho_id: `DSP-${String(d.id).padStart(6, '0')}`,
+      cliente: d.pedido?.clientes?.razon_social ?? 'N/A',
+      direccion: d.direccion_entrega,
+      usuario_nombre: d.usuario?.nombre_completo ?? 'N/A',
     }));
 
-    return NextResponse.json({
-      data: formattedData,
-      count: formattedData.length
-    });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ data, count: data.length });
+  } catch (error: any) {
+    console.error('Error fetching despachos:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+// POST: Crear despacho vinculado a un pedido
+export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const body = await request.json();
+    const body = await req.json();
 
-    const { data, error } = await supabase
-      .from('despachos')
-      .insert({
-        pedido_id: body.pedido_id,
-        usuario_id: body.usuario_id,
-        direccion_entrega: body.direccion_entrega,
-        estado: 'pendiente'
-      })
-      .select();
-
-    if (error) {
-      console.error('Error creating despacho:', error);
+    if (!body.pedido_id || !body.usuario_id || !body.direccion_entrega) {
       return NextResponse.json(
-        { error: 'Error al crear despacho' },
-        { status: 500 }
+        { error: 'pedido_id, usuario_id y direccion_entrega son obligatorios' },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({ data: data?.[0] }, { status: 201 });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    const pedidoId = BigInt(body.pedido_id);
+    const usuarioId = BigInt(body.usuario_id);
+
+    // Validar que el pedido existe
+    const pedido = await prisma.pedidos.findUnique({
+      where: { id: pedidoId },
+      include: {
+        clientes: { select: { id: true, razon_social: true } },
+      },
+    });
+
+    if (!pedido) {
+      return NextResponse.json(
+        { error: `El pedido #${pedidoId} no existe` },
+        { status: 404 }
+      );
+    }
+
+    // Validar que no exista ya un despacho activo para este pedido
+    const despachoExistente = await prisma.despachos.findFirst({
+      where: {
+        pedido_id: pedidoId,
+        estado: { in: ['pendiente', 'preparando', 'en_ruta'] },
+      },
+    });
+
+    if (despachoExistente) {
+      return NextResponse.json(
+        { error: 'Ya existe un despacho activo para este pedido' },
+        { status: 409 }
+      );
+    }
+
+    const despacho = await prisma.despachos.create({
+      data: {
+        pedido_id: pedidoId,
+        usuario_id: usuarioId,
+        direccion_entrega: body.direccion_entrega.trim(),
+        fecha_despacho: body.fecha_despacho
+          ? new Date(body.fecha_despacho)
+          : new Date(),
+        estado: body.estado ?? 'pendiente',
+      },
+      include: {
+        pedido: {
+          include: {
+            clientes: { select: { razon_social: true } },
+          },
+        },
+        usuario: { select: { nombre_completo: true } },
+      },
+    });
+
+    return NextResponse.json(serializeBigInt({
+      ...despacho,
+      despacho_id: `DSP-${String(despacho.id).padStart(6, '0')}`,
+    }), { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating despacho:', error);
+    if (error.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Pedido o usuario no encontrado' },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function PUT(request: NextRequest) {
+// PATCH: Actualizar estado de entrega
+export async function PATCH(req: Request) {
   try {
-    const supabase = await createClient();
-    const body = await request.json();
+    const body = await req.json();
     const { id, estado, fecha_entrega } = body;
 
-    const updateData: any = { estado };
-    if (estado === 'entregado' && fecha_entrega) {
-      updateData.fecha_entrega = fecha_entrega;
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('despachos')
-      .update(updateData)
-      .eq('id', id)
-      .select();
-
-    if (error) {
-      console.error('Error updating despacho:', error);
-      return NextResponse.json(
-        { error: 'Error al actualizar despacho' },
-        { status: 500 }
-      );
+    // Validar estado
+    if (estado) {
+      const normalizedEstado = estado.toLowerCase().trim();
+      if (!ESTADOS_VALIDOS.includes(normalizedEstado as any)) {
+        return NextResponse.json(
+          { error: `Estado inválido. Debe ser uno de: ${ESTADOS_VALIDOS.join(', ')}` },
+          { status: 400 }
+        );
+      }
     }
 
-    return NextResponse.json({ data: data?.[0] });
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    const despacho = await prisma.$transaction(async (tx) => {
+      // Obtener despacho actual
+      const existing = await tx.despachos.findUnique({
+        where: { id: BigInt(id) },
+        include: {
+          pedido: { include: { clientes: { select: { razon_social: true } } } },
+        },
+      });
+
+      if (!existing) {
+        throw new Error('Despacho no encontrado');
+      }
+
+      // Construir data
+      const data: Record<string, unknown> = {};
+      if (estado) data.estado = estado.toLowerCase().trim();
+
+      // Si se marca como entregado, registrar fecha de entrega
+      if (data.estado === 'entregado') {
+        data.fecha_entrega = fecha_entrega ? new Date(fecha_entrega) : new Date();
+      }
+
+      // Actualizar despacho
+      const updated = await tx.despachos.update({
+        where: { id: BigInt(id) },
+        data,
+        include: {
+          pedido: { include: { clientes: { select: { razon_social: true } } } },
+          usuario: { select: { nombre_completo: true } },
+        },
+      });
+
+      // Si se entregó, actualizar estado del pedido
+      if (data.estado === 'entregado' && existing.pedido) {
+        await tx.pedidos.update({
+          where: { id: existing.pedido_id },
+          data: { estado: 'completado' },
+        });
+      }
+
+      return updated;
+    });
+
+    return NextResponse.json(serializeBigInt({
+      ...despacho,
+      despacho_id: `DSP-${String(despacho.id).padStart(6, '0')}`,
+    }));
+  } catch (error: any) {
+    console.error('Error updating despacho:', error);
+    if (error.code === 'P2025' || error.message === 'Despacho no encontrado') {
+      return NextResponse.json({ error: 'Despacho no encontrado' }, { status: 404 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-function getTransportista(id: number): string {
-  const transportistas = ['Olva Courier', 'Shalom Express', 'InkaExpress'];
-  return transportistas[id % transportistas.length];
+// DELETE: Eliminar un despacho
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    }
+
+    await prisma.despachos.delete({
+      where: { id: BigInt(id) },
+    });
+
+    return NextResponse.json({ message: 'Despacho eliminado correctamente' });
+  } catch (error: any) {
+    console.error('Error deleting despacho:', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Despacho no encontrado' }, { status: 404 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

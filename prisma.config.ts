@@ -1,14 +1,17 @@
-import 'dotenv/config' // <--- ¡Añade esta línea mágica al principio!
+import 'dotenv/config'
 import { defineConfig } from '@prisma/config'
 
 export default defineConfig({
-  // 1. Le decimos a Prisma dónde están tus archivos divididos
+  // Al no poner ".prisma" al final, Prisma sabe que debe leer 
+  // todos los archivos dentro de la carpeta "prisma/schema"
   schema: 'prisma/schema', 
   
-  // 2. Aquí es donde ahora viven tus conexiones para las migraciones (CLI)
   datasource: {
+    // Puerto 6543
     url: process.env.DATABASE_URL,
-    // @ts-ignore: 'directUrl' no está en los tipos actuales pero es necesario para la conexión
+    
+    // Puerto 5432 (Para evitar el error de prepared statement "s1")
+    // @ts-ignore
     directUrl: process.env.DIRECT_URL,
   },
 })
