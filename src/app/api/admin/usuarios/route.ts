@@ -6,7 +6,7 @@ type RolUsuario    = Database['public']['Enums']['RolPersonal'];
 type EstadoUsuario = Database['public']['Enums']['EstadoUsuario'];
 
 // Valores válidos extraídos del schema (enum de Supabase)
-const ROLES_VALIDOS: RolUsuario[]    = ['administrador', 'cortador', 'disenador', 'recepcionista', 'ayudante', 'representante_taller', 'cliente'];
+const ROLES_VALIDOS: RolUsuario[]    = ['administrador', 'cortador', 'disenador', 'recepcionista', 'ayudante', 'representante_taller', 'cliente', 'gerente'];
 const ESTADOS_VALIDOS: EstadoUsuario[] = ['activo', 'inactivo', 'suspendido'];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
