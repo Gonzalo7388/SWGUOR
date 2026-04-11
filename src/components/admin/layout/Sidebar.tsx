@@ -5,17 +5,16 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, Package, ShoppingCart, Users, Menu, X,
-  LogOut, Boxes, Truck, FileText, Scissors, Building,
-  DollarSign, Bell, Grid3x3, ChevronDown, Settings, User,
-  BarChart3, Crown
+  LayoutDashboard, ShoppingCart, Users, Menu, X,
+  LogOut, Boxes, Scissors, Building,
+  Bell, ChevronDown, Crown, Shirt, Sparkles, Inbox,
+  BarChart3, ShieldCheck, LucideIcon
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Database } from '@/types/database';
-import { LucideIcon } from 'lucide-react';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 
 type Usuario = Database['public']['Tables']['usuarios']['Row'];
-import { usePermissions } from '@/lib/hooks/usePermissions';
 
 type NavItem = {
   title: string;
@@ -25,225 +24,175 @@ type NavItem = {
   subItems?: { title: string; href: string; icon?: LucideIcon }[];
 };
 
-const navItems: NavItem[] = [
-  {
-    title: 'Dashboard',
-    href: '/admin/Panel-Administrativo/dashboard',
-    icon: LayoutDashboard,
-    roles: ['administrador', 'recepcionista', 'diseñador', 'cortador', 'ayudante', 'representante_taller'],
-  },
-  {
-    title: 'Reportes',
-    href: '/admin/Panel-Administrativo/reportes',
-    icon: BarChart3,
-    roles: ['administrador'],
-  },
-  {
-    title: 'Catálogo',
-    icon: Package,
-    roles: ['administrador', 'diseñador'],
-    subItems: [
-      { title: 'Productos', href: '/admin/Panel-Administrativo/productos', icon: Package },
-      { title: 'Categorías', href: '/admin/Panel-Administrativo/categorias', icon: Grid3x3 },
-    ],
-  },
-  {
-    title: 'Ventas y Pedidos',
-    icon: ShoppingCart,
-    roles: ['administrador', 'recepcionista', 'diseñador'],
-    subItems: [
-      { title: 'Ventas', href: '/admin/Panel-Administrativo/ventas', icon: DollarSign },
-      { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart },
-      { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones', icon: FileText },
-      { title: 'Pagos', href: '/admin/Panel-Administrativo/pagos', icon: DollarSign },
-    ],
-  },
-  {
-    title: 'Producción',
-    icon: Scissors,
-    roles: ['administrador', 'cortador', 'representante_taller'],
-    subItems: [
-      { title: 'Inventario', href: '/admin/Panel-Administrativo/inventario', icon: Boxes },
-      { title: 'Confecciones', href: '/admin/Panel-Administrativo/confecciones', icon: Scissors },
-      { title: 'Talleres', href: '/admin/Panel-Administrativo/talleres', icon: Building },
-    ],
-  },
-  {
-    title: 'Logística',
-    icon: Truck,
-    roles: ['administrador', 'ayudante'],
-    subItems: [
-      { title: 'Despachos', href: '/admin/Panel-Administrativo/despachos', icon: Truck },
-    ],
-  },
-  {
-    title: 'Personas',
-    icon: Users,
-    roles: ['administrador'],
-    subItems: [
-      { title: 'Clientes', href: '/admin/Panel-Administrativo/clientes', icon: Users },
-      { title: 'Usuarios', href: '/admin/Panel-Administrativo/usuarios', icon: Users },
-    ],
-  },
-  {
-    title: 'Notificaciones',
-    href: '/admin/Panel-Administrativo/notificaciones',
-    icon: Bell,
-    roles: ['administrador', 'recepcionista', 'diseñador', 'cortador', 'ayudante', 'representante_taller'],
-  },
-  {
-    title: 'Configuración',
-    href: '/admin/Panel-Administrativo/configuracion',
-    icon: Settings,
-    roles: ['administrador'],
-  }
-];
-
-export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
-  const router = useRouter();
+export default function Sidebar({ usuario }: { usuario: Usuario }) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const pathname = usePathname();
-  const { can, isAdmin } = usePermissions();
+  const router = useRouter();
+  const { can } = usePermissions();
 
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  const filteredNavItems = useMemo(() => {
-    return navItems
-      .map(item => {
-        if (item.subItems) {
-          const allowedSubItems = item.subItems.filter(sub => {
-            const resourceName = sub.title.toLowerCase().trim();
-            const resourceKey = resourceName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return can('view', resourceKey);
-          });
-          if (allowedSubItems.length === 0 && !item.href) return null;
-          return { ...item, subItems: allowedSubItems };
-        }
-        const resourceName = item.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (resourceName === 'dashboard' || can('view', resourceName)) {
-          return item;
-        }
-        return null;
-      })
-      .filter((item): item is NavItem => item !== null);
-  }, [can]);
+  const navItems: NavItem[] = useMemo(() => {
+    const items: NavItem[] = [
+      {
+        title: 'Dashboard',
+        icon: LayoutDashboard,
+        roles: ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
+        href: usuario.rol === 'gerente' ? undefined : '/admin/Panel-Administrativo/dashboard',
+        subItems: usuario.rol === 'gerente' ? [
+          { title: 'Vista Gerente', href: '/admin/Panel-Administrativo/dashboard', icon: BarChart3 },
+          { title: 'Diseñador', href: '/admin/Panel-Administrativo/dashboard/disenador', icon: Sparkles },
+          { title: 'Cortador', href: '/admin/Panel-Administrativo/dashboard/cortador', icon: Scissors },
+          { title: 'Recepcionista', href: '/admin/Panel-Administrativo/dashboard/recepcionista', icon: Bell },
+          { title: 'Ayudante', href: '/admin/Panel-Administrativo/dashboard/ayudante', icon: Inbox },
+          { title: 'Taller Externo', href: '/admin/Panel-Administrativo/dashboard/representante_taller', icon: Building },
+          { title: 'Administrador', href: '/admin/Panel-Administrativo/dashboard/administrador', icon: ShieldCheck },
+        ] : undefined
+      },
+      {
+        title: 'Pedidos',
+        href: '/admin/Panel-Administrativo/pedidos',
+        icon: ShoppingCart,
+        roles: ['administrador', 'recepcionista', 'gerente'],
+      },
+      {
+        title: 'Productos',
+        href: '/admin/Panel-Administrativo/productos',
+        icon: Shirt,
+        roles: ['administrador', 'disenador', 'gerente'],
+      },
+      {
+        title: 'Inventario',
+        href: '/admin/Panel-Administrativo/inventario',
+        icon: Boxes,
+        roles: ['administrador', 'ayudante', 'gerente'],
+      },
+      {
+        title: 'Producción',
+        href: '/admin/Panel-Administrativo/produccion',
+        icon: Scissors,
+        roles: ['administrador', 'cortador', 'representante_taller', 'gerente'],
+      },
+      {
+        title: 'Clientes',
+        href: '/admin/Panel-Administrativo/clientes',
+        icon: Users,
+        roles: ['administrador', 'recepcionista', 'gerente'],
+      }
+    ];
+    return items;
+  }, [usuario.rol]);
 
   const handleLogout = async () => {
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
-    // Usar window.location para una redirección más limpia que evita estados transitorios
-    window.location.href = '/auth/login';
+    router.push('/login');
   };
 
-  const toggleMenu = (title: string) => {
-    setOpenMenus(prev =>
-      prev.includes(title)
-        ? prev.filter(item => item !== title)
-        : [...prev, title]
-    );
+  const toggleSubmenu = (title: string) => {
+    setOpenSubmenu(prev => prev === title ? null : title);
   };
 
   return (
-    <>
-      {/* Botón móvil optimizado */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-3 left-4 z-50 p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-all"
-      >
-        {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
-      {/* Overlay móvil */}
-      {isMobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/40 z-30 backdrop-blur-sm"
-          onClick={() => setIsMobileOpen(false)}
-        />
+    <aside 
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-100 transition-all duration-300 shadow-xl",
+        isOpen ? "w-72" : "w-20"
       )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "flex flex-col h-screen transition-all duration-300 ease-in-out border-r border-slate-100",
-          "w-72",
-          "fixed lg:sticky top-0 z-40 bg-[#fffdf7]",
-          "overflow-hidden",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        )}
-      >
-
-        {/* Header - Logo */}
-        <div className="h-24 flex items-center justify-center border-b border-slate-100/50">
-          <div className="flex items-center gap-3 w-full px-6 animate-in fade-in duration-300">
-            {/* Contenedor del logo */}
-            <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+    >
+      <div className="flex flex-col h-full">
+        {/* Header Logo */}
+        <div className="p-6 flex items-center justify-between">
+          {isOpen && (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center">
+                <Crown className="text-white w-5 h-5" />
+              </div>
+              <span className="font-black text-slate-900 tracking-tighter text-xl">GUOR .</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-extrabold text-slate-950 text-xl leading-tight truncate tracking-tighter">GUOR</h1>
-              <p className="text-[10px] uppercase tracking-widest text-rose-600 font-bold truncate">
-                Admin Panel
-              </p>
-            </div>
-          </div>
+          )}
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors"
+          >
+            {isOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
 
-        {/* Navegación - Contenedor Principal */}
-        <nav className="flex-1 px-3 mt-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon;
-            const isOpen = openMenus.includes(item.title);
-            const isActive = item.href === pathname ||
-              item.subItems?.some(s => s.href === pathname);
+        {/* Perfil */}
+        {isOpen && (
+          <div className="px-6 py-4 mb-4">
+            <div className="bg-slate-50 rounded-[2rem] p-4 flex items-center gap-3 border border-slate-100">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-900 font-bold shrink-0">
+                {usuario.nombre_completo?.charAt(0) || 'U'}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-black text-slate-900 truncate uppercase tracking-tight">
+                  {usuario.nombre_completo || 'Usuario'}
+                </p>
+                <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest italic">
+                  {usuario.rol}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navegación */}
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+          {navItems.map((item) => {
+            const hasAccess = item.roles.includes(usuario.rol || '');
+            const isSelected = item.href ? pathname?.startsWith(item.href) : false;
+            const hasSubItems = !!(item.subItems && item.subItems.length > 0);
+            const isSubmenuOpen = openSubmenu === item.title;
+
+            if (!hasAccess) return null;
 
             return (
-              <div key={item.title}>
-                {item.subItems ? (
+              <div key={item.title} className="space-y-1">
+                {hasSubItems ? (
                   <button
-                    onClick={() => toggleMenu(item.title)}
+                    onClick={() => toggleSubmenu(item.title)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-semibold text-sm",
-                      isActive
-                        ? "bg-rose-50 text-rose-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      "w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all group",
+                      isSubmenuOpen ? "bg-slate-900 text-white shadow-lg" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                     )}
                   >
-                    <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                    <>
-                      <span className="flex-1 text-left">{item.title}</span>
-                      <ChevronDown size={16} className={cn("transition-transform text-slate-400", isOpen && "rotate-180")} />
-                    </>
+                    <item.icon size={22} className={cn(isSubmenuOpen ? "text-pink-500" : "group-hover:text-slate-900")} />
+                    {isOpen && (
+                      <>
+                        <span className="flex-1 text-sm font-bold text-left">{item.title}</span>
+                        <ChevronDown size={16} className={cn("transition-transform duration-200", isSubmenuOpen && "rotate-180")} />
+                      </>
+                    )}
                   </button>
                 ) : (
                   <Link
-                    href={item.href!}
-                    onClick={() => setIsMobileOpen(false)}
+                    href={item.href || '#'}
                     className={cn(
-                      "flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-semibold text-sm",
-                      pathname === item.href
-                        ? "bg-rose-50 text-rose-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      "flex items-center gap-3 p-3.5 rounded-2xl transition-all group",
+                      isSelected ? "bg-slate-900 text-white shadow-lg" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                     )}
                   >
-                    <Icon size={22} strokeWidth={pathname === item.href ? 2.5 : 2} />
-                    <span>{item.title}</span>
+                    <item.icon size={22} className={cn(isSelected ? "text-pink-500" : "group-hover:text-slate-900")} />
+                    {isOpen && <span className="text-sm font-bold">{item.title}</span>}
                   </Link>
                 )}
 
-                {/* Submenu animado */}
-                {isOpen && item.subItems && (
-                  <div className="ml-10 mt-1 space-y-1 animate-in slide-in-from-top-1 duration-200">
-                    {item.subItems.map(sub => (
+                {/* Subitems */}
+                {isOpen && hasSubItems && isSubmenuOpen && (
+                  <div className="ml-6 space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {item.subItems?.map((sub) => (
                       <Link
                         key={sub.href}
                         href={sub.href}
                         className={cn(
-                          "flex items-center gap-2.5 py-2.5 px-3 text-xs font-semibold rounded-lg transition-all",
-                          pathname === sub.href
-                            ? "text-rose-700 bg-rose-100/50"
-                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                          "flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border-l-2",
+                          pathname === sub.href 
+                            ? "text-pink-600 bg-pink-50 border-pink-500" 
+                            : "text-slate-400 border-transparent hover:text-slate-900 hover:bg-slate-50"
                         )}
                       >
+                        {sub.icon && <sub.icon size={14} />}
                         {sub.title}
                       </Link>
                     ))}
@@ -254,17 +203,17 @@ export default function AdminSidebar({ usuario }: { usuario: Usuario }) {
           })}
         </nav>
 
-        {/* Footer - Logout */}
-        <div className="p-4 border-t border-slate-100/50">
+        {/* Logout */}
+        <div className="p-4 border-t border-slate-100">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full p-3.5 rounded-2xl text-slate-500 hover:text-white hover:bg-slate-950 transition-all"
           >
             <LogOut size={22} />
-            <span className="text-sm font-bold">Cerrar Sesión</span>
+            {isOpen && <span className="text-sm font-bold uppercase tracking-widest">Cerrar Sesión</span>}
           </button>
         </div>
-      </aside>
-    </>
+      </div>
+    </aside>
   );
 }

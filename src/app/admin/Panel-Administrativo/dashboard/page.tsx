@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { Loader2, UserX, AlertTriangle } from "lucide-react";
 
-const AdminDashboard        = dynamic(() => import('@/components/admin/dashboards/DashboardAdmin'));
+const AdminDashboard        = dynamic(() => import('@/components/admin/dashboards/DashboardAdministrador'));
 const DashboardAyudante     = dynamic(() => import('@/components/admin/dashboards/DashboardAyudante'));
 const DashboardCortador     = dynamic(() => import('@/components/admin/dashboards/DashboardCortador'));
 const DashboardDisenador    = dynamic(() => import('@/components/admin/dashboards/DashboardDisenador'));
