@@ -5,19 +5,19 @@ import { NextResponse, type NextRequest } from 'next/server';
 const routePermissions: Record<string, string[]> = {
   // --- Rutas Administrativas (Staff) ---
   '/admin/Panel-Administrativo/dashboard': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
-  '/admin/Panel-Administrativo/usuarios': ['administrador'],
-  '/admin/Panel-Administrativo/clientes': ['administrador', 'recepcionista'],
-  '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'disenador', 'cortador'],
-  '/admin/Panel-Administrativo/productos': ['administrador', 'disenador'],
-  '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador'],
-  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller'],
-  '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista'],
-  '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador'],
-  '/admin/Panel-Administrativo/talleres': ['administrador'],
-  '/admin/Panel-Administrativo/ventas': ['administrador', 'recepcionista'],
-  '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista'],
-  '/admin/Panel-Administrativo/pagos': ['administrador'],
-  '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
+  '/admin/Panel-Administrativo/usuarios': ['administrador', 'gerente'],
+  '/admin/Panel-Administrativo/clientes': ['administrador', 'recepcionista', 'gerente'],
+  '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'disenador', 'cortador', 'gerente'],
+  '/admin/Panel-Administrativo/productos': ['administrador', 'disenador', 'gerente'],
+  '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador', 'gerente'],
+  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente'],
+  '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista', 'gerente'],
+  '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador', 'gerente'],
+  '/admin/Panel-Administrativo/talleres': ['administrador', 'gerente'],
+  '/admin/Panel-Administrativo/ventas': ['administrador', 'recepcionista', 'gerente'],
+  '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista', 'gerente'],
+  '/admin/Panel-Administrativo/pagos': ['administrador', 'gerente'],
+  '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
 
   // --- Rutas del Portal B2B (Clientes) ---
   '/portal/dashboard': ['cliente'],
@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
     // Si no hay sesión, todos van al MISMO login
     if (!user) {
       const loginUrl = new URL('/auth/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname); // Guardamos a dónde quería ir
+      loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
@@ -81,8 +81,7 @@ export async function middleware(request: NextRequest) {
 
     const userRole = usuario.rol?.toLowerCase();
 
-    // 4. VALIDACIÓN CRUZADA (Seguridad de Tesis)
-    // Evitar que un cliente entre a /admin y que un admin entre a /portal
+    // 4. VALIDACIÓN CRUZADA
     if (pathname.startsWith('/admin') && userRole === 'cliente') {
       return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
     }
@@ -97,8 +96,13 @@ export async function middleware(request: NextRequest) {
     const matchedRoute = Object.keys(routePermissions)
       .find(route => pathname.startsWith(route));
 
-    if (matchedRoute && !routePermissions[matchedRoute].includes(userRole)) {
-      return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
+    if (matchedRoute) {
+      const rolesPermitidos = routePermissions[matchedRoute];
+      const esSuperUsuario = userRole === 'gerente' || userRole === 'administrador';
+      
+      if (!esSuperUsuario && !rolesPermitidos.includes(userRole)) {
+        return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
+      }
     }
   }
 
