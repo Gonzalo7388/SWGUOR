@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 // 1. CONFIGURACIÓN DE PERMISOS EXTENDIDA
 const routePermissions: Record<string, string[]> = {
   // --- Rutas Administrativas (Staff) ---
-  '/admin/Panel-Administrativo/dashboard': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
+  '/admin/Panel-Administrativo/dashboard': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
   '/admin/Panel-Administrativo/usuarios': ['administrador'],
   '/admin/Panel-Administrativo/clientes': ['administrador', 'recepcionista'],
   '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'disenador', 'cortador'],
