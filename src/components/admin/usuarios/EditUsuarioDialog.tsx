@@ -7,47 +7,108 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserCog, ShieldCheck, User, Mail, Fingerprint } from "lucide-react";
+import { UserCog, ShieldCheck, User, Mail } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { Database } from "@/types/database";
-type RolUsuario = Database['public']['Enums']['RolPersonal'];
+
+type RolUsuario    = Database['public']['Enums']['RolPersonal'];
+
+// Tipado estricto basado en el esquema real
+type UsuarioRow = Database['public']['Tables']['usuarios']['Row'];
 
 const ROLES_SISTEMA: { value: RolUsuario; label: string }[] = [
-  { value: "gerente", label: "Gerente General" },
-  { value: "administrador", label: "Administrador" },
-  { value: "recepcionista", label: "Recepcionista" },
-  { value: "disenador", label: "Diseñador" },
-  { value: "cortador", label: "Cortador" },
-  { value: "ayudante", label: "Ayudante" },
+  { value: "gerente",              label: "Gerente General"         },
+  { value: "administrador",        label: "Administrador"           },
+  { value: "recepcionista",        label: "Recepcionista"           },
+  { value: "disenador",            label: "Diseñador"               },
+  { value: "cortador",             label: "Cortador"                },
+  { value: "ayudante",             label: "Ayudante"                },
   { value: "representante_taller", label: "Representante de Taller" },
+  { value: "cliente",              label: "Cliente"                 },
 ];
 
-export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario }: any) {
-  const [loading, setLoading] = useState(false);
-  const [rolSeleccionado, setRolSeleccionado] = useState<RolUsuario>(usuario?.rol);
+interface EditUsuarioDialogProps {
+  isOpen:    boolean;
+  onClose:   () => void;
+  onSuccess: () => void;
+  usuario:   UsuarioRow;
+}
+
+export default function EditUsuarioDialog({
+  isOpen, onClose, onSuccess, usuario,
+}: EditUsuarioDialogProps) {
+  const [loading,         setLoading]         = useState(false);
+  const [rolSeleccionado, setRolSeleccionado] = useState<RolUsuario | null>(usuario?.rol ?? null);
+  const [rolActual,       setRolActual]       = useState<RolUsuario | null>(null);
+
+  // ── Derivado: solo "administrador" puede editar el email ──────────────────
+  const puedeEditarEmail = rolActual === 'administrador';
+
+  // ── Obtener rol del usuario autenticado via auth_id (uuid) ───────────────
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchRolActual = async () => {
+      const supabase = getSupabaseBrowserClient();
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) return;
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('rol')
+        .eq('auth_id', user.id)   // ← auth_id es el uuid que enlaza con auth.users
+        .single();
+
+      if (!error && data?.rol) {
+        setRolActual(data.rol as RolUsuario);
+      }
+    };
+
+    fetchRolActual();
+  }, [isOpen]);
 
   useEffect(() => {
-    if (usuario) {
-      setRolSeleccionado(usuario.rol);
-    }
+    if (usuario) setRolSeleccionado(usuario.rol ?? null);
   }, [usuario]);
+
+  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.target.value = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+
     const formData = new FormData(e.currentTarget);
-    const data = { ...Object.fromEntries(formData), id: usuario.id, rol: rolSeleccionado };
+
+    // Campos editables según el esquema: nombre_completo, email (si admin), rol, telefono
+    const payload: Partial<UsuarioRow> & { id: number } = {
+      id:             usuario.id,                               // bigint
+      nombre_completo: formData.get('nombre_completo') as string,
+      rol:            rolSeleccionado ?? undefined,
+      // telefono es bigint en el esquema — convertir o enviar null
+      telefono:       formData.get('telefono')
+                        ? Number(formData.get('telefono'))
+                        : null,
+    };
+
+    // Email solo si el rol actual lo permite — protección doble (UI + payload)
+    if (puedeEditarEmail) {
+      payload.email = formData.get('email') as string;
+    }
 
     try {
       const res = await fetch("/api/admin/usuarios", {
-        method: "PATCH",
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body:    JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
       toast.success("Perfil actualizado con éxito");
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch {
       toast.error("No se pudieron guardar los cambios");
     } finally {
       setLoading(false);
@@ -57,9 +118,8 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[450px] border-none shadow-2xl bg-white p-0 overflow-hidden">
-        {/* Banner decorativo superior */}
         <div className="h-2 bg-pink-600 w-full" />
-        
+
         <div className="p-6">
           <DialogHeader className="mb-6">
             <div className="flex items-center gap-3">
@@ -78,40 +138,77 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Campo: Nombre */}
+
+            {/* Nombre completo */}
             <div className="space-y-2">
               <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
                 <User className="w-3.5 h-3.5" /> Nombre Completo
               </Label>
-              <Input 
-                name="nombre_completo" 
-                defaultValue={usuario?.nombre_completo} 
-                required 
+              <Input
+                name="nombre_completo"
+                defaultValue={usuario?.nombre_completo}
+                required
                 placeholder="Nombre del colaborador"
+                onChange={handleNombreChange}
                 className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
               />
+              <p className="text-[9px] text-slate-400 italic">Solo se permiten letras, espacios y acentos</p>
             </div>
 
-            {/* Campo: Email (Informativo o editable según tu lógica) */}
-            <div className="space-y-2 opacity-80">
+            {/* Email — solo editable para administrador */}
+            <div className="space-y-2">
               <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5" /> Correo Electrónico
+                {puedeEditarEmail && (
+                  <span className="text-pink-600 text-[10px] font-black">· Editable</span>
+                )}
               </Label>
-              <Input 
-                name="email" 
-                defaultValue={usuario?.email} 
-                disabled 
-                className="bg-slate-100 border-dashed cursor-not-allowed h-11"
+              <Input
+                name="email"
+                type="email"
+                defaultValue={usuario?.email}
+                disabled={!puedeEditarEmail}
+                placeholder="correo@empresa.com"
+                className={
+                  puedeEditarEmail
+                    ? "bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
+                    : "bg-slate-100 border-dashed text-slate-400 cursor-not-allowed h-11"
+                }
+              />
+              {!puedeEditarEmail && (
+                <p className="text-[10px] text-slate-400 italic">
+                  · Solo el rol <span className="font-bold text-slate-500">Administrador</span> puede editar el correo
+                </p>
+              )}
+            </div>
+
+            {/* Teléfono — bigint en el esquema */}
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
+                Teléfono
+              </Label>
+              <Input
+                name="telefono"
+                type="tel"
+                defaultValue={usuario?.telefono?.toString() ?? ''}
+                placeholder="9XXXXXXXX"
+                maxLength={9}
+                className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
+                onInput={(e) => {
+                  // Solo dígitos (telefono es bigint en BD)
+                  (e.target as HTMLInputElement).value =
+                    (e.target as HTMLInputElement).value.replace(/\D/g, '');
+                }}
               />
             </div>
 
-            {/* Campo: Rol con Estilo */}
+            {/* Rol */}
             <div className="space-y-2">
               <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5" /> Nivel de Acceso (Rol)
               </Label>
-              <Select 
-                value={rolSeleccionado} 
+              <Select
+                value={rolSeleccionado ?? ''}
                 onValueChange={(value) => setRolSeleccionado(value as RolUsuario)}
               >
                 <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
@@ -126,22 +223,16 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
                 </SelectContent>
               </Select>
               <p className="text-[10px] text-slate-400 italic">
-                * El rol determina los módulos a los que el usuario puede entrar.
+                · El rol determina los módulos a los que el usuario puede acceder.
               </p>
             </div>
 
-            {/* Footer con acciones */}
             <DialogFooter className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={onClose}
-                className="text-slate-500 hover:bg-slate-100"
-              >
+              <Button type="button" variant="ghost" onClick={onClose} className="text-slate-500 hover:bg-slate-100">
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={loading}
                 className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-200 px-8 transition-all"
               >
@@ -150,9 +241,7 @@ export default function EditUsuarioDialog({ isOpen, onClose, onSuccess, usuario 
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Guardando
                   </span>
-                ) : (
-                  "Guardar Cambios"
-                )}
+                ) : "Guardar Cambios"}
               </Button>
             </DialogFooter>
           </form>

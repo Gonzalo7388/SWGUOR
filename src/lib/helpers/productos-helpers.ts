@@ -7,6 +7,7 @@ type ProductoPortal = Database['public']['Tables']['productos']['Row'];
 /**
  * PRODUCTOS (Panel Administrativo & API)
  */
+// Cambiamos id: number por id: string para soportar UUID
 export async function obtenerProductos(supabase: any, filtros?: any) {
   let query = supabase
     .from('productos')
@@ -30,7 +31,7 @@ export async function crearProducto(supabase: any, datos: any) {
     .single();
 }
 
-export async function actualizarProducto(supabase: any, id: number, datos: any) {
+export async function actualizarProducto(supabase: any, id: string, datos: any) {
   return await supabase
     .from('productos')
     .update(datos)
@@ -39,7 +40,7 @@ export async function actualizarProducto(supabase: any, id: number, datos: any) 
     .single();
 }
 
-export async function eliminarProducto(supabase: any, id: number) {
+export async function eliminarProducto(supabase: any, id: string) {
   return await supabase
     .from('productos')
     .delete()
@@ -49,18 +50,18 @@ export async function eliminarProducto(supabase: any, id: number) {
 /**
  * PRODUCTOS DEL PORTAL (Venta B2B)
  */
-export const obtenerProductosPortal = async (supabase: any): Promise<ProductoPortal[]> => {
+export const obtenerProductosPortal = async (supabase: any): Promise<any[]> => {
   const { data, error } = await supabase
     .from('productos')
     .select(`
       id,
       nombre,
       sku,
-      precio_base,
-      stock_actual,
+      precio,
+      stock,
       categorias (nombre)
     `)
-    .eq('activo', true);
+    .eq('estado', 'activo'); // Ajustado según tu enum EstadoProducto
 
   if (error) {
     console.error('Error al obtener productos portal:', error);
@@ -68,21 +69,22 @@ export const obtenerProductosPortal = async (supabase: any): Promise<ProductoPor
   }
 
   return data.map((p: any) => ({
-    id: p.id.toString(),
+    id: p.id,
     nombre: p.nombre,
     sku: p.sku,
-    precioBase: p.precio_base,
-    stockActual: p.stock_actual,
+    precioBase: p.precio,
+    stockActual: p.stock,
     categoria: p.categorias?.nombre || 'General'
   }));
 };
 
 /**
  * INSUMOS (Materia Prima / Taller)
+ * Corregido nombre de tabla a 'insumo' (singular) según tu SQL
  */
 export const obtenerInsumos = async (supabase: any): Promise<Insumo[]> => {
   const { data, error } = await supabase
-    .from('insumos')
+    .from('insumo') 
     .select('*')
     .order('nombre', { ascending: true });
 
@@ -92,7 +94,7 @@ export const obtenerInsumos = async (supabase: any): Promise<Insumo[]> => {
 
 export const crearInsumo = async (supabase: any, insumo: InsumoInsert) => {
   const { data, error } = await supabase
-    .from('insumos')
+    .from('insumo')
     .insert([insumo])
     .select()
     .single();
@@ -102,12 +104,13 @@ export const crearInsumo = async (supabase: any, insumo: InsumoInsert) => {
 };
 
 /**
- * ACTUALIZAR STOCK (Lógica para el PATCH de tu API)
+ * ACTUALIZAR STOCK
+ * Se cambia id a string para resolver el error 2345
  */
-export const actualizarStockInsumo = async (supabase: any, id: number, nuevoStock: number) => {
+export const actualizarStockInsumo = async (supabase: any, id: string, nuevoStock: number) => {
   try {
     const { error } = await supabase
-      .from('insumos')
+      .from('insumo')
       .update({ stock_actual: nuevoStock })
       .eq('id', id);
 
@@ -121,9 +124,9 @@ export const actualizarStockInsumo = async (supabase: any, id: number, nuevoStoc
 /**
  * UTILITARIOS
  */
-export const actualizarStockFisico = async (supabase: any, id: number, cantidad: number, operacion: 'sumar' | 'restar') => {
+export const actualizarStockFisico = async (supabase: any, id: string, cantidad: number, operacion: 'sumar' | 'restar') => {
   const { data: insumo } = await supabase
-    .from('insumos')
+    .from('insumo')
     .select('stock_actual')
     .eq('id', id)
     .single();
@@ -135,7 +138,7 @@ export const actualizarStockFisico = async (supabase: any, id: number, cantidad:
     : insumo.stock_actual - cantidad;
 
   const { data, error } = await supabase
-    .from('insumos')
+    .from('insumo')
     .update({ stock_actual: nuevoStock })
     .eq('id', id)
     .select()

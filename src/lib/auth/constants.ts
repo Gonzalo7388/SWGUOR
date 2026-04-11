@@ -1,5 +1,3 @@
-// lib/auth/constants.ts
-
 /**
  * Estados de usuario (deben coincidir con el ENUM de la BD)
  */
@@ -21,7 +19,7 @@ export const ROLES_USUARIO = {
   DISEÑADOR: 'disenador',
   CORTADOR: 'cortador',
   AYUDANTE: 'ayudante',
-  REPRESENTANTE_TALLER: 'representante_taller'
+  REPRESENTANTE_TALLER: 'representante_taller',
 } as const;
 
 export type RolUsuario = typeof ROLES_USUARIO[keyof typeof ROLES_USUARIO];

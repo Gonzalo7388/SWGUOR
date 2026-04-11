@@ -97,6 +97,7 @@ export async function PATCH(req: Request) {
 
     const body = await req.json();
 
+<<<<<<< HEAD
     // Stock rápido: sumar/restar sin conocer el total actual
     if (body.stock_delta !== undefined) {
       const delta = Number(body.stock_delta);
@@ -107,6 +108,10 @@ export async function PATCH(req: Request) {
       });
       return NextResponse.json(serializeBigInt(producto));
     }
+=======
+    // Pasamos el cliente 'supabase' como primer argumento
+    const { data, error } = await actualizarProducto(supabase, id, body);
+>>>>>>> main
 
     // Actualización genérica de campos
     const data: Record<string, unknown> = {};
@@ -150,9 +155,16 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
+<<<<<<< HEAD
     await prisma.productos.delete({
       where: { id: BigInt(id) },
     });
+=======
+    // Pasamos el cliente 'supabase' como primer argumento
+    const { error } = await eliminarProducto(supabase, id);
+
+    if (error) throw error;
+>>>>>>> main
 
     return NextResponse.json({ message: 'Producto eliminado correctamente' });
   } catch (error: any) {

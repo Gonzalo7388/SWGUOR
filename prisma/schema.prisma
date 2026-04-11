@@ -1,0 +1,1511 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["auth", "public"]
+}
+
+model audit_log_entries {
+  instance_id String?   @db.Uuid
+  id          String    @id @db.Uuid
+  payload     Json?     @db.Json
+  created_at  DateTime? @db.Timestamptz(6)
+  ip_address  String    @default("") @db.VarChar(64)
+
+  @@index([instance_id], map: "audit_logs_instance_id_idx")
+  @@schema("auth")
+}
+
+model custom_oauth_providers {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type         String
+  identifier            String    @unique
+  name                  String
+  client_id             String
+  client_secret         String
+  acceptable_client_ids String[]  @default([])
+  scopes                String[]  @default([])
+  pkce_enabled          Boolean   @default(true)
+  attribute_mapping     Json      @default("{}")
+  authorization_params  Json      @default("{}")
+  enabled               Boolean   @default(true)
+  email_optional        Boolean   @default(false)
+  issuer                String?
+  discovery_url         String?
+  skip_nonce_check      Boolean   @default(false)
+  cached_discovery      Json?
+  discovery_cached_at   DateTime? @db.Timestamptz(6)
+  authorization_url     String?
+  token_url             String?
+  userinfo_url          String?
+  jwks_uri              String?
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at])
+  @@index([enabled])
+  @@index([identifier])
+  @@index([provider_type])
+  @@schema("auth")
+}
+
+model flow_state {
+  id                     String                 @id @db.Uuid
+  user_id                String?                @db.Uuid
+  auth_code              String?
+  code_challenge_method  code_challenge_method?
+  code_challenge         String?
+  provider_type          String
+  provider_access_token  String?
+  provider_refresh_token String?
+  created_at             DateTime?              @db.Timestamptz(6)
+  updated_at             DateTime?              @db.Timestamptz(6)
+  authentication_method  String
+  auth_code_issued_at    DateTime?              @db.Timestamptz(6)
+  invite_token           String?
+  referrer               String?
+  oauth_client_state_id  String?                @db.Uuid
+  linking_target_id      String?                @db.Uuid
+  email_optional         Boolean                @default(false)
+  saml_relay_states      saml_relay_states[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([auth_code], map: "idx_auth_code")
+  @@index([user_id, authentication_method], map: "idx_user_id_auth_method")
+  @@schema("auth")
+}
+
+model identities {
+  provider_id     String
+  user_id         String    @db.Uuid
+  identity_data   Json
+  provider        String
+  last_sign_in_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+  email           String?   @default(dbgenerated("lower((identity_data ->> 'email'::text))"))
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  users           users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider_id, provider], map: "identities_provider_id_provider_unique")
+  @@index([email])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model instances {
+  id              String    @id @db.Uuid
+  uuid            String?   @db.Uuid
+  raw_base_config String?
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+
+  @@schema("auth")
+}
+
+model mfa_amr_claims {
+  session_id            String   @db.Uuid
+  created_at            DateTime @db.Timestamptz(6)
+  updated_at            DateTime @db.Timestamptz(6)
+  authentication_method String
+  id                    String   @id(map: "amr_id_pk") @db.Uuid
+  sessions              sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, authentication_method], map: "mfa_amr_claims_session_id_authentication_method_pkey")
+  @@schema("auth")
+}
+
+model mfa_challenges {
+  id                     String      @id @db.Uuid
+  factor_id              String      @db.Uuid
+  created_at             DateTime    @db.Timestamptz(6)
+  verified_at            DateTime?   @db.Timestamptz(6)
+  ip_address             String      @db.Inet
+  otp_code               String?
+  web_authn_session_data Json?
+  mfa_factors            mfa_factors @relation(fields: [factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "mfa_challenges_auth_factor_id_fkey")
+
+  @@index([created_at(sort: Desc)], map: "mfa_challenge_created_at_idx")
+  @@schema("auth")
+}
+
+model mfa_factors {
+  id                           String           @id @db.Uuid
+  user_id                      String           @db.Uuid
+  friendly_name                String?
+  factor_type                  factor_type
+  status                       factor_status
+  created_at                   DateTime         @db.Timestamptz(6)
+  updated_at                   DateTime         @db.Timestamptz(6)
+  secret                       String?
+  phone                        String?
+  last_challenged_at           DateTime?        @unique @db.Timestamptz(6)
+  web_authn_credential         Json?
+  web_authn_aaguid             String?          @db.Uuid
+  last_webauthn_challenge_data Json?
+  mfa_challenges               mfa_challenges[]
+  users                        users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, phone], map: "unique_phone_factor_per_user")
+  @@index([user_id, created_at], map: "factor_id_created_at_idx")
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model oauth_authorizations {
+  id                    String                     @id @db.Uuid
+  authorization_id      String                     @unique
+  client_id             String                     @db.Uuid
+  user_id               String?                    @db.Uuid
+  redirect_uri          String
+  scope                 String
+  state                 String?
+  resource              String?
+  code_challenge        String?
+  code_challenge_method code_challenge_method?
+  response_type         oauth_response_type        @default(code)
+  status                oauth_authorization_status @default(pending)
+  authorization_code    String?                    @unique
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  expires_at            DateTime                   @default(dbgenerated("(now() + '00:03:00'::interval)")) @db.Timestamptz(6)
+  approved_at           DateTime?                  @db.Timestamptz(6)
+  nonce                 String?
+  oauth_clients         oauth_clients              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("auth")
+}
+
+model oauth_client_states {
+  id            String   @id @db.Uuid
+  provider_type String
+  code_verifier String?
+  created_at    DateTime @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_oauth_client_states_created_at")
+  @@schema("auth")
+}
+
+model oauth_clients {
+  id                         String                  @id @db.Uuid
+  client_secret_hash         String?
+  registration_type          oauth_registration_type
+  redirect_uris              String
+  grant_types                String
+  client_name                String?
+  client_uri                 String?
+  logo_uri                   String?
+  created_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at                 DateTime?               @db.Timestamptz(6)
+  client_type                oauth_client_type       @default(confidential)
+  token_endpoint_auth_method String
+  oauth_authorizations       oauth_authorizations[]
+  oauth_consents             oauth_consents[]
+  sessions                   sessions[]
+
+  @@index([deleted_at])
+  @@schema("auth")
+}
+
+model oauth_consents {
+  id            String        @id @db.Uuid
+  user_id       String        @db.Uuid
+  client_id     String        @db.Uuid
+  scopes        String
+  granted_at    DateTime      @default(now()) @db.Timestamptz(6)
+  revoked_at    DateTime?     @db.Timestamptz(6)
+  oauth_clients oauth_clients @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, client_id], map: "oauth_consents_user_client_unique")
+  @@index([user_id, granted_at(sort: Desc)], map: "oauth_consents_user_order_idx")
+  @@schema("auth")
+}
+
+model one_time_tokens {
+  id         String              @id @db.Uuid
+  user_id    String              @db.Uuid
+  token_type one_time_token_type
+  token_hash String
+  relates_to String
+  created_at DateTime            @default(now()) @db.Timestamp(6)
+  updated_at DateTime            @default(now()) @db.Timestamp(6)
+  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, token_type])
+  @@index([relates_to], map: "one_time_tokens_relates_to_hash_idx", type: Hash)
+  @@index([token_hash], map: "one_time_tokens_token_hash_hash_idx", type: Hash)
+  @@schema("auth")
+}
+
+model refresh_tokens {
+  instance_id String?   @db.Uuid
+  id          BigInt    @id @default(autoincrement())
+  token       String?   @unique(map: "refresh_tokens_token_unique") @db.VarChar(255)
+  user_id     String?   @db.VarChar(255)
+  revoked     Boolean?
+  created_at  DateTime? @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  parent      String?   @db.VarChar(255)
+  session_id  String?   @db.Uuid
+  sessions    sessions? @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([instance_id])
+  @@index([instance_id, user_id])
+  @@index([parent])
+  @@index([session_id, revoked])
+  @@index([updated_at(sort: Desc)])
+  @@schema("auth")
+}
+
+model saml_providers {
+  id                String        @id @db.Uuid
+  sso_provider_id   String        @db.Uuid
+  entity_id         String        @unique
+  metadata_xml      String
+  metadata_url      String?
+  attribute_mapping Json?
+  created_at        DateTime?     @db.Timestamptz(6)
+  updated_at        DateTime?     @db.Timestamptz(6)
+  name_id_format    String?
+  sso_providers     sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model saml_relay_states {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  request_id      String
+  for_email       String?
+  redirect_to     String?
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  flow_state_id   String?       @db.Uuid
+  flow_state      flow_state?   @relation(fields: [flow_state_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)])
+  @@index([for_email])
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model schema_migrations {
+  version String @id @db.VarChar(255)
+
+  @@schema("auth")
+}
+
+model sessions {
+  id                     String           @id @db.Uuid
+  user_id                String           @db.Uuid
+  created_at             DateTime?        @db.Timestamptz(6)
+  updated_at             DateTime?        @db.Timestamptz(6)
+  factor_id              String?          @db.Uuid
+  aal                    aal_level?
+  not_after              DateTime?        @db.Timestamptz(6)
+  refreshed_at           DateTime?        @db.Timestamp(6)
+  user_agent             String?
+  ip                     String?          @db.Inet
+  tag                    String?
+  oauth_client_id        String?          @db.Uuid
+  refresh_token_hmac_key String?
+  refresh_token_counter  BigInt?
+  scopes                 String?
+  mfa_amr_claims         mfa_amr_claims[]
+  refresh_tokens         refresh_tokens[]
+  oauth_clients          oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([not_after(sort: Desc)])
+  @@index([oauth_client_id])
+  @@index([user_id])
+  @@index([user_id, created_at], map: "user_id_created_at_idx")
+  @@schema("auth")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sso_domains {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  domain          String
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sso_providers {
+  id                String              @id @db.Uuid
+  resource_id       String?
+  created_at        DateTime?           @db.Timestamptz(6)
+  updated_at        DateTime?           @db.Timestamptz(6)
+  disabled          Boolean?
+  saml_providers    saml_providers[]
+  saml_relay_states saml_relay_states[]
+  sso_domains       sso_domains[]
+
+  @@index([resource_id], map: "sso_providers_resource_id_pattern_idx")
+  @@schema("auth")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  instance_id                 String?                @db.Uuid
+  id                          String                 @id @db.Uuid
+  aud                         String?                @db.VarChar(255)
+  role                        String?                @db.VarChar(255)
+  email                       String?                @db.VarChar(255)
+  encrypted_password          String?                @db.VarChar(255)
+  email_confirmed_at          DateTime?              @db.Timestamptz(6)
+  invited_at                  DateTime?              @db.Timestamptz(6)
+  confirmation_token          String?                @db.VarChar(255)
+  confirmation_sent_at        DateTime?              @db.Timestamptz(6)
+  recovery_token              String?                @db.VarChar(255)
+  recovery_sent_at            DateTime?              @db.Timestamptz(6)
+  email_change_token_new      String?                @db.VarChar(255)
+  email_change                String?                @db.VarChar(255)
+  email_change_sent_at        DateTime?              @db.Timestamptz(6)
+  last_sign_in_at             DateTime?              @db.Timestamptz(6)
+  raw_app_meta_data           Json?
+  raw_user_meta_data          Json?
+  is_super_admin              Boolean?
+  created_at                  DateTime?              @db.Timestamptz(6)
+  updated_at                  DateTime?              @db.Timestamptz(6)
+  phone                       String?                @unique
+  phone_confirmed_at          DateTime?              @db.Timestamptz(6)
+  phone_change                String?                @default("")
+  phone_change_token          String?                @default("") @db.VarChar(255)
+  phone_change_sent_at        DateTime?              @db.Timestamptz(6)
+  confirmed_at                DateTime?              @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current  String?                @default("") @db.VarChar(255)
+  email_change_confirm_status Int?                   @default(0) @db.SmallInt
+  banned_until                DateTime?              @db.Timestamptz(6)
+  reauthentication_token      String?                @default("") @db.VarChar(255)
+  reauthentication_sent_at    DateTime?              @db.Timestamptz(6)
+  is_sso_user                 Boolean                @default(false)
+  deleted_at                  DateTime?              @db.Timestamptz(6)
+  is_anonymous                Boolean                @default(false)
+  identities                  identities[]
+  mfa_factors                 mfa_factors[]
+  oauth_authorizations        oauth_authorizations[]
+  oauth_consents              oauth_consents[]
+  one_time_tokens             one_time_tokens[]
+  sessions                    sessions[]
+  webauthn_challenges         webauthn_challenges[]
+  webauthn_credentials        webauthn_credentials[]
+  ordenes                     ordenes[]
+  pedidos                     pedidos[]
+  precio_historico            precio_historico[]
+  usuarios                    usuarios?
+  ventas                      ventas[]
+
+  @@index([instance_id])
+  @@index([is_anonymous])
+  @@schema("auth")
+}
+
+model webauthn_challenges {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?  @db.Uuid
+  challenge_type String
+  session_data   Json
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  expires_at     DateTime @db.Timestamptz(6)
+  users          users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model webauthn_credentials {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  credential_id    Bytes     @unique
+  public_key       Bytes
+  attestation_type String    @default("")
+  aaguid           String?   @db.Uuid
+  sign_count       BigInt    @default(0)
+  transports       Json      @default("[]")
+  backup_eligible  Boolean   @default(false)
+  backed_up        Boolean   @default(false)
+  friendly_name    String    @default("")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  last_used_at     DateTime? @db.Timestamptz(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model categorias {
+  id          BigInt      @id @default(autoincrement())
+  nombre      String      @unique
+  descripcion String?
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  orden       BigInt?
+  activo      Boolean?
+  imagen      String?
+  updated_at  DateTime?   @default(now()) @db.Timestamptz(6)
+  productos   productos[]
+
+  @@schema("public")
+}
+
+model clientes {
+  id                  BigInt                @id(map: "Clientes_pkey") @default(autoincrement())
+  ruc                 BigInt
+  razon_social        String?               @db.VarChar
+  telefono            BigInt?
+  direccion           String?               @db.VarChar
+  activo              EstadoCliente?        @default(activo)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  usuario_id          BigInt?               @unique
+  email               String?
+  TipoCliente         TipoCliente?
+  usuarios            usuarios?             @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones        cotizaciones[]
+  direcciones_cliente direcciones_cliente[]
+  feedback_cliente    feedback_cliente[]
+  ordenes             ordenes[]
+  pedidos             pedidos[]
+
+  @@schema("public")
+}
+
+model comprobantes {
+  id          BigInt    @id @default(autoincrement())
+  orden_id    BigInt
+  tipo        String
+  serie       String
+  correlativo String
+  pdf_url     String?
+  xml_url     String?
+  emitido_en  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+model confecciones {
+  id                 BigInt               @id @default(autoincrement())
+  pedido_id          BigInt
+  taller_id          BigInt
+  estado             EstadoConfeccion     @default(corte)
+  fecha_inicio       DateTime             @db.Timestamptz(6)
+  fecha_fin          DateTime?            @db.Timestamptz(6)
+  observaciones      String?
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+  responsable_id     BigInt?
+  pedidos            pedidos              @relation(fields: [pedido_id], references: [id])
+  usuarios           usuarios?            @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  talleres           talleres             @relation(fields: [taller_id], references: [id])
+  incidencias_taller incidencias_taller[]
+
+  @@index([pedido_id], map: "idx_confecciones_pedido")
+  @@index([responsable_id], map: "idx_confecciones_responsable")
+  @@schema("public")
+}
+
+model cotizacion_items {
+  id                       BigInt              @id @default(autoincrement())
+  cotizacion_id            BigInt?
+  producto_id              String?             @db.Uuid
+  variante_id              String?             @db.Uuid
+  cantidad                 Int
+  precio_unitario_snapshot Decimal             @db.Decimal(12, 2)
+  subtotal                 Decimal             @db.Decimal(12, 2)
+  cotizaciones             cotizaciones?       @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos                productos?          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto       variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model cotizaciones {
+  id                    BigInt             @id @default(autoincrement())
+  numero                String             @unique
+  pedido_id             BigInt?
+  cliente_id            BigInt?
+  estado                String?            @default("borrador")
+  subtotal              Decimal?           @default(0) @db.Decimal(12, 2)
+  igv                   Decimal?           @default(0) @db.Decimal(12, 2)
+  total                 Decimal?           @default(0) @db.Decimal(12, 2)
+  valida_hasta          DateTime           @db.Date
+  created_at            DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?          @default(now()) @db.Timestamptz(6)
+  metodo_pago           MetodoPago?
+  direccion_despacho    String?
+  id_regla_descuento    BigInt?
+  monto_descuento       Decimal?           @default(0) @db.Decimal(12, 2)
+  costo_envio           Decimal?           @default(0) @db.Decimal(12, 2)
+  aprobacion_automatica Boolean?           @default(false)
+  aprobado_at           DateTime?          @db.Timestamptz(6)
+  costo_total_estimado  Decimal?           @default(0) @db.Decimal(12, 2)
+  expira_at             DateTime?          @db.Timestamptz(6)
+  moneda                String             @default("PEN") @db.VarChar(3)
+  notas_internas        String?
+  cotizacion_items      cotizacion_items[]
+  clientes              clientes?          @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reglas_descuento      reglas_descuento?  @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pedidos               pedidos?           @relation(fields: [pedido_id], references: [id], onUpdate: NoAction)
+  ordenes               ordenes[]
+
+  @@schema("public")
+}
+
+model despachos {
+  id                BigInt         @id @default(autoincrement())
+  pedido_id         BigInt
+  fecha_despacho    DateTime
+  created_at        DateTime       @default(now())
+  direccion_entrega String
+  fecha_entrega     DateTime?
+  updated_at        DateTime       @default(now())
+  usuario_id        BigInt
+  estado            EstadoDespacho @default(pendiente)
+  pedidos           pedidos        @relation(fields: [pedido_id], references: [id])
+  usuarios          usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pedido_id], map: "idx_despachos_pedido")
+  @@schema("public")
+}
+
+model direcciones_cliente {
+  id           BigInt    @id @default(autoincrement())
+  cliente_id   BigInt
+  alias        String
+  direccion    String
+  ciudad       String?
+  departamento String?
+  es_principal Boolean?  @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  clientes     clientes  @relation(fields: [cliente_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model insumo {
+  id                     BigInt                   @id(map: "inventario_pkey") @default(autoincrement())
+  nombre                 String
+  tipo                   TipoInsumo
+  unidad_medida          UnidadMedida             @default(unidades)
+  stock_actual           Int                      @default(0)
+  stock_minimo           Int                      @default(10)
+  precio_unitario        Decimal?                 @db.Decimal(10, 2)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  alerta_bajo_stock      Boolean?                 @default(true)
+  categoria_insumo       CategoriaInsumo          @default(otro)
+  proveedor_id           BigInt?
+  stock_maximo           Int?
+  ubicacion_almacen      String?                  @db.VarChar(100)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  detalle_ficha_insumos  detalle_ficha_insumos[]
+  proveedores            proveedores?             @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  movimientos_inventario movimientos_inventario[]
+
+  @@index([categoria_insumo], map: "idx_insumos_categoria")
+  @@index([proveedor_id], map: "idx_insumos_proveedor")
+  @@index([stock_actual], map: "idx_insumos_stock")
+  @@schema("public")
+}
+
+model movimientos_inventario {
+  id              BigInt          @id(map: "lista_materiales_pkey") @default(autoincrement())
+  producto_id     String?         @db.Uuid
+  insumo_id       BigInt?
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  cantidad        Float?
+  motivo          String?
+  usuario_id      BigInt?
+  tipo_movimiento TipoMovimiento?
+  costo_unitario  Decimal?        @db.Decimal(12, 2)
+  referencia_id   BigInt?
+  referencia_tipo String?         @db.VarChar(50)
+  stock_anterior  Float?
+  stock_posterior Float?
+  updated_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  insumo          insumo?         @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos       productos?      @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios        usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_movimientos_fecha")
+  @@index([referencia_tipo, referencia_id], map: "idx_movimientos_referencia")
+  @@schema("public")
+}
+
+model ordenes {
+  id                      BigInt               @id @default(autoincrement())
+  cotizacion_id           BigInt?
+  cliente_id              BigInt?
+  user_id                 String?              @db.Uuid
+  estado                  EstadoOrden?         @default(solicitado)
+  metodo_pago             MetodoPago?
+  total_pagado            Decimal?             @default(0) @db.Decimal(12, 2)
+  created_at              DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?            @default(now()) @db.Timestamptz(6)
+  fecha_prometida_entrega DateTime?            @db.Date
+  estado_pago             String?              @default("pendiente")
+  costo_envio_real        Decimal?             @default(0) @db.Decimal(12, 2)
+  entregado_cliente_at    DateTime?            @db.Timestamptz(6)
+  enviado_taller_at       DateTime?            @db.Timestamptz(6)
+  prioridad               String?              @default("media")
+  proveedor_id            BigInt?
+  recibido_taller_at      DateTime?            @db.Timestamptz(6)
+  saldo_pendiente         Decimal?             @default(0) @db.Decimal(12, 2)
+  total_orden             Decimal              @default(0) @db.Decimal(12, 2)
+  asientos_contables      asientos_contables[]
+  estados_produccion      estados_produccion[]
+  feedback_cliente        feedback_cliente[]
+  incidencias_taller      incidencias_taller[]
+  cliente                 clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones            cotizaciones?        @relation(fields: [cotizacion_id], references: [id], onUpdate: NoAction)
+  proveedores             proveedores?         @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                   users?               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pagos_orden             pagos_orden[]
+  reservas_stock          reservas_stock[]
+  ventas                  ventas[]
+
+  @@schema("public")
+}
+
+model pedidos {
+  id             BigInt           @id @default(autoincrement())
+  cliente_id     BigInt?
+  estado         EstadoPedido?    @default(pendiente)
+  prioridad      PrioridadPedido? @default(normal)
+  notas_cliente  String?
+  created_by     String?          @default(dbgenerated("uid()")) @db.Uuid
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  notas_pedido   String?
+  total_estimado Decimal?         @default(0) @db.Decimal(12, 2)
+  total_unidades Int              @default(0)
+  moq_aplicado   Int              @default(400)
+  confecciones   confecciones[]
+  cotizaciones   cotizaciones[]
+  despachos      despachos[]
+  pedido_items   pedido_items[]
+  clientes       clientes?        @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model precio_historico {
+  id            BigInt    @id @default(autoincrement())
+  producto_id   String    @db.Uuid
+  precio        Decimal   @db.Decimal(10, 2)
+  motivo        String?
+  vigente_desde DateTime  @default(now()) @db.Timestamptz(6)
+  vigente_hasta DateTime? @db.Timestamptz(6)
+  creado_por    String?   @db.Uuid
+  users         users?    @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos     productos @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model productos {
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre                 String
+  descripcion            String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  imagen                 String?
+  precio                 Float
+  stock                  Int                      @default(0)
+  updated_at             DateTime                 @db.Timestamptz(6)
+  estado                 EstadoProducto           @default(activo)
+  sku                    String                   @unique
+  destacado              Boolean?                 @default(false)
+  categoria_id           BigInt?
+  ficha_tecnica          Json?                    @default("{\"medidas\": {}, \"materiales\": [], \"instrucciones\": \"\"}")
+  moq                    Int                      @default(400)
+  cotizacion_items       cotizacion_items[]
+  fichas_tecnicas        fichas_tecnicas[]
+  movimientos_inventario movimientos_inventario[]
+  pedido_items           pedido_items[]
+  precio_historico       precio_historico[]
+  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto     variantes_producto[]
+
+  @@index([estado], map: "idx_productos_estado")
+  @@index([nombre], map: "idx_productos_nombre")
+  @@schema("public")
+}
+
+model reglas_descuento {
+  id            BigInt         @id @default(autoincrement())
+  nombre        String
+  cantidad_min  Int
+  cantidad_max  Int?
+  descuento_pct Decimal        @db.Decimal(5, 2)
+  aplica_a      String?        @default("global")
+  cotizaciones  cotizaciones[]
+
+  @@schema("public")
+}
+
+model reservas_stock {
+  id                 BigInt              @id @default(autoincrement())
+  variante_id        String?             @db.Uuid
+  cotizacion_id      BigInt?
+  orden_id           BigInt?
+  cantidad           Int
+  expira_en          DateTime            @default(dbgenerated("(now() + '00:30:00'::interval)")) @db.Timestamptz(6)
+  estado             String              @default("activa")
+  ordenes            ordenes?            @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model talleres {
+  id           BigInt              @id @default(autoincrement())
+  nombre       String
+  direccion    String
+  telefono     String
+  email        String?             @unique
+  created_at   DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime            @default(now()) @db.Timestamptz(6)
+  ruc          String              @unique
+  contacto     String
+  especialidad EspecialidadTaller?
+  estado       EstadoTaller        @default(activo)
+  confecciones confecciones[]
+
+  @@schema("public")
+}
+
+model usuarios {
+  id                                                            BigInt                   @id @default(autoincrement())
+  email                                                         String                   @unique
+  nombre_completo                                               String
+  telefono                                                      BigInt?
+  estado                                                        EstadoUsuario?           @default(activo)
+  rol                                                           RolPersonal?
+  created_at                                                    DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at                                                    DateTime?                @default(now()) @db.Timestamptz(6)
+  auth_id                                                       String?                  @unique @db.Uuid
+  ultimo_acceso                                                 DateTime?                @db.Timestamptz(6)
+  created_by                                                    String?                  @db.Uuid
+  clientes                                                      clientes?
+  confecciones                                                  confecciones[]
+  despachos                                                     despachos[]
+  estados_produccion                                            estados_produccion[]
+  incidencias_taller_incidencias_taller_asignado_aTousuarios    incidencias_taller[]     @relation("incidencias_taller_asignado_aTousuarios")
+  incidencias_taller_incidencias_taller_reportado_porTousuarios incidencias_taller[]     @relation("incidencias_taller_reportado_porTousuarios")
+  movimientos_inventario                                        movimientos_inventario[]
+  pagos_orden                                                   pagos_orden[]
+  personal_interno                                              personal_interno[]
+  users                                                         users?                   @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ventas                                                        ventas[]
+
+  @@schema("public")
+}
+
+model variantes_producto {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  producto_id      String             @db.Uuid
+  nombre           String             @db.VarChar(100)
+  color            ColorPrenda
+  talla            TallaProductos
+  estado           EstadoProducto     @default(activo)
+  precio_adicional Decimal            @default(0.00) @db.Decimal(10, 2)
+  stock_adicional  Int                @default(0)
+  sku              String             @unique(map: "unique_variant_sku") @db.VarChar(100)
+  imagen_url       String?
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  cotizacion_items cotizacion_items[]
+  pedido_items     pedido_items[]
+  reservas_stock   reservas_stock[]
+  productos        productos          @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([producto_id, talla, color], map: "unique_producto_talla_color")
+  @@index([producto_id], map: "idx_variantes_producto_id")
+  @@schema("public")
+}
+
+model ventas {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orden_id           BigInt
+  vendedor_id        String?              @default(dbgenerated("uid()")) @db.Uuid
+  subtotal           Decimal              @default(0) @db.Decimal(12, 2)
+  impuestos          Decimal              @default(0) @db.Decimal(12, 2)
+  total              Decimal              @default(0) @db.Decimal(12, 2)
+  metodo_pago        MetodoPago?
+  numero_comprobante String?
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  tipo_comprobante   TipoComprobante?
+  estado_pago        String               @default("completado")
+  referencia_pago    String?              @db.VarChar(255)
+  usuario_id         BigInt?
+  asientos_contables asientos_contables[]
+  ordenes            ordenes              @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios           usuarios?            @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vendedor           users?               @relation(fields: [vendedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ventas_anuladas    ventas_anuladas?
+
+  @@index([created_at(sort: Desc)], map: "idx_ventas_fecha_pago")
+  @@index([orden_id], map: "idx_ventas_orden_link")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model asientos_contables {
+  id          BigInt         @id @default(autoincrement())
+  fecha       DateTime       @default(now()) @db.Timestamptz(6)
+  tipo        TipoAsiento
+  monto       Decimal        @db.Decimal(12, 2)
+  cuenta      CuentaContable
+  descripcion String?
+  orden_id    BigInt?
+  venta_id    String?        @db.Uuid
+  pago_id     BigInt?
+  usuario_id  BigInt?
+  created_at  DateTime       @default(now()) @db.Timestamptz(6)
+  ordenes     ordenes?       @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pagos_orden pagos_orden?   @relation(fields: [pago_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ventas      ventas?        @relation(fields: [venta_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([cuenta], map: "idx_asientos_cuenta")
+  @@index([fecha(sort: Desc)], map: "idx_asientos_fecha")
+  @@index([orden_id], map: "idx_asientos_orden")
+  @@index([venta_id], map: "idx_asientos_venta")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model configuracion_sistema {
+  id          BigInt   @id @default(autoincrement())
+  clave       String   @unique @db.VarChar(100)
+  valor       String
+  categoria   String   @default("general") @db.VarChar(50)
+  descripcion String?  @db.VarChar(255)
+  tipo_dato   String   @default("string") @db.VarChar(20)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_by  String?  @db.Uuid
+
+  @@index([categoria], map: "idx_config_categoria")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model detalle_ficha_insumos {
+  id               BigInt           @id @default(autoincrement())
+  id_ficha         BigInt?
+  id_insumo        BigInt?
+  consumo_unitario Float?           @db.Real
+  merma_permitida  Float?           @db.Real
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  fichas_tecnicas  fichas_tecnicas? @relation(fields: [id_ficha], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  insumo           insumo?          @relation(fields: [id_insumo], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model estados_produccion {
+  id               BigInt          @id @default(autoincrement())
+  orden_id         BigInt
+  etapa            EtapaProduccion
+  iniciado_en      DateTime        @default(now()) @db.Timestamptz(6)
+  completado_en    DateTime?       @db.Timestamptz(6)
+  duracion_minutos Int?
+  usuario_id       BigInt?
+  observaciones    String?
+  activo           Boolean         @default(true)
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  ordenes          ordenes         @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([activo], map: "idx_estados_prod_activo")
+  @@index([etapa], map: "idx_estados_prod_etapa")
+  @@index([iniciado_en(sort: Desc)], map: "idx_estados_prod_inicio")
+  @@index([orden_id], map: "idx_estados_prod_orden")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feedback_cliente {
+  id                BigInt    @id @default(autoincrement())
+  orden_id          BigInt
+  cliente_id        BigInt
+  puntuacion        Int
+  calidad_producto  Int?
+  tiempo_entrega    Int?
+  atencion_personal Int?
+  comentarios       String?
+  recomendaria      Boolean?
+  enviado_en        DateTime? @db.Timestamptz(6)
+  respondido_en     DateTime? @db.Timestamptz(6)
+  canal             String?   @db.VarChar(50)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  clientes          clientes  @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes           ordenes   @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([cliente_id], map: "idx_feedback_cliente")
+  @@index([orden_id], map: "idx_feedback_orden")
+  @@index([puntuacion], map: "idx_feedback_puntuacion")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ficha_medidas {
+  id              BigInt           @id @default(autoincrement())
+  id_ficha        BigInt?
+  punto_medida    String?          @db.VarChar
+  talla           String?          @db.VarChar
+  valor_cm        Float?           @db.Real
+  tolerancia      Float?           @db.Real
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  fichas_tecnicas fichas_tecnicas? @relation(fields: [id_ficha], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fichas_tecnicas {
+  id                    BigInt                  @id @default(autoincrement())
+  id_producto           String?                 @db.Uuid
+  version               String?                 @db.VarChar
+  descripcion_detallada String?
+  sam_total             Float?                  @db.Real
+  costo_estimado        Float?                  @db.Real
+  imagen_geometral      String?                 @db.VarChar
+  estado                estado_ficha?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  detalle_ficha_insumos detalle_ficha_insumos[]
+  ficha_medidas         ficha_medidas[]
+ productos              productos?              @relation(fields: [id_producto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("fichas-tecnicas")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model incidencias_taller {
+  id                                                  BigInt              @id @default(autoincrement())
+  orden_id                                            BigInt
+  confeccion_id                                       BigInt?
+  tipo                                                TipoIncidencia
+  severidad                                           SeveridadIncidencia @default(media)
+  descripcion                                         String
+  reportado_por                                       BigInt?
+  asignado_a                                          BigInt?
+  fecha_reporte                                       DateTime            @default(now()) @db.Timestamptz(6)
+  fecha_resolucion                                    DateTime?           @db.Timestamptz(6)
+  resuelto                                            Boolean             @default(false)
+  solucion                                            String?
+  impacto_horas                                       Float?
+  foto_url                                            String?             @db.VarChar(500)
+  created_at                                          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at                                          DateTime?           @default(now()) @db.Timestamptz(6)
+  usuarios_incidencias_taller_asignado_aTousuarios    usuarios?           @relation("incidencias_taller_asignado_aTousuarios", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  confecciones                                        confecciones?       @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes                                             ordenes             @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios_incidencias_taller_reportado_porTousuarios usuarios?           @relation("incidencias_taller_reportado_porTousuarios", fields: [reportado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fecha_reporte(sort: Desc)], map: "idx_incidencias_fecha")
+  @@index([orden_id], map: "idx_incidencias_orden")
+  @@index([resuelto], map: "idx_incidencias_resuelto")
+  @@index([severidad], map: "idx_incidencias_severidad")
+  @@index([tipo], map: "idx_incidencias_tipo")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pagos_orden {
+  id                 BigInt               @id @default(autoincrement())
+  orden_id           BigInt
+  monto              Decimal              @db.Decimal(12, 2)
+  metodo_pago        MetodoPago
+  fecha_pago         DateTime             @default(now()) @db.Timestamptz(6)
+  comprobante_url    String?
+  notas              String?
+  usuario_id         BigInt?
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  asientos_contables asientos_contables[]
+  ordenes            ordenes              @relation(fields: [orden_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usuarios           usuarios?            @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fecha_pago(sort: Desc)], map: "idx_pagos_fecha")
+  @@index([orden_id], map: "idx_pagos_orden_link")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pedido_items {
+  id                 BigInt              @id @default(autoincrement())
+  pedido_id          BigInt?
+  producto_id        String?             @db.Uuid
+  variante_id        String?             @db.Uuid
+  cantidad           Int
+  especificaciones   Json?
+  pedidos            pedidos?            @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos          productos?          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model personal_interno {
+  id              BigInt       @id @default(autoincrement())
+  usuario_id      BigInt?
+  dni             BigInt?
+  nombre_completo String?
+  cargo           RolPersonal?
+  estado          Boolean?
+  fecha_ingreso   DateTime?    @db.Date
+  created_at      DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?    @default(now()) @db.Timestamp(6)
+  usuarios        usuarios?    @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model proveedores {
+  id                   BigInt    @id @default(autoincrement())
+  ruc                  String    @unique @db.VarChar(11)
+  razon_social         String    @db.VarChar(200)
+  contacto             String    @db.VarChar(150)
+  telefono             String    @db.VarChar(20)
+  email                String    @unique @db.VarChar(150)
+  direccion            String    @db.VarChar(255)
+  categoria_suministro String    @db.VarChar(100)
+  estado               String    @default("activo") @db.VarChar(20)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+  insumo               insumo[]
+  ordenes              ordenes[]
+
+  @@index([categoria_suministro], map: "idx_proveedores_categoria")
+  @@index([estado], map: "idx_proveedores_estado")
+  @@index([razon_social], map: "idx_proveedores_razon")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ventas_anuladas {
+  id              BigInt   @id @default(autoincrement())
+  venta_id        String   @unique @db.Uuid
+  motivo          String
+  fecha_anulacion DateTime @default(now())
+  monto_devuelto  Decimal  @db.Decimal(12, 2)
+  ventas          ventas   @relation(fields: [venta_id], references: [id])
+
+  @@schema("public")
+}
+
+enum aal_level {
+  aal1
+  aal2
+  aal3
+
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+
+  @@schema("auth")
+}
+
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
+
+  @@schema("auth")
+}
+
+enum oauth_client_type {
+  public
+  confidential
+
+  @@schema("auth")
+}
+
+enum oauth_registration_type {
+  dynamic
+  manual
+
+  @@schema("auth")
+}
+
+enum oauth_response_type {
+  code
+
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}
+
+enum ColorPrenda {
+  Blanco
+  Negro
+  Gris
+  Beige
+  Marr_n_pastel  @map("Marrón pastel")
+  Azul_jean      @map("Azul jean")
+  Azul_marino    @map("Azul marino")
+  Rojo
+  Rosa_pastel    @map("Rosa pastel")
+  Morado_claro   @map("Morado claro")
+  Verde_olivo    @map("Verde olivo")
+  Amarillo
+  Naranja
+  Multicolor
+  nico           @map("Único")
+  Vino
+  Camel
+  Crema
+  Celeste
+  Amarillo_lim_n @map("Amarillo limón")
+
+  @@schema("public")
+}
+
+enum EspecialidadTaller {
+  corte
+  confecci_n @map("confección")
+  bordado
+  estampado
+  costura
+  acabados
+  otro
+
+  @@schema("public")
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+
+  @@schema("public")
+}
+
+enum EstadoCliente {
+  activo
+  inactivo
+  suspendido
+  potencial
+
+  @@schema("public")
+}
+
+enum EstadoConfeccion {
+  corte
+  confeccionando
+  remallado
+  terminado
+
+  @@schema("public")
+}
+
+enum EstadoCotizacion {
+  borrador
+  enviada
+  aprobada
+  rechazada
+  expirada
+  convertida
+
+  @@schema("public")
+}
+
+enum EstadoDespacho {
+  pendiente
+  en_ruta
+  entregado
+  preparando
+  incidencia
+
+  @@schema("public")
+}
+
+enum EstadoOrden {
+  solicitado
+  cotizado
+  aprobado
+  pagado
+  en_proceso
+  finalizado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoPago {
+  pendiente
+  pagado_parcial
+  pagado
+  vencido
+
+  @@schema("public")
+}
+
+enum EstadoPedido {
+  pendiente
+  corte
+  costura
+  acabado
+  completado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoProducto {
+  activo
+  inactivo
+  agotado
+  descontinuado
+
+  @@schema("public")
+}
+
+enum EstadoTaller {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum EstadoUsuario {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia_bcp
+  yape
+  plin
+  visa
+  mastercard
+
+  @@schema("public")
+}
+
+enum PrioridadPedido {
+  baja
+  normal
+  alta
+  urgente
+
+  @@schema("public")
+}
+
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+
+  // 28 @map("28")
+  // 30 @map("30")
+  // 32 @map("32")
+  // 34 @map("34")
+  @@schema("public")
+}
+
+enum TipoCategoria {
+  producto
+  insumo
+
+  @@schema("public")
+}
+
+enum TipoCliente {
+  corporativo
+  minorista
+  distribuidor
+
+  @@schema("public")
+}
+
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
+
+  @@schema("public")
+}
+
+enum TipoInsumo {
+  tela
+  hilo
+  avio
+  boton
+  cierre
+  empaque
+  otro
+
+  @@schema("public")
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+
+  @@schema("public")
+}
+
+enum UnidadMedida {
+  metros
+  unidades
+  conos
+  docenas
+  kilogramos
+  set
+
+  @@schema("public")
+}
+
+enum CategoriaInsumo {
+  tela
+  avios
+  empaque
+  hilo
+  etiquetas
+  forro
+  otro
+
+  @@schema("public")
+}
+
+enum CuentaContable {
+  caja
+  bancos
+  cuentas_por_cobrar
+  inventario
+  ventas
+  costo_ventas
+  cuentas_por_pagar
+  capital
+  igv
+  descuentos
+  gastos_operativos
+
+  @@schema("public")
+}
+
+enum EtapaProduccion {
+  diseno
+  patronaje
+  corte
+  confeccion
+  remallado
+  bordado_estampado
+  control_calidad
+  acabado
+  listo_entrega
+
+  @@schema("public")
+}
+
+enum RolPersonal {
+  administrador
+  cortador
+  disenador
+  recepcionista
+  ayudante
+  representante_taller
+  cliente
+  gerente
+
+  @@schema("public")
+}
+
+enum SeveridadIncidencia {
+  baja
+  media
+  alta
+  critica
+
+  @@schema("public")
+}
+
+enum TipoAsiento {
+  debe
+  haber
+
+  @@schema("public")
+}
+
+enum TipoIncidencia {
+  averia_maquina
+  falta_material
+  error_diseno
+  defecto_corte
+  defecto_confeccion
+  retraso
+  otro
+
+  @@schema("public")
+}
+
+enum estado_ficha {
+  borrador
+  en_revision
+  aprobada
+  obsoleta
+
+  @@schema("public")
+}

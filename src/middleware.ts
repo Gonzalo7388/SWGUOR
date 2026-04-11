@@ -15,8 +15,8 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador', 'gerente'],
   '/admin/Panel-Administrativo/talleres': ['administrador', 'gerente'],
   '/admin/Panel-Administrativo/ventas': ['administrador', 'recepcionista', 'gerente'],
-  '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista', 'representante_taller', 'gerente'],
-  '/admin/Panel-Administrativo/pagos': ['administrador', 'recepcionista', 'gerente'],
+  '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista', 'gerente'],
+  '/admin/Panel-Administrativo/pagos': ['administrador', 'gerente'],
   '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
 
   // --- Rutas del Portal B2B (Clientes) ---
@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
     // Si no hay sesión, todos van al MISMO login
     if (!user) {
       const loginUrl = new URL('/auth/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname); // Guardamos a dónde quería ir
+      loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
@@ -81,8 +81,7 @@ export async function middleware(request: NextRequest) {
 
     const userRole = usuario.rol?.toLowerCase();
 
-    // 4. VALIDACIÓN CRUZADA (Seguridad de Tesis)
-    // Evitar que un cliente entre a /admin y que un admin entre a /portal
+    // 4. VALIDACIÓN CRUZADA
     if (pathname.startsWith('/admin') && userRole === 'cliente') {
       return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
     }
@@ -97,8 +96,13 @@ export async function middleware(request: NextRequest) {
     const matchedRoute = Object.keys(routePermissions)
       .find(route => pathname.startsWith(route));
 
-    if (matchedRoute && !routePermissions[matchedRoute].includes(userRole)) {
-      return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
+    if (matchedRoute) {
+      const rolesPermitidos = routePermissions[matchedRoute];
+      const esSuperUsuario = userRole === 'gerente' || userRole === 'administrador';
+      
+      if (!esSuperUsuario && !rolesPermitidos.includes(userRole)) {
+        return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
+      }
     }
   }
 

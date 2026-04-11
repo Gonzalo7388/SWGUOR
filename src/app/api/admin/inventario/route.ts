@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
+<<<<<<< HEAD
 // GET: Obtener todos los insumos con filtros
 export async function GET(req: Request) {
   try {
@@ -28,13 +29,26 @@ export async function GET(req: Request) {
       : insumos;
 
     return NextResponse.json(serializeBigInt(resultado));
+=======
+// GET: Obtener todos los insumos
+export async function GET(req: Request) {
+  try {
+    const supabase = await createClient();
+    // Los helpers deben estar preparados para manejar el cliente de supabase
+    const data = await obtenerInsumos(supabase); 
+    return NextResponse.json(data);
+>>>>>>> main
   } catch (error: any) {
     console.error('Error fetching insumos:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+<<<<<<< HEAD
 // POST: Crear un nuevo insumo
+=======
+// POST: Crear nuevo insumo
+>>>>>>> main
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -43,6 +57,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
 
+<<<<<<< HEAD
     const insumo = await prisma.insumo.create({
       data: {
         nombre: body.nombre,
@@ -57,6 +72,15 @@ export async function POST(req: Request) {
         ubicacion_almacen: body.ubicacion_almacen ?? null,
         alerta_bajo_stock: body.alerta_bajo_stock ?? true,
       },
+=======
+    const data = await crearInsumo(supabase, {
+      nombre:          body.nombre,
+      tipo:            body.tipo,
+      unidad_medida:   body.unidad_medida,
+      stock_actual:    body.stock_actual,
+      stock_minimo:    body.stock_minimo ?? 0,
+      precio_unitario: body.precio_unitario ?? null,
+>>>>>>> main
     });
 
     return NextResponse.json(serializeBigInt(insumo), { status: 201 });
@@ -66,8 +90,13 @@ export async function POST(req: Request) {
   }
 }
 
+<<<<<<< HEAD
 // PATCH: Actualizar stock de un insumo con registro de movimiento contable
 export async function PATCH(req: Request) {
+=======
+// DELETE: Eliminar un insumo
+export async function DELETE(req: Request) {
+>>>>>>> main
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -76,7 +105,15 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
+<<<<<<< HEAD
     const body = await req.json();
+=======
+    // ELIMINADO: parseInt(id) -> El ID ahora es un String (UUID)
+    const { error } = await supabase
+      .from('insumo') // Asegúrate de que la tabla sea 'insumo' (singular) según tu SQL
+      .delete()
+      .eq('id', id);
+>>>>>>> main
 
     // ── Ajuste de stock con movimiento de inventario ──
     if (body.stock_actual !== undefined || body.stock_delta !== undefined) {
@@ -187,3 +224,36 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+<<<<<<< HEAD
+=======
+
+// PATCH: Actualizar stock
+export async function PATCH(req: Request) {
+  try {
+    const supabase = await createClient();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    const body = await req.json();
+
+    // ELIMINADO: parseInt(id) -> Pasamos el ID como String directamente
+    const { success, error } = await actualizarStockInsumo(supabase, id, body.stock_actual);
+
+    if (error) throw new Error(error);
+    if (!success) return NextResponse.json({ error: 'Error al actualizar stock' }, { status: 400 });
+
+    const { data: updatedData, error: fetchError } = await supabase
+      .from('insumo')
+      .select()
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    return NextResponse.json(updatedData);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+>>>>>>> main

@@ -157,12 +157,9 @@ export type Database = {
           nombre_comercial: string | null
           pais: string | null
           razon_social: string | null
-          ruc: string
-          sector: string | null
-          sub_sector: string | null
-          telefono: string | null
-          tipo_documento: string | null
-          tipo_pedido_defecto: string | null
+          ruc: number
+          telefono: number | null
+          TipoCliente: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at: string
           usuario_id: number | null
         }
@@ -186,12 +183,9 @@ export type Database = {
           nombre_comercial?: string | null
           pais?: string | null
           razon_social?: string | null
-          ruc: string
-          sector?: string | null
-          sub_sector?: string | null
-          telefono?: string | null
-          tipo_documento?: string | null
-          tipo_pedido_defecto?: string | null
+          ruc: number
+          telefono?: number | null
+          TipoCliente?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
           usuario_id?: number | null
         }
@@ -215,12 +209,9 @@ export type Database = {
           nombre_comercial?: string | null
           pais?: string | null
           razon_social?: string | null
-          ruc?: string
-          sector?: string | null
-          sub_sector?: string | null
-          telefono?: string | null
-          tipo_documento?: string | null
-          tipo_pedido_defecto?: string | null
+          ruc?: number
+          telefono?: number | null
+          TipoCliente?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
           usuario_id?: number | null
         }
@@ -1816,7 +1807,103 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      actualizar_ultimo_acceso: {
+        Args: { usuario_id: number }
+        Returns: undefined
+      }
+      check_user_role: {
+        Args: { allowed_roles: Database["public"]["Enums"]["RolPersonal"][] }
+        Returns: boolean
+      }
+      convertir_cotizacion_a_orden: {
+        Args: { p_cot_id: number }
+        Returns: number
+      }
+      create_user_with_creator: {
+        Args: {
+          auth_id_input: string
+          email_input: string
+          nombre_completo_input: string
+          rol_input: string
+          telefono_input: string
+        }
+        Returns: undefined
+      }
+      decrement_inventory: {
+        Args: { p_id: number; p_qty: number }
+        Returns: undefined
+      }
+      decrement_stock: {
+        Args: { quantity: number; row_id: string }
+        Returns: undefined
+      }
+      get_dashboard_stats: { Args: never; Returns: Json }
+      get_my_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["RolPersonal"]
+      }
+      get_user_id: { Args: never; Returns: number }
+      get_user_role: { Args: never; Returns: string }
+      has_role: { Args: { required_role: string }; Returns: boolean }
+      increment_stock: {
+        Args: { quantity: number; row_id: string }
+        Returns: undefined
+      }
+      insert_new_user_with_creator: {
+        Args: {
+          auth_id_input: string
+          email_input: string
+          nombre_completo_input: string
+          rol_input: string
+          telefono_input: string
+        }
+        Returns: undefined
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_role: {
+        Args: { allowed_roles: Database["public"]["Enums"]["RolPersonal"][] }
+        Returns: boolean
+      }
+      is_staff: { Args: never; Returns: boolean }
+      reduce_stock_from_order: {
+        Args: { p_orden_id: number }
+        Returns: undefined
+      }
+      registrar_entrada_fabricacion: {
+        Args: {
+          p_cantidad: number
+          p_id: number
+          p_motivo: string
+          p_usuario_id: number
+        }
+        Returns: undefined
+      }
+      reservar_stock_cotizacion: {
+        Args: { p_cotizacion_id: number; p_items: Json }
+        Returns: Json
+      }
+      reset_productos_sequence: {
+        Args: { new_value?: number }
+        Returns: undefined
+      }
+      restar_stock: {
+        Args: { cantidad_param: number; producto_id_param: string }
+        Returns: undefined
+      }
+      sumar_stock: {
+        Args: { cantidad_param: number; producto_id_param: string }
+        Returns: undefined
+      }
+      verificar_stock_bajo: {
+        Args: never
+        Returns: {
+          categoria_nombre: string
+          nombre: string
+          producto_id: number
+          stock: number
+          stock_minimo: number
+        }[]
+      }
     }
     Enums: {
       CategoriaInsumo:

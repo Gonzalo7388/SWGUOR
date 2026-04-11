@@ -12,6 +12,14 @@ import { UserPlus, Mail, ShieldCheck, User } from "lucide-react";
 export default function CreateUsuarioDialog({ isOpen, onClose, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
 
+  // Función para filtrar caracteres en tiempo real
+  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Solo permite letras (incluyendo acentos), espacios y la letra ñ
+    const filtered = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    e.target.value = filtered;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -68,8 +76,10 @@ export default function CreateUsuarioDialog({ isOpen, onClose, onSuccess }: any)
                 name="nombre_completo" 
                 placeholder="Ej. Juan Pérez"
                 required 
+                onChange={handleNombreChange}
                 className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
               />
+              <p className="text-[9px] text-slate-400 italic">Solo se permiten letras, espacios y acentos</p>
             </div>
 
             {/* Campo: Email */}

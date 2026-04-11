@@ -20,6 +20,7 @@ export async function POST(request: Request) {
               );
             } catch (error) {
               // Manejo silencioso para Server Components
+              console.error('Error setting cookies:', error);
             }
           },
         },
@@ -40,7 +41,6 @@ export async function POST(request: Request) {
     }
 
     // 2. Consulta de perfil con la relación corregida (usuarios -> clientes)
-    // Usamos el nombre de la FK específica para evitar ambigüedad PGRST201
     const { data: usuario, error: dbError } = await supabase
       .from('usuarios')
       .select(`
@@ -69,8 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cuenta inactiva' }, { status: 403 });
     }
 
-    // 4. Extraer el perfil del cliente
-    // Como la relación es 1:1 o 1:N, extraemos el primer elemento si es array
+    // 4. Extraer el perfil del cliente de la relación (si existe)
     const clientePerfil = Array.isArray(usuario.clientes) 
       ? usuario.clientes[0] 
       : usuario.clientes;
