@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       ruc,
       razon_social,
       direccion,
-      tipo = 'corporativo',
+      tipo_cliente = 'corporativo', // default a corporativo si no se especifica
     } = await request.json();
 
     // --- Validaciones básicas ---
@@ -91,23 +91,27 @@ export async function POST(request: Request) {
     const { data: nuevoCliente, error: clienteError } = await supabaseAdmin
       .from('clientes')
       .insert({
-        usuario_id: usuarioId,
+        usuario_id:       usuarioId,
         ruc,
         razon_social,
         email,
-        telefono: telefono ?? null,
-        direccion: direccion ?? null,
-        tipo,
-        activo: 'activo',
+        telefono:         telefono ?? null,
+        direccion_fiscal: direccion ?? null,
+        tipo_cliente:     (tipo_cliente ?? 'corporativo') as any,
+        activo:           'activo' as any,
       })
       .select('id')
       .single();
 
     if (clienteError || !nuevoCliente) {
+      if (clienteError?.message.includes('clientes_ruc_key')) {
+        throw new Error('El RUC ya está registrado en el sistema');
+      }
+      if (clienteError?.message.includes('clientes_usuario_id_key')) {
+        throw new Error('Este usuario ya tiene un cliente asociado');
+      }
       throw new Error(`Cliente insert error: ${clienteError?.message}`);
     }
-
-    clienteId = nuevoCliente.id;
 
     // -------------------------------------------------------
     // Todo OK — NO hacemos signInWithPassword aquí.

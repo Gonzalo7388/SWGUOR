@@ -8,12 +8,7 @@ import {
   ArrowRight, Loader2, CheckCircle2, AlertCircle,
   Phone, MapPin, Eye, EyeOff
 } from 'lucide-react';
-import { createBrowserClient } from '@supabase/ssr';
 
-/**
- * Componente: El Hilo Dorado (Fondo Animado)
- * Mantenemos este componente para dar coherencia con el Login.
- */
 const GoldenThreadBackground = () => (
   <div className="fixed inset-0 -z-10 bg-[#FFF9F2] overflow-hidden">
     <svg 
@@ -42,15 +37,10 @@ const GoldenThreadBackground = () => (
 );
 
 export default function RegisterPage() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [success, setSuccess]       = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -58,63 +48,38 @@ export default function RegisterPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    
-    // Extraemos los valores del formulario
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const razonSocial = formData.get('razonSocial') as string;
-    const ruc = formData.get('ruc') as string;
-    const telefono = formData.get('telefono') as string;
-    const direccion = formData.get('direccion') as string;
+
+    const payload = {
+      email:          formData.get('email')       as string,
+      password:       formData.get('password')    as string,
+      nombre_completo:formData.get('razonSocial') as string, // la API espera nombre_completo
+      ruc:            formData.get('ruc')         as string,
+      razon_social:   formData.get('razonSocial') as string,
+      telefono:       formData.get('telefono')    as string,
+      direccion:      formData.get('direccion')   as string,
+      tipo_cliente:   'corporativo',
+    };
 
     try {
-      // 1. Registro en Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: razonSocial,
-            ruc: ruc,
-            user_role: 'cliente'
-          }
-        }
+      // Llamada a la API route server-side (usa service_role, sin triggers)
+      const res = await fetch('/api/auth/register', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
       });
 
-      if (authError) throw authError;
+      const data = await res.json();
 
-      if (authData.user) {
-        // 2. Sincronización con la tabla public.clientes
-        // Usamos el ID generado por Auth para vincular la cuenta
-        const { error: dbError } = await supabase
-          .from('clientes')
-          .insert([
-            {
-              usuario_id: authData.user.id, // Se vincula con auth.users
-              ruc: ruc,
-              razon_social: razonSocial,
-              nombre_comercial: razonSocial, // Opcional: puedes añadir un input para esto
-              telefono: telefono,
-              email: email,
-              direccion_fiscal: direccion,
-              tipo_cliente: 'corporativo',   // Valor por defecto de tu esquema
-              activo: 'activo'               // Valor por defecto de tu esquema
-            }
-          ]);
-
-        if (dbError) {
-          // Manejo de error específico por RUC duplicado (Constraint clientes_ruc_key)
-          if (dbError.code === '23505') {
-            throw new Error('El número de RUC ya se encuentra registrado en nuestro sistema.');
-          }
-          throw dbError;
-        }
-
-        setSuccess(true);
+      if (!res.ok) {
+        // Mensajes de error específicos que devuelve la API
+        throw new Error(data.error || 'Error al procesar el registro');
       }
+
+      setSuccess(true);
+
     } catch (err: any) {
-      console.error("Registration Error:", err);
-      setError(err.message || "Error al procesar el registro");
+      console.error('Registration Error:', err);
+      setError(err.message || 'Error al procesar el registro');
     } finally {
       setLoading(false);
     }
@@ -130,7 +95,7 @@ export default function RegisterPage() {
           </div>
           <h2 className="text-2xl font-black text-stone-900 tracking-tight">¡Solicitud Enviada!</h2>
           <p className="text-stone-500 text-sm leading-relaxed font-medium">
-            Hemos recibido los datos de su empresa. Por favor, **revise su correo corporativo** para confirmar su cuenta y esperar la validación del equipo **GUOR**.
+            Hemos recibido los datos de su empresa. Por favor, revise su correo corporativo para confirmar su cuenta y esperar la validación del equipo GUOR.
           </p>
           <Link href="/auth/login" className="flex items-center justify-center gap-3 w-full py-4 bg-[#1A1A1A] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl">
             Volver al Inicio de Sesión <ArrowRight size={16} className="text-[#D4AF37]" />
@@ -146,7 +111,7 @@ export default function RegisterPage() {
       
       <div className="max-w-4xl w-full bg-white/70 backdrop-blur-3xl rounded-[3rem] shadow-2xl overflow-hidden border border-white relative z-10 grid grid-cols-1 md:grid-cols-5">
         
-        {/* Lado Decorativo (Branding) */}
+        {/* Lado Decorativo */}
         <div className="hidden md:flex md:col-span-2 bg-[#1A1A1A] p-10 flex-col justify-between text-white relative overflow-hidden">
           <div className="relative z-10">
             <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center mb-8 shadow-xl">
@@ -165,7 +130,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Lado del Formulario */}
+        {/* Formulario */}
         <div className="md:col-span-3 p-8 md:p-12 flex flex-col justify-center bg-white/30">
           <div className="mb-8">
             <h1 className="text-3xl font-black text-stone-900 tracking-tight">Registro de Socio</h1>
