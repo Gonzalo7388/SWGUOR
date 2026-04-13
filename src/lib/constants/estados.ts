@@ -2,11 +2,7 @@
  * Constantes de Estados para el Sistema GUOR v2 - Edición ERP B2B
  * Centrado en el ciclo de vida comercial y logístico
  */
-
-import type { Database } from '@/types/database';
-
-type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
-type EstadoDespacho = Database['public']['Enums']['EstadoDespacho'];
+import type { EstadoOrden, EstadoDespacho } from '@prisma/client';
 
 // ─── COTIZACIONES B2B ────────────────────────────────────────────────────────
 // Estados específicos para el flujo de negociación e IA

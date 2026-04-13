@@ -133,12 +133,12 @@ export async function PATCH(req: Request) {
           { status: 400 }
         );
       }
-      dataCliente.ruc = rucNum;
+      dataCliente.ruc = String(rucNum);
 
       // Verificar RUC duplicado (excluyendo al propio cliente)
       const rucExistente = await prisma.clientes.findFirst({
         where: {
-          ruc: BigInt(rucNum),
+          ruc: String(rucNum),
           id: { not: sesion.cliente_id },
         },
       });

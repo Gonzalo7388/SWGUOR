@@ -70,7 +70,7 @@ export function useInventario() {
     }
   }, [supabase]);
 
-  const actualizarStock = useCallback(async (id: number, cantidad: number, operacion: 'sumar' | 'restar') => {
+  const actualizarStock = useCallback(async (id, cantidad: number, operacion: 'sumar' | 'restar') => {
     setState(prev => ({ ...prev, cargando: true, error: null }));
     try {
       const data = await actualizarStockFisico(supabase, id, cantidad, operacion);

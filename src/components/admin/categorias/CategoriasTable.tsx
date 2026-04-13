@@ -3,13 +3,12 @@
 import { Edit, Trash2, CheckCircle, XCircle, Tag, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Database } from "@/types/database";
-type Categoria = Database['public']['Tables']['categorias']['Row'];
+import type { categorias } from "@prisma/client";
 
 interface Props {
-  data: Categoria[];
-  onEdit: (categoria: Categoria) => void;
-  onDelete: (categoria: Categoria) => void;
+  data: categorias[];
+  onEdit: (categoria: categorias) => void;
+  onDelete: (categoria: categorias) => void;
 }
 
 export default function CategoriasTable({ data, onEdit, onDelete }: Props) {

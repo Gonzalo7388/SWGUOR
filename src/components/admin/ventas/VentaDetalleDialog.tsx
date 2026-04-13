@@ -91,10 +91,10 @@ export default function VentaDetalleDialog({ venta, isOpen, onClose, onUpdate }:
 
     try {
       // 1. Devolver stock (Ejecución en paralelo para mayor velocidad)
-      const stockUpdates = detalles.map(item => 
-        supabase.rpc('increment_stock', {
+      const stockUpdates = detalles.map(item =>
+        supabase.rpc('increment_stock' as any, {
           row_id: String(item.producto_id),
-          quantity: item.cantidad
+          quantity: item.cantidad,
         })
       );
       

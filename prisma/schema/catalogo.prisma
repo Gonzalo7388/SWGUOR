@@ -27,12 +27,16 @@ model productos {
   categoria_id           BigInt?
   ficha_tecnica          Json?                    @default("{\"medidas\": {}, \"materiales\": [], \"instrucciones\": \"\"}")
   moq                    Int                      @default(400)
+  colores_disponibles    Json?                    @default("[]")
+  tallas_disponibles     Json?                    @default("[]")
+
+  // Relaciones
   cotizacion_items       cotizacion_items[]
   fichas_tecnicas        fichas_tecnicas[]
   movimientos_inventario movimientos_inventario[]
   pedido_items           pedido_items[]
   precio_historico       precio_historico[]
-  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categorias             categorias?        @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
 
   @@index([estado], map: "idx_productos_estado")
@@ -41,7 +45,7 @@ model productos {
 }
 
 model variantes_producto {
-  id               BigInt                @id @default(autoincrement())
+  id               BigInt             @id @default(autoincrement())
   producto_id      BigInt
   nombre           String             @db.VarChar(100)
   color            ColorPrenda

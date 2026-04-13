@@ -9,14 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { UserCog, ShieldCheck, User, Mail } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import type { Database } from "@/types/database";
+import type { Rol, usuarios } from "@prisma/client";
 
-type RolUsuario    = Database['public']['Enums']['RolPersonal'];
-
-// Tipado estricto basado en el esquema real
-type UsuarioRow = Database['public']['Tables']['usuarios']['Row'];
-
-const ROLES_SISTEMA: { value: RolUsuario; label: string }[] = [
+const ROLES_SISTEMA: { value: Rol; label: string }[] = [
   { value: "gerente",              label: "Gerente General"         },
   { value: "administrador",        label: "Administrador"           },
   { value: "recepcionista",        label: "Recepcionista"           },
@@ -31,15 +26,15 @@ interface EditUsuarioDialogProps {
   isOpen:    boolean;
   onClose:   () => void;
   onSuccess: () => void;
-  usuario:   UsuarioRow;
+  usuario:   usuarios;
 }
 
 export default function EditUsuarioDialog({
   isOpen, onClose, onSuccess, usuario,
 }: EditUsuarioDialogProps) {
   const [loading,         setLoading]         = useState(false);
-  const [rolSeleccionado, setRolSeleccionado] = useState<RolUsuario | null>(usuario?.rol ?? null);
-  const [rolActual,       setRolActual]       = useState<RolUsuario | null>(null);
+  const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(usuario?.rol ?? null);
+  const [rolActual,       setRolActual]       = useState<Rol | null>(null);
 
   // ── Derivado: solo "administrador" puede editar el email ──────────────────
   const puedeEditarEmail = rolActual === 'administrador';
@@ -61,7 +56,7 @@ export default function EditUsuarioDialog({
         .single();
 
       if (!error && data?.rol) {
-        setRolActual(data.rol as RolUsuario);
+        setRolActual(data.rol as Rol);
       }
     };
 
@@ -83,14 +78,11 @@ export default function EditUsuarioDialog({
     const formData = new FormData(e.currentTarget);
 
     // Campos editables según el esquema: nombre_completo, email (si admin), rol, telefono
-    const payload: Partial<UsuarioRow> & { id: number } = {
-      id:             usuario.id,                               // bigint
-      nombre_completo: formData.get('nombre_completo') as string,
-      rol:            rolSeleccionado ?? undefined,
-      // telefono es bigint en el esquema — convertir o enviar null
-      telefono:       formData.get('telefono')
-                        ? Number(formData.get('telefono'))
-                        : null,
+    const payload: Partial<usuarios> & { id: bigint } = {
+      id:       usuario.id,                               
+      telefono: formData.get('telefono')
+                  ? BigInt(formData.get('telefono') as string)
+                  : null,
     };
 
     // Email solo si el rol actual lo permite — protección doble (UI + payload)
@@ -209,7 +201,7 @@ export default function EditUsuarioDialog({
               </Label>
               <Select
                 value={rolSeleccionado ?? ''}
-                onValueChange={(value) => setRolSeleccionado(value as RolUsuario)}
+                onValueChange={(value) => setRolSeleccionado(value as Rol)}
               >
                 <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
                   <SelectValue placeholder="Seleccione un cargo" />

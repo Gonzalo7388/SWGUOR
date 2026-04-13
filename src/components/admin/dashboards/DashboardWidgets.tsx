@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sk } from './DashboardUtils';
-import { ApiData, EstadoOrden } from './types';
+import { ApiData } from './types';
+import type { EstadoOrden } from '@prisma/client';
 import { ESTADOS_ORDEN } from '@/lib/constants/estados';
 
 export function KpiCard({ label, value, icon: Icon, accentColor, loading, danger, subLabel }: {

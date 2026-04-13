@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
+import type { reservas_stock } from '@prisma/client';
+
+const creadas: reservas_stock[] = [];
 
 // ─────────────────────────────────────────────────────────────
 // Helper: obtener el cliente_id del usuario autenticado
@@ -161,7 +164,7 @@ export async function POST(req: Request) {
 
     // ── 3. Crear reservas en transacción ──
     const reservas = await prisma.$transaction(async (tx) => {
-      const creadas = [];
+      const creadas: reservas_stock[] = [];
 
       for (const item of items) {
         if (!item.variante_id || !item.cantidad) continue;

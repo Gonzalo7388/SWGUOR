@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { serializePrismaPayload } from '@/lib/serializers';
 
@@ -19,7 +18,7 @@ export async function getPortalCotizaciones(clienteId: number) {
             select: {
               nombre: true,
               sku: true,
-              imagen_url: true,
+              imagen: true,
             },
           },
         },
@@ -60,7 +59,7 @@ export async function getPortalCotizaciones(clienteId: number) {
           ? {
               nombre: item.productos.nombre,
               sku: item.productos.sku,
-              imagen_url: item.productos.imagen_url,
+              imagen: item.productos.imagen,
             }
           : null,
       })),
@@ -86,7 +85,7 @@ export async function getPortalCotizacionDetalle(cotizacionId: number, clienteId
             select: {
               nombre: true,
               sku: true,
-              imagen_url: true,
+              imagen: true,
             },
           },
         },
@@ -130,7 +129,7 @@ export async function getPortalCotizacionDetalle(cotizacionId: number, clienteId
         ? {
             nombre: item.productos.nombre,
             sku: item.productos.sku,
-            imagen_url: item.productos.imagen_url,
+            imagen: item.productos.imagen,
           }
         : null,
     })),

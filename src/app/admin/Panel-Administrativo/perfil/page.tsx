@@ -402,6 +402,15 @@ export default function PerfilPage() {
 
   const isAdmin = fullUsuario?.rol?.toLowerCase() === 'administrador';
 
+  const usuarioFormateado = fullUsuario ? {
+    ...fullUsuario,
+    id: BigInt(fullUsuario.id),
+    telefono: fullUsuario.telefono ? BigInt(fullUsuario.telefono) : null,
+    created_at: fullUsuario.created_at ? new Date(fullUsuario.created_at) : null,
+    updated_at: fullUsuario.updated_at ? new Date(fullUsuario.updated_at) : null,
+    ultimo_acceso: fullUsuario.ultimo_acceso ? new Date(fullUsuario.ultimo_acceso) : null,
+  } : null;
+
   return (
     <div className="min-h-screen bg-rose-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -435,7 +444,7 @@ export default function PerfilPage() {
           {/* User Info Sidebar */}
           {fullUsuario && (
             <UserInfoCard
-              usuario={fullUsuario}
+              usuario={usuarioFormateado as any}
               avatarUrl={state.avatarUrl}
               nombreCompleto={state.nombreCompleto}
               email={state.email}

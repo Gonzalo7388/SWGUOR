@@ -69,26 +69,34 @@ enum one_time_token_type {
 }
 
 enum ColorPrenda {
-  Blanco
-  Negro
-  Gris
-  Beige
-  Marr_n_pastel  @map("Marrón pastel")
-  Azul_jean      @map("Azul jean")
-  Azul_marino    @map("Azul marino")
-  Rojo
-  Rosa_pastel    @map("Rosa pastel")
-  Morado_claro   @map("Morado claro")
-  Verde_olivo    @map("Verde olivo")
-  Amarillo
-  Naranja
-  Multicolor
-  nico           @map("Único")
-  Vino
-  Camel
-  Crema
-  Celeste
-  Amarillo_lim_n @map("Amarillo limón")
+  animal_print
+  azul
+  azulino
+  beige
+  blanco
+  camel
+  celeste
+  cemento
+  chocolate
+  coral
+  crema
+  fucsia
+  grafito
+  gris 
+  guinda
+  lila
+  marron
+  melange
+  melon
+  negro
+  nude
+  palo_rosa
+  perla
+  piton
+  rojo
+  rose
+  verde
+  vino 
 
   @@schema("public")
 }
@@ -366,7 +374,7 @@ enum UnidadMedida {
   @@schema("public")
 }
 
-enum RolPersonal {
+enum Rol {
   administrador
   cortador
   disenador

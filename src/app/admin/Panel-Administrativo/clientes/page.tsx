@@ -12,9 +12,7 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { exportToExcel } from "@/lib/utils/export-utils";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import type { Database } from "@/types/database";
-
-type EstadoCliente = Database['public']['Enums']['EstadoCliente'];
+import type { EstadoCliente } from '@prisma/client';
 
 const ClientesTable = dynamic(() => import("@/components/admin/clientes/ClientesTable"));
 const EditClienteDialog = dynamic(() => import("@/components/admin/clientes/EditClienteDialog"));
@@ -28,7 +26,7 @@ export default function ClientesPage() {
   const [selectedCliente, setSelectedCliente] = useState<any | null>(null);
   const [dialogMode, setDialogMode] = useState<"edit" | "delete" | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<EstadoCliente | null>(null)
+  const [statusFilter, setStatusFilter] = useState<EstadoCliente | null>(null);
   const pageSize = 10;
 
   const [stats, setStats] = useState({ 

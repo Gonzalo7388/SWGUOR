@@ -170,7 +170,7 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
       }
 
       toast.success(
-        `✅ Cotización ${result.data?.cotizacion_id} creada exitosamente`,
+        `Cotización ${result.data?.cotizacion_id} creada exitosamente`,
       );
       router.push('/admin/Panel-Administrativo/cotizaciones');
     } catch {

@@ -1,5 +1,5 @@
 // lib/cache.ts
-import type { Database } from "@/types/database";
+import type { users } from "@prisma/client";
 
 /**
  * Sistema de caché en memoria con soporte para TTL (Time To Live)
@@ -126,15 +126,12 @@ class MemoryCache<T> {
 // ============================================
 // INSTANCIAS DE CACHÉ
 // ============================================
-
-// ✅ Usar tipo generado desde la base de datos
-type UserCacheData = Database['public']['Tables']['usuarios']['Row'];
-
+type userCacheData = Omit<users, "password">;
 /**
  * Caché de usuarios con TTL de 5 minutos
  * Previene consultas repetitivas a la BD en el middleware
  */
-export const userCache = new MemoryCache<UserCacheData>(1000, 5 * 60 * 1000);
+export const userCache = new MemoryCache<userCacheData>(1000, 5 * 60 * 1000);
 
 /**
  * Limpieza automática del caché cada 10 minutos

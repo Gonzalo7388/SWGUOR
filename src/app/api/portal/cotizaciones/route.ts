@@ -206,6 +206,8 @@ export async function POST(req: Request) {
             cantidad: item.cantidad,
             precio_unitario_snapshot: item.precio_unitario,
             subtotal: item.cantidad * item.precio_unitario,
+            color_snapshot: item.color_snapshot || null,
+            talla_snapshot: item.talla_snapshot || null,
           })),
         },
       },

@@ -66,7 +66,7 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
     setLoading(true);
 
     try {
-      let finalPath = null;
+      let finalPath: string | null = null;
 
       // 1. Subir imagen al Storage si existe
       if (file) {

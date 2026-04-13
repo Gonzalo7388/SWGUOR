@@ -70,11 +70,12 @@ export const cambiarEstadoOrden = async (
   // Mantenemos la conversión a número para el BigInt de la DB
   const idBusqueda = typeof ordenId === 'string' ? parseInt(ordenId, 10) : ordenId;
 
+  const { payment_id, ...camposOrden } = dataExtra ?? {};
   const { error } = await supabase
     .from('ordenes')
-    .update({ 
+    .update({
       estado: nuevoEstado,
-      ...dataExtra 
+      ...camposOrden,
     })
     .eq('id', idBusqueda);
 

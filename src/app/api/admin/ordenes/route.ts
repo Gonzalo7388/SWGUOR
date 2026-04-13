@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import type { Database } from '@/types/database';
-
-type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
+import type { EstadoOrden } from '@prisma/client';
 
 // Estados válidos según el schema
 const ESTADOS_VALIDOS: EstadoOrden[] = [

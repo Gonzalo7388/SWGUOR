@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
-import { EstadoOrden } from './types';
+import type { EstadoOrden } from '@prisma/client';
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 export function groupByDate(rows: { created_at: string; total: number }[]) {

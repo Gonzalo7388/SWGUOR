@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       asientos_contables: {
@@ -139,79 +114,40 @@ export type Database = {
       clientes: {
         Row: {
           activo: Database["public"]["Enums"]["EstadoCliente"] | null
-          apellido_materno: string | null
-          apellido_paterno: string | null
-          categoria_cliente: string | null
-          codigo_cliente: string | null
           created_at: string
           direccion_fiscal: string | null
           email: string | null
-          estado_comercial: string | null
-          forma_pago_defecto: string | null
           id: number
-          impuesto_defecto: string | null
-          lista_precios: string | null
-          metodo_comercial: string | null
-          moneda_defecto: string | null
-          nombre: string | null
-          nombre_comercial: string | null
-          pais: string | null
           razon_social: string | null
-          ruc: number
-          telefono: number | null
-          TipoCliente: Database["public"]["Enums"]["TipoCliente"] | null
+          ruc: string
+          telefono: string | null
+          tipo_cliente: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at: string
           usuario_id: number | null
         }
         Insert: {
           activo?: Database["public"]["Enums"]["EstadoCliente"] | null
-          apellido_materno?: string | null
-          apellido_paterno?: string | null
-          categoria_cliente?: string | null
-          codigo_cliente?: string | null
           created_at?: string
           direccion_fiscal?: string | null
           email?: string | null
-          estado_comercial?: string | null
-          forma_pago_defecto?: string | null
           id?: number
-          impuesto_defecto?: string | null
-          lista_precios?: string | null
-          metodo_comercial?: string | null
-          moneda_defecto?: string | null
-          nombre?: string | null
-          nombre_comercial?: string | null
-          pais?: string | null
           razon_social?: string | null
-          ruc: number
-          telefono?: number | null
-          TipoCliente?: Database["public"]["Enums"]["TipoCliente"] | null
+          ruc: string
+          telefono?: string | null
+          tipo_cliente?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
           usuario_id?: number | null
         }
         Update: {
           activo?: Database["public"]["Enums"]["EstadoCliente"] | null
-          apellido_materno?: string | null
-          apellido_paterno?: string | null
-          categoria_cliente?: string | null
-          codigo_cliente?: string | null
           created_at?: string
           direccion_fiscal?: string | null
           email?: string | null
-          estado_comercial?: string | null
-          forma_pago_defecto?: string | null
           id?: number
-          impuesto_defecto?: string | null
-          lista_precios?: string | null
-          metodo_comercial?: string | null
-          moneda_defecto?: string | null
-          nombre?: string | null
-          nombre_comercial?: string | null
-          pais?: string | null
           razon_social?: string | null
-          ruc?: number
-          telefono?: number | null
-          TipoCliente?: Database["public"]["Enums"]["TipoCliente"] | null
+          ruc?: string
+          telefono?: string | null
+          tipo_cliente?: Database["public"]["Enums"]["TipoCliente"] | null
           updated_at?: string
           usuario_id?: number | null
         }
@@ -355,29 +291,41 @@ export type Database = {
       cotizacion_items: {
         Row: {
           cantidad: number
+          color_snapshot: string
           cotizacion_id: number | null
           id: number
+          modelo_snapshot: string | null
           precio_unitario_snapshot: number
+          prenda_tipo_snapshot: string | null
           producto_id: number | null
           subtotal: number
+          talla_snapshot: string
           variante_id: number | null
         }
         Insert: {
           cantidad: number
+          color_snapshot: string
           cotizacion_id?: number | null
           id?: number
+          modelo_snapshot?: string | null
           precio_unitario_snapshot: number
+          prenda_tipo_snapshot?: string | null
           producto_id?: number | null
           subtotal: number
+          talla_snapshot: string
           variante_id?: number | null
         }
         Update: {
           cantidad?: number
+          color_snapshot?: string
           cotizacion_id?: number | null
           id?: number
+          modelo_snapshot?: string | null
           precio_unitario_snapshot?: number
+          prenda_tipo_snapshot?: string | null
           producto_id?: number | null
           subtotal?: number
+          talla_snapshot?: string
           variante_id?: number | null
         }
         Relationships: [
@@ -423,6 +371,7 @@ export type Database = {
           monto_descuento: number | null
           notas_internas: string | null
           numero: string
+          origen: string | null
           pedido_id: number | null
           subtotal: number | null
           total: number | null
@@ -447,6 +396,7 @@ export type Database = {
           monto_descuento?: number | null
           notas_internas?: string | null
           numero: string
+          origen?: string | null
           pedido_id?: number | null
           subtotal?: number | null
           total?: number | null
@@ -471,6 +421,7 @@ export type Database = {
           monto_descuento?: number | null
           notas_internas?: string | null
           numero?: string
+          origen?: string | null
           pedido_id?: number | null
           subtotal?: number | null
           total?: number | null
@@ -582,7 +533,7 @@ export type Database = {
             foreignKeyName: "detalle_ficha_insumos_id_ficha_fkey"
             columns: ["id_ficha"]
             isOneToOne: false
-            referencedRelation: "fichas_tecnicas"
+            referencedRelation: "fichas-tecnicas"
             referencedColumns: ["id"]
           },
           {
@@ -791,12 +742,12 @@ export type Database = {
             foreignKeyName: "ficha_medidas_id_ficha_fkey"
             columns: ["id_ficha"]
             isOneToOne: false
-            referencedRelation: "fichas_tecnicas"
+            referencedRelation: "fichas-tecnicas"
             referencedColumns: ["id"]
           },
         ]
       }
-      fichas_tecnicas: {
+      "fichas-tecnicas": {
         Row: {
           costo_estimado: number | null
           created_at: string
@@ -1387,50 +1338,65 @@ export type Database = {
       productos: {
         Row: {
           categoria_id: number | null
+          colores_disponibles: Json | null
           created_at: string
           descripcion: string | null
           destacado: boolean | null
           estado: Database["public"]["Enums"]["EstadoProducto"]
           ficha_tecnica: Json | null
+          genero: string | null
           id: number
           imagen: string | null
+          modelo: string | null
           moq: number
           nombre: string
           precio: number
+          prenda_tipo: string | null
           sku: string
           stock: number
+          tallas_disponibles: Json | null
           updated_at: string
         }
         Insert: {
           categoria_id?: number | null
+          colores_disponibles?: Json | null
           created_at?: string
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
           ficha_tecnica?: Json | null
+          genero?: string | null
           id?: number
           imagen?: string | null
+          modelo?: string | null
           moq?: number
           nombre: string
           precio: number
+          prenda_tipo?: string | null
           sku: string
           stock?: number
+          tallas_disponibles?: Json | null
           updated_at: string
         }
         Update: {
           categoria_id?: number | null
+          colores_disponibles?: Json | null
           created_at?: string
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
           ficha_tecnica?: Json | null
+          genero?: string | null
           id?: number
           imagen?: string | null
+          modelo?: string | null
           moq?: number
           nombre?: string
           precio?: number
+          prenda_tipo?: string | null
           sku?: string
           stock?: number
+          tallas_disponibles?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -1612,7 +1578,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["EstadoUsuario"] | null
           id: number
           nombre_completo: string
-          rol: Database["public"]["Enums"]["RolPersonal"] | null
+          rol: Database["public"]["Enums"]["Rol"] | null
           telefono: number | null
           ultimo_acceso: string | null
           updated_at: string | null
@@ -1625,7 +1591,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
           id?: number
           nombre_completo: string
-          rol?: Database["public"]["Enums"]["RolPersonal"] | null
+          rol?: Database["public"]["Enums"]["Rol"] | null
           telefono?: number | null
           ultimo_acceso?: string | null
           updated_at?: string | null
@@ -1638,7 +1604,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
           id?: number
           nombre_completo?: string
-          rol?: Database["public"]["Enums"]["RolPersonal"] | null
+          rol?: Database["public"]["Enums"]["Rol"] | null
           telefono?: number | null
           ultimo_acceso?: string | null
           updated_at?: string | null
@@ -1807,103 +1773,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      actualizar_ultimo_acceso: {
-        Args: { usuario_id: number }
-        Returns: undefined
-      }
-      check_user_role: {
-        Args: { allowed_roles: Database["public"]["Enums"]["RolPersonal"][] }
-        Returns: boolean
-      }
-      convertir_cotizacion_a_orden: {
-        Args: { p_cot_id: number }
-        Returns: number
-      }
-      create_user_with_creator: {
-        Args: {
-          auth_id_input: string
-          email_input: string
-          nombre_completo_input: string
-          rol_input: string
-          telefono_input: string
-        }
-        Returns: undefined
-      }
-      decrement_inventory: {
-        Args: { p_id: number; p_qty: number }
-        Returns: undefined
-      }
-      decrement_stock: {
-        Args: { quantity: number; row_id: string }
-        Returns: undefined
-      }
-      get_dashboard_stats: { Args: never; Returns: Json }
-      get_my_role: {
-        Args: never
-        Returns: Database["public"]["Enums"]["RolPersonal"]
-      }
-      get_user_id: { Args: never; Returns: number }
-      get_user_role: { Args: never; Returns: string }
-      has_role: { Args: { required_role: string }; Returns: boolean }
-      increment_stock: {
-        Args: { quantity: number; row_id: string }
-        Returns: undefined
-      }
-      insert_new_user_with_creator: {
-        Args: {
-          auth_id_input: string
-          email_input: string
-          nombre_completo_input: string
-          rol_input: string
-          telefono_input: string
-        }
-        Returns: undefined
-      }
-      is_admin: { Args: never; Returns: boolean }
-      is_role: {
-        Args: { allowed_roles: Database["public"]["Enums"]["RolPersonal"][] }
-        Returns: boolean
-      }
-      is_staff: { Args: never; Returns: boolean }
-      reduce_stock_from_order: {
-        Args: { p_orden_id: number }
-        Returns: undefined
-      }
-      registrar_entrada_fabricacion: {
-        Args: {
-          p_cantidad: number
-          p_id: number
-          p_motivo: string
-          p_usuario_id: number
-        }
-        Returns: undefined
-      }
-      reservar_stock_cotizacion: {
-        Args: { p_cotizacion_id: number; p_items: Json }
-        Returns: Json
-      }
-      reset_productos_sequence: {
-        Args: { new_value?: number }
-        Returns: undefined
-      }
-      restar_stock: {
-        Args: { cantidad_param: number; producto_id_param: string }
-        Returns: undefined
-      }
-      sumar_stock: {
-        Args: { cantidad_param: number; producto_id_param: string }
-        Returns: undefined
-      }
-      verificar_stock_bajo: {
-        Args: never
-        Returns: {
-          categoria_nombre: string
-          nombre: string
-          producto_id: number
-          stock: number
-          stock_minimo: number
-        }[]
-      }
+      random_9_digit_phone: { Args: never; Returns: number }
     }
     Enums: {
       CategoriaInsumo:
@@ -1915,25 +1785,45 @@ export type Database = {
         | "forro"
         | "otro"
       ColorPrenda:
-        | "Blanco"
-        | "Negro"
-        | "Gris"
-        | "Beige"
+        | "animal_print"
+        | "azul"
+        | "azulino"
+        | "beige"
+        | "blanco"
+        | "camel"
+        | "celeste"
+        | "cemento"
+        | "chocolate"
+        | "coral"
+        | "crema"
+        | "fucsia"
+        | "grafito"
+        | "gris"
+        | "guinda"
+        | "lila"
+        | "marron"
+        | "melange"
+        | "melon"
+        | "negro"
+        | "nude"
+        | "palo_rosa"
+        | "perla"
+        | "piton"
+        | "rojo"
+        | "rosa"
+        | "rose"
+        | "verde"
+        | "vino"
         | "Marrón pastel"
         | "Azul jean"
         | "Azul marino"
-        | "Rojo"
         | "Rosa pastel"
         | "Morado claro"
         | "Verde olivo"
-        | "Amarillo"
-        | "Naranja"
-        | "Multicolor"
+        | "amarillo"
+        | "naranja"
+        | "multicolor"
         | "Único"
-        | "Vino"
-        | "Camel"
-        | "Crema"
-        | "Celeste"
         | "Amarillo limón"
       CuentaContable:
         | "caja"
@@ -2009,6 +1899,15 @@ export type Database = {
         | "visa"
         | "mastercard"
       PrioridadPedido: "baja" | "normal" | "alta" | "urgente"
+      Rol:
+        | "administrador"
+        | "cortador"
+        | "disenador"
+        | "recepcionista"
+        | "ayudante"
+        | "representante_taller"
+        | "cliente"
+        | "gerente"
       RolPersonal:
         | "administrador"
         | "cortador"
@@ -2183,9 +2082,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       CategoriaInsumo: [
@@ -2198,25 +2094,45 @@ export const Constants = {
         "otro",
       ],
       ColorPrenda: [
-        "Blanco",
-        "Negro",
-        "Gris",
-        "Beige",
+        "animal_print",
+        "azul",
+        "azulino",
+        "beige",
+        "blanco",
+        "camel",
+        "celeste",
+        "cemento",
+        "chocolate",
+        "coral",
+        "crema",
+        "fucsia",
+        "grafito",
+        "gris",
+        "guinda",
+        "lila",
+        "marron",
+        "melange",
+        "melon",
+        "negro",
+        "nude",
+        "palo_rosa",
+        "perla",
+        "piton",
+        "rojo",
+        "rosa",
+        "rose",
+        "verde",
+        "vino",
         "Marrón pastel",
         "Azul jean",
         "Azul marino",
-        "Rojo",
         "Rosa pastel",
         "Morado claro",
         "Verde olivo",
-        "Amarillo",
-        "Naranja",
-        "Multicolor",
+        "amarillo",
+        "naranja",
+        "multicolor",
         "Único",
-        "Vino",
-        "Camel",
-        "Crema",
-        "Celeste",
         "Amarillo limón",
       ],
       CuentaContable: [
@@ -2301,6 +2217,16 @@ export const Constants = {
         "mastercard",
       ],
       PrioridadPedido: ["baja", "normal", "alta", "urgente"],
+      Rol: [
+        "administrador",
+        "cortador",
+        "disenador",
+        "recepcionista",
+        "ayudante",
+        "representante_taller",
+        "cliente",
+        "gerente",
+      ],
       RolPersonal: [
         "administrador",
         "cortador",

@@ -1,12 +1,10 @@
 'use client';
 
 import { User, Mail, Phone, Shield, CheckCircle2, Calendar } from "lucide-react";
-import type { Database } from '@/types/database';
-
-type Usuario = Database['public']['Tables']['usuarios']['Row'];
+import type { usuarios} from "@prisma/client";
 
 interface UserInfoCardProps {
-  usuario: Usuario;
+  usuario: usuarios;
   avatarUrl: string;
   nombreCompleto: string;
   email: string;
@@ -19,7 +17,7 @@ export function UserInfoCard({
   nombreCompleto,
   email,
   telefono,
-}: UserInfoCardProps) {
+}: UserInfoCardProps): import("react/jsx-runtime").JSX.Element {
   return (
     <div className="lg:col-span-1">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

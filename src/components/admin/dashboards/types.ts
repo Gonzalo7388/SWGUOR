@@ -1,9 +1,14 @@
-import type { Database } from '@/types/database';
+import type { insumo, ordenes } from "@prisma/client";
 
-export type Insumo = Database['public']['Tables']['insumo']['Row'];
-export type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
-export type Orden = Database['public']['Tables']['ordenes']['Row'];
-export type OrdenConCliente = Orden & { clientes: { razon_social: string } | null };
+interface OrdenConCliente extends ordenes {
+  cliente: {
+    razon_social: string;
+    ruc: string;
+    email: string;
+    telefono: string | number | null;
+    direccion: string;
+  } | null;
+}
 
 export interface DashboardStats {
   totalVentas:   number;
@@ -22,5 +27,5 @@ export interface ApiData {
   chartIngresos: { created_at: string; total: number }[];
   chartProductos: { cantidad: number; productos: { nombre: string } | null }[];
   recentOrders: OrdenConCliente[];
-  criticalStock: Insumo[];
+  criticalStock: insumo[];
 }

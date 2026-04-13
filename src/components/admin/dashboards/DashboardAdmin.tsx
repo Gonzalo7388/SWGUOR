@@ -282,7 +282,7 @@ export default function AdminDashboard() {
               <tbody>
                 {orders.map((o) => {
                   const st   = getOrdenStatus(o.estado ?? '');
-                  const tipo = getTipoCliente((o.clientes as any)?.tipo ?? '');
+                  const tipo = getTipoCliente((o.cliente as any)?.tipo ?? '');
                   return (
                     <tr key={o.id} className="group">
                       <td className="py-2.5 pl-5 bg-slate-50 group-hover:bg-slate-100 rounded-l-xl transition-colors">
@@ -290,7 +290,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-2.5 px-2 bg-slate-50 group-hover:bg-slate-100 transition-colors">
                         <p className="text-xs font-bold text-slate-800 truncate">
-                          {o.clientes?.razon_social ?? 'Consumidor'}
+                          {o.cliente?.razon_social?? 'Consumidor'}
                         </p>
                         <p className="text-[9px] text-slate-400 mt-0.5">
                           {o.created_at ? new Date(o.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }) : 'Sin fecha'}

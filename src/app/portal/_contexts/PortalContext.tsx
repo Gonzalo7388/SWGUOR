@@ -14,7 +14,7 @@ export interface ClientePortal {
   direccion?: string;
   email: string | null;
   telefono: number | null;
-  tipo: string;
+  tipo_cliente: string;
 }
 
 export interface ItemCotizacion {
@@ -132,7 +132,19 @@ export function PortalProvider({ children }: { children: ReactNode }) {
           : perfilCompleto?.cliente_datos;
 
         if (datosCliente) {
-          setCliente(datosCliente as ClientePortal);
+          // Adaptamos la data de Supabase a la interfaz ClientePortal
+          const clienteAdaptado: ClientePortal = {
+            id: datosCliente.id,
+            ruc: Number(datosCliente.ruc), 
+            razon_social: datosCliente.razon_social || 'Sin Razón Social',
+            direccion: datosCliente.direccion_fiscal || undefined,
+            email: datosCliente.email,
+            // Limpiamos cualquier espacio o guion antes de convertir el teléfono a número
+            telefono: datosCliente.telefono ? Number(datosCliente.telefono.replace(/\D/g, '')) : null,
+            tipo_cliente: datosCliente.tipo_cliente || 'corporativo',
+          };
+
+          setCliente(clienteAdaptado);
           
           // 4. CARGAR ESTADÍSTICAS (Aquí estaba el error 400 por variable inexistente)
           try {

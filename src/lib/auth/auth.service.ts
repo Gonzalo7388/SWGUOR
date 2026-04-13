@@ -1,14 +1,12 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { invalidateUserCache } from "@/lib/cache";
-import type { Database } from "@/types/database";
+import type { usuarios } from '@prisma/client';
 
 // ============================================
 // TIPOS Y CONSTANTES
 // ============================================
 
 // Usar tipo generado desde la base de datos
-export type Usuario = Database['public']['Tables']['usuarios']['Row'];
-
 export const ROLES_SISTEMA = {
   administrador: 'administrador',
   recepcionista: 'recepcionista',
@@ -25,7 +23,7 @@ export type RolValido = typeof ROLES_SISTEMA[keyof typeof ROLES_SISTEMA];
 export interface LoginResult {
   success: boolean;
   error?: string;
-  usuario?: Usuario;
+  usuario?: usuarios;
 }
 
 const ESTADO_ACTIVO = 'ACTIVO'; 
@@ -64,7 +62,7 @@ function isUserActive(estado: string | undefined): boolean {
 /**
  * Obtiene los datos del usuario desde la base de datos
  */
-async function fetchUserByAuthId(authId: string): Promise<Usuario | null> {
+async function fetchUserByAuthId(authId: string): Promise<usuarios | null> {
   try {
     const { data, error } = await getSupabaseBrowserClient()
       .from('usuarios')
@@ -77,7 +75,7 @@ async function fetchUserByAuthId(authId: string): Promise<Usuario | null> {
       return null;
     }
 
-    return (data || null) as Usuario | null;
+    return (data || null) as usuarios | null;
   } catch (err) {
     console.error('[Auth] Unexpected error fetching user:', err);
     return null;
@@ -164,7 +162,7 @@ export async function loginUser(
     }
 
     // 4. Actualizar último acceso (async, no bloqueante)
-    updateLastAccess(usuario.id);
+    updateLastAccess(Number(usuario.id));
 
     // 5. Login exitoso
     return { 
@@ -238,7 +236,7 @@ export async function getCurrentSession() {
 /**
  * Obtiene el usuario actual completo (auth + BD)
  */
-export async function getCurrentUser(): Promise<Usuario | null> {
+export async function getCurrentUser(): Promise<usuarios | null> {
   try {
     const { data: { user } } = await getSupabaseBrowserClient().auth.getUser();
     

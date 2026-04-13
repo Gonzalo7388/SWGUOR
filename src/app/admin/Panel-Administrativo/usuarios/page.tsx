@@ -7,8 +7,7 @@ import { Search, Users, RefreshCw, UserCheck, UserMinus, ChevronLeft, ChevronRig
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import type { Database } from "@/types/database";
-type EstadoUsuario = Database['public']['Enums']['EstadoUsuario'];
+import type { EstadoUsuario } from "@prisma/client";
 
 // Componentes dinámicos
 const UsuariosTable = dynamic(() => import("@/components/admin/usuarios/UsuarioTable"));

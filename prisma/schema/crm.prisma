@@ -1,46 +1,17 @@
 model clientes {
   id                  BigInt                @id(map: "Clientes_pkey") @default(autoincrement())
-  
-  // Identificación Básica
-  tipo_documento      String?               @db.VarChar(20) // RUC 10, RUC 20, DNI, CE
-  ruc                 String                @unique @db.VarChar(20) 
-  
-  // Persona Natural (RUC 10 / DNI)
-  nombre              String?               @db.VarChar(100)
-  apellido_paterno    String?               @db.VarChar(100)
-  apellido_materno    String?               @db.VarChar(100)
-  
-  // Persona Jurídica (RUC 20)
+  ruc                 String                @unique @db.VarChar(20)
   razon_social        String?               @db.VarChar(255)
   nombre_comercial    String?               @db.VarChar(255)
-  
-  // Contacto y Ubicación
+  tipo_cliente        TipoCliente?          @default(corporativo)
   email               String?               @db.VarChar(150)
   telefono            String?               @db.VarChar(50)
   direccion_fiscal    String?               @db.VarChar(255) // La dirección principal de la ficha RUC
-  pais                String?               @default("Peru") @db.VarChar(50)
-  
-  // Clasificación Comercial (Basado en tu Excel)
-  estado_comercial    String?               @default("Activo") @db.VarChar(50) // Activo, Inactivo, Prospecto
-  lista_precios       String?               @db.VarChar(50) 
-  sector              String?               @default("General") @db.VarChar(50)
-  sub_sector          String?               @default("General") @db.VarChar(50)
-  categoria_cliente   String?               @default("General") @db.VarChar(50)
-  codigo_cliente      String?               @unique @db.VarChar(50)
-  
-  // Configuración de Ventas (Para automatizar Cotizaciones)
-  moneda_defecto      String?               @db.VarChar(20) // Soles, Dólares Americanos, Euros
-  forma_pago_defecto  String?               @db.VarChar(100) // Contado, Crédito 30 días, etc.
-  metodo_comercial    String?               @db.VarChar(100) // Despachar->Facturar, Facturar->Despachar
-  tipo_pedido_defecto String?               @db.VarChar(50) // LOCAL, EXPORTACIÓN
-  impuesto_defecto    String?               @default("IGV") @db.VarChar(20)
 
   // Auditoría y Estado
   activo              EstadoCliente?        @default(activo)
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   updated_at          DateTime              @default(now()) @db.Timestamptz(6)
-
-  // Relaciones
   usuario_id          BigInt?               @unique
   usuarios            usuarios?             @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cotizaciones        cotizaciones[]
@@ -72,7 +43,7 @@ model usuarios {
   nombre_completo        String
   telefono               BigInt?
   estado                 EstadoUsuario?           @default(activo)
-  rol                    RolPersonal?
+  rol                    Rol?
   created_at             DateTime?                @default(now()) @db.Timestamptz(6)
   updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
   ultimo_acceso          DateTime?                @db.Timestamptz(6)
@@ -101,7 +72,7 @@ model personal_interno {
   usuario_id      BigInt?
   dni             BigInt?
   nombre_completo String?
-  cargo           RolPersonal?
+  cargo           Rol?
   estado          Boolean?
   fecha_ingreso   DateTime?    @db.Date
   created_at      DateTime?    @default(now()) @db.Timestamp(6)

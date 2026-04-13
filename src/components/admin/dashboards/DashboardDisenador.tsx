@@ -5,17 +5,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import type { Database } from '@/types/database';
+import type { usuarios, EstadoPedido } from '@prisma/client';
 import {
   Upload, Eye, CheckCircle, AlertCircle,
   ClipboardList, Layers, FileText, Inbox,
   Scissors, Shirt, Sparkles, Plus, Search,
   ArrowUpRight
 } from 'lucide-react';
-
-// --- Tipado ---
-type Usuario = Database['public']['Tables']['usuarios']['Row'];
-type EstadoPedido = 'pendiente' | 'corte' | 'costura' | 'acabado' | 'completado' | 'cancelado';
 
 interface ProductoActivo {
   id: number;
@@ -57,7 +53,7 @@ const ETAPA_CONFIG: Record<EstadoPedido, {
   cancelado: { label: 'Cancelado', color: 'text-rose-500', bg: 'bg-rose-50', icon: AlertCircle, progress: 0 },
 };
 
-export default function DisenadorDashboard({ usuario }: { usuario: Usuario }) {
+export default function DisenadorDashboard({ usuario }: { usuario: usuarios }) {
   const router = useRouter();
   const { can, isLoading: permissionsLoading } = usePermissions();
   const supabase = getSupabaseBrowserClient();

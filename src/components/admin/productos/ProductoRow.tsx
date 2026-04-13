@@ -6,7 +6,7 @@ import {
   Edit2, Trash2, Package, BarChart3, Tag, Lock, 
   FileText, Paperclip, CheckCircle2 
 } from "lucide-react";
-import type { Database } from "@/types/database";
+import type { productos, categorias } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -16,9 +16,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getEstadoInfo } from "@/lib/constants/estados";
-
-type Producto = Database['public']['Tables']['productos']['Row'];
-type Categoria = Database['public']['Tables']['categorias']['Row'];
 
 const STORAGE_URL = "https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/";
 
@@ -33,12 +30,12 @@ const ProductoRow = memo(({
   canEdit, 
   canDelete 
 }: {
-  p: Producto;
-  categorias: Categoria[];
-  onEdit: (p: Producto) => void;
-  onDelete: (p: Producto) => void;
-  onStock: (p: Producto) => void;
-  onFicha: (p: Producto) => void;
+  p: productos;
+  categorias: categorias[];
+  onEdit: (p: productos) => void;
+  onDelete: (p: productos) => void;
+  onStock: (p: productos) => void;
+  onFicha: (p: productos) => void;
   canEdit: boolean;
   canDelete: boolean;
 }) => {
@@ -183,12 +180,12 @@ ProductoRow.displayName = "ProductoRow";
 
 // --- COMPONENTE PRINCIPAL ---
 interface ProductosTableProps {
-  data: Producto[];
-  categorias: Categoria[];
-  onEdit: (p: Producto) => void;
-  onDelete: (p: Producto) => void;
-  onStock: (p: Producto) => void;
-  onFicha: (p: Producto) => void;
+  data: productos[];
+  categorias: categorias[];
+  onEdit: (p: productos) => void;
+  onDelete: (p: productos) => void;
+  onStock: (p: productos) => void;
+  onFicha: (p: productos) => void;
   canEdit?: boolean;
   canDelete?: boolean;
 }

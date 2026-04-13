@@ -33,12 +33,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-
 import {
   createClienteSchema,
   type CreateClienteInput,
 } from '@/lib/schemas/clientes';
-import { createCliente } from './actions';
+
+import { createCliente } from '@/app/admin/Panel-Administrativo/clientes/actions';
 
 interface CreateClienteDialogProps {
   open: boolean;
@@ -58,41 +58,25 @@ export function CreateClienteDialog({
   const [mostrarDireccion, setMostrarDireccion] = useState(false);
 
   const form = useForm<CreateClienteInput>({
-    resolver: zodResolver(createClienteSchema),
+    resolver: zodResolver(createClienteSchema) as any,
     defaultValues: {
-      tipo_documento: 'RUC 20',
       ruc: '',
-      nombre: '',
-      apellido_paterno: '',
-      apellido_materno: '',
       razon_social: '',
       nombre_comercial: '',
       email: '',
       telefono: '',
       direccion_fiscal: '',
-      pais: 'Peru',
-      estado_comercial: 'Activo',
-      lista_precios: '',
-      sector: 'General',
-      sub_sector: 'General',
-      categoria_cliente: 'General',
-      codigo_cliente: '',
-      moneda_defecto: 'Soles',
-      forma_pago_defecto: '',
-      metodo_comercial: '',
-      tipo_pedido_defecto: '',
-      impuesto_defecto: 'IGV',
-      crear_direccion: false,
+      tipo_cliente: 'corporativo', 
+      activo: 'activo',
       direccion_alias: '',
-      direccion_detalle: '',
+      direccion_direccion: '',
       direccion_ciudad: '',
       direccion_departamento: '',
     },
   });
 
-  const tipoDocumento = form.watch('tipo_documento');
-  const esPersonaJuridica = tipoDocumento === 'RUC 20';
-  const esPersonaNatural = tipoDocumento === 'DNI' || tipoDocumento === 'RUC 10';
+  const rucValue = form.watch('ruc');
+  const esPersonaJuridica = rucValue?.startsWith('20');
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -106,7 +90,6 @@ export function CreateClienteDialog({
     try {
       setIsSubmitting(true);
 
-      // Agregar flag de dirección si se mostró el campo
       const payload = {
         ...data,
         crear_direccion: mostrarDireccion,
@@ -120,7 +103,7 @@ export function CreateClienteDialog({
       }
 
       toast.success(
-        `✅ Cliente ${result.data?.nombre_completo ?? result.data?.ruc} creado exitosamente`
+        `Cliente ${result.data?.razon_social ?? result.data?.ruc} creado exitosamente`
       );
       onSuccess(result.data!);
       handleOpenChange(false);
@@ -140,7 +123,7 @@ export function CreateClienteDialog({
             Nuevo Cliente
           </DialogTitle>
           <DialogDescription className="text-slate-500 font-bold text-xs uppercase">
-            Complete los datos del cliente. Los campos marcados con * son obligatorios según el tipo de documento.
+            Complete los datos del cliente. Los campos marcados con * son obligatorios.
           </DialogDescription>
         </DialogHeader>
 
@@ -150,9 +133,7 @@ export function CreateClienteDialog({
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6 mt-4"
           >
-            {/* ═══════════════════════════════════════
-                IDENTIFICACIÓN
-                ═══════════════════════════════════════ */}
+            {/* IDENTIFICACIÓN */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 {esPersonaJuridica ? (
@@ -165,58 +146,21 @@ export function CreateClienteDialog({
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Tipo Documento */}
-                <FormField
-                  control={form.control}
-                  name="tipo_documento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Tipo Documento *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-10 border-slate-200 rounded-xl text-xs">
-                            <SelectValue placeholder="Tipo..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="RUC 20">RUC 20 (Persona Jurídica)</SelectItem>
-                          <SelectItem value="RUC 10">RUC 10 (Persona Natural)</SelectItem>
-                          <SelectItem value="DNI">DNI</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* RUC/DNI */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="ruc"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className={ERP_LABEL}>
-                        {tipoDocumento} *
+                        RUC / DNI *
                       </FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           className="h-10 border-slate-200 rounded-xl text-xs"
-                          placeholder={
-                            tipoDocumento === 'DNI'
-                              ? '8 dígitos'
-                              : tipoDocumento === 'RUC 10'
-                              ? '10 dígitos'
-                              : '11 dígitos'
-                          }
-                          maxLength={
-                            tipoDocumento === 'DNI'
-                              ? 8
-                              : tipoDocumento === 'RUC 10'
-                              ? 10
-                              : 11
-                          }
+                          placeholder="Ingrese el RUC o DNI"
+                          maxLength={11}
                         />
                       </FormControl>
                       <FormMessage />
@@ -224,18 +168,19 @@ export function CreateClienteDialog({
                   )}
                 />
 
-                {/* Código Cliente */}
                 <FormField
                   control={form.control}
-                  name="codigo_cliente"
+                  name="razon_social"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={ERP_LABEL}>Código Interno</FormLabel>
+                      <FormLabel className={ERP_LABEL}>Nombre / Razón Social *</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
+                          value={field.value || ''}
                           className="h-10 border-slate-200 rounded-xl text-xs"
-                          placeholder="Auto si vacío"
+                          placeholder="Razón Social de la empresa o Nombre"
+                          maxLength={255}
                         />
                       </FormControl>
                       <FormMessage />
@@ -244,112 +189,56 @@ export function CreateClienteDialog({
                 />
               </div>
 
-              {/* Campos condicionales: Persona Jurídica */}
-              {esPersonaJuridica && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="razon_social"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={ERP_LABEL}>Razón Social *</FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nombre_comercial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={ERP_LABEL}>Nombre Comercial</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value || ''}
+                          className="h-10 border-slate-200 rounded-xl text-xs"
+                          placeholder="Nombre comercial (opcional)"
+                          maxLength={255}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="tipo_cliente"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={ERP_LABEL}>Tipo de Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'corporativo'}>
                         <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Razón Social de la empresa"
-                          />
+                          <SelectTrigger className="h-10 border-slate-200 rounded-xl text-xs">
+                            <SelectValue placeholder="Seleccione..." />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="nombre_comercial"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={ERP_LABEL}>Nombre Comercial</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Nombre comercial (opcional)"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-
-              {/* Campos condicionales: Persona Natural */}
-              {esPersonaNatural && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="nombre"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={ERP_LABEL}>Nombre *</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Nombre"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="apellido_paterno"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={ERP_LABEL}>Apellido Paterno *</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Apellido Paterno"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="apellido_materno"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={ERP_LABEL}>Apellido Materno</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Apellido Materno"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
+                        <SelectContent>
+                          {/* <-- Actualizado con los valores de la imagen --> */}
+                          <SelectItem value="corporativo">Corporativo</SelectItem>
+                          <SelectItem value="minorista">Minorista</SelectItem>
+                          <SelectItem value="distribuidor">Distribuidor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <Separator className="bg-slate-200" />
 
-            {/* ═══════════════════════════════════════
-                CONTACTO
-                ═══════════════════════════════════════ */}
+            {/* CONTACTO */}
             <div className="space-y-4">
               <h3 className="text-sm font-black uppercase text-slate-900">
                 Contacto
@@ -366,8 +255,10 @@ export function CreateClienteDialog({
                         <Input
                           type="email"
                           {...field}
+                          value={field.value || ''}
                           className="h-10 border-slate-200 rounded-xl text-xs"
                           placeholder="correo@ejemplo.com"
+                          maxLength={150}
                         />
                       </FormControl>
                       <FormMessage />
@@ -384,8 +275,10 @@ export function CreateClienteDialog({
                       <FormControl>
                         <Input
                           {...field}
+                          value={field.value || ''}
                           className="h-10 border-slate-200 rounded-xl text-xs"
                           placeholder="999 999 999"
+                          maxLength={50}
                         />
                       </FormControl>
                       <FormMessage />
@@ -395,20 +288,19 @@ export function CreateClienteDialog({
 
                 <FormField
                   control={form.control}
-                  name="estado_comercial"
+                  name="activo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={ERP_LABEL}>Estado Comercial</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel className={ERP_LABEL}>Estado</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'activo'}>
                         <FormControl>
                           <SelectTrigger className="h-10 border-slate-200 rounded-xl text-xs">
                             <SelectValue placeholder="Estado..." />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Activo">Activo</SelectItem>
-                          <SelectItem value="Inactivo">Inactivo</SelectItem>
-                          <SelectItem value="Prospecto">Prospecto</SelectItem>
+                          <SelectItem value="activo">Activo</SelectItem>
+                          <SelectItem value="inactivo">Inactivo</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -420,142 +312,36 @@ export function CreateClienteDialog({
 
             <Separator className="bg-slate-200" />
 
-            {/* ═══════════════════════════════════════
-                CONFIGURACIÓN DE VENTAS
-                ═══════════════════════════════════════ */}
+            {/* DIRECCIÓN FISCAL */}
             <div className="space-y-4">
               <h3 className="text-sm font-black uppercase text-slate-900">
-                Configuración de Ventas
+                Dirección Fiscal
               </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="moneda_defecto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Moneda Defecto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-10 border-slate-200 rounded-xl text-xs">
-                            <SelectValue placeholder="Moneda..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Soles">Soles (PEN)</SelectItem>
-                          <SelectItem value="Dólares Americanos">Dólares (USD)</SelectItem>
-                          <SelectItem value="Euros">Euros (EUR)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="forma_pago_defecto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Forma Pago Defecto</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="h-10 border-slate-200 rounded-xl text-xs"
-                          placeholder="Contado, Crédito 30 días..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="impuesto_defecto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Impuesto Defecto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-10 border-slate-200 rounded-xl text-xs">
-                            <SelectValue placeholder="Impuesto..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="IGV">IGV (18%)</SelectItem>
-                          <SelectItem value="EXONERADO">Exonerado</SelectItem>
-                          <SelectItem value="GRATUITO">Gratuito</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="lista_precios"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Lista Precios</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="h-10 border-slate-200 rounded-xl text-xs"
-                          placeholder="GENERAL GEXIM, GENERAL FCM..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="sector"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Sector</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="h-10 border-slate-200 rounded-xl text-xs"
-                          placeholder="Textil, Retail, etc."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="categoria_cliente"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={ERP_LABEL}>Categoría</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="h-10 border-slate-200 rounded-xl text-xs"
-                          placeholder="Mayorista, Minorista..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              
+              <FormField
+                control={form.control}
+                name="direccion_fiscal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className={ERP_LABEL}>Dirección Fiscal Principal</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value || ''}
+                        className="h-10 border-slate-200 rounded-xl text-xs"
+                        placeholder="Av. Principal 123, Lima..."
+                        maxLength={255}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <Separator className="bg-slate-200" />
 
-            {/* ═══════════════════════════════════════
-                DIRECCIÓN PRINCIPAL (OPCIONAL)
-                ═══════════════════════════════════════ */}
+            {/* SUCURSAL / DIRECCIÓN ADICIONAL */}
             <div className="space-y-4">
               <button
                 type="button"
@@ -563,7 +349,7 @@ export function CreateClienteDialog({
                 className="flex items-center gap-2 text-sm font-black uppercase text-slate-700 hover:text-blue-600 transition-colors"
               >
                 <MapPin size={16} />
-                {mostrarDireccion ? 'Ocultar' : 'Agregar'} Dirección Principal
+                {mostrarDireccion ? 'Ocultar' : 'Agregar'} Sucursal / Dirección Adicional
               </button>
 
               {mostrarDireccion && (
@@ -573,12 +359,13 @@ export function CreateClienteDialog({
                     name="direccion_alias"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className={ERP_LABEL}>Alias</FormLabel>
+                        <FormLabel className={ERP_LABEL}>Alias *</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value || ''}
                             className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Principal, Oficina, Almacén..."
+                            placeholder="Almacén, Tienda 2..."
                           />
                         </FormControl>
                         <FormMessage />
@@ -588,15 +375,16 @@ export function CreateClienteDialog({
 
                   <FormField
                     control={form.control}
-                    name="direccion_detalle"
+                    name="direccion_direccion"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className={ERP_LABEL}>Dirección *</FormLabel>
+                        <FormLabel className={ERP_LABEL}>Dirección de Sucursal *</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value || ''}
                             className="h-10 border-slate-200 rounded-xl text-xs"
-                            placeholder="Av. Principal 123, Lima"
+                            placeholder="Av. Secundaria 456, Lima"
                           />
                         </FormControl>
                         <FormMessage />
@@ -613,6 +401,7 @@ export function CreateClienteDialog({
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value || ''}
                             className="h-10 border-slate-200 rounded-xl text-xs"
                             placeholder="Lima, Arequipa..."
                           />
@@ -631,6 +420,7 @@ export function CreateClienteDialog({
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value || ''}
                             className="h-10 border-slate-200 rounded-xl text-xs"
                             placeholder="Lima, La Libertad..."
                           />
@@ -645,9 +435,7 @@ export function CreateClienteDialog({
           </form>
         </Form>
 
-        {/* ═══════════════════════════════════════
-            BOTONES DE ACCIÓN
-            ═══════════════════════════════════════ */}
+        {/* BOTONES DE ACCIÓN */}
         <DialogFooter className="flex gap-3 sm:justify-end mt-6">
           <DialogClose asChild>
             <Button
@@ -668,12 +456,12 @@ export function CreateClienteDialog({
             {isSubmitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                Creando...
+                Guardando...
               </>
             ) : (
               <>
                 <Plus size={16} />
-                Crear Cliente
+                Guardar Cliente
               </>
             )}
           </Button>

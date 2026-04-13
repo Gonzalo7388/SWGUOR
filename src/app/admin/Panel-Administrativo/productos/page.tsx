@@ -5,43 +5,78 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { useProducts } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  FileSpreadsheet, Plus, Search, Package, RefreshCw, 
-  AlertTriangle, XCircle, BarChart3, ChevronLeft, ChevronRight, 
+import {
+  FileSpreadsheet, Plus, Search, Package, RefreshCw,
+  AlertTriangle, XCircle, BarChart3, ChevronLeft, ChevronRight,
   FileText, ShieldAlert
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { EstadoProducto, productos as PrismaProducto, categorias as PrismaCategoria} from "@prisma/client";
 import { exportToExcel, exportToPDF } from "@/lib/utils/export-utils";
 
-// Lazy loading de componentes
-const ProductosTable = dynamic(() => import("@/components/admin/productos/ProductosTable"));
+interface ProductoRaw {
+  id: number;
+  sku: string;
+  nombre: string;
+  descripcion: string | null;
+  precio: number;
+  stock: number;
+  moq: number;
+  destacado: boolean | null;
+  ficha_tecnica: JSON | null;
+  categoria_id: number | null;
+  imagen: string | null;
+  estado: EstadoProducto;
+  colores_disponibles: JSON | null;
+  tallas_disponibles:  JSON | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type Categoria = PrismaCategoria;
+
+export interface ProductoConRelaciones extends Omit<PrismaProducto, 'id' | 'categoria_id' | 'created_at' | 'updated_at'> {
+  id: bigint;
+  categoria_id: bigint | null;
+  created_at: Date;
+  updated_at: Date;
+  ficha_tecnica: any;
+  colores_disponibles: any;
+  tallas_disponibles: any;
+}
+
+const ProductosTable    = dynamic(() => import("@/components/admin/productos/ProductosTable"));
 const CreateProductoDialog = dynamic(() => import("@/components/admin/productos/CreateProductoDialog"));
-const EditProductoDialog = dynamic(() => import("@/components/admin/productos/EditProductoDialog"));
+const EditProductoDialog   = dynamic(() => import("@/components/admin/productos/EditProductoDialog"));
 const DeleteProductoDialog = dynamic(() => import("@/components/admin/productos/DeleteProductoDialog"));
 
+const toProductoConRelaciones = (p: any): ProductoConRelaciones => ({
+  ...p,
+  id: BigInt(p.id),
+  categoria_id: p.categoria_id ? BigInt(p.categoria_id) : null,
+  created_at: new Date(p.created_at),
+  updated_at: new Date(p.updated_at),
+});
 export default function ProductosPage() {
   const { can, isLoading: authLoading, usuario } = usePermissions();
-  const { productos, loading: productosLoading, error: productosError, refetch } = useProducts();
-  const [categorias, setCategorias] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedProducto, setSelectedProducto] = useState<any | null>(null);
-  const [dialogMode, setDialogMode] = useState<"edit" | "delete" | "stock" | "ficha" | null>(null);
-  
-  const [currentPage, setCurrentPage] = useState(0);
-  const [quickFilter, setQuickFilter] = useState<"todos" | "bajo_stock" | "agotados">("todos");
+  const { productos, loading: productosLoading, refetch } = useProducts();
+  const [categorias, setCategorias]         = useState<Categoria[]>([]);
+  const [searchTerm, setSearchTerm]         = useState("");
+  const [isCreateOpen, setIsCreateOpen]     = useState(false);
+  const [selectedProducto, setSelectedProducto] = useState<ProductoConRelaciones | null>(null);
+  const [dialogMode, setDialogMode]         = useState<"edit" | "delete" | "stock" | "ficha" | null>(null);
+  const [currentPage, setCurrentPage]       = useState(0);
+  const [quickFilter, setQuickFilter]       = useState<"todos" | "bajo_stock" | "agotados">("todos");
   const [selectedCategoria, setSelectedCategoria] = useState<string>("todos");
-  
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, bajoStock: 0, agotados: 0, lineas: 0 });
 
   const canManageFichas = useMemo(() => {
     if (!usuario?.rol) return false;
     const rolActual = usuario.rol.toLowerCase().trim()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return rolActual === 'disenador' || rolActual === 'administrador';
   }, [usuario]);
 
@@ -62,64 +97,84 @@ export default function ProductosPage() {
     }
   }, [authLoading]);
 
-  // Calcular stats cuando cambien los datos
-  useEffect(() => { 
+  useEffect(() => {
     if (productos.length > 0) {
       setStats({
-        total: productos.length,
-        bajoStock: productos.filter((p: any) => p.stock > 0 && p.stock <= 5).length,
-        agotados: productos.filter((p: any) => p.stock === 0).length,
-        lineas: categorias.length
+        total:      productos.length,
+        bajoStock:  productos.filter((p: any) => p.stock > 0 && p.stock <= 5).length,
+        agotados:   productos.filter((p: any) => p.stock === 0).length,
+        lineas:     categorias.length,
       });
     }
   }, [productos, categorias]);
 
-  // Handlers memorizados para la tabla (Mejora técnica invisible)
-  const handleEdit = useCallback((p: any) => { setSelectedProducto(p); setDialogMode("edit"); }, []);
-  const handleDelete = useCallback((p: any) => { setSelectedProducto(p); setDialogMode("delete"); }, []);
-  const handleStock = useCallback((p: any) => { setSelectedProducto(p); setDialogMode("stock"); }, []);
-  const handleFicha = useCallback((p: any) => { setSelectedProducto(p); setDialogMode("ficha"); }, []);
+  const handleEdit   = useCallback((p: any) => { setSelectedProducto(toProductoConRelaciones(p)); setDialogMode("edit"); }, []);
+  const handleDelete = useCallback((p: any) => { setSelectedProducto(toProductoConRelaciones(p)); setDialogMode("delete"); }, []);
+  const handleStock  = useCallback((p: any) => { setSelectedProducto(toProductoConRelaciones(p)); setDialogMode("stock"); }, []);
+  const handleFicha  = useCallback((p: any) => { setSelectedProducto(toProductoConRelaciones(p)); setDialogMode("ficha"); }, []);
 
   const handleExportExcel = () => {
     if (filteredProducts.length === 0) return toast.error("No hay datos para exportar");
     const dataToExport = filteredProducts.map(p => ({
-      "SKU": p.sku,
+      "SKU":      p.sku,
       "Producto": p.nombre,
-      "Categoría": categorias.find(c => c.id === p.categoria_id)?.nombre || "Sin categoría",
-      "Stock": p.stock,
-      "Precio": p.precio,
-      "Estado": p.stock === 0 ? "Agotado" : p.stock <= 5 ? "Bajo Stock" : "Disponible"
+      "Categoría": categorias.find(c => Number(c.id) === Number(p.categoria_id))?.nombre ?? "Sin categoría",
+      "Stock":    p.stock,
+      "Precio":   p.precio,
+      "Estado":   p.stock === 0 ? "Agotado" : p.stock <= 5 ? "Bajo Stock" : "Disponible",
     }));
-    exportToExcel(dataToExport as any, { filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}` });
+    exportToExcel(dataToExport, { filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}` });
     toast.success("Excel generado correctamente");
   };
 
   const handleExportPDF = () => {
     if (filteredProducts.length === 0) return toast.error("No hay datos para exportar");
-    exportToPDF(filteredProducts as any, categorias, { 
-      title: "REPORTE DE INVENTARIO - Modas y Estilos GUOR", 
-      filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}`
-    });
-    toast.success("PDF generado correctamente"); 
-  };
+      const headers: string[][] = [[
+    'SKU', 'Producto', 'Categoría', 'Stock', 'Precio', 'Estado'
+  ]];
+
+  const body: string[][] = filteredProducts.map(p => [
+    p.sku,
+    p.nombre,
+    categorias.find(c => Number(c.id) === Number(p.categoria_id))?.nombre ?? 'Sin categoría',
+    String(p.stock),
+    `S/ ${p.precio}`,
+    p.stock === 0 ? 'Agotado' : p.stock <= 5 ? 'Bajo Stock' : 'Disponible',
+  ]);
+
+  exportToPDF(headers, body, {
+    title:    "REPORTE DE INVENTARIO - Modas y Estilos GUOR",
+    filename: `Inventario_GUOR_${new Date().toISOString().split('T')[0]}`,
+  });
+
+  toast.success("PDF generado correctamente");
+};
+
+  const productosConvertidos = useMemo<ProductoConRelaciones[]>(
+    () => (productos as ProductoRaw[]).map(toProductoConRelaciones),
+    [productos]
+  );
 
   const filteredProducts = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();
-    return productos.filter((p: any) => { 
-      const matchSearch = !search || p.nombre.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search);
-      const matchCat = selectedCategoria === "todos" || p.categoria_id === Number(selectedCategoria);
+    return productosConvertidos.filter(p => {
+      const matchSearch = !search ||
+        p.nombre.toLowerCase().includes(search) ||
+        p.sku.toLowerCase().includes(search);
+      const matchCat = selectedCategoria === "todos" ||
+        Number(p.categoria_id) === Number(selectedCategoria);
       let matchQuick = true;
       if (quickFilter === "bajo_stock") matchQuick = p.stock > 0 && p.stock <= 5;
-      if (quickFilter === "agotados") matchQuick = p.stock === 0;
-
+      if (quickFilter === "agotados")   matchQuick = p.stock === 0;
       return matchSearch && matchCat && matchQuick;
     });
-  }, [productos, searchTerm, quickFilter, selectedCategoria]);
+  }, [productosConvertidos, searchTerm, quickFilter, selectedCategoria]);
 
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
-  const paginatedData = useMemo(() => {
-    return filteredProducts.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  }, [filteredProducts, currentPage]);
+  const totalPages   = Math.ceil(filteredProducts.length / pageSize);
+  const paginatedData = useMemo(
+    () => filteredProducts.slice(currentPage * pageSize, (currentPage + 1) * pageSize),
+    [filteredProducts, currentPage]
+  );
 
   if (authLoading) return <LoadingInventory />;
   if (!can('view', 'productos')) return <AccessDenied />;
@@ -127,16 +182,13 @@ export default function ProductosPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header - Diseño Original */}
+
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Inventario de Productos
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Inventario de Productos</h1>
             <p className="text-gray-500 text-sm">Gestión unificada del catálogo Modas y Estilos GUOR</p>
           </div>
-          
           <div className="flex items-center gap-3">
             {can('export', 'productos') && (
               <>
@@ -150,7 +202,6 @@ export default function ProductosPage() {
                 </Button>
               </>
             )}
-
             {can('create', 'productos') && (
               <Button onClick={() => setIsCreateOpen(true)} className="bg-pink-600 hover:bg-pink-700 text-white shadow-lg font-bold gap-2 h-11 px-6 transition-all">
                 <Plus className="w-5 h-5" /> Nuevo Producto
@@ -159,15 +210,15 @@ export default function ProductosPage() {
           </div>
         </div>
 
-        {/* Stats Grid - Diseño Original */}
+        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="TOTAL PRODUCTOS" value={stats.total} icon={<Package className="w-6 h-6" />} isActive={quickFilter === "todos"} color="pink" onClick={() => {setQuickFilter("todos"); setCurrentPage(0);}} />
-          <StatCard title="BAJO STOCK" value={stats.bajoStock} icon={<AlertTriangle className="w-6 h-6" />} isActive={quickFilter === "bajo_stock"} color="orange" onClick={() => {setQuickFilter("bajo_stock"); setCurrentPage(0);}} />
-          <StatCard title="AGOTADOS" value={stats.agotados} icon={<XCircle className="w-6 h-6" />} isActive={quickFilter === "agotados"} color="red" onClick={() => {setQuickFilter("agotados"); setCurrentPage(0);}} />
-          <StatCard title="CATEGORÍAS" value={stats.lineas} icon={<BarChart3 className="w-6 h-6" />} isActive={false} color="blue" onClick={() => {}} />
+          <StatCard title="TOTAL PRODUCTOS" value={stats.total}     icon={<Package className="w-6 h-6" />}       isActive={quickFilter === "todos"}       color="pink"   onClick={() => { setQuickFilter("todos");       setCurrentPage(0); }} />
+          <StatCard title="BAJO STOCK"      value={stats.bajoStock} icon={<AlertTriangle className="w-6 h-6" />} isActive={quickFilter === "bajo_stock"}  color="orange" onClick={() => { setQuickFilter("bajo_stock"); setCurrentPage(0); }} />
+          <StatCard title="AGOTADOS"        value={stats.agotados}  icon={<XCircle className="w-6 h-6" />}       isActive={quickFilter === "agotados"}    color="red"    onClick={() => { setQuickFilter("agotados");   setCurrentPage(0); }} />
+          <StatCard title="CATEGORÍAS"      value={stats.lineas}    icon={<BarChart3 className="w-6 h-6" />}     isActive={false}                         color="blue"   onClick={() => {}} />
         </div>
 
-        {/* Filtros - Diseño Original */}
+        {/* Filtros */}
         <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
@@ -176,28 +227,26 @@ export default function ProductosPage() {
               placeholder="Buscar por nombre o SKU..."
               className="pl-10 h-11 border-gray-200 focus:ring-pink-500"
               value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(0);}}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(0); }}
             />
           </div>
-
-          <Select value={selectedCategoria} onValueChange={(v) => {setSelectedCategoria(v); setCurrentPage(0);}}>
+          <Select value={selectedCategoria} onValueChange={(v) => { setSelectedCategoria(v); setCurrentPage(0); }}>
             <SelectTrigger className="w-full md:w-64 h-11 border-gray-200">
               <SelectValue placeholder="Todas las categorías" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todas las categorías</SelectItem>
-              {categorias.map((c: any) => (
-                <SelectItem key={c.id} value={c.id.toString()}>{c.nombre}</SelectItem>
+              {categorias.map((c) => (
+                <SelectItem key={String(c.id)} value={String(c.id)}>{c.nombre}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-
           <Button variant="outline" className="h-11 border-gray-200" onClick={refetch}>
-            <RefreshCw className={`w-4 h-4 ${productosLoading && 'animate-spin'}`} />
+            <RefreshCw className={`w-4 h-4 ${productosLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
-        {/* Tabla y Paginación */}
+        {/* Tabla */}
         {productosLoading ? (
           <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
             <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
@@ -205,9 +254,9 @@ export default function ProductosPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <ProductosTable 
-              data={paginatedData} 
-              categorias={categorias} 
+            <ProductosTable
+              data={paginatedData}
+              categorias={categorias}
               canEdit={can('edit', 'productos')}
               canDelete={can('delete', 'productos')}
               onEdit={handleEdit}
@@ -215,10 +264,10 @@ export default function ProductosPage() {
               onStock={handleStock}
               onFicha={handleFicha}
             />
-            
             <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
               <p className="text-xs text-gray-500">
-                Mostrando <span className="font-bold text-gray-900">{paginatedData.length}</span> de <span className="font-bold text-gray-900">{filteredProducts.length}</span>
+                Mostrando <span className="font-bold text-gray-900">{paginatedData.length}</span> de{' '}
+                <span className="font-bold text-gray-900">{filteredProducts.length}</span>
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>
@@ -238,25 +287,39 @@ export default function ProductosPage() {
 
       {/* Modales */}
       {isCreateOpen && (
-        <CreateProductoDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={refetch} categorias={categorias} />
+        <CreateProductoDialog
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onSuccess={refetch}
+          categorias={categorias}
+        />
       )}
 
       {selectedProducto && (
         <>
           {dialogMode === "edit" && (
-            <EditProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} categorias={categorias} />
+            <EditProductoDialog
+              isOpen={true}
+              producto={selectedProducto}
+              onClose={() => { setDialogMode(null); setSelectedProducto(null); }}
+              onSuccess={refetch}
+              categorias={categorias}
+            />
           )}
           {dialogMode === "delete" && (
-            <DeleteProductoDialog isOpen={true} producto={selectedProducto} onClose={() => {setDialogMode(null); setSelectedProducto(null);}} onSuccess={refetch} />
+            <DeleteProductoDialog
+              isOpen={true}
+              producto={selectedProducto}
+              onClose={() => { setDialogMode(null); setSelectedProducto(null); }}
+              onSuccess={refetch}
+            />
           )}
-
         </>
       )}
     </div>
   );
 }
 
-// Sub-componentes visuales originales
 function AccessDenied() {
   return (
     <div className="h-[80vh] flex flex-col items-center justify-center text-center p-6 bg-gray-50">
@@ -280,16 +343,32 @@ function LoadingInventory() {
   );
 }
 
-function StatCard({ title, value, icon, isActive, color, onClick }: any) {
-  const styles: any = {
-    pink: { active: "border-pink-500 ring-pink-50 bg-white", iconActive: "bg-pink-600 text-white", textActive: "text-pink-600" },
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  isActive: boolean;
+  color: 'pink' | 'orange' | 'red' | 'blue';
+  onClick: () => void;
+}
+
+function StatCard({ title, value, icon, isActive, color, onClick }: StatCardProps) {
+  const styles: Record<string, { active: string; iconActive: string; textActive: string }> = {
+    pink:   { active: "border-pink-500 ring-pink-50 bg-white",   iconActive: "bg-pink-600 text-white",   textActive: "text-pink-600"   },
     orange: { active: "border-orange-500 ring-orange-50 bg-white", iconActive: "bg-orange-600 text-white", textActive: "text-orange-600" },
-    red: { active: "border-red-500 ring-red-50 bg-white", iconActive: "bg-red-600 text-white", textActive: "text-red-600" },
-    blue: { active: "border-blue-500 ring-blue-50 bg-white", iconActive: "bg-blue-600 text-white", textActive: "text-blue-600" }
+    red:    { active: "border-red-500 ring-red-50 bg-white",     iconActive: "bg-red-600 text-white",     textActive: "text-red-600"    },
+    blue:   { active: "border-blue-500 ring-blue-50 bg-white",   iconActive: "bg-blue-600 text-white",   textActive: "text-blue-600"   },
   };
   const currentStyle = styles[color];
   return (
-    <button onClick={onClick} className={`group p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 cursor-pointer ${isActive ? `ring-4 shadow-xl scale-[1.02] z-10 ${currentStyle.active}` : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'}`}>
+    <button
+      onClick={onClick}
+      className={`group p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 cursor-pointer ${
+        isActive
+          ? `ring-4 shadow-xl scale-[1.02] z-10 ${currentStyle.active}`
+          : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'
+      }`}
+    >
       <div className={`p-3 rounded-lg transition-all duration-300 ${isActive ? `${currentStyle.iconActive} rotate-3` : 'bg-gray-100 text-gray-600 group-hover:rotate-3'}`}>
         {icon}
       </div>
