@@ -4,18 +4,16 @@ import { useEffect, useState, useRef } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import AdminSidebar from './Sidebar';
 import AdminHeader from './Header';
-import type { Database } from '@/types/database';
-
-type Usuario = Database['public']['Tables']['usuarios']['Row'];
+import type { usuarios } from '@prisma/client';
 
 export default function RealtimeLayoutWrapper({ 
   initialUsuario, 
   children 
 }: { 
-  initialUsuario: Usuario, 
+  initialUsuario: usuarios, 
   children: React.ReactNode 
 }) {
-  const [usuario, setUsuario] = useState<Usuario>(initialUsuario);
+  const [usuario, setUsuario] = useState<usuarios>(initialUsuario);
   const supabase = getSupabaseBrowserClient();
   
   // Usamos ref para mantener la referencia del usuario sin disparar efectos
@@ -39,7 +37,7 @@ export default function RealtimeLayoutWrapper({
           filter: `id=eq.${initialUsuario.id}`,
         },
         (payload) => {
-          const newUser = payload.new as Usuario;
+          const newUser = payload.new as usuarios;
           
           // Comparación profunda básica para evitar actualizaciones innecesarias
           if (JSON.stringify(newUser) !== JSON.stringify(usuarioRef.current)) {

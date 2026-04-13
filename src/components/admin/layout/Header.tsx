@@ -3,13 +3,11 @@
   import { Bell, ChevronRight, Home, User } from "lucide-react";
   import { usePathname } from "next/navigation";
   import Link from "next/link";
-  import type { Database } from '@/types/database';
-  
-  type Usuario = Database['public']['Tables']['usuarios']['Row'];
+  import type { usuarios } from "@prisma/client";
   import { NotificationDropdown } from "./NotificationDropdown";
 
   interface AdminHeaderProps {
-    usuario: Usuario;
+    usuario: usuarios;
   }
 
   export default function AdminHeader({ usuario }: AdminHeaderProps) {
