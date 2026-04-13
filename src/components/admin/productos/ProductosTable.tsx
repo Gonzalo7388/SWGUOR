@@ -1,59 +1,65 @@
 "use client";
 
-import Image from "next/image";
-import { Edit2, Trash2, Package, BarChart3, Tag, Lock, FileText, Paperclip, CheckCircle2 } from "lucide-react";
-import type { productos, categorias } from "@prisma/client";
+import { memo } from "react";
+import { 
+  Edit2, Trash2, Package, Tag, Lock, 
+  FileText, Paperclip, CheckCircle2 
+} from "lucide-react";
+// Importamos los tipos directamente de la interfaz que definimos en la página principal
+import type { ProductoConRelaciones, Categoria } from "@/app/admin/Panel-Administrativo/productos/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { memo } from "react";
+
 // --- COMPONENTE DE FILA (Optimizado) ---
-const ProductoRow = memo(({ 
-  p, 
-  categorias, 
-  onEdit, 
-  onDelete, 
-  onStock, 
-  onFicha, 
-  canEdit, 
-  canDelete 
+const ProductoRow = memo(({
+  p,
+  categorias,
+  onEdit,
+  onDelete,
+  onFicha,
+  canEdit,
+  canDelete
 }: {
-  p: productos;
-  categorias: categorias[];
-  onEdit: (p: productos) => void;
-  onDelete: (p: productos) => void;
-  onStock: (p: productos) => void;
-  onFicha: (p: productos) => void;
+  p: ProductoConRelaciones;
+  categorias: Categoria[];
+  onEdit: (p: ProductoConRelaciones) => void;
+  onDelete: (p: ProductoConRelaciones) => void;
+  onStock: (p: ProductoConRelaciones) => void;
+  onFicha: (p: ProductoConRelaciones) => void;
   canEdit: boolean;
   canDelete: boolean;
 }) => {
-  // 1. Extraemos SOLO el nombre del archivo para evitar que la URL se duplique
+  // Limpieza de URL de imagen
   const rawImage = String(p.imagen || "").trim();
-  const fileName = rawImage.split('/').pop(); 
-
-  // 2. Construimos la URL limpia apuntando directamente al bucket de Supabase
+  const fileName = rawImage.split('/').pop();
   const publicUrl = fileName && fileName !== "null" && fileName !== ""
-    ? `https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/${fileName}` 
+    ? `https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/${fileName}`
     : null;
-  const hasFicha = (p as any).ficha_url; 
 
-  const categoriaNombre = categorias.find(c => c.id === p.categoria_id)?.nombre || 'Sin categoría';
+  // Verificación de ficha técnica (asumimos que existe si el campo no es nulo)
+  const hasFicha = !!p.ficha_tecnica;
 
-   return (
+  const categoriaNombre = categorias.find(c => {
+    // Manejo de comparación de IDs (BigInt vs Number)
+    return String(c.id) === String(p.categoria_id);
+  })?.nombre || 'Sin categoría';
+
+  return (
     <tr className="group transition-all duration-200">
       {/* Detalle Producto */}
       <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 relative bg-slate-50 rounded-xl border border-slate-100 shrink-0 overflow-hidden">
             {publicUrl ? (
-              <img 
-                src={publicUrl} 
-                alt={p.nombre || "Producto"} 
+              <img
+                src={publicUrl}
+                alt={p.nombre || "Producto"}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
             ) : (
@@ -77,16 +83,16 @@ const ProductoRow = memo(({
                     )}
                   </TooltipTrigger>
                   <TooltipContent className="bg-slate-900 text-white text-[9px] font-bold uppercase">
-                    {hasFicha ? "Patrón cargado" : "Sin documentación"}
+                    {hasFicha ? "Documentación lista" : "Sin documentación"}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <div className="text-slate-500 text-[13px] font-medium mt-1 truncate max-w-50">
+            <div className="text-slate-500 text-[13px] font-medium mt-1 truncate max-w-[200px]">
               {p.nombre}
             </div>
             <div className="text-pink-600 font-black text-sm mt-1">
-              S/ {p.precio?.toFixed(2)}
+              S/ {Number(p.precio).toFixed(2)}
             </div>
           </div>
         </div>
@@ -113,12 +119,12 @@ const ProductoRow = memo(({
       {/* Estado */}
       <td className="bg-white border-y border-slate-100 text-center shadow-sm">
         <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black border-2 uppercase shadow-none ${
-          p.estado === 'activo' 
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+            p.estado === 'activo'
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : p.estado === 'agotado'
-            ? 'bg-rose-50 text-rose-600 border-rose-100'
-            : 'bg-slate-50 text-slate-400 border-slate-100'
-        }`} variant="outline">
+              ? 'bg-rose-50 text-rose-600 border-rose-100'
+              : 'bg-slate-50 text-slate-400 border-slate-100'
+          }`} variant="outline">
           {p.estado}
         </Badge>
       </td>
@@ -130,8 +136,8 @@ const ProductoRow = memo(({
             {/* Ficha Técnica */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" size="icon" 
+                <Button
+                  variant="outline" size="icon"
                   onClick={() => onFicha(p)}
                   className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${hasFicha ? 'text-pink-600 border-pink-100 bg-pink-50' : 'text-slate-400 hover:text-pink-600 hover:bg-pink-50'}`}
                 >
@@ -146,8 +152,8 @@ const ProductoRow = memo(({
             {/* Editar */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" size="icon" 
+                <Button
+                  variant="outline" size="icon"
                   onClick={() => canEdit && onEdit(p)}
                   disabled={!canEdit}
                   className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${!canEdit ? 'opacity-30 cursor-not-allowed' : 'text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50'}`}
@@ -162,8 +168,8 @@ const ProductoRow = memo(({
             {canDelete && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" size="icon" 
+                  <Button
+                    variant="outline" size="icon"
                     onClick={() => onDelete(p)}
                     className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
                   >
@@ -184,27 +190,26 @@ ProductoRow.displayName = "ProductoRow";
 
 // --- COMPONENTE PRINCIPAL ---
 interface ProductosTableProps {
-  data: productos[];
-  categorias: categorias[];
-  onEdit: (p: productos) => void;
-  onDelete: (p: productos) => void;
-  onStock: (p: productos) => void;
-  onFicha: (p: productos) => void;
+  data: ProductoConRelaciones[]; // Sincronizado con page.tsx
+  categorias: Categoria[];
+  onEdit: (p: ProductoConRelaciones) => void;
+  onDelete: (p: ProductoConRelaciones) => void;
+  onStock: (p: ProductoConRelaciones) => void;
+  onFicha: (p: ProductoConRelaciones) => void;
   canEdit?: boolean;
   canDelete?: boolean;
 }
 
-function ProductosTable({ 
-  data, 
-  categorias, 
-  onEdit, 
-  onDelete, 
+function ProductosTable({
+  data,
+  categorias,
+  onEdit,
+  onDelete,
   onStock,
   onFicha,
   canEdit = false,
   canDelete = false
 }: ProductosTableProps) {
-
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto pb-4">
@@ -224,14 +229,14 @@ function ProductosTable({
                 <td colSpan={5} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
                   <div className="flex flex-col items-center gap-3">
                     <Package className="w-12 h-12 text-slate-200" />
-                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hay productos en inventario</p>
+                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hay productos</p>
                   </div>
                 </td>
               </tr>
             ) : (
               data.map((p) => (
-                <ProductoRow 
-                  key={p.id}
+                <ProductoRow
+                  key={p.id.toString()}
                   p={p}
                   categorias={categorias}
                   onEdit={onEdit}
