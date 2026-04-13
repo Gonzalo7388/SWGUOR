@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       // 10. Conteo de retrasos (Alerta Crítica)
       prisma.ordenes.count({
         where: {
-          fecha_entrega: { lt: today },
+          fecha_prometida_entrega: { lt: today },
           estado: { notIn: ['entregado' as EstadoOrden, 'cancelado' as EstadoOrden] }
         }
       }),
