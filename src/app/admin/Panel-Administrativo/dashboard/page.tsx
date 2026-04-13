@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import dynamic from 'next/dynamic';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { Loader2, UserX, AlertTriangle } from "lucide-react";
+import { Loader2, UserX, AlertTriangle, Eye } from "lucide-react";
 
-const AdminDashboard        = dynamic(() => import('@/components/admin/dashboards/DashboardAdministrador'));
-const DashboardAyudante     = dynamic(() => import('@/components/admin/dashboards/DashboardAyudante'));
-const DashboardCortador     = dynamic(() => import('@/components/admin/dashboards/DashboardCortador'));
-const DashboardDisenador    = dynamic(() => import('@/components/admin/dashboards/DashboardDisenador'));
-const DashboardRecepcionista= dynamic(() => import('@/components/admin/dashboards/DashboardRecepcionista'));
-const DashboardRepresentante= dynamic(() => import('@/components/admin/dashboards/DashboardRepresentante'));
+const AdminDashboard         = dynamic(() => import('@/components/admin/dashboards/DashboardAdministrador'));
+const DashboardAyudante      = dynamic(() => import('@/components/admin/dashboards/DashboardAyudante'));
+const DashboardCortador      = dynamic(() => import('@/components/admin/dashboards/DashboardCortador'));
+const DashboardDisenador     = dynamic(() => import('@/components/admin/dashboards/DashboardDisenador'));
+const DashboardRecepcionista = dynamic(() => import('@/components/admin/dashboards/DashboardRecepcionista'));
+const DashboardRepresentante = dynamic(() => import('@/components/admin/dashboards/DashboardRepresentante'));
+const DashboardGerente       = dynamic(() => import('@/components/admin/dashboards/DashboardGerente'));
+const RoleDashboardTabs      = dynamic(() => import('@/components/admin/dashboards/RoleDashboardTab'));
 
 const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   administrador:        AdminDashboard,
@@ -19,16 +21,36 @@ const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   disenador:            DashboardDisenador,
   recepcionista:        DashboardRecepcionista,
   representante_taller: DashboardRepresentante,
+  gerente:              DashboardGerente,
+};
+
+// Etiquetas legibles por rol
+const ROL_LABELS: Record<string, string> = {
+  administrador:        'Administrador',
+  ayudante:             'Ayudante',
+  cortador:             'Cortador',
+  disenador:            'Diseñador',
+  recepcionista:        'Recepcionista',
+  representante_taller: 'Rep. de Taller',
+  gerente:              'Gerente',
 };
 
 export default function DashboardPage() {
   const { usuario, isLoading } = usePermissions();
+  const isGerente = usuario?.rol === 'gerente';
+
+  // El gerente puede cambiar qué dashboard ve; los demás siempre ven el suyo
+  const [activeRole, setActiveRole] = useState<string>('gerente');
+
+  const resolvedRole = isGerente
+    ? (activeRole ?? 'gerente')
+    : (usuario?.rol ?? 'gerente');
 
   const ActiveDashboard = useMemo(() => {
-    if (!usuario?.rol) return null;
-    return DASHBOARDS_MAP[usuario.rol] ?? null;
-  }, [usuario]);
+  return DASHBOARDS_MAP[resolvedRole] ?? null;
+  }, [resolvedRole]);
 
+  // ── Estados de carga / error (sin cambios) ──────────────────────────────
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[60vh] gap-3">
@@ -68,5 +90,37 @@ export default function DashboardPage() {
     );
   }
 
-  return <ActiveDashboard usuario={usuario} />;
+  // ── Render principal ────────────────────────────────────────────────────
+  return (
+    <div>
+      {/* Tabs de roles — solo para gerente */}
+      {isGerente && (
+        <RoleDashboardTabs
+          activeRole={resolvedRole}
+          onChange={setActiveRole}
+        />
+      )}
+
+      {/* Badge: "estás viendo el panel de X" */}
+      {isGerente && resolvedRole !== 'gerente' && (
+        <div className="mb-5 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl w-fit">
+          <Eye size={14} />
+          <span>
+            Viendo el panel de{' '}
+            <strong>{ROL_LABELS[resolvedRole] ?? resolvedRole}</strong>
+            {' — '}
+            <button
+              onClick={() => setActiveRole('gerente')}
+              className="underline hover:no-underline font-semibold"
+            >
+              volver al tuyo
+            </button>
+          </span>
+        </div>
+      )}
+
+      {/* Dashboard activo */}
+      <ActiveDashboard usuario={usuario} />
+    </div>
+  );
 }

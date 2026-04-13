@@ -11,11 +11,14 @@ import {
   AlertCircle, Eye, AlertOctagon,
 } from 'lucide-react';
 import { ESTADOS_ORDEN } from '@/lib/constants/estados';
-import type { insumo, ordenes, EstadoOrden } from '@prisma/client';
+import type { Database } from '@/types/database';
 
-type OrdenConCliente = ordenes & {
-  clientes: { razon_social: string; tipo?: string } | null;
-};
+// ─── TIPOS ────────────────────────────────────────────────────────────────────
+
+type Insumo = Database['public']['Tables']['insumo']['Row'];
+type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
+type Orden = Database['public']['Tables']['ordenes']['Row'];
+type OrdenConCliente = Orden & { clientes: { razon_social: string; tipo?: string } | null };
 
 interface ApiData {
   kpis: {
@@ -27,7 +30,7 @@ interface ApiData {
   chartIngresos: { created_at: string; total: number }[];
   chartProductos: { cantidad: number; productos: { nombre: string } | null }[];
   recentOrders: OrdenConCliente[];
-  criticalStock: insumo[];
+  criticalStock: Insumo[];
 }
 
 // ─── CONSTANTES Y HELPERS ─────────────────────────────────────────────────────

@@ -334,14 +334,14 @@ export const ROLES_INFO: Record<RolUsuario, {
   color: string;
   nivel: number;
 }> = {
-  gerente:              { label: 'Gerente General',         descripcion: 'Visibilidad total del sistema',     color: 'bg-purple-100 text-purple-700',  nivel: 99 },
-  administrador:        { label: 'Administrador',            descripcion: 'Acceso operativo total',            color: 'bg-blue-50 text-blue-700',      nivel: 5 },
-  recepcionista:        { label: 'Recepcionista',            descripcion: 'Maneja órdenes y clientes',         color: 'bg-blue-100 text-blue-800',     nivel: 3 },
-  disenador:            { label: 'Diseñador',                descripcion: 'Responsable del diseño de prendas', color: 'bg-purple-100 text-purple-800', nivel: 2 },
-  cortador:             { label: 'Cortador',                 descripcion: 'Responsable del corte de prendas',  color: 'bg-orange-100 text-orange-800', nivel: 2 },
-  ayudante:             { label: 'Ayudante',                 descripcion: 'Asiste en tareas generales',        color: 'bg-gray-100 text-gray-800',     nivel: 1 },
-  representante_taller: { label: 'Representante de Taller', descripcion: 'Responsable de taller externo',     color: 'bg-green-100 text-green-800',    nivel: 2 },
-  cliente:              { label: 'Cliente',                  descripcion: 'Acceso al portal de compras',       color: 'bg-blue-50 text-blue-700',      nivel: 0 },
+  gerente:              { label: 'Gerente General',          descripcion: 'Visibilidad total del sistema',     color: 'bg-violet-100 text-violet-700',    nivel: 99 },
+  administrador:        { label: 'Administrador',            descripcion: 'Acceso operativo total',            color: 'bg-sky-100 text-sky-700',          nivel: 5  },
+  recepcionista:        { label: 'Recepcionista',            descripcion: 'Maneja órdenes y clientes',         color: 'bg-pink-100 text-pink-700',        nivel: 3  },
+  disenador:            { label: 'Diseñador',                descripcion: 'Responsable del diseño de prendas', color: 'bg-fuchsia-100 text-fuchsia-700',  nivel: 2  },
+  cortador:             { label: 'Cortador',                 descripcion: 'Responsable del corte de prendas',  color: 'bg-orange-100 text-orange-600',    nivel: 2  },
+  ayudante:             { label: 'Ayudante',                 descripcion: 'Asiste en tareas generales',        color: 'bg-teal-100 text-teal-700',        nivel: 1  },
+  representante_taller: { label: 'Representante de Taller',  descripcion: 'Responsable de taller externo',     color: 'bg-lime-100 text-lime-700',        nivel: 2  },
+  cliente:              { label: 'Cliente',                  descripcion: 'Acceso al portal de compras',       color: 'bg-amber-100 text-amber-700',      nivel: 0  },
 };
 
 export const ROLE_COLORS: Record<RolUsuario, string> = Object.fromEntries(
