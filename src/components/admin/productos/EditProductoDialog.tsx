@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,7 +21,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Save, Lock, Edit3, Package, Tag } from "lucide-react";
+import { Loader2, Save, Edit3, Package, Tag, DollarSign, Box, Layers, Power } from "lucide-react";
+
+// Estilos constantes para mantener la coherencia visual
+const ERP_LABEL = "text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2 mb-1.5";
+const ERP_INPUT = "bg-[#f1f5f9] border-none h-12 rounded-xl font-medium text-[#334155] focus-visible:ring-1 focus-visible:ring-pink-200 transition-all";
 
 interface EditProductoDialogProps {
   isOpen: boolean;
@@ -90,7 +93,7 @@ export default function EditProductoDialog({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Error al actualizar");
 
-      toast.success("Información del producto actualizada");
+      toast.success("Producto actualizado correctamente");
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -102,156 +105,153 @@ export default function EditProductoDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
-
-        {/* Header Estilo GUOR */}
-        <div className="bg-pink-600 p-6 text-white relative">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <Edit3 className="w-6 h-6 text-white" />
-              </div>
-              <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
-                Editar Producto
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-pink-100 font-medium">
-              Modifica los valores comerciales de la prenda.
+      <DialogContent className="max-w-lg bg-white rounded-[32px] overflow-hidden p-0 border-none shadow-2xl">
+        
+        {/* CABECERA ESTILO ERP */}
+        <div className="p-8 flex items-center gap-4">
+          <div className="p-3 bg-[#fff0f6] rounded-2xl">
+            <Edit3 className="w-7 h-7 text-[#e32d6f]" />
+          </div>
+          <div>
+            <DialogTitle className="text-xl font-extrabold text-[#1a2b4b] uppercase tracking-tight">
+              Configuración de Producto
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-[13px] font-medium">
+              Modifica los detalles del catálogo y stock disponible.
             </DialogDescription>
-          </DialogHeader>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* NOMBRE COMERCIAL */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-              <Package className="w-3 h-3 text-pink-500" /> Nombre del Producto
+        <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
+          
+          {/* NOMBRE DEL PRODUCTO */}
+          <div className="space-y-1">
+            <Label className={ERP_LABEL}>
+              <Package className="w-3.5 h-3.5" /> Nombre del Producto
             </Label>
             <Input
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white h-12 transition-all font-bold text-slate-700"
-              required
+              className={ERP_INPUT}
+              placeholder="Ej. Polo Oversize Cotton"
             />
           </div>
 
+          {/* SKU Y CATEGORÍA */}
           <div className="grid grid-cols-2 gap-4">
-            {/* SKU (READ-ONLY) */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1">
-                <Lock className="w-3 h-3 text-slate-300" /> Identificador SKU
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <Tag className="w-3.5 h-3.5" /> Código SKU
               </Label>
-              <div className="h-12 flex items-center px-3 rounded-xl bg-slate-100 text-slate-500 font-mono text-xs border border-dashed border-slate-200 uppercase">
-                {formData.sku}
-              </div>
+              <Input
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                className={ERP_INPUT}
+                placeholder="PROD-001"
+              />
             </div>
 
-            {/* PRECIO (EDITABLE) */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                Precio Venta (S/)
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <Layers className="w-3.5 h-3.5" /> Categoría
+              </Label>
+              <Select 
+                onValueChange={(val) => setFormData({ ...formData, categoria_id: val })} 
+                value={formData.categoria_id}
+              >
+                <SelectTrigger className={ERP_INPUT}>
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-100">
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* PRECIO, STOCK Y ESTADO */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <DollarSign className="w-3.5 h-3.5" /> Precio
               </Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.precio}
                 onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-                className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white h-12 font-black text-pink-600 text-lg"
-                required
+                className={ERP_INPUT}
               />
             </div>
-          </div>
 
-          {/* CATEGORÍA */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-              <Tag className="w-3 h-3 text-pink-500" /> Línea / Categoría
-            </Label>
-            <Select
-              value={formData.categoria_id}
-              onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
-            >
-              <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold text-slate-700">
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent className="bg-white rounded-xl shadow-xl border-slate-100">
-                {categorias.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id.toString()} className="font-medium">
-                    {cat.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* STOCK (VISUALIZACIÓN) */}
-          <div className="p-4 bg-slate-900 rounded-2xl text-white flex items-center justify-between shadow-inner">
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                Stock Disponible
-              </p>
-              <p className="text-xl font-black italic">
-                {formData.stock}{" "}
-                <small className="text-[10px] not-italic text-slate-400 uppercase tracking-tighter">
-                  unidades
-                </small>
-              </p>
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <Box className="w-3.5 h-3.5" /> Stock
+              </Label>
+              <Input
+                type="number"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                className={ERP_INPUT}
+              />
             </div>
-            <div
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
-                parseInt(formData.stock) === 0
-                  ? "bg-red-500/10 text-red-400 border-red-500/20"
-                  : parseInt(formData.stock) <= 5
-                  ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                  : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              }`}
-            >
-              {parseInt(formData.stock) === 0
-                ? "Agotado"
-                : parseInt(formData.stock) <= 5
-                ? "Crítico"
-                : "Suficiente"}
+
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <Power className="w-3.5 h-3.5" /> Estado
+              </Label>
+              <Select 
+                onValueChange={(val) => setFormData({ ...formData, estado: val })} 
+                value={formData.estado}
+              >
+                <SelectTrigger className={ERP_INPUT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-100">
+                  <SelectItem value="activo">Activo</SelectItem>
+                  <SelectItem value="agotado">Agotado</SelectItem>
+                  <SelectItem value="inactivo">Oculto</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* NOTAS */}
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-              Notas Adicionales
-            </Label>
+          {/* DESCRIPCIÓN */}
+          <div className="space-y-1">
+            <Label className={ERP_LABEL}>Descripción del Producto</Label>
             <Textarea
               value={formData.descripcion}
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-              className="rounded-2xl border-slate-200 bg-slate-50 focus:bg-white resize-none min-h-[80px] text-sm"
-              placeholder="Detalles sobre el material o temporada..."
+              className={`${ERP_INPUT} min-h-[80px] py-3 resize-none`}
+              placeholder="Detalles adicionales..."
             />
           </div>
 
-          {/* ACCIONES */}
-          <DialogFooter className="grid grid-cols-2 gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
+          {/* ACCIONES FOOTER */}
+          <div className="flex items-center justify-end gap-6 pt-6 mt-4 border-t border-slate-50">
+            <button 
+              type="button" 
               onClick={onClose}
-              disabled={loading}
-              className="h-12 rounded-xl border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              className="text-[#64748b] font-bold text-sm hover:text-slate-800 transition-colors"
             >
-              Descartar
-            </Button>
+              Cancelar
+            </button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-12 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-black uppercase text-[11px] tracking-widest transition-all shadow-lg shadow-pink-100 active:scale-95"
+              className="bg-[#e32d6f] hover:bg-[#c4235d] h-12 px-10 rounded-xl font-bold text-white shadow-lg shadow-pink-100 transition-all active:scale-95"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <div className="flex items-center gap-2">
-                  <Save className="w-4 h-4" /> Actualizar
-                </div>
+                "Guardar Cambios"
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

@@ -10,7 +10,17 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Receipt, Printer, Package, Calendar, Hash } from "lucide-react";
+import { 
+  Receipt, 
+  Printer, 
+  Calendar, 
+  Hash, 
+  User, 
+  CreditCard, 
+  Package,
+  ArrowLeft,
+  CheckCircle2
+} from "lucide-react";
 
 export default function ViewPedidoDialog({ isOpen, pedido, onClose }: any) {
   const [detalles, setDetalles] = useState<any[]>([]);
@@ -42,90 +52,127 @@ export default function ViewPedidoDialog({ isOpen, pedido, onClose }: any) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md border-none shadow-2xl p-0 overflow-hidden bg-white rounded-4xl">
-        {/* Header con Title y Description integrados para evitar el Warning */}
-        <div className="p-6 bg-white">
-          <DialogHeader className="space-y-1">
-            <div className="flex justify-between items-start">
-              <div className="bg-pink-100 text-pink-600 p-2 rounded-xl">
-                <Receipt className="w-5 h-5" />
-              </div>
-              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-900" onClick={() => window.print()}>
+      <DialogContent className="max-w-[400px] bg-[#f8fafc] border-none shadow-2xl p-0 overflow-hidden rounded-[35px]">
+        
+        {/* HEADER: Gradiente y Estado */}
+        <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-600/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+          
+          <div className="flex justify-between items-start relative z-10">
+            <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl">
+              <Receipt className="w-6 h-6 text-pink-400" />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/10 hover:bg-white/20 text-white rounded-xl h-10 w-10" 
+                onClick={() => window.print()}
+              >
                 <Printer className="w-4 h-4" />
               </Button>
             </div>
-            
-            <DialogTitle className="text-2xl font-black text-gray-900 mt-2">
-              Venta #{pedido.id?.toString().slice(-4).toUpperCase()}
+          </div>
+
+          <div className="mt-6 space-y-1 relative z-10">
+            <DialogTitle className="text-3xl font-black tracking-tighter">
+              Ticket de Venta
             </DialogTitle>
-            
-            {/* Esta es la clave para que desaparezca el warning de la consola */}
-            <DialogDescription className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] flex items-center gap-3">
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(pedido.fecha_pedido).toLocaleDateString()}</span>
-              <span className="text-pink-300">•</span>
-              <span className="flex items-center gap-1"><Hash className="w-3 h-3" /> FOLIO: {pedido.id}</span>
+            <DialogDescription className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
+              <Hash className="w-3 h-3 text-pink-500" /> Folio: {pedido.id?.toString().slice(-8).toUpperCase()}
             </DialogDescription>
-          </DialogHeader>
+          </div>
         </div>
 
-        {/* Contenedor Único Estilo "Boutique" */}
-        <div className="px-6 pb-6">
-          <div className="bg-gray-50 rounded-3xl border border-gray-100 overflow-hidden">
+        {/* CUERPO DEL TICKET */}
+        <div className="p-6 -mt-4 relative z-20">
+          <div className="bg-white rounded-[28px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
             
+            {/* Detalles de la Transacción */}
+            <div className="p-5 border-b border-dashed border-slate-100 grid grid-cols-2 gap-4 bg-slate-50/50">
+              <div className="space-y-1">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Fecha
+                </p>
+                <p className="text-xs font-bold text-slate-700">
+                  {new Date(pedido.fecha_pedido).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+              <div className="space-y-1 text-right">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 justify-end">
+                  <CheckCircle2 className="w-3 h-3" /> Estado
+                </p>
+                <span className="text-[10px] font-black bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full uppercase">
+                  {pedido.estado || 'Completado'}
+                </span>
+              </div>
+            </div>
+
             {/* Info Cliente */}
-            <div className="p-4 border-b border-white flex justify-between items-center">
+            <div className="p-5 flex items-center gap-4 border-b border-slate-50">
+              <div className="w-10 h-10 bg-pink-50 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-pink-500" />
+              </div>
               <div>
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Receptor</p>
-                <p className="text-sm font-bold text-gray-800">{pedido.clientes?.razon_social || "General"}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Estado</p>
-                <p className="text-[9px] font-black text-orange-600 uppercase">{pedido.estado || 'PENDIENTE'}</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cliente</p>
+                <p className="text-sm font-black text-slate-800">{pedido.clientes?.razon_social || "Venta Directa"}</p>
               </div>
             </div>
 
-            {/* Mini Tabla de Productos */}
-            <div className="max-h-44 overflow-y-auto bg-white/50">
-              {loading ? (
-                <div className="p-6 text-center text-[9px] font-bold text-gray-300">Cargando...</div>
-              ) : detalles.map((item) => (
-                <div key={item.id} className="p-3 px-4 flex justify-between items-center border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-black text-pink-600 bg-pink-50 w-6 h-6 rounded flex items-center justify-center">
-                      {item.cantidad}
-                    </span>
-                    <p className="text-xs font-bold text-gray-700">{item.productos?.nombre}</p>
+            {/* Lista de Prendas */}
+            <div className="p-5">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Package className="w-3 h-3" /> Resumen de Artículos
+              </p>
+              
+              <div className="space-y-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                {loading ? (
+                  <div className="py-4 text-center animate-pulse text-slate-300 font-bold text-xs uppercase">Sincronizando...</div>
+                ) : detalles.map((item) => (
+                  <div key={item.id} className="flex justify-between items-start group">
+                    <div className="flex gap-3">
+                      <div className="text-[10px] font-black bg-slate-900 text-white w-5 h-5 rounded-md flex items-center justify-center mt-0.5">
+                        {item.cantidad}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 group-hover:text-pink-600 transition-colors">
+                          {item.productos?.nombre}
+                        </p>
+                        <p className="text-[9px] text-slate-400 font-medium">SKU: {item.productos?.sku || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs font-black text-slate-900">
+                      S/ {(item.precio_unitario * item.cantidad).toFixed(2)}
+                    </p>
                   </div>
-                  <p className="text-xs font-black text-gray-900">S/ {(item.precio_unitario * item.cantidad).toFixed(2)}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            {/* Footer Negro Total (Unificado) */}
-            <div className="bg-gray-900 p-5 text-white">
-              <div className="flex justify-between items-end">
+            {/* TOTAL FINAL */}
+            <div className="p-6 bg-[#fff0f6] border-t border-pink-100">
+              <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Importe Neto</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xs font-bold text-pink-500">S/</span>
-                    <span className="text-3xl font-black tracking-tighter">
-                      {pedido.total?.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
+                  <p className="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">Total Final</p>
+                  <p className="text-[9px] text-pink-400 font-bold">IGV (18%) Incluido</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[7px] font-bold text-gray-500 uppercase">18% IGV INC.</p>
-                  <div className="mt-1 h-1.5 w-12 bg-pink-600 rounded-full ml-auto" />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-pink-600">S/</span>
+                  <span className="text-4xl font-black text-slate-900 tracking-tighter">
+                    {pedido.total?.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Botón de cierre */}
           <Button 
             onClick={onClose} 
-            className="w-full mt-4 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold h-12 rounded-xl transition-all shadow-none border-none"
+            className="w-full mt-6 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 font-bold h-14 rounded-[20px] transition-all border border-slate-100 shadow-sm flex items-center justify-center gap-2"
           >
-            Regresar
+            <ArrowLeft className="w-4 h-4" />
+            Cerrar Detalle
           </Button>
         </div>
       </DialogContent>

@@ -1,19 +1,40 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ShoppingCart, Trash2, Plus, Minus, User, Package, Calculator } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { 
+  Search, 
+  ShoppingCart, 
+  Trash2, 
+  Plus, 
+  Minus, 
+  User, 
+  Package, 
+  Calculator, 
+  Loader2, 
+  X,
+  CreditCard,
+  Receipt,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+
+// Estilos constantes para coherencia visual
+const ERP_LABEL = "text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2 mb-2";
+const ERP_INPUT_BOX = "bg-[#f1f5f9] border-none rounded-2xl focus-within:ring-2 focus-within:ring-pink-100 transition-all";
 
 export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
@@ -24,23 +45,20 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
   const [searchProd, setSearchProd] = useState("");
   const [carrito, setCarrito] = useState<any[]>([]);
 
-  // 1. Cargar datos iniciales desde tus nuevas APIs
   useEffect(() => {
     if (isOpen) {
       const loadInitialData = async () => {
         try {
           const [cliRes, prodRes] = await Promise.all([
             fetch('/api/admin/clientes'),
-            fetch('/api/admin/productos') // Asegúrate de que esta API filtre los activos
+            fetch('/api/admin/productos')
           ]);
-          
           const cliData = await cliRes.json();
           const prodData = await prodRes.json();
-          
           setClientes(cliData || []);
           setProductos(prodData.filter((p: any) => p.stock > 0) || []);
         } catch (error) {
-          toast.error("Error al cargar datos");
+          toast.error("Error al sincronizar datos de inventario");
         }
       };
       loadInitialData();
@@ -58,7 +76,7 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
   const addToCart = (prod: any) => {
     const exists = carrito.find(item => item.id === prod.id);
     if (exists) {
-      if (exists.cantidad >= prod.stock) return toast.error("Stock insuficiente");
+      if (exists.cantidad >= prod.stock) return toast.error("Stock máximo alcanzado");
       setCarrito(carrito.map(item => item.id === prod.id ? { ...item, cantidad: item.cantidad + 1 } : item));
     } else {
       setCarrito([...carrito, { ...prod, cantidad: 1 }]);
@@ -70,22 +88,20 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
     setCarrito(carrito.map(item => {
       if (item.id === id) {
         const newQty = item.cantidad + delta;
-        if (newQty > item.stock) { toast.error("Sin stock suficiente"); return item; }
+        if (newQty > item.stock) { toast.error("Límite de stock"); return item; }
         return newQty > 0 ? { ...item, cantidad: newQty } : item;
       }
       return item;
     }));
   };
 
-  // Remover producto del carrito
   const removeFromCart = (id: number) => {
-  setCarrito(carrito.filter(item => item.id !== id));
-  toast.info("Producto removido");
+    setCarrito(carrito.filter(item => item.id !== id));
+    toast.info("Prenda removida del carrito");
   };
 
   const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
-  // 2. Lógica de guardado enviando todo a la API de pedidos
   const handleSave = async () => {
     if (!selectedCliente) return toast.error("Seleccione un cliente");
     if (carrito.length === 0) return toast.error("El carrito está vacío");
@@ -94,8 +110,8 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
     try {
       const pedidoData = {
         cliente_id: selectedCliente,
-        metodo_pago: "EFECTIVO", // Puedes añadir un selector para esto luego
-        subtotal: total / 1.18,  // Ejemplo de desglose de IGV
+        metodo_pago: "EFECTIVO",
+        subtotal: total / 1.18,
         impuesto: total - (total / 1.18),
         total: total,
         productos: carrito.map(item => ({
@@ -111,10 +127,9 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
         body: JSON.stringify(pedidoData),
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Error al procesar pedido");
+      if (!response.ok) throw new Error("Error al procesar pedido");
 
-      toast.success("Venta realizada con éxito");
+      toast.success("¡Venta registrada correctamente!");
       onSuccess();
       onClose();
       setCarrito([]);
@@ -126,169 +141,169 @@ export default function CreatePedidoDialog({ isOpen, onClose, onSuccess }: any) 
     }
   };
 
-  const handleSubmit = async (formData: any) => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/admin/pedidos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cliente_id: formData.cliente_id,
-          metodo_pago: formData.metodo_pago,
-          subtotal: formData.subtotal,
-          impuesto: formData.impuesto,
-          total: formData.total,
-          // Los productos deben enviarse como un array de objetos
-          productos: formData.items.map((item: any) => ({
-            id: item.producto_id,
-            cantidad: item.cantidad,
-            precio: item.precio_unitario, // Tu API espera 'item.precio'
-          })),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Error al crear el pedido");
-      }
-
-      toast.success("¡Pedido creado y stock actualizado!");
-      onSuccess(); // Recarga la lista de pedidos
-      onClose();   // Cierra el modal
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col rounded-3xl p-0 border-none">
-        <div className="p-6 bg-white flex-1 overflow-y-auto">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="flex items-center gap-2 text-2xl font-black">
-              <div className="p-2 bg-pink-100 rounded-xl">
-                <ShoppingCart className="text-pink-600" />
-              </div>
-              Punto de Venta Modas GUOR
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Buscador y Selección */}
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <User className="w-3 h-3" /> Identificar Cliente
-                </label>
-                <Select onValueChange={setSelectedCliente} value={selectedCliente}>
-                  <SelectTrigger className="h-14 border-gray-200 rounded-2xl shadow-sm focus:ring-pink-500">
-                    <SelectValue placeholder="Buscar cliente por Razón Social..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {clientes.map(c => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        <span className="font-bold">{c.razon_social}</span> 
-                        <span className="ml-2 text-gray-400 text-xs">({c.ruc})</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 relative">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Package className="w-3 h-3" /> Añadir Prendas
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-4 top-4.5 w-5 h-5 text-gray-400" />
-                  <Input 
-                    placeholder="Escriba nombre de prenda o SKU..." 
-                    className="pl-12 h-14 border-gray-200 rounded-2xl shadow-sm focus:ring-pink-500 text-lg"
-                    value={searchProd}
-                    onChange={(e) => setSearchProd(e.target.value)}
-                  />
-                </div>
-
-                {filteredProducts.length > 0 && (
-                  <div className="absolute z-50 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl mt-2 overflow-hidden animate-in fade-in zoom-in duration-200">
-                    {filteredProducts.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => addToCart(p)}
-                        className="w-full p-4 text-left hover:bg-pink-50 flex justify-between items-center border-b border-gray-50 last:border-0 transition-colors"
-                      >
-                        <div>
-                          <p className="font-bold text-gray-900">{p.nombre}</p>
-                          <p className="text-[10px] text-pink-500 font-bold uppercase">Stock: {p.stock} disponibles</p>
-                        </div>
-                        <span className="font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-lg text-sm">S/ {p.precio.toFixed(2)}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+      <DialogContent className="max-w-5xl h-[90vh] bg-white rounded-[40px] overflow-hidden p-0 border-none shadow-2xl flex flex-col">
+        
+        {/* HEADER DE CAJA */}
+        <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-[#fff0f6] rounded-2xl">
+              <ShoppingCart className="w-7 h-7 text-[#e32d6f]" />
             </div>
-
-            {/* Resumen de Compra */}
-            <div className="bg-gray-50 rounded-4xl border border-gray-100 p-6 flex flex-col min-h-100">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <Calculator className="w-3 h-3" /> Detalle de Venta
-              </h3>
-
-              <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                {carrito.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-gray-300">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <ShoppingCart className="w-8 h-8 opacity-20" />
-                    </div>
-                    <p className="text-xs font-bold uppercase tracking-widest">Esperando productos...</p>
-                  </div>
-                ) : (
-                  carrito.map(item => (
-                    <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm animate-in slide-in-from-right duration-300">
-                      <div className="flex-1">
-                        <p className="font-bold text-sm text-gray-800">{item.nombre}</p>
-                        <p className="text-xs text-gray-400 font-medium">S/ {item.precio.toFixed(2)} x {item.cantidad}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center border border-gray-100 rounded-xl bg-gray-50 p-1">
-                          <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 hover:bg-white rounded-lg transition-all"><Minus className="w-3 h-3" /></button>
-                          <span className="w-8 text-center text-sm font-black">{item.cantidad}</span>
-                          <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 hover:bg-white rounded-lg transition-all"><Plus className="w-3 h-3" /></button>
-                        </div>
-                        <button onClick={() => removeFromCart(item.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="mt-6 pt-6 border-t-2 border-dashed border-gray-200">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Estimado</span>
-                  <span className="text-4xl font-black text-gray-900 tracking-tighter">S/ {total.toFixed(2)}</span>
-                </div>
-              </div>
+            <div>
+              <DialogTitle className="text-2xl font-extrabold text-[#1a2b4b] uppercase tracking-tight">
+                Punto de Venta
+              </DialogTitle>
+              <p className="text-slate-400 text-sm font-medium">Gestión de salida de mercancía y facturación</p>
             </div>
           </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <X className="w-6 h-6 text-slate-400" />
+          </button>
         </div>
 
-        <div className="p-6 bg-white border-t flex gap-4">
-          <Button variant="ghost" onClick={onClose} disabled={loading} className="h-14 flex-1 rounded-2xl font-bold">
-            Descartar
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={loading || carrito.length === 0} 
-            className="h-14 flex-2 bg-pink-600 hover:bg-pink-700 text-white rounded-2xl font-black text-lg shadow-xl shadow-pink-100 transition-all active:scale-95"
-          >
-            {loading ? "Registrando en Caja..." : "Finalizar Pedido"}
-          </Button>
+        <div className="flex-1 flex overflow-hidden">
+          
+          {/* PANEL IZQUIERDO: SELECCIÓN */}
+          <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+            
+            {/* CLIENTE */}
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}><User className="w-3.5 h-3.5" /> Cliente Responsable</Label>
+              <Select onValueChange={setSelectedCliente} value={selectedCliente}>
+                <SelectTrigger className="bg-[#f1f5f9] border-none h-14 rounded-2xl font-bold text-[#334155] focus:ring-2 focus:ring-pink-100">
+                  <SelectValue placeholder="Seleccionar cliente..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
+                  {clientes.map(c => (
+                    <SelectItem key={c.id} value={c.id.toString()} className="rounded-xl py-3 px-4 font-medium mb-1">
+                      <div className="flex flex-col">
+                        <span>{c.razon_social}</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">RUC: {c.ruc}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* BUSCADOR DE PRODUCTOS */}
+            <div className="space-y-1 relative">
+              <Label className={ERP_LABEL}><Package className="w-3.5 h-3.5" /> Buscar en Inventario</Label>
+              <div className={`flex items-center px-4 ${ERP_INPUT_BOX}`}>
+                <Search className="w-5 h-5 text-slate-400" />
+                <Input 
+                  placeholder="Nombre de prenda o SKU..." 
+                  className="bg-transparent border-none h-14 font-medium focus-visible:ring-0 shadow-none text-lg"
+                  value={searchProd}
+                  onChange={(e) => setSearchProd(e.target.value)}
+                />
+              </div>
+
+              {/* Resultados de búsqueda */}
+              {filteredProducts.length > 0 && (
+                <div className="absolute z-50 w-full bg-white border border-slate-100 rounded-3xl shadow-2xl mt-2 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  {filteredProducts.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => addToCart(p)}
+                      className="w-full p-5 text-left hover:bg-pink-50 flex justify-between items-center border-b border-slate-50 last:border-0 transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-400 text-xs">IMG</div>
+                        <div>
+                          <p className="font-bold text-[#1a2b4b]">{p.nombre}</p>
+                          <p className="text-[10px] text-pink-500 font-bold uppercase">Stock: {p.stock} pzas</p>
+                        </div>
+                      </div>
+                      <span className="font-black text-[#1a2b4b] bg-white border border-slate-100 px-4 py-2 rounded-xl">S/ {p.precio.toFixed(2)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* INFO EXTRA (OPCIONAL) */}
+            <div className="grid grid-cols-2 gap-4">
+               <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+                  <CreditCard className="w-5 h-5 text-slate-400 mb-2" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Método de Pago</p>
+                  <p className="text-sm font-black text-slate-800">EFECTIVO / CAJA</p>
+               </div>
+               <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+                  <Receipt className="w-5 h-5 text-slate-400 mb-2" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tipo Documento</p>
+                  <p className="text-sm font-black text-slate-800">NOTA DE PEDIDO</p>
+               </div>
+            </div>
+          </div>
+
+          {/* PANEL DERECHO: RESUMEN (CARRITO) */}
+          <div className="w-[400px] bg-[#f8fafc] border-l border-slate-100 p-8 flex flex-col">
+            <h3 className={ERP_LABEL}><Calculator className="w-3.5 h-3.5" /> Carrito de Venta</h3>
+            
+            <div className="flex-1 overflow-y-auto space-y-4 my-6 pr-2 custom-scrollbar">
+              {carrito.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-30 grayscale">
+                  <ShoppingCart className="w-16 h-16 mb-4" />
+                  <p className="text-xs font-bold uppercase tracking-widest text-center">Bandeja Vacía</p>
+                </div>
+              ) : (
+                carrito.map(item => (
+                  <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/50 flex flex-col gap-3 group">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-[#1a2b4b] leading-tight">{item.nombre}</p>
+                        <p className="text-[11px] text-slate-400 font-medium">S/ {item.precio.toFixed(2)} por unidad</p>
+                      </div>
+                      <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-100">
+                        <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 hover:bg-white rounded-lg transition-all text-slate-500"><Minus className="w-3 h-3" /></button>
+                        <span className="w-10 text-center font-black text-sm">{item.cantidad}</span>
+                        <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 hover:bg-white rounded-lg transition-all text-slate-500"><Plus className="w-3 h-3" /></button>
+                      </div>
+                      <p className="font-black text-[#1a2b4b]">S/ {(item.precio * item.cantidad).toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* TOTALES */}
+            <div className="mt-auto space-y-4 pt-6 border-t border-slate-200 border-dashed">
+              <div className="flex justify-between items-center px-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total a Pagar</span>
+                <span className="text-4xl font-black text-[#1a2b4b] tracking-tighter">S/ {total.toFixed(2)}</span>
+              </div>
+              
+              <Button 
+                onClick={handleSave} 
+                disabled={loading || carrito.length === 0} 
+                className="w-full h-16 bg-[#e32d6f] hover:bg-[#c4235d] text-white rounded-[20px] font-black text-lg shadow-xl shadow-pink-100 transition-all active:scale-95 flex items-center justify-center gap-3"
+              >
+                {loading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <CreditCard className="w-5 h-5" />
+                    <span>Finalizar Pedido</span>
+                  </>
+                )}
+              </Button>
+              <button 
+                onClick={onClose} 
+                className="w-full text-center text-slate-400 text-xs font-bold uppercase hover:text-slate-600 transition-colors"
+              >
+                Cancelar Operación
+              </button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

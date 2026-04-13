@@ -16,6 +16,18 @@ import {
   BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
+import DashboardCharts from './DashboardCharts';
+import { ROLE_PALETTES } from './DashboardUtils';
+
+// Paleta del rol Diseñador exportada desde el objeto centralizado
+const F = {
+  primary: ROLE_PALETTES.disenador.accent,  // fuchsia-500 → #d946ef
+  dark:    ROLE_PALETTES.disenador.text,    // fuchsia-900 → #701a75
+  light:   ROLE_PALETTES.disenador.bgSoft,  // fuchsia-50  → #fdf4ff
+  mid:     ROLE_PALETTES.disenador.bg,      // fuchsia-100 → #fae8ff
+  border:  ROLE_PALETTES.disenador.border,  // fuchsia-300 → #f0abfc
+  text:    ROLE_PALETTES.disenador.text,    // fuchsia-900 → #701a75
+};
 
 interface ProductoActivo {
   id: number;
@@ -53,15 +65,7 @@ const ETAPA_CONFIG: Record<EstadoPedido, {
   cancelado:  { label: 'Cancelado',  color: 'text-rose-500',    bg: 'bg-rose-50',     icon: AlertCircle, progress: 0   },
 };
 
-// Paleta fucsia
-const F = {
-  primary:   '#d946ef', // fuchsia-500
-  dark:      '#a21caf', // fuchsia-700
-  light:     '#fdf4ff', // fuchsia-50
-  mid:       '#fae8ff', // fuchsia-100
-  border:    '#f0abfc', // fuchsia-300
-  text:      '#701a75', // fuchsia-900
-};
+
 
 export default function DisenadorDashboard({ usuario }: { usuario: usuarios }) {
   const router = useRouter();

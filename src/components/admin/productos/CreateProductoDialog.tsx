@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -23,16 +22,20 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
-  ImageIcon, 
-  Loader2, 
-  X, 
-  Plus, 
-  UploadCloud, 
-  Tag, 
+  Loader2,
+  Plus,
   Package, 
   Lock, 
-  DollarSign 
+  DollarSign,
+  Layers,
+  Image as ImageIcon,
+  UploadCloud,
+  X
 } from "lucide-react";
+
+// Estilos constantes para coherencia visual
+const ERP_LABEL = "text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2 mb-1.5";
+const ERP_INPUT = "bg-[#f1f5f9] border-none h-12 rounded-xl font-medium text-[#334155] focus-visible:ring-1 focus-visible:ring-pink-200 transition-all";
 
 export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categorias }: any) {
   const { productos, refetch } = useProducts();
@@ -49,7 +52,6 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
     categoria_id: "",
   });
 
-  // Generación automática de SKU
   useEffect(() => {
     if (formData.nombre && formData.categoria_id) {
       const cat = categorias.find((c: any) => c.id.toString() === formData.categoria_id);
@@ -59,7 +61,6 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
     }
   }, [formData.nombre, formData.categoria_id, productos, categorias]);
 
-  // Manejo de archivos (Drag & Drop y Selección Manual)
   const processFile = (selectedFile: File) => {
     if (selectedFile.type.startsWith("image/")) {
       setFile(selectedFile);
@@ -76,23 +77,6 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
     if (selectedFile) processFile(selectedFile);
   };
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile) processFile(droppedFile);
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.categoria_id) return toast.error("Selecciona una categoría");
@@ -101,17 +85,14 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
     try {
       let finalPath: string | null = null;
 
-      // 1. Subir imagen a Supabase Storage
       if (file) {
         const uploadResult = await uploadProductImage(file);
         if (uploadResult) {
-          // Extraemos solo el nombre del archivo para la base de datos
           const parts = String(uploadResult).split("/");
           finalPath = parts[parts.length - 1];
         }
       }
 
-      // 2. Preparar objeto para la API
       const productoData = {
         nombre: formData.nombre,
         descripcion: formData.descripcion || null,
@@ -131,21 +112,18 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
         body: JSON.stringify(productoData),
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Error al guardar el producto");
+      if (!response.ok) throw new Error("Error al guardar el producto");
 
-      toast.success(`Producto ${formData.sku} creado correctamente`);
+      toast.success(`Producto ${formData.sku} creado`);
       refetch();
       onSuccess();
       onClose();
       
-      // Limpiar formulario tras éxito
       setFile(null);
       setImagePreview(null);
       setFormData({ nombre: "", descripcion: "", sku: "", precio: "", categoria_id: "" });
       
     } catch (error: any) {
-      console.error("Error al guardar:", error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -154,154 +132,132 @@ export default function CreateProductoDialog({ isOpen, onClose, onSuccess, categ
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
+      <DialogContent className="max-w-lg bg-white rounded-[32px] overflow-hidden p-0 border-none shadow-2xl">
         
-        {/* Header Estilo GUOR */}
-        <div className="bg-pink-600 p-6 text-white relative">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
-                Nueva Prenda
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-pink-100 font-medium">
-              Registra un nuevo ingreso al catálogo de GUOR.
+        {/* CABECERA */}
+        <div className="p-8 flex items-center gap-4">
+          <div className="p-3 bg-[#fff0f6] rounded-2xl">
+            <Plus className="w-7 h-7 text-[#e32d6f]" />
+          </div>
+          <div>
+            <DialogTitle className="text-xl font-extrabold text-[#1a2b4b] uppercase tracking-tight">
+              Nueva Prenda
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-[13px] font-medium">
+              Registra los datos básicos para el catálogo.
             </DialogDescription>
-          </DialogHeader>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
           
-          {/* ZONA DE DRAG & DROP / PREVIEW */}
-          <div
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            className={`relative flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 transition-all duration-300 ${
-              isDragging
-                ? "border-pink-500 bg-pink-50 scale-[1.02]"
-                : imagePreview
-                ? "border-slate-200 bg-white"
-                : "border-slate-200 bg-slate-50 hover:bg-slate-100"
-            }`}
-          >
-            {imagePreview ? (
-              <div className="relative w-full aspect-video">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-full object-contain rounded-xl"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImagePreview(null);
-                    setFile(null);
-                  }}
-                  className="absolute -top-2 -right-2 bg-slate-900 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <label className="cursor-pointer flex flex-col items-center group">
-                <div className={`p-4 rounded-full mb-3 transition-colors ${isDragging ? "bg-pink-100" : "bg-white shadow-sm"}`}>
-                  <UploadCloud className={`w-8 h-8 ${isDragging ? "text-pink-600" : "text-slate-400 group-hover:text-pink-500"}`} />
-                </div>
-                <span className="text-xs font-black uppercase text-slate-500 tracking-widest text-center">
-                  Arrastra una foto aquí <br />
-                  <span className="text-[10px] font-bold text-slate-400">o haz clic para buscar</span>
-                </span>
-                <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
-              </label>
-            )}
+          {/* UPLOAD DE IMAGEN INTEGRADO */}
+          <div className="space-y-2">
+            <Label className={ERP_LABEL}><ImageIcon className="w-3.5 h-3.5" /> Fotografía de Producto</Label>
+            <div 
+              className={`relative group h-32 rounded-2xl border-2 border-dashed transition-all flex items-center justify-center overflow-hidden
+                ${imagePreview ? 'border-pink-200 bg-white' : 'border-slate-100 bg-[#f8fafc] hover:bg-slate-50'}`}
+            >
+              {imagePreview ? (
+                <>
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-2" />
+                  <button 
+                    onClick={() => {setFile(null); setImagePreview(null);}}
+                    className="absolute top-2 right-2 p-1 bg-white/80 rounded-full text-red-500 hover:bg-white shadow-sm"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <label className="flex flex-col items-center gap-2 cursor-pointer w-full h-full justify-center">
+                  <UploadCloud className="w-8 h-8 text-slate-300 group-hover:text-pink-400 transition-colors" />
+                  <span className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500">Subir imagen</span>
+                  <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
+                </label>
+              )}
+            </div>
           </div>
 
-          {/* CAMPOS DEL FORMULARIO */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                <Package className="w-3 h-3 text-pink-500" /> Nombre del Producto
+          {/* NOMBRE */}
+          <div className="space-y-1">
+            <Label className={ERP_LABEL}>
+              <Package className="w-3.5 h-3.5" /> Nombre del Producto
+            </Label>
+            <Input
+              value={formData.nombre}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              className={ERP_INPUT}
+              placeholder="Ej. Blusa Seda Marfil"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* CATEGORÍA */}
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <Layers className="w-3.5 h-3.5" /> Categoría
               </Label>
-              <Input
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white transition-all font-bold text-slate-700"
-                required
-                placeholder="Ej. Blusa Girasol"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> SKU Sugerido
-                </Label>
-                <div className="h-12 flex items-center px-3 rounded-xl bg-slate-100 text-pink-600 font-mono text-xs font-black border border-dashed border-slate-200 uppercase">
-                  {formData.sku || "PENDIENTE..."}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1">
-                  <DollarSign className="w-3 h-3" /> Precio (S/)
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.precio}
-                  onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-                  className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-black text-slate-900"
-                  required
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                <Tag className="w-3 h-3 text-pink-500" /> Línea / Categoría
-              </Label>
-              <Select onValueChange={(val) => setFormData({ ...formData, categoria_id: val })}>
-                <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold text-slate-700">
-                  <SelectValue placeholder="Seleccionar categoría..." />
+              <Select 
+                onValueChange={(val) => setFormData({ ...formData, categoria_id: val })} 
+                value={formData.categoria_id}
+              >
+                <SelectTrigger className={ERP_INPUT}>
+                  <SelectValue placeholder="Seleccionar..." />
                 </SelectTrigger>
-                <SelectContent className="bg-white rounded-xl shadow-xl border-slate-100 z-[9999]">
+                <SelectContent className="rounded-xl">
                   {categorias.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id.toString()} className="font-medium cursor-pointer">
-                      {cat.nombre}
-                    </SelectItem>
+                    <SelectItem key={cat.id} value={cat.id.toString()}>{cat.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* PRECIO */}
+            <div className="space-y-1">
+              <Label className={ERP_LABEL}>
+                <DollarSign className="w-3.5 h-3.5" /> Precio Sugerido
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.precio}
+                onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                className={ERP_INPUT}
+                placeholder="0.00"
+                required
+              />
+            </div>
+          </div>
+
+          {/* SKU AUTO-GENERADO */}
+          <div className="space-y-1">
+            <Label className={ERP_LABEL}>
+              <Lock className="w-3.5 h-3.5" /> SKU (Generado Automáticamente)
+            </Label>
+            <div className="h-12 flex items-center px-4 rounded-xl bg-[#f1f5f9] text-[#94a3b8] font-bold text-sm border border-slate-50 italic">
+              {formData.sku || "Esperando datos..."}
+            </div>
           </div>
 
           {/* ACCIONES */}
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-            <Button
-              type="button"
-              variant="ghost"
+          <div className="flex items-center justify-end gap-6 pt-6 mt-4 border-t border-slate-50">
+            <button 
+              type="button" 
               onClick={onClose}
-              disabled={loading}
-              className="h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+              className="text-[#64748b] font-bold text-sm hover:text-slate-800 transition-colors"
             >
               Descartar
-            </Button>
+            </button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-12 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-black uppercase text-[11px] tracking-widest transition-all shadow-lg shadow-pink-100 active:scale-95"
+              className="bg-[#e32d6f] hover:bg-[#c4235d] h-12 px-10 rounded-xl font-bold text-white shadow-lg shadow-pink-100 transition-all active:scale-95"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <div className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" /> Guardar Producto
-                </div>
+                "Crear Producto"
               )}
             </Button>
           </div>

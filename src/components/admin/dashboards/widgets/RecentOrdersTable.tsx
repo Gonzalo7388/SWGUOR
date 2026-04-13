@@ -3,12 +3,15 @@
 import React from 'react';
 import { Eye, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { Database } from '@/types/database';
+import { ROLE_PALETTES, type RolPaleta } from '../DashboardUtils';
 
 type Orden = Database['public']['Tables']['ordenes']['Row'];
 type EstadoOrden = Database['public']['Enums']['EstadoOrden'];
 
 interface RecentOrdersTableProps {
   orders: (Orden & { clientes: { razon_social: string } | null })[];
+  /** Colorea encabezados y botones con la paleta del rol activo */
+  rol?: RolPaleta;
 }
 
 const STATUS_CONFIG: Record<string, { cls: string; icon: React.ReactNode }> = {
@@ -21,7 +24,15 @@ const STATUS_CONFIG: Record<string, { cls: string; icon: React.ReactNode }> = {
   cancelado:  { cls: 'bg-rose-50 text-rose-600 border-rose-100',      icon: <AlertCircle size={11} /> },
 };
 
-export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
+export default function RecentOrdersTable({ orders, rol }: RecentOrdersTableProps) {
+  const p = rol ? ROLE_PALETTES[rol] : null;
+  const headColor  = p?.mid   ?? '#94a3b8';
+  const titleColor = p?.text  ?? '#1e293b';
+  const btnBg      = p?.text  ?? '#0f172a';
+  const alertBg    = p?.bgSoft ?? '#eff6ff';
+  const alertBorder= p?.border ?? '#bfdbfe';
+  const alertText  = p?.text  ?? '#1e3a5f';
+  const alertMid   = p?.mid   ?? '#2563eb';
   const pendientes = orders.filter((o) => o.estado === 'solicitado').length;
 
   return (
@@ -30,14 +41,14 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="font-black uppercase tracking-tight text-slate-800 text-base leading-none">
+          <h3 className="font-black uppercase tracking-tight text-base leading-none" style={{ color: titleColor }}>
             Órdenes Recientes
           </h3>
           <p className="text-slate-400 text-xs font-medium mt-1.5">
             Monitor en tiempo real del flujo operativo
           </p>
         </div>
-        <button className="text-[10px] font-black uppercase bg-slate-900 text-white px-3 py-2 rounded-xl hover:bg-slate-800 transition-all shadow-sm shrink-0">
+        <button className="text-[10px] font-black uppercase text-white px-3 py-2 rounded-xl transition-all shadow-sm shrink-0" style={{ background: btnBg }}>
           Ver todas
         </button>
       </div>
@@ -57,7 +68,7 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
             <col className="w-[10%]" />
           </colgroup>
           <thead>
-            <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+            <tr className="text-[9px] font-black uppercase tracking-widest" style={{ color: headColor }}>
               <th className="pb-3 pl-3">ID</th>
               <th className="pb-3">Cliente</th>
               <th className="pb-3">Total</th>

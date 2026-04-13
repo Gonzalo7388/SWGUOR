@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Trash2, AlertCircle } from "lucide-react"; // Trash2 es más semántico para eliminar
+import { Trash2 } from "lucide-react"; 
 
 export default function DeleteClienteDialog({ isOpen, onClose, cliente, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
@@ -33,49 +33,29 @@ export default function DeleteClienteDialog({ isOpen, onClose, cliente, onSucces
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-100 rounded-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
-            <Trash2 className="w-5 h-5" /> Eliminar Cliente
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="py-6 flex flex-col items-center text-center gap-4">
-          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
-            <AlertCircle className="w-10 h-10 text-red-500" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-gray-600">
-              ¿Estás seguro de que deseas eliminar a:
-            </p>
-            <p className="text-lg font-bold text-gray-900">
-              {cliente?.razon_social || "este cliente"}
-            </p>
-            <p className="text-xs text-gray-400 bg-gray-50 p-2 rounded-lg border border-dashed">
-              Esta acción es permanente y podría afectar el historial de pedidos asociados.
-            </p>
-          </div>
-        </div>
-
-        <DialogFooter className="flex gap-2 sm:gap-0">
-          <Button 
-            variant="ghost" 
-            onClick={onClose} 
-            disabled={loading}
-            className="flex-1 rounded-xl"
-          >
-            Cancelar
-          </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
-            disabled={loading}
-            className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100"
-          >
-            {loading ? 'Eliminando...' : 'Sí, Eliminar'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+<DialogContent className="max-w-md bg-white rounded-3xl overflow-hidden p-0 border-none">
+  <div className="p-8 flex items-center gap-4">
+    <div className="p-3 bg-red-50 rounded-2xl">
+      <Trash2 className="w-7 h-7 text-red-500" />
+    </div>
+    <div>
+      <DialogTitle className="text-xl font-extrabold text-[#1a2b4b] uppercase tracking-tight">
+        Confirmar Acción
+      </DialogTitle>
+      <DialogDescription className="text-slate-400 text-[13px]">
+        Esta operación no se puede deshacer.
+      </DialogDescription>
+    </div>
+  </div>
+  
+  <div className="px-8 pb-8">
+    <p className="text-[#334155] mb-6">¿Estás seguro de eliminar este registro del sistema?</p>
+    <div className="flex gap-4">
+       <Button variant="ghost" onClick={onClose} className="flex-1 text-[#64748b] font-bold">Mantener</Button>
+       <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold h-12">Confirmar</Button>
+    </div>
+  </div>
+</DialogContent>
     </Dialog>
   );
 }

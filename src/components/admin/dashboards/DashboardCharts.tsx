@@ -7,13 +7,17 @@ import {
 } from 'recharts';
 import { Download, TrendingUp, TrendingDown, Package, ShoppingCart, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ROLE_PALETTES, type RolPaleta } from './DashboardUtils';
 
 // 1. DEFINICIÓN DE INTERFAZ PARA EVITAR ERRORES DE TYPESCRIPT
 interface DashboardChartsProps {
   minimal?: boolean;
+  /** Rol activo — colorea el gráfico minimal con la paleta del rol */
+  rol?: RolPaleta;
 }
 
-export default function DashboardCharts({ minimal = false }: DashboardChartsProps) {
+export default function DashboardCharts({ minimal = false, rol }: DashboardChartsProps) {
+  const roleP = rol ? ROLE_PALETTES[rol] : null;
   const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('30');
@@ -47,21 +51,27 @@ export default function DashboardCharts({ minimal = false }: DashboardChartsProp
 
   if (!isMounted) return null;
 
-  // --- VISTA MINIMALISTA (Para el Dashboard del Ayudante) ---
+  // --- VISTA MINIMALISTA (Ayudante, Representante, Diseñador, Cortador…) ---
   if (minimal) {
+    const strokeColor = roleP?.accent ?? '#6366f1';
+    const labelColor  = roleP ? roleP.bg : 'rgba(255,255,255,0.5)';
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
-          <BarChart3 size={16} className="text-slate-400" />
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rendimiento Semanal</h4>
+          <BarChart3 size={16} style={{ color: roleP?.mid ?? '#94a3b8' }} />
+          <h4 className="text-[10px] font-black uppercase tracking-widest" style={{ color: labelColor }}>
+            Rendimiento Semanal
+          </h4>
         </div>
-        <div className="h-40 w-full bg-white/5 rounded-2xl p-2 border border-white/10">
+        <div className="h-40 w-full rounded-2xl p-2" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
           {loading ? (
-            <div className="h-full flex items-center justify-center text-[10px] uppercase font-bold text-slate-500 animate-pulse">Sincronizando...</div>
+            <div className="h-full flex items-center justify-center text-[10px] uppercase font-bold animate-pulse" style={{ color: labelColor }}>
+              Sincronizando...
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={ventasData.slice(-7)}>
-                <Area type="monotone" dataKey="ventas" stroke="#6366f1" fill="#6366f1" fillOpacity={0.1} strokeWidth={2} />
+                <Area type="monotone" dataKey="ventas" stroke={strokeColor} fill={strokeColor} fillOpacity={0.1} strokeWidth={2} />
                 <Tooltip content={<CustomTooltip dark />} />
               </AreaChart>
             </ResponsiveContainer>

@@ -2,21 +2,31 @@
 
 import { AlertTriangle, ArrowRight, Package } from 'lucide-react';
 import type { Database } from '@/types/database';
+import { useRouter } from 'next/navigation';
+import { ROLE_PALETTES, type RolPaleta } from '../DashboardUtils';
 
 type Insumo = Database['public']['Tables']['insumo']['Row'];
-import router from 'next/router';
 
 interface StockAlertCardProps {
   items: Insumo[];
+  /** Colorea la tarjeta con la paleta del rol activo */
+  rol?: RolPaleta;
 }
 
-export default function StockAlertCard({ items }: StockAlertCardProps) {
+export default function StockAlertCard({ items, rol }: StockAlertCardProps) {
+  const router = useRouter();
+  const p = rol ? ROLE_PALETTES[rol] : null;
+  const accentColor = p?.accent ?? '#ea580c';
+  const bgColor     = p?.bgSoft ?? '#fff7ed';
+  const borderColor = p?.border ?? '#fed7aa';
+  const midColor    = p?.mid    ?? '#f97316';
+  const textColor   = p?.text   ?? '#431407';
   return (
-    <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-orange-100 h-full flex flex-col">
+    <div className="bg-white rounded-[2.5rem] p-8 shadow-xl h-full flex flex-col" style={{ border: `1px solid ${borderColor}` }}>
       {/* HEADER DEL WIDGET */}
       <div className="mb-8 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="p-3.5 bg-orange-50 text-orange-600 rounded-2xl shadow-sm border border-orange-100">
+          <div className="p-3.5 rounded-2xl shadow-sm" style={{ background: bgColor, color: accentColor, border: `1px solid ${borderColor}` }}>
             <AlertTriangle size={22} strokeWidth={1.8} />
           </div>
           <div>
@@ -29,7 +39,7 @@ export default function StockAlertCard({ items }: StockAlertCardProps) {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
           </span>
-          <span className="text-[8px] font-black text-orange-600 uppercase tracking-widest">
+          <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: accentColor }}>
             {items.length} Alerta{items.length !== 1 ? 's' : ''} Activa{items.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -71,7 +81,7 @@ export default function StockAlertCard({ items }: StockAlertCardProps) {
       {/* FOOTER - ACCIÓN GLOBAL */}
       <button 
         onClick={() => router.push('/admin/inventario')}
-        className="w-full mt-6 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-lg hover:from-slate-800 hover:to-slate-700 transition-all active:scale-95 flex items-center justify-center gap-2 border border-slate-800"
+        className="w-full mt-6 py-4 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2" style={{ background: textColor }}
       >
         Reponer Inventario
         <ArrowRight size={14} />

@@ -2,14 +2,15 @@ export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
+import { EstadoOrden } from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30');
     const dateLimit = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const today = new Date();
 
-    // Todas las consultas en paralelo para rendimiento
     const [
       totalVentas,
       totalClientes,
@@ -18,128 +19,156 @@ export async function GET(request: Request) {
       ventasPeriodo,
       ordenesRecientes,
       stockCritico,
-      topVariantes,
+      topItemsRaw,
+      produccionStatusRaw,
+      ordenesRetrasadas,
+      productosSinVariantes,
+      pedidosUrgentes,
+      seguimientoOrdenes,
     ] = await Promise.all([
-      // 1. Total ventas (suma de todos los totales)
-      prisma.ventas.aggregate({
-        _sum: { total: true },
-        _count: { id: true },
-      }),
+      // 1. KPIs Financieros
+      prisma.ventas.aggregate({ _sum: { total: true }, _count: { id: true } }),
+      
+      // 2. Clientes activos
+      prisma.clientes.count({ where: { activo: 'activo' } }),
 
-      // 2. Total clientes
-      prisma.clientes.count({
-        where: { activo: 'activo' },
-      }),
+      // 3. Órdenes nuevas
+      prisma.ordenes.count({ where: { created_at: { gte: dateLimit } } }),
 
-      // 3. Nuevas órdenes en el período
-      prisma.ordenes.count({
-        where: { created_at: { gte: dateLimit } },
-      }),
-
-      // 4. Insumos bajo stock mínimo
+      // 4. Conteo de alertas de stock
       prisma.insumo.count({
-        where: {
-          stock_actual: { lte: prisma.insumo.fields.stock_minimo as unknown as number },
-        },
+        where: { stock_actual: { lte: prisma.insumo.fields.stock_minimo } },
       }),
 
-      // 5. Ventas del período (para gráfico de ingresos)
+      // 5. Histórico de ventas (Gráfico)
       prisma.ventas.findMany({
         where: { created_at: { gte: dateLimit } },
         select: { total: true, created_at: true },
         orderBy: { created_at: 'asc' },
       }),
 
-      // 6. Órdenes recientes (tabla dashboard)
+      // 6. Órdenes recientes (Tabla)
       prisma.ordenes.findMany({
-        take: 5,
-        include: {
-          cliente: { select: { razon_social: true, ruc: true } },
-        },
+        take: 8,
+        include: { cliente: { select: { razon_social: true } } },
         orderBy: { created_at: 'desc' },
       }),
 
-      // 7. Stock crítico (insumos con stock_actual <= stock_minimo)
+      // 7. Stock bajo el mínimo
       prisma.insumo.findMany({
-        where: {},
         orderBy: { stock_actual: 'asc' },
         take: 10,
       }),
 
-      // 8. Top variantes más solicitadas (vía pedido_items)
+      // 8. Ranking de ítems
       prisma.pedido_items.groupBy({
         by: ['variante_id'],
         _sum: { cantidad: true },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
+        orderBy: { _sum: { cantidad: 'desc' } },
         take: 5,
       }),
+
+      // 9. Lotes por estado
+      prisma.ordenes.groupBy({
+        by: ['estado'],
+        _count: { id: true }
+      }),
+
+      // 10. Conteo de retrasos (Alerta Crítica)
+      prisma.ordenes.count({
+        where: {
+          fecha_entrega: { lt: today },
+          estado: { notIn: ['entregado' as EstadoOrden, 'cancelado' as EstadoOrden] }
+        }
+      }),
+
+      // 11. Productos sin variantes/ficha (Para DISEÑADOR)
+      prisma.productos.count({
+        where: { variantes_producto: { none: {} } }
+      }),
+
+      // 12. Pedidos urgentes (Para CORTADOR/TALLER)
+      // Definimos urgente como solicitado y con fecha de entrega próxima
+      prisma.ordenes.findMany({
+        where: { estado: 'solicitado' as EstadoOrden },
+        take: 5,
+        orderBy: { created_at: 'asc' }, 
+        include: { cliente: { select: { razon_social: true } } }
+      }),
+
+      // 13. Seguimiento detallado (Para RECEPCIONISTA/ADMIN)
+      prisma.ordenes.findMany({
+        take: 10,
+        select: {
+          id: true,
+          estado: true,
+          created_at: true,
+          cliente: { select: { razon_social: true } }
+        },
+        orderBy: { created_at: 'desc' }
+      }),
+
+      // 14. Alertas Retraso (GERENTE)
+      // Conteo de órdenes que deberían haberse entregado pero aún no lo están
+      prisma.ordenes.count({
+        where: {
+          estado: { notIn: ['entregado' as EstadoOrden, 'cancelado' as EstadoOrden] },
+          created_at: { lt: dateLimit }
+        }
+      })
     ]);
 
-    // Resolver nombres de variantes del top
-    const varianteIds = topVariantes
-      .map((v) => v.variante_id)
-      .filter((id): id  is bigint => id !== null);
-
-    const variantesDetalle = varianteIds.length > 0
-      ? await prisma.variantes_producto.findMany({
-          where: { id: { in: varianteIds } },
-          select: { id: true, nombre: true, color: true, talla: true },
-        })
-      : [];
-
-    const variantesMap = new Map(variantesDetalle.map((v) => [v.id.toString(), v]));
-
-    const topProductos = topVariantes.map((v) => ({
-      variante_id: v.variante_id?.toString() ?? null,
-      nombre: v.variante_id ? variantesMap.get(v.variante_id.toString())?.nombre ?? 'N/A' : 'N/A',
-      color: v.variante_id ? variantesMap.get(v.variante_id.toString())?.color ?? null : null,
-      talla: v.variante_id ? variantesMap.get(v.variante_id.toString())?.talla ?? null : null,
-      cantidad_vendida: v._sum.cantidad ?? 0,
-      pedidos_count: v._count.id,
-    }));
-
-    // Filtrar stock crítico en memoria (Prisma no soporta field refs en where)
-    const stockCriticoFiltrado = stockCritico.filter(
-      (i) => i.stock_actual <= i.stock_minimo
+    // Procesamiento de nombres de productos para el gráfico
+    const chartProductos = await Promise.all(
+      topItemsRaw.map(async (item) => {
+        const variante = await prisma.variantes_producto.findUnique({
+          where: { id: item.variante_id as bigint },
+          include: { productos: { select: { nombre: true } } }
+        });
+        return {
+          cantidad: Number(item._sum.cantidad || 0),
+          productos: {
+            nombre: variante?.productos?.nombre 
+              ? `${variante.productos.nombre} (${variante.color})`
+              : 'Desconocido'
+          }
+        };
+      })
     );
 
-    // Postgrest-style count para stock_alerta
-    const stockAlertaReal = stockAlerta;
+    // Agrupación final de datos operativos
+    const operaciones = {
+      lotes_por_estado: produccionStatusRaw.reduce((acc, curr) => {
+        const estadoKey = curr.estado ?? 'sin_estado'; 
+        acc[estadoKey] = curr._count.id;
+        return acc;
+      }, {} as Record<string, number>),
+      alertas_retraso: ordenesRetrasadas,
+      productos_sin_ficha: productosSinVariantes,
+      pedidos_urgentes: pedidosUrgentes,
+      seguimiento: seguimientoOrdenes
+    };
 
     return NextResponse.json(
       serializeBigInt({
         kpis: {
           total_ventas: totalVentas._sum.total ?? 0,
           ventas_count: totalVentas._count.id,
+          recentOrdenes: ordenesRecientes.length,
           total_clientes: totalClientes,
           nuevas_ordenes: nuevasOrdenes,
-          stock_alerta: stockAlertaReal,
+          stock_alerta: stockAlerta,
+          retrasos_totales: ordenesRetrasadas
         },
+        operaciones,
         chartIngresos: ventasPeriodo,
         recentOrders: ordenesRecientes,
-        criticalStock: stockCriticoFiltrado,
-        topProductos,
+        criticalStock: stockCritico.filter(i => Number(i.stock_actual) <= Number(i.stock_minimo)),
+        chartProductos,
       })
     );
   } catch (error: any) {
-    console.error('Error Crítico en Dashboard API:', error);
-    return NextResponse.json(
-      {
-        error: error.message,
-        kpis: {
-          total_ventas: 0,
-          ventas_count: 0,
-          total_clientes: 0,
-          nuevas_ordenes: 0,
-          stock_alerta: 0,
-        },
-        chartIngresos: [],
-        recentOrders: [],
-        criticalStock: [],
-        topProductos: [],
-      },
-      { status: 500 }
-    );
+    console.error('Error en Dashboard API:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

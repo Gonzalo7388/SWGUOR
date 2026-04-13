@@ -4,13 +4,14 @@ import { useState } from "react";
 import { 
   Dialog, 
   DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
+  DialogDescription, 
+  DialogFooter, 
+  DialogTitle,
+  DialogHeader 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle } from "lucide-react";
 
 interface DeleteCategoriaDialogProps {
   isOpen: boolean;
@@ -39,7 +40,6 @@ export default function DeleteCategoriaDialog({
       const result = await response.json();
 
       if (!response.ok) {
-        // El error suele ocurrir si hay productos vinculados (integridad referencial)
         throw new Error(result.error || "No se puede eliminar la categoría");
       }
 
@@ -56,72 +56,69 @@ export default function DeleteCategoriaDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
-        
-        {/* Header Estilo GUOR (Pink Alert) */}
-        <div className="bg-pink-600 p-6 text-white relative">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <Trash2 className="w-6 h-6 text-white" />
-              </div>
-              <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
-                Eliminar Categoría
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-pink-100 font-medium">
-              Esta acción retirará la agrupación del catálogo permanentemente.
-            </DialogDescription>
-          </DialogHeader>
-        </div>
+      <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[28px] shadow-2xl bg-white">
+        {/* Banner rojo superior - Identidad visual de eliminación */}
+        <div className="h-2 bg-red-600 w-full" />
 
-        <div className="p-6 space-y-6">
-          {/* Panel de Advertencia Estilizado */}
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex gap-4 items-start shadow-sm">
-            <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 shrink-0">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div className="p-8 space-y-6">
+          {/* Header con icono y títulos */}
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-red-50 rounded-2xl flex-shrink-0">
+              <Trash2 className="w-7 h-7 text-red-600" />
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                Protección de Datos
-              </p>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                ¿Seguro que deseas eliminar la línea <span className="font-black text-slate-900">"{categoria?.nombre}"</span>? 
-              </p>
-              
-              <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl mt-3">
-                <p className="text-[11px] text-amber-700 font-bold leading-tight">
-                  Nota: El sistema rechazará la eliminación si existen productos asociados a esta categoría para proteger tu inventario.
+              <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">
+                Eliminar Categoría
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                Acción Irreversible
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Mensaje de advertencia estilizado */}
+          <div className="bg-red-50 border border-red-100 rounded-[20px] p-5">
+            <div className="flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-3">
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  ¿Estás seguro de eliminar la categoría{" "}
+                  <span className="font-black text-red-600 underline decoration-2">
+                    {categoria?.nombre || "seleccionada"}
+                  </span>?
                 </p>
+                
+                <div className="bg-white/50 p-3 rounded-xl border border-red-100/50">
+                  <p className="text-[11px] text-red-700 font-bold leading-tight italic">
+                    Nota: El sistema no permitirá la eliminación si existen productos vinculados a esta categoría.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Botones de Acción */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Footer de acciones */}
+          <DialogFooter className="flex flex-row gap-3 mt-4">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={onClose}
               disabled={loading}
-              className="h-12 rounded-xl border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
             >
-              Cancelar
+              Mantener
             </Button>
             <Button
               onClick={handleDelete}
               disabled={loading}
-              className="h-12 rounded-xl bg-slate-900 hover:bg-red-600 text-white font-black uppercase text-[11px] tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95"
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Procesando</span>
-                </>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "Confirmar"
+                "Confirmar Baja"
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
