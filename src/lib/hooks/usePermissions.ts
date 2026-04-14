@@ -40,7 +40,7 @@ export function usePermissions() {
 
       const { data: userData, error } = await supabase
         .from('usuarios')
-        .select('id, nombre_completo, rol, estado')
+        .select('id, rol, estado')
         .eq('auth_id', session.user.id)
         .maybeSingle<Pick<Usuario, 'id' | 'rol' | 'estado'>>();
 
