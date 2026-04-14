@@ -36,9 +36,10 @@ export async function GET(request: Request) {
       prisma.ordenes.count({ where: { created_at: { gte: dateLimit } } }),
 
       // 4. Conteo de alertas de stock
-      prisma.insumo.count({
-        where: { stock_actual: { lte: prisma.insumo.fields.stock_minimo } },
-      }),
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM insumo
+        WHERE stock_actual <= stock_minimo
+      `.then(r => Number(r[0].count)),
 
       // 5. Histórico de ventas (Gráfico)
       prisma.ventas.findMany({
@@ -55,10 +56,12 @@ export async function GET(request: Request) {
       }),
 
       // 7. Stock bajo el mínimo
-      prisma.insumo.findMany({
-        orderBy: { stock_actual: 'asc' },
-        take: 10,
-      }),
+      prisma.$queryRaw<any[]>`
+        SELECT * FROM insumo
+        WHERE stock_actual <= stock_minimo
+        ORDER BY stock_actual ASC
+        LIMIT 10
+      `,
 
       // 8. Ranking de ítems
       prisma.pedido_items.groupBy({
@@ -163,7 +166,7 @@ export async function GET(request: Request) {
         operaciones,
         chartIngresos: ventasPeriodo,
         recentOrders: ordenesRecientes,
-        criticalStock: stockCritico.filter(i => Number(i.stock_actual) <= Number(i.stock_minimo)),
+        criticalStock: stockCritico,
         chartProductos,
       })
     );
