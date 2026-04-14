@@ -42,7 +42,7 @@ export async function GET(req: Request) {
           },
         },
       },
-      orderBy: { nombre_completo: 'asc' },
+      orderBy: { created_at: 'desc' },
     });
 
     return NextResponse.json(serializeBigInt(usuarios));
@@ -76,13 +76,14 @@ export async function POST(req: Request) {
 
     const usuario = await prisma.usuarios.create({
       data: {
-        nombre_completo: body.nombre_completo.trim(),
         email: body.email.trim().toLowerCase(),
-        telefono: body.telefono ? BigInt(body.telefono) : null,
         rol,
         estado,
         auth_id: body.auth_id ?? null,
         created_by: body.created_by ?? null,
+        ultimo_acceso: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     });
 

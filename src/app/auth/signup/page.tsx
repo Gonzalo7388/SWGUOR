@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { 
   Building2, Mail, Lock, User, 
   ArrowRight, Loader2, CheckCircle2, AlertCircle,
-  Phone, MapPin, Eye, EyeOff
+  Phone, MapPin, Eye, EyeOff, Briefcase, Tag
 } from 'lucide-react';
 
 const GoldenThreadBackground = () => (
@@ -37,9 +37,9 @@ const GoldenThreadBackground = () => (
 );
 
 export default function RegisterPage() {
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [success, setSuccess]       = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+  const [success, setSuccess]           = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,19 +50,19 @@ export default function RegisterPage() {
     const formData = new FormData(e.currentTarget);
 
     const payload = {
-      email:          formData.get('email')       as string,
-      password:       formData.get('password')    as string,
-      nombre_completo:formData.get('razonSocial') as string, // la API espera nombre_completo
-      ruc:            formData.get('ruc')         as string,
-      razon_social:   formData.get('razonSocial') as string,
-      telefono:       formData.get('telefono')    as string,
-      direccion:      formData.get('direccion')   as string,
-      tipo_cliente:   'corporativo',
+      email:           formData.get('email')          as string,
+      password:        formData.get('password')       as string,
+      nombre_completo: formData.get('razonSocial')    as string,
+      ruc:             formData.get('ruc')            as string,
+      razon_social:    formData.get('razonSocial')    as string,
+      nombre_comercial:formData.get('nombreComercial')as string,
+      telefono:        formData.get('telefono')       as string,
+      direccion:       formData.get('direccion')      as string,
+      tipo_cliente:    formData.get('tipoCliente')    as string,
     };
 
     try {
-      // Llamada a la API route server-side (usa service_role, sin triggers)
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/signup', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
@@ -71,7 +71,6 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Mensajes de error específicos que devuelve la API
         throw new Error(data.error || 'Error al procesar el registro');
       }
 
@@ -148,31 +147,54 @@ export default function RegisterPage() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Razón Social */}
               <div className="md:col-span-2 relative group">
                 <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
                 <input name="razonSocial" required placeholder="RAZÓN SOCIAL / EMPRESA" className="register-input" />
               </div>
 
+              {/* Nombre Comercial */}
+              <div className="md:col-span-2 relative group">
+                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
+                <input name="nombreComercial" placeholder="NOMBRE COMERCIAL (OPCIONAL)" className="register-input" />
+              </div>
+
+              {/* RUC */}
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
                 <input name="ruc" required maxLength={11} placeholder="NÚMERO DE RUC" className="register-input" />
               </div>
 
+              {/* Tipo de Cliente */}
+              <div className="relative group">
+                <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors z-10" size={18} />
+                <select name="tipoCliente" required className="register-input appearance-none cursor-pointer">
+                  <option value="" disabled>TIPO DE CLIENTE</option>
+                  <option value="corporativo">CORPORATIVO</option>
+                  <option value="persona_natural">PERSONA NATURAL</option>
+                </select>
+              </div>
+
+              {/* Teléfono */}
               <div className="relative group">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
                 <input name="telefono" required type="tel" placeholder="TELÉFONO" className="register-input" />
               </div>
 
-              <div className="md:col-span-2 relative group">
+              {/* Dirección */}
+              <div className="relative group">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
-                <input name="direccion" required placeholder="DIRECCIÓN FISCAL COMPLETA" className="register-input" />
+                <input name="direccion" required placeholder="DIRECCIÓN FISCAL" className="register-input" />
               </div>
 
+              {/* Email */}
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
                 <input name="email" type="email" required placeholder="CORREO CORPORATIVO" className="register-input" />
               </div>
 
+              {/* Contraseña */}
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] transition-colors" size={18} />
                 <input 
@@ -190,6 +212,7 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
             </div>
 
             <button 
@@ -235,6 +258,12 @@ export default function RegisterPage() {
           border-color: #D4AF37;
           background-color: white;
           box-shadow: 0 4px 12px rgba(212, 175, 55, 0.08);
+        }
+        select.register-input {
+          color: #1c1917;
+        }
+        select.register-input option[value=""] {
+          color: #d6d3d1;
         }
       `}</style>
     </div>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import type { usuarios, EstadoPedido } from '@prisma/client';
+import type { usuarios, EstadoPedido, personal_interno } from '@prisma/client';
 import {
   Upload, Eye, CheckCircle, AlertCircle,
   ClipboardList, Layers, FileText, Inbox,
@@ -28,6 +28,10 @@ const F = {
   border:  ROLE_PALETTES.disenador.border,  // fuchsia-300 → #f0abfc
   text:    ROLE_PALETTES.disenador.text,    // fuchsia-900 → #701a75
 };
+
+interface UsuarioConPersonal extends usuarios {
+  personal_interno: personal_interno[];
+}
 
 interface ProductoActivo {
   id: number;
@@ -67,10 +71,12 @@ const ETAPA_CONFIG: Record<EstadoPedido, {
 
 
 
-export default function DisenadorDashboard({ usuario }: { usuario: usuarios }) {
+export default function DisenadorDashboard({ usuario }: { usuario: UsuarioConPersonal }) {
   const router = useRouter();
   const { can, isLoading: permissionsLoading } = usePermissions();
   const supabase = getSupabaseBrowserClient();
+  const nombreUsuario = usuario?.personal_interno?.[0]?.nombre_completo || "Diseñador";
+  const primerNombre = nombreUsuario.split(' ')[0];
 
   const [stats, setStats] = useState<Stats>({
     productosActivos: 0, fichasPendientes: 0, pedidosAsignados: 0, listosParaTaller: 0,
@@ -166,7 +172,7 @@ export default function DisenadorDashboard({ usuario }: { usuario: usuarios }) {
     setExportando(true);
     try {
       const fecha = new Date().toLocaleDateString('es-PE');
-      let csv = `CREATIVE STUDIO - DASHBOARD\nDiseñador,${usuario.nombre_completo}\nFecha,${fecha}\n\n`;
+      let csv = `CREATIVE STUDIO - DASHBOARD\nDiseñador,${primerNombre}\nFecha,${fecha}\n\n`;
       csv += 'ESTADÍSTICAS\nMétrica,Valor\n';
       csv += `Modelos Activos,${stats.productosActivos}\n`;
       csv += `Fichas Pendientes,${stats.fichasPendientes}\n`;
@@ -195,7 +201,7 @@ export default function DisenadorDashboard({ usuario }: { usuario: usuarios }) {
             Creative Studio <span className="h-2 w-2 rounded-full bg-fuchsia-500 animate-pulse" />
           </h1>
           <p className="text-fuchsia-600 font-medium mt-1">
-            Bienvenido, {usuario.nombre_completo?.split(' ')[0]} • Área de Diseño
+            Bienvenido, {primerNombre} • Área de Diseño
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">

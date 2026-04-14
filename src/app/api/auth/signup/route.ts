@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { Rol } from '@prisma/client';
 
 // Cliente admin con service role — solo para operaciones server-side críticas
 // NUNCA exponer SUPABASE_SERVICE_ROLE_KEY al cliente
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
       // Datos de clientes
       ruc,
       razon_social,
-      direccion,
+      nombre_comercial,
+      direccion_fiscal,
       tipo_cliente = 'corporativo', // default a corporativo si no se especifica
     } = await request.json();
 
@@ -71,9 +73,7 @@ export async function POST(request: Request) {
       .insert({
         auth_id: authUserId,
         email,
-        nombre_completo,
-        telefono: telefono ?? null,
-        rol: 'cliente',
+        rol: Rol,
         estado: 'activo',
       })
       .select('id')
@@ -94,9 +94,10 @@ export async function POST(request: Request) {
         usuario_id:       usuarioId,
         ruc,
         razon_social,
+        nombre_comercial: nombre_comercial,
         email,
         telefono:         telefono ?? null,
-        direccion_fiscal: direccion ?? null,
+        direccion_fiscal: direccion_fiscal ?? null,
         tipo_cliente:     (tipo_cliente ?? 'corporativo') as any,
         activo:           'activo' as any,
       })
