@@ -81,7 +81,7 @@ export async function GET(request: Request) {
       prisma.ordenes.count({
         where: {
           fecha_prometida_entrega: { lt: today },
-          estado: { notIn: ['entregado' as EstadoOrden, 'cancelado' as EstadoOrden] }
+          estado: { notIn: ['finalizado' as EstadoOrden, 'cancelado' as EstadoOrden] }
         }
       }),
 
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
       // Conteo de órdenes que deberían haberse entregado pero aún no lo están
       prisma.ordenes.count({
         where: {
-          estado: { notIn: ['entregado' as EstadoOrden, 'cancelado' as EstadoOrden] },
+          estado: { notIn: ['finalizado' as EstadoOrden, 'cancelado' as EstadoOrden] },
           created_at: { lt: dateLimit }
         }
       })
