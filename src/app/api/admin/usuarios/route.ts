@@ -3,37 +3,31 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
-// Roles válidos según el enum RolPersonal de Prisma
 const ROLES_VALIDOS = [
-  'administrador',
-  'cortador',
-  'disenador',
-  'recepcionista',
-  'ayudante',
-  'representante_taller',
-  'cliente',
-  'gerente',
+  'administrador', 'cortador', 'disenador', 'recepcionista',
+  'ayudante', 'representante_taller', 'cliente', 'gerente',
 ] as const;
 
 const ESTADOS_VALIDOS = ['activo', 'inactivo', 'suspendido'] as const;
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // GET: Obtener todos los usuarios
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const rol = searchParams.get('rol');
+    const rol    = searchParams.get('rol');
     const estado = searchParams.get('estado');
 
     const where: Record<string, unknown> = {};
-    if (rol) where.rol = rol;
+    if (rol)    where.rol    = rol;
     if (estado) where.estado = estado;
 
     const usuarios = await prisma.usuarios.findMany({
       where,
       include: {
         clientes: { select: { id: true, razon_social: true } },
+        // nombre_completo viene de personal_interno
+        personal_interno: { select: { nombre_completo: true, cargo: true } },
         _count: {
           select: {
             movimientos_inventario: true,
@@ -57,33 +51,27 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    if (!body.nombre_completo || !body.email) {
-      return NextResponse.json(
-        { error: 'nombre_completo y email son requeridos' },
-        { status: 400 }
-      );
+    if (!body.email) {
+      return NextResponse.json({ error: 'email es requerido' }, { status: 400 });
     }
 
     if (!EMAIL_REGEX.test(body.email)) {
-      return NextResponse.json(
-        { error: 'Formato de email inválido' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Formato de email inválido' }, { status: 400 });
     }
 
     const estado = validarEstado(body.estado ?? 'activo');
-    const rol = validarRol(body.rol ?? 'ayudante');
+    const rol    = validarRol(body.rol ?? 'ayudante');
 
     const usuario = await prisma.usuarios.create({
       data: {
-        email: body.email.trim().toLowerCase(),
+        email:        body.email.trim().toLowerCase(),
         rol,
         estado,
-        auth_id: body.auth_id ?? null,
-        created_by: body.created_by ?? null,
+        auth_id:      body.auth_id    ?? null,
+        created_by:   body.created_by ?? null,
         ultimo_acceso: new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at:   new Date(),
+        updated_at:   new Date(),
       },
     });
 
@@ -91,10 +79,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Error creando usuario:', error);
     if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Este email ya está registrado' },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: 'Este email ya está registrado' }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -106,40 +91,25 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { id, ...updates } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    // Validaciones de campos específicos
     if (updates.email) {
       if (!EMAIL_REGEX.test(updates.email)) {
-        return NextResponse.json(
-          { error: 'Formato de email inválido' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Formato de email inválido' }, { status: 400 });
       }
       updates.email = updates.email.trim().toLowerCase();
     }
 
-    if (updates.rol) {
-      updates.rol = validarRol(updates.rol);
-    }
+    if (updates.rol)    updates.rol    = validarRol(updates.rol);
+    if (updates.estado) updates.estado = validarEstado(updates.estado);
 
-    if (updates.estado) {
-      updates.estado = validarEstado(updates.estado);
-    }
-
-    if (updates.telefono !== undefined && updates.telefono !== null) {
-      updates.telefono = BigInt(updates.telefono);
-    }
-
-    if (updates.nombre_completo) {
-      updates.nombre_completo = updates.nombre_completo.trim();
-    }
+    // nombre_completo y telefono NO existen en usuarios — ignorarlos silenciosamente
+    delete updates.nombre_completo;
+    delete updates.telefono;
 
     const usuario = await prisma.usuarios.update({
       where: { id: BigInt(id) },
-      data: updates,
+      data:  updates,
     });
 
     return NextResponse.json(serializeBigInt(usuario));
@@ -149,10 +119,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
     if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Este email ya está registrado' },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: 'Este email ya está registrado' }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -162,27 +129,24 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id'); 
+    const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
+    // Verificar existencia — solo campos que sí existen en usuarios
     const existing = await prisma.usuarios.findUnique({
       where: { id: BigInt(id) },
-      select: { id: true, nombre_completo: true },
+      select: { id: true, email: true },
     });
 
     if (!existing) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    await prisma.usuarios.delete({
-      where: { id: BigInt(id) },
-    });
+    await prisma.usuarios.delete({ where: { id: BigInt(id) } });
 
     return NextResponse.json({
-      message: 'Usuario eliminado correctamente',
+      message:     'Usuario eliminado correctamente',
       deletedUser: serializeBigInt(existing),
     });
   } catch (error: any) {
@@ -194,7 +158,7 @@ export async function DELETE(req: Request) {
   }
 }
 
-// ─── Validadores ───────────────────────────────────────────────────────────
+// ─── Validadores ────────────────────────────────────────────────────────────
 
 function validarRol(rol: string): (typeof ROLES_VALIDOS)[number] {
   const normalized = rol.toLowerCase().trim();

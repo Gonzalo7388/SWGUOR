@@ -31,7 +31,13 @@ export async function GET(req: Request) {
             },
           },
         },
-        responsable: { select: { id: true, nombre_completo: true } },
+        responsable: {
+          select: {
+            id: true,
+            // nombre_completo vive en personal_interno, no en usuarios
+            personal_interno: { select: { nombre_completo: true } },
+          },
+        },
         incidencias_taller: { select: { id: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -47,7 +53,8 @@ export async function GET(req: Request) {
         prenda: primerItem?.productos?.nombre ?? 'N/A',
         cantidad: primerItem?.cantidad ?? conf.pedido?.total_unidades ?? 0,
         taller: conf.taller?.nombre ?? 'N/A',
-        responsable: conf.responsable?.nombre_completo ?? null,
+        // Navegar a través de personal_interno para obtener el nombre
+        responsable: conf.responsable?.personal_interno?.[0]?.nombre_completo ?? null,
         progreso: calcularProgreso(conf.estado),
         incidencias_count: conf.incidencias_taller.length,
       };
@@ -112,7 +119,6 @@ export async function PUT(req: Request) {
     }
 
     const confeccion = await prisma.$transaction(async (tx: Tx) => {
-      // Obtener la confección actual con relaciones
       const confeccionActual = await tx.confecciones.findUnique({
         where: { id: BigInt(id) },
         include: {
@@ -124,25 +130,17 @@ export async function PUT(req: Request) {
         throw new Error('Confección no encontrada');
       }
 
-      // Construir data de actualización
       const data: Record<string, unknown> = {};
       if (estado) data.estado = estado;
       if (observaciones !== undefined) data.observaciones = observaciones;
       if (estado === 'terminado') data.fecha_fin = new Date();
 
-      // ── KPIs de tiempo en la orden vinculada ──
       if (estado && confeccionActual.pedido) {
         const ordenKpiData: Record<string, unknown> = {};
 
-        // KPI timestamps en la orden
-        if (estado === 'corte') {
-          ordenKpiData.enviado_taller_at = new Date();
-        }
-        if (estado === 'terminado') {
-          ordenKpiData.recibido_taller_at = new Date();
-        }
+        if (estado === 'corte') ordenKpiData.enviado_taller_at = new Date();
+        if (estado === 'terminado') ordenKpiData.recibido_taller_at = new Date();
 
-        // Etapas de producción
         const etapaMap: Record<string, string> = {
           corte: 'corte',
           confeccionando: 'confeccion',
@@ -152,23 +150,14 @@ export async function PUT(req: Request) {
 
         const etapa = etapaMap[estado];
         if (etapa) {
-          // Cerrar etapa activa anterior
           await tx.estados_produccion.updateMany({
-            where: {
-              orden_id: confeccionActual.pedido.id,
-              activo: true,
-            },
-            data: {
-              activo: false,
-              completado_en: new Date(),
-            },
+            where: { orden_id: confeccionActual.pedido.id, activo: true },
+            data: { activo: false, completado_en: new Date() },
           });
 
-          // Calcular duración
           const inicio = new Date(confeccionActual.fecha_inicio).getTime();
           const duracionMinutos = Math.round((Date.now() - inicio) / 60000);
 
-          // Crear nueva etapa
           await tx.estados_produccion.create({
             data: {
               orden_id: confeccionActual.pedido.id,
@@ -180,7 +169,6 @@ export async function PUT(req: Request) {
           });
         }
 
-        // Actualizar orden si hay KPIs
         if (Object.keys(ordenKpiData).length > 0) {
           await tx.ordenes.update({
             where: { id: confeccionActual.pedido.id },
@@ -189,7 +177,6 @@ export async function PUT(req: Request) {
         }
       }
 
-      // Actualizar confección
       const updated = await tx.confecciones.update({
         where: { id: BigInt(id) },
         data,
@@ -203,7 +190,6 @@ export async function PUT(req: Request) {
         },
       });
 
-      // Si hay incidencias en el body, registrarlas
       if (body.incidencias && Array.isArray(body.incidencias)) {
         for (const inc of body.incidencias) {
           await tx.incidencias_taller.create({
@@ -259,7 +245,7 @@ export async function DELETE(req: Request) {
   }
 }
 
-// ─── Utilitarios ───────────────────────────────────────────────────────────
+// ─── Utilitarios ────────────────────────────────────────────────────────────
 
 function calcularProgreso(estado: string): number {
   const progressMap: Record<string, number> = {

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button }        from "@/components/ui/button";
+import { Input }         from "@/components/ui/input";
+import { Label }         from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast }         from "sonner";
 import { UserCog, ShieldCheck, User, Mail } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import type { Rol, usuarios } from "@prisma/client";
+import type { Rol, usuarios, personal_interno } from "@prisma/client";
 
 const ROLES_SISTEMA: { value: Rol; label: string }[] = [
   { value: "gerente",              label: "Gerente General"         },
@@ -22,11 +22,14 @@ const ROLES_SISTEMA: { value: Rol; label: string }[] = [
   { value: "cliente",              label: "Cliente"                 },
 ];
 
+// El tipo del prop incluye personal_interno anidado para acceder al nombre y teléfono
 interface EditUsuarioDialogProps {
   isOpen:    boolean;
   onClose:   () => void;
   onSuccess: () => void;
-  usuario:   usuarios;
+  usuario:   usuarios & {
+    personal_interno?: Pick<personal_interno, 'nombre_completo' | 'dni'>[];
+  };
 }
 
 export default function EditUsuarioDialog({
@@ -36,28 +39,26 @@ export default function EditUsuarioDialog({
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(usuario?.rol ?? null);
   const [rolActual,       setRolActual]       = useState<Rol | null>(null);
 
-  // ── Derivado: solo "administrador" puede editar el email ──────────────────
   const puedeEditarEmail = rolActual === 'administrador';
 
-  // ── Obtener rol del usuario autenticado via auth_id (uuid) ───────────────
+  // Nombre y teléfono vienen de personal_interno, no de usuarios
+  const nombreActual   = usuario?.personal_interno?.[0]?.nombre_completo ?? '';
+
   useEffect(() => {
     if (!isOpen) return;
 
     const fetchRolActual = async () => {
       const supabase = getSupabaseBrowserClient();
-
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) return;
 
       const { data, error } = await supabase
         .from('usuarios')
         .select('rol')
-        .eq('auth_id', user.id)   // ← auth_id es el uuid que enlaza con auth.users
+        .eq('auth_id', user.id)
         .single();
 
-      if (!error && data?.rol) {
-        setRolActual(data.rol as Rol);
-      }
+      if (!error && data?.rol) setRolActual(data.rol as Rol);
     };
 
     fetchRolActual();
@@ -77,31 +78,42 @@ export default function EditUsuarioDialog({
 
     const formData = new FormData(e.currentTarget);
 
-    // Campos editables según el esquema: nombre_completo, email (si admin), rol, telefono
-    const payload: Partial<usuarios> & { id: bigint } = {
-      id:       usuario.id,                               
-      telefono: formData.get('telefono')
-                  ? BigInt(formData.get('telefono') as string)
-                  : null,
+    // Payload para PATCH /api/admin/usuarios — solo campos que existen en usuarios
+    const payloadUsuario: Record<string, unknown> = {
+      id:  usuario.id,
+      rol: rolSeleccionado,
     };
-
-    // Email solo si el rol actual lo permite — protección doble (UI + payload)
     if (puedeEditarEmail) {
-      payload.email = formData.get('email') as string;
+      payloadUsuario.email = formData.get('email') as string;
     }
 
+    // Payload separado para actualizar personal_interno (nombre_completo)
+    const nombreNuevo   = (formData.get('nombre_completo') as string)?.trim();
+
     try {
-      const res = await fetch("/api/admin/usuarios", {
+      // 1. Actualizar rol (y email si aplica) en usuarios
+      const resUsuario = await fetch("/api/admin/usuarios", {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payload),
+        body:    JSON.stringify(payloadUsuario),
       });
-      if (!res.ok) throw new Error();
+      if (!resUsuario.ok) throw new Error('Error actualizando usuario');
+
+      // 2. Actualizar nombre_completo en personal_interno si cambió
+      if (nombreNuevo && nombreNuevo !== nombreActual) {
+        const resPersonal = await fetch("/api/admin/personal", {
+          method:  "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ usuario_id: Number(usuario.id), nombre_completo: nombreNuevo }),
+        });
+        if (!resPersonal.ok) throw new Error('Error actualizando nombre en personal_interno');
+      }
+
       toast.success("Perfil actualizado con éxito");
       onSuccess();
       onClose();
-    } catch {
-      toast.error("No se pudieron guardar los cambios");
+    } catch (err: any) {
+      toast.error(err.message || "No se pudieron guardar los cambios");
     } finally {
       setLoading(false);
     }
@@ -131,14 +143,14 @@ export default function EditUsuarioDialog({
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Nombre completo */}
+            {/* Nombre completo — viene de personal_interno */}
             <div className="space-y-2">
               <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
                 <User className="w-3.5 h-3.5" /> Nombre Completo
               </Label>
               <Input
                 name="nombre_completo"
-                defaultValue={usuario?.nombre_completo}
+                defaultValue={nombreActual}
                 required
                 placeholder="Nombre del colaborador"
                 onChange={handleNombreChange}
@@ -147,7 +159,7 @@ export default function EditUsuarioDialog({
               <p className="text-[9px] text-slate-400 italic">Solo se permiten letras, espacios y acentos</p>
             </div>
 
-            {/* Email — solo editable para administrador */}
+            {/* Email */}
             <div className="space-y-2">
               <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5" /> Correo Electrónico
@@ -172,26 +184,6 @@ export default function EditUsuarioDialog({
                   · Solo el rol <span className="font-bold text-slate-500">Administrador</span> puede editar el correo
                 </p>
               )}
-            </div>
-
-            {/* Teléfono — bigint en el esquema */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                Teléfono
-              </Label>
-              <Input
-                name="telefono"
-                type="tel"
-                defaultValue={usuario?.telefono?.toString() ?? ''}
-                placeholder="9XXXXXXXX"
-                maxLength={9}
-                className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
-                onInput={(e) => {
-                  // Solo dígitos (telefono es bigint en BD)
-                  (e.target as HTMLInputElement).value =
-                    (e.target as HTMLInputElement).value.replace(/\D/g, '');
-                }}
-              />
             </div>
 
             {/* Rol */}

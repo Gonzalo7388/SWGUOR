@@ -9,14 +9,14 @@ const ESTADOS_VALIDOS = ['pendiente', 'en_ruta', 'entregado', 'preparando', 'inc
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const estado = searchParams.get('estado');
-    const pedidoId = searchParams.get('pedido_id');
+    const estado    = searchParams.get('estado');
+    const pedidoId  = searchParams.get('pedido_id');
     const usuarioId = searchParams.get('usuario_id');
 
     const where: Record<string, unknown> = {};
-    if (estado && estado !== 'todos') where.estado = estado;
-    if (pedidoId) where.pedido_id = BigInt(pedidoId);
-    if (usuarioId) where.usuario_id = BigInt(usuarioId);
+    if (estado    && estado    !== 'todos') where.estado     = estado;
+    if (pedidoId)                           where.pedido_id  = BigInt(pedidoId);
+    if (usuarioId)                          where.usuario_id = BigInt(usuarioId);
 
     const despachos = await prisma.despachos.findMany({
       where,
@@ -26,17 +26,22 @@ export async function GET(req: Request) {
             clientes: { select: { id: true, razon_social: true } },
           },
         },
-        usuario: { select: { id: true, nombre_completo: true } },
+        usuario: {
+          select: {
+            id: true,
+            personal_interno: { select: { nombre_completo: true } },
+          },
+        },
       },
       orderBy: { fecha_despacho: 'desc' },
     });
 
     const data = despachos.map((d) => ({
       ...serializeBigInt(d),
-      despacho_id: `DSP-${String(d.id).padStart(6, '0')}`,
-      cliente: d.pedido?.clientes?.razon_social ?? 'N/A',
-      direccion: d.direccion_entrega,
-      usuario_nombre: d.usuario?.nombre_completo ?? 'N/A',
+      despacho_id:    `DSP-${String(d.id).padStart(6, '0')}`,
+      cliente:        d.pedido?.clientes?.razon_social ?? 'N/A',
+      direccion:      d.direccion_entrega,
+      usuario_nombre: d.usuario?.personal_interno?.[0]?.nombre_completo ?? 'N/A',
     }));
 
     return NextResponse.json({ data, count: data.length });
@@ -58,30 +63,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const pedidoId = BigInt(body.pedido_id);
+    const pedidoId  = BigInt(body.pedido_id);
     const usuarioId = BigInt(body.usuario_id);
 
-    // Validar que el pedido existe
     const pedido = await prisma.pedidos.findUnique({
       where: { id: pedidoId },
-      include: {
-        clientes: { select: { id: true, razon_social: true } },
-      },
+      include: { clientes: { select: { id: true, razon_social: true } } },
     });
 
     if (!pedido) {
-      return NextResponse.json(
-        { error: `El pedido #${pedidoId} no existe` },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: `El pedido #${pedidoId} no existe` }, { status: 404 });
     }
 
-    // Validar que no exista ya un despacho activo para este pedido
     const despachoExistente = await prisma.despachos.findFirst({
-      where: {
-        pedido_id: pedidoId,
-        estado: { in: ['pendiente', 'preparando', 'en_ruta'] },
-      },
+      where: { pedido_id: pedidoId, estado: { in: ['pendiente', 'preparando', 'en_ruta'] } },
     });
 
     if (despachoExistente) {
@@ -93,21 +88,19 @@ export async function POST(req: Request) {
 
     const despacho = await prisma.despachos.create({
       data: {
-        pedido_id: pedidoId,
-        usuario_id: usuarioId,
+        pedido_id:         pedidoId,
+        usuario_id:        usuarioId,
         direccion_entrega: body.direccion_entrega.trim(),
-        fecha_despacho: body.fecha_despacho
-          ? new Date(body.fecha_despacho)
-          : new Date(),
-        estado: body.estado ?? 'pendiente',
+        fecha_despacho:    body.fecha_despacho ? new Date(body.fecha_despacho) : new Date(),
+        estado:            body.estado ?? 'pendiente',
       },
       include: {
-        pedido: {
-          include: {
-            clientes: { select: { razon_social: true } },
+        pedido: { include: { clientes: { select: { razon_social: true } } } },
+        usuario: {
+          select: {
+            personal_interno: { select: { nombre_completo: true } },
           },
         },
-        usuario: { select: { nombre_completo: true } },
       },
     });
 
@@ -118,10 +111,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Error creating despacho:', error);
     if (error.code === 'P2003') {
-      return NextResponse.json(
-        { error: 'Pedido o usuario no encontrado' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Pedido o usuario no encontrado' }, { status: 400 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -133,11 +123,8 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { id, estado, fecha_entrega } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    // Validar estado
     if (estado) {
       const normalizedEstado = estado.toLowerCase().trim();
       if (!ESTADOS_VALIDOS.includes(normalizedEstado as any)) {
@@ -149,38 +136,32 @@ export async function PATCH(req: Request) {
     }
 
     const despacho = await prisma.$transaction(async (tx) => {
-      // Obtener despacho actual
       const existing = await tx.despachos.findUnique({
         where: { id: BigInt(id) },
-        include: {
-          pedido: { include: { clientes: { select: { razon_social: true } } } },
-        },
+        include: { pedido: { include: { clientes: { select: { razon_social: true } } } } },
       });
 
-      if (!existing) {
-        throw new Error('Despacho no encontrado');
-      }
+      if (!existing) throw new Error('Despacho no encontrado');
 
-      // Construir data
       const data: Record<string, unknown> = {};
       if (estado) data.estado = estado.toLowerCase().trim();
-
-      // Si se marca como entregado, registrar fecha de entrega
       if (data.estado === 'entregado') {
         data.fecha_entrega = fecha_entrega ? new Date(fecha_entrega) : new Date();
       }
 
-      // Actualizar despacho
       const updated = await tx.despachos.update({
         where: { id: BigInt(id) },
         data,
         include: {
           pedido: { include: { clientes: { select: { razon_social: true } } } },
-          usuario: { select: { nombre_completo: true } },
+          usuario: {
+            select: {
+              personal_interno: { select: { nombre_completo: true } },
+            },
+          },
         },
       });
 
-      // Si se entregó, actualizar estado del pedido
       if (data.estado === 'entregado' && existing.pedido) {
         await tx.pedidos.update({
           where: { id: existing.pedido_id },
@@ -210,13 +191,9 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    await prisma.despachos.delete({
-      where: { id: BigInt(id) },
-    });
+    await prisma.despachos.delete({ where: { id: BigInt(id) } });
 
     return NextResponse.json({ message: 'Despacho eliminado correctamente' });
   } catch (error: any) {
