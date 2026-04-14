@@ -59,19 +59,31 @@ export default function UsuariosPage() {
     setLoading(true);
     try {
       const supabase = getSupabaseBrowserClient();
-      let query = supabase.from("usuarios").select("*", { count: 'exact' });
       
-      // Filtro de estado (activo/inactivo)
+      let query = supabase
+        .from("usuarios")
+        .select(`
+          *,
+          personal_interno (
+            id,
+            nombre_completo,
+            dni,
+            cargo,
+            fecha_ingreso,
+            estado
+          )
+        `, { count: 'exact' });
+
       if (statusFilter) query = query.eq("estado", statusFilter);
 
       const from = currentPage * pageSize;
       const { data, error } = await query
-        .order("nombre_completo", { ascending: true })
+        .order("email", { ascending: true }) // ← orden por email, no nombre_completo
         .range(from, from + pageSize - 1);
 
       if (error) throw error;
       setUsuarios(data || []);
-      loadStats(); 
+      loadStats();
     } catch (err) {
       toast.error("Error al sincronizar personal");
     } finally {
@@ -102,11 +114,13 @@ export default function UsuariosPage() {
   };
 
   const filteredUsuarios = useMemo(() => {
-    return usuarios.filter(u => 
-      u.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.rol?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return usuarios.filter(u => {
+      const nombre = u.personal_interno?.nombre_completo?.toLowerCase() ?? "";
+      const email = u.email?.toLowerCase() ?? "";
+      const rol = u.rol?.toLowerCase() ?? "";
+      const term = searchTerm.toLowerCase();
+      return nombre.includes(term) || email.includes(term) || rol.includes(term);
+    });
   }, [usuarios, searchTerm]);
 
   const currentTotalForPagination = statusFilter ? (stats as any)[statusFilter] : stats.total;
