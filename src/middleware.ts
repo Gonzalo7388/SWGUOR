@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   // 2. RUTAS PÚBLICAS ÚNICAS
-  const publicPaths = ['/auth/login', '/auth/register', '/admin/acceso-denegado'];
+  const publicPaths = ['/auth/login', '/auth/signup', '/admin/acceso-denegado'];
   if (publicPaths.some(path => pathname.startsWith(path))) {
     return response;
   }

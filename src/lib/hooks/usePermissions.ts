@@ -10,9 +10,7 @@ import {
 
 export interface Usuario {
   id: number;
-  nombre_completo: string;
   email?: string;
-  telefono?: string | null;
   rol: RolUsuario;
   estado: EstadoUsuario;
   auth_id?: string | null;
@@ -44,7 +42,7 @@ export function usePermissions() {
         .from('usuarios')
         .select('id, nombre_completo, rol, estado')
         .eq('auth_id', session.user.id)
-        .maybeSingle<Pick<Usuario, 'id' | 'nombre_completo' | 'rol' | 'estado'>>();
+        .maybeSingle<Pick<Usuario, 'id' | 'rol' | 'estado'>>();
 
       if (error || !userData || normalizar(userData.estado) !== 'activo') {
         setUsuario(null);
