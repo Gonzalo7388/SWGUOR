@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { Loader2, UserX, AlertTriangle, Eye } from "lucide-react";
 
-const AdminDashboard         = dynamic(() => import('@/components/admin/dashboards/DashboardAdministrador'));
+const DashboardAdministrador = dynamic(() => import('@/components/admin/dashboards/DashboardAdministrador'));
 const DashboardAyudante      = dynamic(() => import('@/components/admin/dashboards/DashboardAyudante'));
 const DashboardCortador      = dynamic(() => import('@/components/admin/dashboards/DashboardCortador'));
 const DashboardDisenador     = dynamic(() => import('@/components/admin/dashboards/DashboardDisenador'));
@@ -15,7 +15,7 @@ const DashboardGerente       = dynamic(() => import('@/components/admin/dashboar
 const RoleDashboardTabs      = dynamic(() => import('@/components/admin/dashboards/RoleDashboardTab'));
 
 const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
-  administrador:        AdminDashboard,
+  administrador:        DashboardAdministrador,
   ayudante:             DashboardAyudante,
   cortador:             DashboardCortador,
   disenador:            DashboardDisenador,

@@ -138,8 +138,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, text: response.text(), cliente: nombreCliente });
   } catch (error: any) {
-    console.error('[Portal Chat] Error:', error);
-    return NextResponse.json({ error: 'Error en el servidor de chat' }, { status: 500 });
+    console.error('[Portal Chat] Error completo:', {
+      message: error.message,
+      status:  error.status,
+      details: error.errorDetails ?? error.cause ?? null,
+    });
+  return NextResponse.json({ error: 'Error en el servidor de chat' }, { status: 500 });
   }
 }
 
