@@ -193,8 +193,16 @@ export default function ProductosPage() {
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
   const paginatedData = useMemo(() => {
-    return filteredProducts.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  }, [filteredProducts, currentPage]);
+  const filtered = productosFormateados.filter((p) => {
+    const search = searchTerm.toLowerCase().trim();
+    if (search && !p.nombre.toLowerCase().includes(search) && !p.sku.toLowerCase().includes(search)) return false;
+    if (selectedCategoria !== "todos" && String(p.categoria_id) !== selectedCategoria) return false;
+    if (quickFilter === "bajo_stock" && !(p.stock > 0 && p.stock <= 5)) return false;
+    if (quickFilter === "agotados" && p.stock !== 0) return false;
+    return true;
+  });
+  return filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+}, [productosFormateados, searchTerm, selectedCategoria, quickFilter, currentPage]);
 
   if (authLoading) return <LoadingInventory />;
   if (!can('view', 'productos')) return <AccessDenied />;
@@ -243,20 +251,20 @@ export default function ProductosPage() {
 
         {/* FILTROS INTEGRADOS (Aquí va el componente que actualizaremos luego)  */}
         <ProductFilters 
-  searchTerm={searchTerm} 
-  setSearchTerm={setSearchTerm}
-  colorFilter={colorFilter} 
-  setColorFilter={setColorFilter}
-  sizeFilter={sizeFilter} 
-  setSizeFilter={setSizeFilter}
-  sortOrder={sortOrder} 
-  setSortOrder={setSortOrder}
-  selectedCategoria={selectedCategoria} 
-  setSelectedCategoria={setSelectedCategoria}
-  categorias={categorias} 
-  colors={allColors as any}
-  // BORRAMOS: statusFilter y setStatusFilter (ya no se necesitan)
-/>
+          searchTerm={searchTerm} 
+          setSearchTerm={setSearchTerm}
+          colorFilter={colorFilter} 
+          setColorFilter={setColorFilter}
+          sizeFilter={sizeFilter} 
+          setSizeFilter={setSizeFilter}
+          sortOrder={sortOrder} 
+          setSortOrder={setSortOrder}
+          selectedCategoria={selectedCategoria} 
+          setSelectedCategoria={setSelectedCategoria}
+          categorias={categorias} 
+          colors={allColors as any}
+          // BORRAMOS: statusFilter y setStatusFilter (ya no se necesitan)
+        />
 
         {/* Tabla principal [cite: 107-109] */}
         {productosLoading ? (
@@ -267,7 +275,7 @@ export default function ProductosPage() {
         ) : (
           <div className="space-y-4">
             <ProductosTable
-              data={productosFormateados}
+              data={paginatedData}
               categorias={categorias}
               canEdit={can('edit', 'productos')}
               canDelete={can('delete', 'productos')}
