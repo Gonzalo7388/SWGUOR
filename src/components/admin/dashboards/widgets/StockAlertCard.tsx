@@ -3,7 +3,7 @@
 import { AlertTriangle, ArrowRight, Package } from 'lucide-react';
 import type { Database } from '@/types/database';
 import { useRouter } from 'next/navigation';
-import { ROLE_PALETTES, type RolPaleta } from '../DashboardUtils';
+import { ROLE_PALETTES, type RolPaleta } from './DashboardUtils';
 
 type Insumo = Database['public']['Tables']['insumo']['Row'];
 

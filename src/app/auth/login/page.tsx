@@ -67,7 +67,7 @@ export default function LoginPage() {
 
       // Redirección por roles según el equipo del proyecto [cite: 34, 36]
       const role = data.role.toLowerCase();
-      if (['administrador', 'recepcionista', 'disenador'].includes(role)) {
+      if (['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'].includes(role)) {
         router.push('/admin/Panel-Administrativo/dashboard');
       } else if (role === 'cliente') {
         router.push('/portal/dashboard');

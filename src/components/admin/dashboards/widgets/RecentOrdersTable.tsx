@@ -3,7 +3,7 @@
 import React from 'react';
 import { Eye, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { Database } from '@/types/database';
-import { ROLE_PALETTES, type RolPaleta } from '../DashboardUtils';
+import { ROLE_PALETTES, type RolPaleta } from './DashboardUtils';
 
 type Orden = Database['public']['Tables']['ordenes']['Row'];
 type EstadoOrden = Database['public']['Enums']['EstadoOrden'];

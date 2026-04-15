@@ -9,7 +9,7 @@ export type RolPaleta =
   | 'recepcionista' 
   | 'disenador' 
   | 'cortador' 
-  | 'representante' 
+  | 'representante_taller' 
   | 'ayudante';
 
 export interface PaletaColors {
