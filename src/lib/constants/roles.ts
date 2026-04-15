@@ -289,8 +289,6 @@ function derivarPermisosRecurso(permisos: PermissionKey[]): PermisosRecurso {
   const resultado: PermisosRecurso = {};
 
   for (const permiso of permisos) {
-    // Ej: "ver_pedidos" → accion="ver", recurso="pedidos"
-    // Ej: "actualizar_estado_despacho" → accion="actualizar_estado", recurso="despacho"
     const partes = permiso.split('_');
     let accion: AccionRecurso | undefined;
     let recurso: string | undefined;

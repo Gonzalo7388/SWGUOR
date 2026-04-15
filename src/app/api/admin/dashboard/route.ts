@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
       supabase
         .from('clientes')
         .select('*', { count: 'exact', head: true })
-        .eq('tipo_cliente', 'corporativo')
         .eq('activo', 'activo'),
 
       supabase

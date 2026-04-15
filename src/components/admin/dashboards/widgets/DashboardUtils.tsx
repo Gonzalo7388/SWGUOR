@@ -2,6 +2,39 @@ import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
 import type { EstadoOrden } from '@prisma/client';
+import { Role } from '@/types/auth';
+
+export interface PaletaColors {
+  accent: string;
+  bg: string;
+  bgSoft: string;
+  border: string;
+  text: string;
+  mid: string;
+  primary: string;
+  secondary: string;
+  dark: string;
+  cream: string;
+  peach: string;
+  beige: string;
+  white: string;
+}
+
+export const COMPANY_PALETTE = {
+  accent: '#E2725B',    // Terracota
+  bg: '#FFFFFF',
+  bgSoft: '#FAF7F2',    // Beige suave
+  border: '#F2D2BD',    // Melocotón
+  text: '#2B1B12',      // Café oscuro
+  mid: '#C05A31',       // Arcilla
+  primary: '#E2725B',    // Terracota
+  secondary: '#C05A31',  // Arcilla
+  dark: '#2B1B12',       // Café Oscuro
+  cream: '#FFF9F2',      // Crema
+  peach: '#F2D2BD',      // Melocotón
+  beige: '#FAF7F2',      // Beige para detalles
+  white: '#FFFFFF',     // Blanco Puro
+};
 
 export type RolPaleta = 
   | 'administrador' 
@@ -12,49 +45,18 @@ export type RolPaleta =
   | 'representante_taller' 
   | 'ayudante';
 
-export interface PaletaColors {
-  accent: string;
-  bg: string;
-  bgSoft: string;
-  border: string;
-  text: string;
-  mid: string;
-}
-
 // ─── PALETAS POR ROL ──────────────────────────────────────────────────────────
 // Usadas para colorear skeletons, tooltips y widgets según el rol activo.
 
-export const ROLE_PALETTES = {
-  administrador: {
-    accent: '#0369a1', bg: '#e0f2fe', bgSoft: '#f0f9ff',
-    border: '#bae6fd', text: '#0c4a6e', mid: '#0284c7',
-  },
-  gerente: {
-    accent: '#6d28d9', bg: '#ede9fe', bgSoft: '#f5f3ff',
-    border: '#ddd6fe', text: '#2e1065', mid: '#7c3aed',
-  },
-  recepcionista: {
-    accent: '#be185d', bg: '#fce7f3', bgSoft: '#fdf2f8',
-    border: '#fbcfe8', text: '#500724', mid: '#db2777',
-  },
-  disenador: {
-    accent: '#d946ef', bg: '#fae8ff', bgSoft: '#fdf4ff',
-    border: '#f0abfc', text: '#701a75', mid: '#a21caf',
-  },
-  cortador: {
-    accent: '#ea580c', bg: '#ffedd5', bgSoft: '#fff7ed',
-    border: '#fed7aa', text: '#431407', mid: '#f97316',
-  },
-  ayudante: {
-    accent: '#0f766e', bg: '#ccfbf1', bgSoft: '#f0fdfa',
-    border: '#99f6e4', text: '#042f2e', mid: '#0d9488',
-  },
-  representante_taller: {
-    accent: '#4d7c0f', bg: '#ecfccb', bgSoft: '#f7fee7',
-    border: '#d9f99d', text: '#1a2e05', mid: '#65a30d',
-  },
+export const ROLE_PALETTES: Record<RolPaleta, PaletaColors> = {
+  administrador: COMPANY_PALETTE,
+  gerente: COMPANY_PALETTE,
+  recepcionista: COMPANY_PALETTE,
+  disenador: COMPANY_PALETTE,
+  cortador: COMPANY_PALETTE,
+  ayudante: COMPANY_PALETTE,
+  representante_taller: COMPANY_PALETTE,
 } as const;
-
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 export function groupByDate(rows: { created_at: string; total: number }[]) {

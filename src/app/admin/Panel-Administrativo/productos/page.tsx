@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { useProducts } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
-import { EstadoProducto, productos as PrismaProducto, categorias as PrismaCategoria } from "@prisma/client";
+import { productos as PrismaProducto, categorias as PrismaCategoria } from "@prisma/client";
 import {
   FileSpreadsheet, Plus, Package, RefreshCw,
   AlertTriangle, XCircle, BarChart3, ChevronLeft, ChevronRight,

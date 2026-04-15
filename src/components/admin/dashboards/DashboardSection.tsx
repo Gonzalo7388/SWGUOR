@@ -11,108 +11,75 @@ interface DashboardSectionProps {
   children: React.ReactNode;
 }
 
+/**
+ * PALETA DE COLORES DE LA EMPRESA
+ * Crema: #FFF9F2 | Melocotón: #F2D2BD | Terracota: #E2725B 
+ * Arcilla: #C05A31 | Dorado Pálido: #F0E4D0 | Oscuro Café: #2B1B12 
+ * Beige (Fondo): #FAF7F2 | Blanco: #FFFFFF
+ */
+
 export function DashboardSection({ 
   title, 
   subtitle, 
-  role, 
   actions, 
   children 
 }: DashboardSectionProps) {
   
-  // Configuración de colores por Rol
-  const roleConfig = {
-    gerente: { 
-      label : 'Gerente General', 
-      accent: '#7c3aed', // violet-700
-      bg    : '#f5f3ff',     // violet-50 (para el fondo suave)
-      iconBg: '#ede9fe', // violet-100
-    },
-    administrador: { 
-      label : 'Administrador', 
-      accent: '#0369a1', // sky-700
-      bg    : '#f0f9ff',     // sky-50
-      iconBg: '#e0f2fe', // sky-100
-    },
-    recepcionista: { 
-      label : 'Recepcionista', 
-      accent: '#be185d', // pink-700
-      bg    : '#fdf2f8',     // pink-50
-      iconBg: '#fce7f3', // pink-100
-    },
-    disenador: { 
-      label : 'Diseñador', 
-      accent: '#a21caf', // fuchsia-700
-      bg    : '#fdf4ff',     // fuchsia-50
-      iconBg: '#fae8ff', // fuchsia-100
-    },
-    cortador: { 
-      label : 'Cortador', 
-      accent: '#ea580c', // orange-600
-      bg    : '#fff7ed',     // orange-50
-      iconBg: '#ffedd5', // orange-100
-    },
-    ayudante: { 
-      label : 'Ayudante', 
-      accent: '#0f766e', // teal-700
-      bg    : '#f0fdfa',     // teal-50
-      iconBg: '#ccfbf1', // teal-100
-    },
-    representante_taller: { 
-      label : 'Representante de Taller', 
-      accent: '#4d7c0f', // lime-700
-      bg    : '#f7fee7',     // lime-50
-      iconBg: '#ecfccb', // lime-100
-    },
-  };
-
-  const theme = roleConfig[role] || roleConfig.administrador;
-
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '24px' }}>
-      {/* HEADER DINÁMICO POR ROL */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '32px' 
-      }}>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div style={{ 
-            padding: '12px', 
-            background: theme.iconBg, 
-            borderRadius: '16px', 
-            color: theme.accent,
-            boxShadow: `0 4px 12px ${theme.accent}15`
-          }}>
-            <Shield size={24} strokeWidth={2.5} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-              <span style={{ fontSize: '9px', fontWeight: 800, color: theme.accent, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                SISTEMA GUOR
-              </span>
-              <ChevronRight size={10} color="#cbd5e1" />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                {theme.label}
-              </span>
+    <div className="min-h-screen bg-white">
+      {/* HEADER INSTITUCIONAL */}
+      <header className="px-8 py-8 border-b border-[#F2D2BD]/30 bg-[#FAF7F2]/40">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          
+          <div className="flex items-center gap-5">
+            {/* Icono con identidad de marca */}
+            <div className="p-3 bg-white rounded-2xl shadow-sm border border-[#F2D2BD] text-[#E2725B]">
+              <Shield size={26} strokeWidth={2.5} />
             </div>
-            <h1 style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.03em' }}>
-              {title}
-            </h1>
-            {subtitle && <p style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, marginTop: '2px' }}>{subtitle}</p>}
+
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black text-[#C05A31] tracking-[0.2em] uppercase">
+                  GUOR INTERNACIONAL
+                </span>
+                <ChevronRight size={10} className="text-[#F2D2BD]" />
+                <span className="text-[10px] font-bold text-[#2B1B12]/40 uppercase tracking-wider">
+                  Sistema de Gestión
+                </span>
+              </div>
+              
+              <h1 className="text-3xl font-black text-[#2B1B12] tracking-tighter leading-none">
+                {title}
+              </h1>
+              
+              {subtitle && (
+                <p className="text-sm text-[#2B1B12]/60 font-medium mt-2 max-w-md">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ACCIONES (Botones, Filtros) */}
+          <div className="flex items-center gap-3">
+            {actions}
           </div>
         </div>
+      </header>
 
-        {/* ACCIONES (Filtros, Refresh, etc.) */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {actions}
+      {/* CONTENIDO PRINCIPAL */}
+      <main className="max-w-7xl mx-auto px-8 py-10">
+        <div className="flex flex-col gap-8">
+          {children}
         </div>
-      </div>
+      </main>
 
-      {/* CONTENEDOR DE WIDGETS */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {children}
-      </div>
+      {/* Footer Sutil opcional */}
+      <footer className="max-w-7xl mx-auto px-8 py-6 border-t border-[#F2D2BD]/20">
+        <p className="text-[10px] text-center text-[#2B1B12]/30 font-bold uppercase tracking-widest">
+          © {new Date().getFullYear()} Guor Internacional - Panel de Control
+        </p>
+      </footer>
     </div>
   );
 }
