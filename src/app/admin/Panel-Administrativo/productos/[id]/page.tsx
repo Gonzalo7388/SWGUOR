@@ -1,37 +1,50 @@
-import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
 import ProductForm from "@/components/admin/productos/form/ProductForm";
+import { prisma } from "@/lib/prisma"; 
+import { serializeBigInt } from "@/lib/utils/serialize";
+
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-export default async function EditarProductoPage({ params }: { params: { id: string } }) {
-  // 1. Buscamos el producto con sus variantes y categorías
-  const producto = await prisma.productos.findUnique({
-    where: { id: BigInt(params.id) },
-    include: {
-      variantes_producto: true,
-      categorias: true
-    }
-  });
+export default async function EditarProductoPage({ params }: PageProps) {
+  const { id } = await params;
 
-  if (!producto) notFound();
+  try {
+    // Buscamos el producto usando la instancia global
+    const producto = await prisma.productos.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        variantes_producto: true,
+        categorias: true
+      }
+    });
 
-  // 2. Necesitamos las categorías para el select del form
-  const categorias = await prisma.categorias.findMany();
+    if (!producto) notFound();
 
-  // 3. Serializamos para evitar errores de BigInt
-  const initialData = JSON.parse(JSON.stringify(producto, (key, value) =>
-    typeof value === 'bigint' ? value.toString() : value
-  ));
+    // Obtenemos las categorías
+    const categorias = await prisma.categorias.findMany({
+      where: { activo: true },
+      orderBy: { nombre: 'asc' }
+    });
 
-  return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      <ProductForm 
-        mode="edit" 
-        initialData={initialData} 
-        categorias={categorias} 
-      />
-    </div>
-  );
+    // Serializamos (Usamos tu función serializeBigInt para mayor limpieza)
+    const initialData = serializeBigInt(producto);
+    const categoriasSerializadas = serializeBigInt(categorias);
+
+    return (
+      <div className="min-h-screen bg-[#f8fafc]">
+        <ProductForm 
+          mode="edit" 
+          initialData={initialData} 
+          categorias={categoriasSerializadas} 
+        />
+      </div>
+    );
+  } catch (error) {
+    console.error("Error cargando producto:", error);
+    notFound();
+  }
 }

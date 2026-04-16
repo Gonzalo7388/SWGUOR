@@ -96,13 +96,7 @@ export default function ProductFilters({
   
   const { loading, refetch } = useProducts();
   const coloresRestantes = colors.filter(c => !DESTACADOS.includes(c));
-  const DESTACADOS = [
-    "blanco",
-    "negro",
-    "azul",
-    "rojo",
-    "gris"
-  ];
+
 
 return (
     <div className="space-y-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -248,6 +242,7 @@ return (
           </Label>
           
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Botón para limpiar filtro */}
             <button
               onClick={() => setSizeFilter("")}
               className={`px-4 h-9 rounded-xl border-2 text-[10px] font-black transition-all ${
@@ -259,22 +254,19 @@ return (
               TODAS
             </button>
 
-            {DESTACADOS.map((color) => (
-            <button
-              key={color}
-              onClick={() => setColorFilter(color)}
-              title={color}
-              className={`w-9 h-9 rounded-full border-2 transition-all hover:scale-110 active:scale-90 relative flex items-center justify-center ${
-                colorFilter === color ? "border-pink-600 ring-4 ring-pink-50" : "border-slate-200 shadow-sm"
-              }`}
-              style={{ backgroundColor: COLOR_MAP[color] || '#e2e8f0' }}
-            >
-              {colorFilter === color && (
-                <Check className={`w-4 h-4 ${
-                  ["blanco", "beige", "crema", "perla"].includes(color) ? "text-slate-900" : "text-white"
-                }`} />
-              )}
-            </button>
+            {/* MAP DE TALLAS REALES DESDE PRISMA */}
+            {Object.values(TallaProductos).map((talla) => (
+              <button
+                key={talla}
+                onClick={() => setSizeFilter(talla)}
+                className={`w-9 h-9 rounded-full border-2 text-[11px] font-bold transition-all flex items-center justify-center ${
+                  sizeFilter === talla 
+                    ? "border-pink-600 bg-pink-600 text-white shadow-md" 
+                    : "border-slate-200 bg-white text-slate-600 hover:border-pink-300"
+                }`}
+              >
+                {talla}
+              </button>
             ))}
           </div>
         </div>
