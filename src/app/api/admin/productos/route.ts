@@ -1,172 +1,119 @@
-  export const runtime = 'nodejs';
-  import { prisma } from '@/lib/prisma';
-  import { serializeBigInt } from '@/lib/utils/serialize';
-  import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
+import { prisma } from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
+import { NextResponse } from 'next/server';
+import { productoOutputSchema } from '@/lib/schemas/productos';
 
-  // GET: Obtener todos los productos con filtros
-  export async function GET(req: Request) {
-    try {
-      const { searchParams } = new URL(req.url);
+// GET: Obtener todos los productos con filtros e información relacionada
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const categoria_id = searchParams.get('categoria_id');
+    const estado = searchParams.get('estado');
+    const busqueda = searchParams.get('busqueda');
 
-      const categoria_id = searchParams.get('categoria_id');
-      const estado = searchParams.get('estado');
-      const busqueda = searchParams.get('busqueda');
+    const where: any = {};
+    if (categoria_id && categoria_id !== 'null' && categoria_id !== 'undefined') {
+      where.categoria_id = BigInt(categoria_id);
+    }
+    
+    if (estado && estado !== 'all') {
+      where.estado = estado;
+    }
+    
+    if (busqueda) {
+      where.nombre = { contains: busqueda, mode: 'insensitive' };
+    }
 
-      const where: Record<string, unknown> = {};
-
-      if (categoria_id) where.categoria_id = BigInt(categoria_id);
-      if (estado) where.estado = estado;
-      if (busqueda) where.nombre = { contains: busqueda, mode: 'insensitive' };
-
-      const productos = await prisma.productos.findMany({
+    const [productos, categorias] = await Promise.all([   
+      prisma.productos.findMany({
         where,
         include: {
-          categorias: {
-            select: { id: true, nombre: true },
-          },
+          categorias: true,
+          variantes_producto: true,
         },
         orderBy: { created_at: 'desc' },
-      });
+      }),
+      prisma.categorias.findMany({
+        where: { activo: true },
+        orderBy: { nombre: 'asc' }
+      })
+    ]);
 
-      return NextResponse.json(serializeBigInt(productos));
-    } catch (error: any) {
-      console.error('Error en GET productos:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    // Devolvemos el objeto con ambas listas
+    return NextResponse.json(serializeBigInt({
+      productos,
+      categorias
+    }));
+    
+  } catch (error: any) {
+    console.error('Error detallado en GET productos:', error);
+    return NextResponse.json({ error: "Fallo en el servidor al obtener productos" }, { status: 500 });
   }
+}
 
-  // POST: Crear un nuevo producto
-  export async function POST(req: Request) {
-    try {
-      const body = await req.json();
+// POST: Crear un nuevo producto (Transacción atómica)
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    
+    // Validar con el schema transformado
+    const validation = productoOutputSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.format() }, { status: 400 });
+    } 
 
-      if (!body.nombre || !body.sku || body.precio == null) {
-        return NextResponse.json(
-          { error: 'Faltan campos obligatorios: nombre, sku, precio' },
-          { status: 400 }
-        );
-      }
+    const { producto, variantes, nueva_ficha_relacional } = validation.data;
 
-      const producto = await prisma.productos.create({
-        data: {
-          nombre: body.nombre,
-          sku: body.sku,
-          descripcion: body.descripcion ?? null,
-          precio: body.precio,
-          stock: body.stock ?? 0,
-          categoria_id: body.categoria_id ? BigInt(body.categoria_id) : null,
-          imagen: body.imagen ?? body.imagen_url ?? null,
-          estado: 'activo',
-          destacado: body.destacado ?? false,
-          moq: body.moq ?? 400,
-          ficha_tecnica: body.ficha_tecnica ?? null,
-          updated_at: new Date(),
-          created_at: new Date(),
-        },
-        include: {
-          categorias: { select: { id: true, nombre: true } },
-        },
-      });
+    const result = await prisma.$transaction(async (tx) => {
+      let fId = producto.fichas_tecnicas_id;
 
-      const margen = body.costo_unitario
-        ? calcularMargen(body.costo_unitario, body.precio)
-        : null;
-
-      return NextResponse.json(
-        { ...serializeBigInt(producto), margen },
-        { status: 201 }
-      );
-    } catch (error: any) {
-      console.error('Error en POST productos:', error);
-      if (error.code === 'P2002') {
-        return NextResponse.json({ error: 'Ya existe un producto con ese SKU' }, { status: 409 });
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-  }
-
-  // PATCH: Actualizar producto (o stock rápido)
-  export async function PATCH(req: Request) {
-    try {
-      const { searchParams } = new URL(req.url);
-      const id = searchParams.get('id');
-
-      if (!id) {
-        return NextResponse.json({ error: 'ID no proporcionado' }, { status: 400 });
-      }
-
-      const body = await req.json();
-
-      // Stock rápido: sumar/restar sin conocer el total actual
-      if (body.stock_delta !== undefined) {
-        const delta = Number(body.stock_delta);
-        const producto = await prisma.productos.update({
-          where: { id: BigInt(id) },
-          data: { stock: { increment: delta } },
-          include: { categorias: { select: { id: true, nombre: true } } },
+      // 1. Si hay una ficha técnica nueva, la creamos primero
+      if (nueva_ficha_relacional && !fId) {
+        const fichaCreada = await tx.fichas_tecnicas.create({
+          data: {
+            ...nueva_ficha_relacional,
+            estado: nueva_ficha_relacional.estado as any
+          }
         });
-        return NextResponse.json(serializeBigInt(producto));
+        fId = fichaCreada.id;
       }
 
-      // Actualización genérica de campos
-      const data: Record<string, unknown> = {};
-
-      if (body.nombre !== undefined) data.nombre = body.nombre;
-      if (body.descripcion !== undefined) data.descripcion = body.descripcion;
-      if (body.precio !== undefined) data.precio = body.precio;
-      if (body.stock !== undefined) data.stock = body.stock;
-      if (body.estado !== undefined) data.estado = body.estado;
-      if (body.imagen !== undefined) data.imagen = body.imagen;
-      if (body.destacado !== undefined) data.destacado = body.destacado;
-      if (body.moq !== undefined) data.moq = body.moq;
-      if (body.ficha_tecnica !== undefined) data.ficha_tecnica = body.ficha_tecnica;
-      if (body.categoria_id !== undefined) {
-        data.categoria_id = body.categoria_id ? BigInt(body.categoria_id) : null;
-      }
-
-      const producto = await prisma.productos.update({
-        where: { id: BigInt(id) },
-        data,
-        include: { categorias: { select: { id: true, nombre: true } } },
+      const { fichas_tecnicas_id, ...productoSinExtras } = producto;
+      
+      // 2. Crear el producto vinculado a la ficha (o null)
+      const nuevoProducto = await tx.productos.create({
+        data: {
+          ...productoSinExtras,
+          fichas_tecnicas_id: fId ?? null,
+          estado: producto.estado,
+          reglas_descuento: producto.reglas_descuento,
+          updated_at: new Date(),
+        },
       });
 
-      return NextResponse.json(serializeBigInt(producto));
-    } catch (error: any) {
-      console.error('Error en PATCH productos:', error);
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+      // 3. Crear las variantes vinculadas
+      if (variantes.length > 0) {
+        await tx.variantes_producto.createMany({
+          data: variantes.map(v => ({
+            ...v,
+            producto_id: nuevoProducto.id,
+            color: v.color,
+            talla: v.talla,
+            estado: v.estado,
+          }))
+        });
       }
-      return NextResponse.json({ error: error.message }, { status: 500 });
+
+      return nuevoProducto;
+    });
+
+    return NextResponse.json(serializeBigInt(result), { status: 201 });
+  } catch (error: any) {
+    console.error('Error en POST productos:', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'Ya existe un producto con ese SKU' }, { status: 409 });
     }
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  // DELETE: Eliminar un producto
-  export async function DELETE(req: Request) {
-    try {
-      const { searchParams } = new URL(req.url);
-      const id = searchParams.get('id');
-
-      if (!id) {
-        return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-      }
-
-      await prisma.productos.delete({
-        where: { id: BigInt(id) },
-      });
-
-      return NextResponse.json({ message: 'Producto eliminado correctamente' });
-    } catch (error: any) {
-      console.error('Error en DELETE productos:', error);
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-  }
-
-  // ─── Utilitarios ───────────────────────────────────────────────────────────
-
-  function calcularMargen(costo: number, precio: number): number {
-    if (!costo || !precio) return 0;
-    return ((precio - costo) / precio) * 100;
-  }
+}

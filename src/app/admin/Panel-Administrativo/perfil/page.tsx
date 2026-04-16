@@ -9,10 +9,9 @@ import { UserInfoCard } from "@/components/admin/perfil/UserInfoCard";
 import { ProfileForm } from "@/components/admin/perfil/ProfileForm";
 import { PasswordForm } from "@/components/admin/perfil/PasswordForm";
 import type { UsuarioData, ProfileState, ProfileAction } from "@/components/admin/perfil/types";
+import { updatePersonalInterno } from "@/lib/helpers/usuarios-helpers";
 
-// ============================================================================
 // VALIDATION FUNCTIONS
-// ============================================================================
 
 const validateEmail = (email: string): { valid: boolean; error?: string } => {
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,9 +57,7 @@ const validatePassword = (password: string): { valid: boolean; errors: string[] 
   };
 };
 
-// ============================================================================
 // REDUCER & INITIAL STATE
-// ============================================================================
 
 function profileReducer(state: ProfileState, action: ProfileAction): ProfileState {
   switch (action.type) {
@@ -72,7 +69,8 @@ function profileReducer(state: ProfileState, action: ProfileAction): ProfileStat
         ...state,
         nombreCompleto: action.data.nombre_completo || '',
         email: action.data.email || '',
-        telefono: action.data.telefono || '',
+        telefono: action.data.telefono ?? '',
+        dni: action.data.dni ?? '',
         isLoading: false,
       };
 
@@ -115,6 +113,7 @@ const INITIAL_STATE: ProfileState = {
   nombreCompleto: '',
   email: '',
   telefono: '',
+  dni: '',
   avatarUrl: '',
   currentPassword: '',
   newPassword: '',
@@ -222,22 +221,21 @@ export default function PerfilPage() {
   const handleUpdateProfile = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authUser?.id) return;
-    
+
     try {
       dispatch({ type: 'SET_SAVING', saving: true });
-      dispatch({ type: 'CLEAR_FEEDBACK' }); 
-    //
-    if(!state.nombreCompleto || !state.email){
-      dispatch({ type: 'SET_ERROR', message: 'El nombre y correo es requerido' });
-      return;
-    }
-      // Validate nombre
+      dispatch({ type: 'CLEAR_FEEDBACK' });
+
+      if (!state.nombreCompleto || !state.email) {
+        dispatch({ type: 'SET_ERROR', message: 'El nombre y correo es requerido' });
+        return;
+      }
+
       if (!state.nombreCompleto.trim()) {
         dispatch({ type: 'SET_ERROR', message: 'El nombre es requerido' });
         return;
       }
 
-      // Validate telefono if provided
       const phoneValidation = validatePhone(String(state.telefono || ''));
       if (!phoneValidation.valid) {
         dispatch({ type: 'SET_ERROR', message: phoneValidation.error! });
@@ -248,7 +246,23 @@ export default function PerfilPage() {
       const isAdmin = fullUsuario?.rol?.toLowerCase() === 'administrador';
       const emailChanged = state.email.trim().toLowerCase() !== fullUsuario?.email?.toLowerCase();
 
-      // Handle email change for admin
+      // 1. Actualizar nombre en personal_interno
+      if (!fullUsuario?.personal_interno_id) {
+        dispatch({ type: 'SET_ERROR', message: 'No se encontró el perfil interno del usuario' });
+        return;
+      }
+
+      const { error: piError } = await updatePersonalInterno(
+        fullUsuario.personal_interno_id,
+        { nombre_completo: state.nombreCompleto.trim() }
+      );
+
+      if (piError) {
+        dispatch({ type: 'SET_ERROR', message: 'Error al actualizar el nombre' });
+        return;
+      }
+
+      // 2. Actualizar email en usuarios (solo admin)
       if (isAdmin && emailChanged) {
         const emailValidation = validateEmail(state.email);
         if (!emailValidation.valid) {
@@ -259,30 +273,19 @@ export default function PerfilPage() {
         const { error: authError } = await supabase.auth.updateUser({
           email: state.email.trim().toLowerCase(),
         });
-
         if (authError) {
           dispatch({ type: 'SET_ERROR', message: `Error: ${authError.message}` });
           return;
         }
+
+        const { error: emailError } = await updateUsuario(authUser.id, {
+          email: state.email.trim().toLowerCase(),
+        });
+        if (emailError) {
+          dispatch({ type: 'SET_ERROR', message: emailError.message || 'Error al actualizar email' });
+          return;
+        }
       }
-
-      // Update profile
-      const updateData: Record<string, any> = {
-        nombre_completo: state.nombreCompleto.trim(),
-        telefono: state.telefono ? Number(String(state.telefono).trim()) : null,
-      };
-
-      if (isAdmin && emailChanged) {
-        updateData.email = state.email.trim().toLowerCase();
-      }
-
-      const { error: updateError } = await updateUsuario(authUser.id, updateData);
-
-      if (updateError) {
-        dispatch({ type: 'SET_ERROR', message: updateError.message|| 'Error al actualizar el perfil' });
-        return;
-      }
-        //throw updateError;
 
       dispatch({
         type: 'SET_SUCCESS',
@@ -290,13 +293,20 @@ export default function PerfilPage() {
           ? 'Perfil actualizado. Confirma el cambio en tu email.'
           : 'Perfil actualizado correctamente',
       });
+
+      // Refrescar datos locales
+      setFullUsuario(prev => prev ? {
+        ...prev,
+        nombre_completo: state.nombreCompleto.trim(),
+      } : prev);
+
     } catch (err) {
       console.error('[PerfilPage] Update error:', err);
       dispatch({ type: 'SET_ERROR', message: 'Error al actualizar el perfil' });
     } finally {
       dispatch({ type: 'SET_SAVING', saving: false });
     }
-  }, [state.nombreCompleto, state.email, state.telefono, authUser]);
+  }, [state.nombreCompleto, state.email, state.telefono, authUser, fullUsuario]);
 
   const handleChangePassword = useCallback(
     async (e: React.FormEvent) => {

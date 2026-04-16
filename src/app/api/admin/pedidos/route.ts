@@ -104,9 +104,9 @@ export async function PUT(req: Request) {
     const pedido = await prisma.$transaction(async (tx: Tx) => {
       // Si el pedido pasa a 'corte', registramos el estado de producción
       if (updates.estado === 'corte' && body.usuario_id) {
-        await tx.estados_produccion.create({
+        await tx.seguimiento_produccion.create({
           data: {
-            orden_id: BigInt(id), // usamos id del pedido como referencia
+            confeccion_id: BigInt(id), // usamos id del pedido como referencia
             etapa: 'corte',
             usuario_id: BigInt(body.usuario_id),
           },

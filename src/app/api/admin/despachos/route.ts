@@ -165,7 +165,7 @@ export async function PATCH(req: Request) {
       if (data.estado === 'entregado' && existing.pedido) {
         await tx.pedidos.update({
           where: { id: existing.pedido_id },
-          data: { estado: 'completado' },
+          data: { estado: 'entregado' },
         });
       }
 

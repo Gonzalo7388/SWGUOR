@@ -217,7 +217,7 @@ export default function ProveedoresPage() {
   };
 
   // ── Permisos ──
-  const canView = can('view', 'proveedores') || can('view', 'produccion');
+  const canView = can('view', 'proveedores');
   const canCreate = can('create', 'proveedores') || can('edit', 'proveedores');
   const canDelete = can('delete', 'proveedores');
 

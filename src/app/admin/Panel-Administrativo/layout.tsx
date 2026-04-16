@@ -13,22 +13,21 @@ export const metadata: Metadata = {
 
 async function getValidatedUser(supabase: any) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-
   if (!user || authError) return { error: 'no_auth' };
 
-  // Bajo la OPCIÓN A, consultamos la tabla usuarios
   const { data: usuario, error: usuarioError } = await supabase
     .from('usuarios')
-    .select('*')
+    .select(`
+      *,
+      personal_interno (
+        nombre_completo
+      )
+    `)
     .eq('auth_id', user.id)
     .single();
 
   if (usuarioError || !usuario) return { error: 'no_profile' };
-  
-  // VALIDACIÓN DE SEGURIDAD EXTRA: 
-  // Si el usuario es un 'cliente', no tiene nada que hacer en el Panel Administrativo
   if (usuario.rol?.toLowerCase() === 'cliente') return { error: 'is_client' };
-
   if (usuario.estado?.toUpperCase() !== 'ACTIVO') return { error: 'inactive' };
 
   return { usuario };

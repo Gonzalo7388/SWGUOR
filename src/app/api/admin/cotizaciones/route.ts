@@ -28,7 +28,7 @@ export async function GET(req: Request) {
             variantes_producto: { select: { id: true, nombre: true, color: true, talla: true } },
           },
         },
-        reglas_descuento: { select: { id: true, nombre: true, descuento_pct: true } },
+        reglas_descuento: { select: { id: true, nombre: true, valor_descuento: true } },
       },
       orderBy: { created_at: 'desc' },
     });

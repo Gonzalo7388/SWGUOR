@@ -8,11 +8,13 @@ import {
   LayoutDashboard, ShoppingCart, Users, Menu, X,
   LogOut, Boxes, Scissors, Building,
   Bell, BarChart3, LucideIcon, ChevronDown,
-  Settings, Truck, Package, Grid3x3, DollarSign, FileText
+  Settings, Truck, Package, Grid3x3, DollarSign, FileText,
+  Building2
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { usuarios } from '@prisma/client';
 import { usePermissions } from '@/lib/hooks/usePermissions';
+import type { RecursoKey } from '@/lib/constants/roles';
 
 type NavItem = {
   title: string;
@@ -35,7 +37,7 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       title: 'Dashboard',
       href: '/admin/Panel-Administrativo/dashboard',
       icon: LayoutDashboard,
-      roles: ['gerente', 'administrador', 'recepcionista', 'diseñador', 'cortador', 'ayudante', 'representante_taller'],
+      roles: ['gerente', 'administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
     },
     {
       title: 'Reportes',
@@ -46,7 +48,7 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
     {
       title: 'Catálogo',
       icon: Package,
-      roles: ['gerente', 'administrador', 'diseñador'],
+      roles: ['gerente', 'administrador', 'disenador'],
       subItems: [
         { title: 'Productos', href: '/admin/Panel-Administrativo/productos', icon: Package },
         { title: 'Categorías', href: '/admin/Panel-Administrativo/categorias', icon: Grid3x3 },
@@ -55,7 +57,7 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
     {
       title: 'Ventas y Pedidos',
       icon: ShoppingCart,
-      roles: ['gerente', 'administrador', 'recepcionista', 'diseñador'],
+      roles: ['gerente', 'administrador', 'recepcionista', 'disenador'],
       subItems: [
         { title: 'Ventas', href: '/admin/Panel-Administrativo/ventas', icon: DollarSign },
         { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart },
@@ -82,6 +84,12 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       ],
     },
     {
+      title: 'Proveedores',
+      href: '/admin/Panel-Administrativo/proveedores',
+      icon: Building2,
+      roles: ['gerente', 'administrador'],
+    },
+    {
       title: 'Personas',
       icon: Users,
       roles: ['gerente', 'administrador'],
@@ -94,7 +102,7 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       title: 'Notificaciones',
       href: '/admin/Panel-Administrativo/notificaciones',
       icon: Bell,
-      roles: ['gerente', 'administrador', 'recepcionista', 'diseñador', 'cortador', 'ayudante', 'representante_taller'],
+      roles: ['gerente', 'administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
     },
     {
       title: 'Configuración',
@@ -111,14 +119,14 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
           const allowedSubItems = item.subItems.filter(sub => {
             const resourceKey = sub.title.toLowerCase().trim()
               .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return can('view', resourceKey);
+            return can('view', resourceKey as RecursoKey);
           });
           if (allowedSubItems.length === 0 && !item.href) return null;
           return { ...item, subItems: allowedSubItems };
         }
         const resourceName = item.title.toLowerCase()
           .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (resourceName === 'dashboard' || can('view', resourceName)) return item;
+        if (resourceName === 'dashboard' || can('view', resourceName as RecursoKey)) return item;
         return null;
       })
       .filter((item): item is NavItem => item !== null);

@@ -1,12 +1,27 @@
-import type { Database } from '@/types/database';
+export type UsuarioData = {
+  id: number;
+  email: string;
+  rol: 'administrador' | 'cortador' | 'disenador' | 'recepcionista' | 'ayudante' | 'representante_taller' | 'cliente' | 'gerente' | null;
+  estado: 'activo' | 'inactivo' | 'suspendido' | null;
+  created_at: string | null;
+  updated_at: string | null;
+  ultimo_acceso: string | null;
+  auth_id: string | null;
+  created_by: string | null;
+  personal_interno_id: number | null;
+  personal_interno?: { nombre_completo: string; telefono: number | null, dni: number | null  }[];
+  nombre_completo: string | null;
+  telefono: number | null;
+  dni: number | null;
+};
 
-export type UsuarioData = Database['public']['Tables']['usuarios']['Row'];
 
 export interface ProfileState {
   // Form data
   nombreCompleto: string;
   email: string;
   telefono: string | number | null;
+  dni: string | number | null;
   avatarUrl: string;
 
   // Password change

@@ -58,6 +58,19 @@ export function ProfileForm({
             placeholder="Juan Pérez"
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            DNI
+          </label>
+          <input
+            type="text"
+            value={String(state.dni || '')}
+            disabled
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 cursor-not-allowed text-gray-500"
+            placeholder="Sin DNI registrado"
+          />
+          <p className="text-xs text-gray-500 mt-1">El DNI solo puede ser modificado por un administrador.</p>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

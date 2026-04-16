@@ -242,7 +242,7 @@ export async function GET(req: Request) {
           nuevos_pedidos: nuevosPedidos,
           crecimiento_pct: Math.round(crecimiento),
           produccion_en_curso: pedidosFiltrados.filter(
-            (p) => p.estado !== 'completado' && p.estado !== 'cancelado'
+            (p) => p.estado !== 'pendiente' && p.estado !== 'entregado'
           ).length,
         },
         ventasDetalle: stringifyBigInts(ventasFiltradas),

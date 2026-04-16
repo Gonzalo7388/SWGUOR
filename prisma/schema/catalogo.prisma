@@ -1,42 +1,48 @@
 model categorias {
-  id          BigInt      @id @default(autoincrement())
-  nombre      String      @unique
-  descripcion String?
-  created_at  DateTime    @default(now()) @db.Timestamptz(6)
-  orden       BigInt?
-  activo      Boolean?
-  imagen      String?
-  updated_at  DateTime?   @default(now()) @db.Timestamptz(6)
-  productos   productos[]
+  id               BigInt             @id @default(autoincrement())
+  nombre           String
+  // FIX: BD NO tiene UNIQUE en nombre — el Prisma lo tenía incorrectamente
+  descripcion      String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  orden            BigInt?
+  activo           Boolean?
+  imagen           String?
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  productos        productos[]
+  reglas_descuento reglas_descuento[]
 
   @@schema("public")
 }
 
 model productos {
-  id                     BigInt                   @id @default(autoincrement())
-  nombre                 String
-  descripcion            String?
-  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
-  imagen                 String?
-  precio                 Float
-  stock                  Int                      @default(0)
-  updated_at             DateTime                 @db.Timestamptz(6)
-  estado                 EstadoProducto           @default(activo)
-  sku                    String                   @unique
-  destacado              Boolean?                 @default(false)
-  categoria_id           BigInt?
-  ficha_tecnica          Json?                    @default("{\"medidas\": {}, \"materiales\": [], \"instrucciones\": \"\"}")
-  moq                    Int                      @default(400)
-  colores_disponibles    Json?                    @default("[]")
-  tallas_disponibles     Json?                    @default("[]")
+  id                  BigInt         @id @default(autoincrement())
+  nombre              String
+  descripcion         String?
+  created_at          DateTime       @default(now()) @db.Timestamptz(6)
+  imagen              String?
+  precio              Float
+  stock               Int            @default(0)
+  updated_at          DateTime       @db.Timestamptz(6)
+  estado              EstadoProducto @default(activo)
+  sku                 String         @unique
+  destacado           Boolean?       @default(false)
+  categoria_id        BigInt?
+  moq                 Int            @default(400)
+  colores_disponibles Json?          @default("[]")
+  tallas_disponibles  Json?          @default("[]")
+  // FIX: campos que existen en BD pero faltaban en Prisma
+  // (el Prisma tenía ficha_tecnica Json que NO existe en la BD)
+  ficha_url           String?
+  fichas_tecnicas_id  BigInt?
+  reglas_descuento    Json?
 
   // Relaciones
   cotizacion_items       cotizacion_items[]
-  fichas_tecnicas        fichas_tecnicas[]
   movimientos_inventario movimientos_inventario[]
   pedido_items           pedido_items[]
   precio_historico       precio_historico[]
-  categorias             categorias?        @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ficha_tecnica_rel      fichas_tecnicas?         @relation("producto_ficha_principal", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
 
   @@index([estado], map: "idx_productos_estado")
@@ -83,15 +89,22 @@ model precio_historico {
 }
 
 model reglas_descuento {
-  id            BigInt         @id @default(autoincrement())
-  nombre        String
-  cantidad_min  Int
-  cantidad_max  Int?
-  descuento_pct Decimal        @db.Decimal(5, 2)
-  aplica_a      String?        @default("global")
-  cotizaciones  cotizaciones[]
+  id               BigInt         @id @default(autoincrement())
+  nombre           String
+  cantidad_min     Int            @default(400)
+  monto_min_compra Decimal?       @db.Decimal(12, 2)
+  tipo_beneficio   TipoBeneficio
+  valor_descuento  Decimal        @db.Decimal(10, 2)
+  fecha_inicio     DateTime       @db.Timestamptz(6)
+  fecha_fin        DateTime       @db.Timestamptz(6)
+  categoria_id     BigInt?
+  activo           Boolean?       @default(true)
+  tipo_conteo      TipoConteo
+  // Relaciones
+  categorias       categorias?    @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones     cotizaciones[]
 
+  @@index([activo], map: "idx_reglas_activo")
+  @@index([fecha_inicio, fecha_fin], map: "idx_reglas_vigencia")
   @@schema("public")
 }
-
-

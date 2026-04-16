@@ -73,7 +73,7 @@ export async function GET(req: Request) {
         },
         pedidos: { select: { id: true, estado: true } },
         reglas_descuento: {
-          select: { id: true, nombre: true, descuento_pct: true },
+          select: { id: true, nombre: true, valor_descuento: true },
         },
       },
       orderBy: { created_at: 'desc' },

@@ -2,9 +2,18 @@ import { createClient } from '@/lib/supabase/client';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Database } from '@/types/database';
 
-type Usuario = Database['public']['Tables']['usuarios']['Row'];
-type ClienteB2B = Database['public']['Tables']['clientes']['Row'];
-type TablesUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+type EstadoUsuario = Database['public']['Enums']['EstadoUsuario'];
+type Rol = Database['public']['Enums']['Rol'];
+
+type UsuarioUpdate = {
+  email?: string;
+  estado?: EstadoUsuario | null;
+  rol?: Rol | null;
+  updated_at?: string;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export const getUsuarioData = async (userId: string) => {
   const supabase = getSupabaseBrowserClient();
@@ -13,19 +22,36 @@ export const getUsuarioData = async (userId: string) => {
       .from("usuarios")
       .select(`
         id,
-        nombre_completo,
         email,
-        telefono,
         rol,
         estado,
         created_at,
-        ultimo_acceso
-      `) 
-      .eq("auth_id", userId) // userId llega como string (UUID), correcto.
+        updated_at,
+        ultimo_acceso,
+        auth_id,
+        created_by,
+        personal_interno (
+           id,
+            nombre_completo,
+            dni,
+            cargo,
+            telefono
+          )
+      `)
+      .eq("auth_id", userId)
       .single();
 
     if (error) throw error;
-    return { data, error: null };
+
+    const flattened = data ? {
+      ...data,
+      nombre_completo: (data.personal_interno as any)?.[0]?.nombre_completo ?? '',
+      personal_interno_id: (data.personal_interno as any)?.[0]?.id ?? null,
+      telefono: (data.personal_interno as any)?.[0]?.telefono ?? null,
+      dni: (data.personal_interno as any)?.[0]?.dni ?? null,
+    } : null;
+
+    return { data: flattened, error: null };
   } catch (error: any) {
     console.error("Error en getUsuarioData:", error.message);
     return { data: null, error };
@@ -33,8 +59,8 @@ export const getUsuarioData = async (userId: string) => {
 };
 
 export const updateUsuario = async (
-  userId: string, 
-  updates: TablesUpdate<'usuarios'> 
+  userId: string,
+  updates: UsuarioUpdate
 ) => {
   const supabase = getSupabaseBrowserClient();
   try {
@@ -53,25 +79,50 @@ export const updateUsuario = async (
   }
 };
 
+export const updatePersonalInterno = async (
+  personalInternoId: number | bigint,
+  updates: { nombre_completo?: string }
+) => {
+  const supabase = getSupabaseBrowserClient();
+  try {
+    const { data, error } = await supabase
+      .from("personal_interno")
+      .update(updates)
+      .eq("id", Number(personalInternoId))
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error: any) {
+    console.error("Error en updatePersonalInterno:", error.message);
+    return { data: null, error };
+  }
+};
+
 export const obtenerPerfilUsuario = async () => {
-  const supabase = createClient(); // Eliminado el await innecesario en el cliente
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data: perfil } = await supabase
     .from('usuarios')
-    .select('*')
+    .select(`
+      *,
+      personal_interno (
+        id,
+        nombre_completo
+      )
+    `)
     .eq('auth_id', user.id)
     .single();
 
-  return perfil as Usuario;
+  return perfil; // sin cast forzado
 };
 
 export const obtenerClienteAsociado = async (userId: string) => {
   const supabase = createClient();
 
-  // 1. Primero debemos obtener el ID numérico (bigint) del usuario 
-  // usando su auth_id (que es el UUID que tenemos).
   const { data: usuario } = await supabase
     .from('usuarios')
     .select('id')
@@ -80,8 +131,6 @@ export const obtenerClienteAsociado = async (userId: string) => {
 
   if (!usuario) return null;
 
-  // 2. Ahora usamos el ID numérico para buscar en la tabla clientes.
-  // Esto elimina el error 2345 porque usuario.id es un número (bigint).
   const { data, error } = await supabase
     .from('clientes')
     .select('*')
@@ -93,5 +142,5 @@ export const obtenerClienteAsociado = async (userId: string) => {
     return null;
   }
 
-  return data as ClienteB2B;
+  return data;
 };

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       asientos_contables: {
@@ -118,6 +143,7 @@ export type Database = {
           direccion_fiscal: string | null
           email: string | null
           id: number
+          nombre_comercial: string | null
           razon_social: string | null
           ruc: string
           telefono: string | null
@@ -131,6 +157,7 @@ export type Database = {
           direccion_fiscal?: string | null
           email?: string | null
           id?: number
+          nombre_comercial?: string | null
           razon_social?: string | null
           ruc: string
           telefono?: string | null
@@ -144,6 +171,7 @@ export type Database = {
           direccion_fiscal?: string | null
           email?: string | null
           id?: number
+          nombre_comercial?: string | null
           razon_social?: string | null
           ruc?: string
           telefono?: string | null
@@ -196,37 +224,55 @@ export type Database = {
       }
       confecciones: {
         Row: {
+          cantidad: number
+          costo_unitario: number | null
           created_at: string
           estado: Database["public"]["Enums"]["EstadoConfeccion"]
+          fecha_entrega: string | null
           fecha_fin: string | null
           fecha_inicio: string
           id: number
+          notas: string | null
           observaciones: string | null
           pedido_id: number
+          prenda: string
+          prioridad: string
           responsable_id: number | null
           taller_id: number
           updated_at: string
         }
         Insert: {
+          cantidad?: number
+          costo_unitario?: number | null
           created_at?: string
           estado?: Database["public"]["Enums"]["EstadoConfeccion"]
+          fecha_entrega?: string | null
           fecha_fin?: string | null
           fecha_inicio: string
           id?: number
+          notas?: string | null
           observaciones?: string | null
           pedido_id: number
+          prenda?: string
+          prioridad?: string
           responsable_id?: number | null
           taller_id: number
           updated_at?: string
         }
         Update: {
+          cantidad?: number
+          costo_unitario?: number | null
           created_at?: string
           estado?: Database["public"]["Enums"]["EstadoConfeccion"]
+          fecha_entrega?: string | null
           fecha_fin?: string | null
           fecha_inicio?: string
           id?: number
+          notas?: string | null
           observaciones?: string | null
           pedido_id?: number
+          prenda?: string
+          prioridad?: string
           responsable_id?: number | null
           taller_id?: number
           updated_at?: string
@@ -437,13 +483,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotizaciones_id_regla_descuento_fkey"
-            columns: ["id_regla_descuento"]
-            isOneToOne: false
-            referencedRelation: "reglas_descuento"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "cotizaciones_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -533,7 +572,7 @@ export type Database = {
             foreignKeyName: "detalle_ficha_insumos_id_ficha_fkey"
             columns: ["id_ficha"]
             isOneToOne: false
-            referencedRelation: "fichas-tecnicas"
+            referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
           {
@@ -582,63 +621,6 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      estados_produccion: {
-        Row: {
-          activo: boolean
-          completado_en: string | null
-          created_at: string
-          duracion_minutos: number | null
-          etapa: Database["public"]["Enums"]["EtapaProduccion"]
-          id: number
-          iniciado_en: string
-          observaciones: string | null
-          orden_id: number
-          updated_at: string | null
-          usuario_id: number | null
-        }
-        Insert: {
-          activo?: boolean
-          completado_en?: string | null
-          created_at?: string
-          duracion_minutos?: number | null
-          etapa: Database["public"]["Enums"]["EtapaProduccion"]
-          id?: number
-          iniciado_en?: string
-          observaciones?: string | null
-          orden_id: number
-          updated_at?: string | null
-          usuario_id?: number | null
-        }
-        Update: {
-          activo?: boolean
-          completado_en?: string | null
-          created_at?: string
-          duracion_minutos?: number | null
-          etapa?: Database["public"]["Enums"]["EtapaProduccion"]
-          id?: number
-          iniciado_en?: string
-          observaciones?: string | null
-          orden_id?: number
-          updated_at?: string | null
-          usuario_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "estados_produccion_orden_id_fkey"
-            columns: ["orden_id"]
-            isOneToOne: false
-            referencedRelation: "ordenes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "estados_produccion_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -742,12 +724,12 @@ export type Database = {
             foreignKeyName: "ficha_medidas_id_ficha_fkey"
             columns: ["id_ficha"]
             isOneToOne: false
-            referencedRelation: "fichas-tecnicas"
+            referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
         ]
       }
-      "fichas-tecnicas": {
+      fichas_tecnicas: {
         Row: {
           costo_estimado: number | null
           created_at: string
@@ -1262,6 +1244,7 @@ export type Database = {
           fecha_ingreso: string | null
           id: number
           nombre_completo: string | null
+          telefono: number | null
           updated_at: string | null
           usuario_id: number | null
         }
@@ -1273,6 +1256,7 @@ export type Database = {
           fecha_ingreso?: string | null
           id?: number
           nombre_completo?: string | null
+          telefono?: number | null
           updated_at?: string | null
           usuario_id?: number | null
         }
@@ -1284,6 +1268,7 @@ export type Database = {
           fecha_ingreso?: string | null
           id?: number
           nombre_completo?: string | null
+          telefono?: number | null
           updated_at?: string | null
           usuario_id?: number | null
         }
@@ -1343,15 +1328,14 @@ export type Database = {
           descripcion: string | null
           destacado: boolean | null
           estado: Database["public"]["Enums"]["EstadoProducto"]
-          ficha_tecnica: Json | null
-          genero: string | null
+          ficha_url: string | null
+          fichas_tecnicas_id: number | null
           id: number
           imagen: string | null
-          modelo: string | null
           moq: number
           nombre: string
           precio: number
-          prenda_tipo: string | null
+          reglas_descuento: Json | null
           sku: string
           stock: number
           tallas_disponibles: Json | null
@@ -1364,15 +1348,14 @@ export type Database = {
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
-          ficha_tecnica?: Json | null
-          genero?: string | null
+          ficha_url?: string | null
+          fichas_tecnicas_id?: number | null
           id?: number
           imagen?: string | null
-          modelo?: string | null
           moq?: number
           nombre: string
           precio: number
-          prenda_tipo?: string | null
+          reglas_descuento?: Json | null
           sku: string
           stock?: number
           tallas_disponibles?: Json | null
@@ -1385,15 +1368,14 @@ export type Database = {
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
-          ficha_tecnica?: Json | null
-          genero?: string | null
+          ficha_url?: string | null
+          fichas_tecnicas_id?: number | null
           id?: number
           imagen?: string | null
-          modelo?: string | null
           moq?: number
           nombre?: string
           precio?: number
-          prenda_tipo?: string | null
+          reglas_descuento?: Json | null
           sku?: string
           stock?: number
           tallas_disponibles?: Json | null
@@ -1405,6 +1387,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_fichas_tecnicas_id_fkey"
+            columns: ["fichas_tecnicas_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
         ]
@@ -1453,30 +1442,53 @@ export type Database = {
       }
       reglas_descuento: {
         Row: {
-          aplica_a: string | null
-          cantidad_max: number | null
+          activo: boolean | null
           cantidad_min: number
-          descuento_pct: number
+          categoria_id: number | null
+          fecha_fin: string
+          fecha_inicio: string
           id: number
+          monto_min_compra: number | null
           nombre: string
+          tipo_beneficio: Database["public"]["Enums"]["TipoBeneficio"]
+          tipo_conteo: string | null
+          valor_descuento: number
         }
         Insert: {
-          aplica_a?: string | null
-          cantidad_max?: number | null
-          cantidad_min: number
-          descuento_pct: number
+          activo?: boolean | null
+          cantidad_min?: number
+          categoria_id?: number | null
+          fecha_fin: string
+          fecha_inicio: string
           id?: number
+          monto_min_compra?: number | null
           nombre: string
+          tipo_beneficio: Database["public"]["Enums"]["TipoBeneficio"]
+          tipo_conteo?: string | null
+          valor_descuento: number
         }
         Update: {
-          aplica_a?: string | null
-          cantidad_max?: number | null
+          activo?: boolean | null
           cantidad_min?: number
-          descuento_pct?: number
+          categoria_id?: number | null
+          fecha_fin?: string
+          fecha_inicio?: string
           id?: number
+          monto_min_compra?: number | null
           nombre?: string
+          tipo_beneficio?: Database["public"]["Enums"]["TipoBeneficio"]
+          tipo_conteo?: string | null
+          valor_descuento?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reglas_descuento_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reservas_stock: {
         Row: {
@@ -1519,6 +1531,135 @@ export type Database = {
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes_producto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seguimiento_confeccion: {
+        Row: {
+          confeccion_id: number | null
+          created_at: string | null
+          estado_anterior:
+            | Database["public"]["Enums"]["EstadoConfeccion"]
+            | null
+          estado_nuevo: Database["public"]["Enums"]["EstadoConfeccion"] | null
+          id: number
+          notas: string | null
+          responsable_id: string | null
+        }
+        Insert: {
+          confeccion_id?: number | null
+          created_at?: string | null
+          estado_anterior?:
+            | Database["public"]["Enums"]["EstadoConfeccion"]
+            | null
+          estado_nuevo?: Database["public"]["Enums"]["EstadoConfeccion"] | null
+          id?: number
+          notas?: string | null
+          responsable_id?: string | null
+        }
+        Update: {
+          confeccion_id?: number | null
+          created_at?: string | null
+          estado_anterior?:
+            | Database["public"]["Enums"]["EstadoConfeccion"]
+            | null
+          estado_nuevo?: Database["public"]["Enums"]["EstadoConfeccion"] | null
+          id?: number
+          notas?: string | null
+          responsable_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimiento_confeccion_confeccion_id_fkey"
+            columns: ["confeccion_id"]
+            isOneToOne: false
+            referencedRelation: "confecciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seguimiento_pedido: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          id: number
+          notas: string | null
+          pedido_id: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          id?: number
+          notas?: string | null
+          pedido_id: number
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          id?: number
+          notas?: string | null
+          pedido_id?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimiento_pedido_pedido_fk"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seguimiento_produccion: {
+        Row: {
+          activo: boolean
+          completado_en: string | null
+          confeccion_id: number
+          created_at: string
+          duracion_minutos: number | null
+          etapa: Database["public"]["Enums"]["EtapaProduccion"]
+          id: number
+          iniciado_en: string
+          observaciones: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          completado_en?: string | null
+          confeccion_id: number
+          created_at?: string
+          duracion_minutos?: number | null
+          etapa: Database["public"]["Enums"]["EtapaProduccion"]
+          id?: number
+          iniciado_en?: string
+          observaciones?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          completado_en?: string | null
+          confeccion_id?: number
+          created_at?: string
+          duracion_minutos?: number | null
+          etapa?: Database["public"]["Enums"]["EtapaProduccion"]
+          id?: number
+          iniciado_en?: string
+          observaciones?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimiento_produccion_confeccion_fkey"
+            columns: ["confeccion_id"]
+            isOneToOne: false
+            referencedRelation: "confecciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1577,9 +1718,7 @@ export type Database = {
           email: string
           estado: Database["public"]["Enums"]["EstadoUsuario"] | null
           id: number
-          nombre_completo: string
           rol: Database["public"]["Enums"]["Rol"] | null
-          telefono: number | null
           ultimo_acceso: string | null
           updated_at: string | null
         }
@@ -1590,9 +1729,7 @@ export type Database = {
           email: string
           estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
           id?: number
-          nombre_completo: string
           rol?: Database["public"]["Enums"]["Rol"] | null
-          telefono?: number | null
           ultimo_acceso?: string | null
           updated_at?: string | null
         }
@@ -1603,9 +1740,7 @@ export type Database = {
           email?: string
           estado?: Database["public"]["Enums"]["EstadoUsuario"] | null
           id?: number
-          nombre_completo?: string
           rol?: Database["public"]["Enums"]["Rol"] | null
-          telefono?: number | null
           ultimo_acceso?: string | null
           updated_at?: string | null
         }
@@ -1627,7 +1762,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          color: Database["public"]["Enums"]["ColorPrenda"]
+          color?: Database["public"]["Enums"]["ColorPrenda"]
           created_at?: string | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
           id?: number
@@ -1814,17 +1949,6 @@ export type Database = {
         | "rose"
         | "verde"
         | "vino"
-        | "Marrón pastel"
-        | "Azul jean"
-        | "Azul marino"
-        | "Rosa pastel"
-        | "Morado claro"
-        | "Verde olivo"
-        | "amarillo"
-        | "naranja"
-        | "multicolor"
-        | "Único"
-        | "Amarillo limón"
       CuentaContable:
         | "caja"
         | "bancos"
@@ -1848,7 +1972,13 @@ export type Database = {
       estado_ficha: "borrador" | "en_revision" | "aprobada" | "obsoleta"
       EstadoCategoria: "activo" | "inactivo"
       EstadoCliente: "activo" | "inactivo" | "suspendido" | "potencial"
-      EstadoConfeccion: "corte" | "confeccionando" | "remallado" | "terminado"
+      EstadoConfeccion:
+        | "pendiente"
+        | "en_corte"
+        | "en_costura"
+        | "acabados"
+        | "completado"
+        | "cancelado"
       EstadoCotizacion:
         | "borrador"
         | "enviada"
@@ -1873,11 +2003,9 @@ export type Database = {
       EstadoPago: "pendiente" | "pagado_parcial" | "pagado" | "vencido"
       EstadoPedido:
         | "pendiente"
-        | "corte"
-        | "costura"
-        | "acabado"
-        | "completado"
-        | "cancelado"
+        | "en_produccion"
+        | "listo_para_despacho"
+        | "entregado"
       EstadoProducto: "activo" | "inactivo" | "agotado" | "descontinuado"
       EstadoTaller: "activo" | "inactivo" | "suspendido"
       EstadoUsuario: "activo" | "inactivo" | "suspendido"
@@ -1930,6 +2058,7 @@ export type Database = {
         | "32"
         | "34"
       TipoAsiento: "debe" | "haber"
+      TipoBeneficio: "porcentaje_subtotal"
       TipoCategoria: "producto" | "insumo"
       TipoCliente: "corporativo" | "minorista" | "distribuidor"
       TipoComprobante: "boleta" | "factura" | "nota_venta"
@@ -2082,6 +2211,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       CategoriaInsumo: [
@@ -2123,17 +2255,6 @@ export const Constants = {
         "rose",
         "verde",
         "vino",
-        "Marrón pastel",
-        "Azul jean",
-        "Azul marino",
-        "Rosa pastel",
-        "Morado claro",
-        "Verde olivo",
-        "amarillo",
-        "naranja",
-        "multicolor",
-        "Único",
-        "Amarillo limón",
       ],
       CuentaContable: [
         "caja",
@@ -2160,7 +2281,14 @@ export const Constants = {
       estado_ficha: ["borrador", "en_revision", "aprobada", "obsoleta"],
       EstadoCategoria: ["activo", "inactivo"],
       EstadoCliente: ["activo", "inactivo", "suspendido", "potencial"],
-      EstadoConfeccion: ["corte", "confeccionando", "remallado", "terminado"],
+      EstadoConfeccion: [
+        "pendiente",
+        "en_corte",
+        "en_costura",
+        "acabados",
+        "completado",
+        "cancelado",
+      ],
       EstadoCotizacion: [
         "borrador",
         "enviada",
@@ -2188,11 +2316,9 @@ export const Constants = {
       EstadoPago: ["pendiente", "pagado_parcial", "pagado", "vencido"],
       EstadoPedido: [
         "pendiente",
-        "corte",
-        "costura",
-        "acabado",
-        "completado",
-        "cancelado",
+        "en_produccion",
+        "listo_para_despacho",
+        "entregado",
       ],
       EstadoProducto: ["activo", "inactivo", "agotado", "descontinuado"],
       EstadoTaller: ["activo", "inactivo", "suspendido"],
@@ -2251,6 +2377,7 @@ export const Constants = {
         "34",
       ],
       TipoAsiento: ["debe", "haber"],
+      TipoBeneficio: ["porcentaje_subtotal"],
       TipoCategoria: ["producto", "insumo"],
       TipoCliente: ["corporativo", "minorista", "distribuidor"],
       TipoComprobante: ["boleta", "factura", "nota_venta"],

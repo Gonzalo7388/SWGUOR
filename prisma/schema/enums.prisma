@@ -28,6 +28,17 @@ enum factor_type {
   @@schema("auth")
 }
 
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}
+
 enum oauth_authorization_status {
   pending
   approved
@@ -57,15 +68,13 @@ enum oauth_response_type {
   @@schema("auth")
 }
 
-enum one_time_token_type {
-  confirmation_token
-  reauthentication_token
-  recovery_token
-  email_change_token_new
-  email_change_token_current
-  phone_change_token
+enum EstadoProducto {
+  activo
+  inactivo
+  agotado
+  descontinuado
 
-  @@schema("auth")
+  @@schema("public")
 }
 
 enum ColorPrenda {
@@ -82,7 +91,7 @@ enum ColorPrenda {
   crema
   fucsia
   grafito
-  gris 
+  gris
   guinda
   lila
   marron
@@ -94,46 +103,43 @@ enum ColorPrenda {
   perla
   piton
   rojo
+  rosa
   rose
   verde
-  vino 
+  vino
 
   @@schema("public")
 }
 
-enum EspecialidadTaller {
-  corte
-  confecci_n @map("confección")
-  bordado
-  estampado
-  costura
-  acabados
-  otro
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  T28 @map("28")
+  T30 @map("30")
+  T32 @map("32")
+  T34 @map("34")
 
   @@schema("public")
 }
 
-enum EstadoCategoria {
-  activo
-  inactivo
+enum EstadoPedido {
+  pendiente
+  en_produccion
+  listo_para_despacho
+  entregado
 
   @@schema("public")
 }
 
-enum EstadoCliente {
-  activo
-  inactivo
-  suspendido
-  potencial
-
-  @@schema("public")
-}
-
-enum EstadoConfeccion {
-  corte
-  confeccionando
-  remallado
-  terminado
+enum PrioridadPedido {
+  baja
+  normal
+  alta
+  urgente
 
   @@schema("public")
 }
@@ -145,6 +151,17 @@ enum EstadoCotizacion {
   rechazada
   expirada
   convertida
+
+  @@schema("public")
+}
+
+enum EstadoConfeccion {
+  pendiente
+  en_corte
+  en_costura
+  acabados
+  completado
+  cancelado
 
   @@schema("public")
 }
@@ -180,22 +197,21 @@ enum EstadoPago {
   @@schema("public")
 }
 
-enum EstadoPedido {
-  pendiente
-  corte
-  costura
-  acabado
-  completado
-  cancelado
+enum MetodoPago {
+  efectivo
+  transferencia_bcp
+  yape
+  plin
+  visa
+  mastercard
 
   @@schema("public")
 }
 
-enum EstadoProducto {
-  activo
-  inactivo
-  agotado
-  descontinuado
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
 
   @@schema("public")
 }
@@ -208,51 +224,23 @@ enum EstadoTaller {
   @@schema("public")
 }
 
-enum EstadoUsuario {
+enum EspecialidadTaller {
+  corte
+  confecci_n @map("confección")
+  bordado
+  estampado
+  costura
+  acabados
+  otro
+
+  @@schema("public")
+}
+
+enum EstadoCliente {
   activo
   inactivo
   suspendido
-
-  @@schema("public")
-}
-
-enum MetodoPago {
-  efectivo
-  transferencia_bcp
-  yape
-  plin
-  visa
-  mastercard
-
-  @@schema("public")
-}
-
-enum PrioridadPedido {
-  baja
-  normal
-  alta
-  urgente
-
-  @@schema("public")
-}
-
-enum TallaProductos {
-  XS
-  S
-  M
-  L
-  XL
-  XXL
-  T28 @map("28")
-  T30 @map("30")
-  T32 @map("32")
-  T34 @map("34")
-
-  @@schema("public")
-}
-enum TipoCategoria {
-  producto
-  insumo
+  potencial
 
   @@schema("public")
 }
@@ -265,10 +253,37 @@ enum TipoCliente {
   @@schema("public")
 }
 
-enum TipoComprobante {
-  boleta
-  factura
-  nota_venta
+enum EstadoUsuario {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum Rol {
+  administrador
+  cortador
+  disenador
+  recepcionista
+  ayudante
+  representante_taller
+  cliente
+  gerente
+
+  @@schema("public")
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+
+  @@schema("public")
+}
+
+enum TipoCategoria {
+  producto
+  insumo
 
   @@schema("public")
 }
@@ -305,21 +320,13 @@ enum TipoMovimiento {
   @@schema("public")
 }
 
-enum TipoAsiento {
-  debe   // Débito (cargos)
-  haber  // Crédito (abonos)
-
-  @@schema("public")
-}
-
-enum TipoIncidencia {
-  averia_maquina
-  falta_material
-  error_diseno
-  defecto_corte
-  defecto_confeccion
-  retraso
-  otro
+enum UnidadMedida {
+  metros
+  unidades
+  conos
+  docenas
+  kilogramos
+  set
 
   @@schema("public")
 }
@@ -338,51 +345,23 @@ enum EtapaProduccion {
   @@schema("public")
 }
 
+enum TipoIncidencia {
+  averia_maquina
+  falta_material
+  error_diseno
+  defecto_corte
+  defecto_confeccion
+  retraso
+  otro
+
+  @@schema("public")
+}
+
 enum SeveridadIncidencia {
   baja
   media
   alta
   critica
-
-  @@schema("public")
-}
-
-enum CuentaContable {
-  caja             // Caja y Bancos (Activo)
-  bancos           // Bancos (Activo)
-  cuentas_por_cobrar // Cuentas por Cobrar (Activo)
-  inventario       // Inventario (Activo)
-  ventas           // Ingresos por Ventas (Ingreso)
-  costo_ventas     // Costo de Ventas (Gasto)
-  cuentas_por_pagar // Cuentas por Pagar (Pasivo)
-  capital          // Capital Social (Patrimonio)
-  igv              // Impuestos (Pasivo)
-  descuentos       // Descuentos sobre Ventas (Contra Ingreso)
-  gastos_operativos // Gastos Operativos (Gasto)
-
-  @@schema("public")
-}
-
-enum UnidadMedida {
-  metros
-  unidades
-  conos
-  docenas
-  kilogramos
-  set
-
-  @@schema("public")
-}
-
-enum Rol {
-  administrador
-  cortador
-  disenador
-  recepcionista
-  ayudante
-  representante_taller
-  cliente
-  gerente
 
   @@schema("public")
 }
@@ -396,4 +375,37 @@ enum estado_ficha {
   @@schema("public")
 }
 
+enum TipoAsiento {
+  debe
+  haber
 
+  @@schema("public")
+}
+
+enum CuentaContable {
+  caja
+  bancos
+  cuentas_por_cobrar
+  inventario
+  ventas
+  costo_ventas
+  cuentas_por_pagar
+  capital
+  igv
+  descuentos
+  gastos_operativos
+
+  @@schema("public")
+}
+
+enum TipoBeneficio {
+  porcentaje_subtotal
+
+  @@schema("public")
+}
+
+enum TipoConteo {
+  modelos_distintos
+
+  @@schema("public")
+}

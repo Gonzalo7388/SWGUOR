@@ -560,3 +560,105 @@ export const exportVentasDetailedPDF = async (ventas: any[], config: PDFExportCo
 
   doc.save(`${config.filename}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
+
+// =====================================================
+// HELPERS ESPECÍFICOS PARA CONFECCIONES
+// =====================================================
+
+export const prepareConfeccionesForExcel = (data: any[]) => {
+  return data.map(c => ({
+    'ID Orden': c.id,
+    'Cliente': c.cliente || 'Sin Cliente',
+    'Taller/Proveedor': c.taller || 'Taller Interno',
+    'Estado': (c.estado || 'Pendiente').toUpperCase().replace('_', ' '),
+    'Fecha de Entrega': c.fecha_entrega || 'No definida',
+    'Prendas Totales': c.total_prendas || 0,
+    'Prioridad': c.prioridad || 'Normal'
+  }));
+};
+
+export const prepareConfeccionesForPDF = (data: any[]) => {
+  const headers = [["ORDEN", "CLIENTE", "TALLER", "ESTADO", "ENTREGA", "CANT."]];
+  const body = data.map(c => [
+    `#${c.id}`,
+    c.cliente || 'N/A',
+    c.taller || 'Interno',
+    (c.estado || 'Pendiente').toUpperCase(),
+    c.fecha_entrega || 'Pnd.',
+    c.total_prendas || 0
+  ]);
+  return { headers, body };
+};
+
+// =====================================================
+// EXPORTACIÓN A PDF - CONFECCIONES DETALLADO
+// =====================================================
+
+export const exportConfeccionesDetailedPDF = async (data: any[], config: PDFExportConfig) => {
+  if (!data || data.length === 0) return;
+
+  const doc = new jsPDF({ 
+    orientation: config.orientation || 'portrait', 
+    unit: 'mm', 
+    format: 'a4' 
+  });
+  
+  const startY = await drawHeaderWithLogo(doc, config.title, config.subtitle);
+
+  // 1. Cálculos de Producción para el resumen
+  const stats = {
+    total: data.length,
+    prendas: data.reduce((acc, curr) => acc + (Number(curr.total_prendas) || 0), 0),
+    enProceso: data.filter(c => ['cortando', 'confeccionando', 'escalado'].includes(c.estado)).length
+  };
+
+  const { headers, body } = prepareConfeccionesForPDF(data);
+
+  // 2. Generar Tabla Principal
+  autoTable(doc, {
+    head: headers,
+    body: body,
+    startY: startY,
+    styles: { fontSize: 8, cellPadding: 3, halign: 'center' },
+    headStyles: { fillColor: [219, 39, 119], textColor: 255 }, // Pink GUOR
+    columnStyles: {
+      1: { halign: 'left', cellWidth: 'auto' }, // Cliente
+      2: { halign: 'left' }                    // Taller
+    },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+  });
+
+  // 3. Cuadro de Resumen Operativo
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const pageWidth = doc.internal.pageSize.width;
+
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(14, finalY, pageWidth - 28, 25, 2, 2, 'F');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 80);
+  doc.text("RESUMEN OPERATIVO DE TALLERES", 20, finalY + 8);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(`Total Órdenes: ${stats.total}`, 20, finalY + 17);
+  doc.text(`Total Prendas a Confeccionar: ${stats.prendas}`, 70, finalY + 17);
+  doc.text(`Órdenes en Proceso Activo: ${stats.enProceso}`, 130, finalY + 17);
+
+  // Pie de página con numeración
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      `MODAS Y ESTILOS GUOR - Sistema de Producción - Página ${i} de ${totalPages}`, 
+      pageWidth / 2, 
+      doc.internal.pageSize.height - 10, 
+      { align: 'center' }
+    );
+  }
+
+  doc.save(`${config.filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+};

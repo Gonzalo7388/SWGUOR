@@ -1,59 +1,59 @@
-import { useState, useEffect } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Database } from '@/types/database';
-
-type Producto = Database['public']['Tables']['productos']['Row'];
+import { useState, useEffect, useCallback } from 'react';
+import { ProductoConRelaciones, Categoria } from '@/app/admin/Panel-Administrativo/productos/types';
 
 interface UseProductsOptions {
-  categoriaId?: number;
-  estado?: 'activo' | 'inactivo' | 'agotado';
+  categoriaId?: string;
+  estado?: string;
   busqueda?: string;
 }
 
 export function useProducts(options?: UseProductsOptions) {
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<ProductoConRelaciones[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProductos();
-  }, [options?.categoriaId, options?.estado, options?.busqueda]);
+  // Extraemos las propiedades para que el useCallback no dependa del objeto completo
+  const catId = options?.categoriaId;
+  const est = options?.estado;
+  const busq = options?.busqueda;
 
-  const fetchProductos = async () => {
+  const fetchProductos = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      const params = new URLSearchParams();
+      
+      // Solo agregamos si tienen valor real y no son "all"
+      if (catId && catId !== 'all') params.append('categoria_id', catId);
+      if (est && est !== 'all') params.append('estado', est);
+      if (busq) params.append('busqueda', busq);
 
-      const supabase = getSupabaseBrowserClient();
+      const response = await fetch(`/api/admin/productos?${params.toString()}`);
+      
+      if (!response.ok) throw new Error('Error al conectar con la API');
+      
+      const data = await response.json();
 
-      // Seleccionar todos los campos (podría optimizarse)
-      let query = supabase
-        .from('productos')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Aplicar filtros
-      if (options?.categoriaId) {
-        query = query.eq('categoria_id', options.categoriaId);
+      // Validamos que data sea el objeto esperado { productos, categorias }
+      // Si la API solo devuelve un array, esto fallaría, por eso usamos:
+      if (Array.isArray(data)) {
+        setProductos(data);
+      } else {
+        setProductos(data.productos || []);
+        setCategorias(data.categorias || []);
       }
-      if (options?.estado) {
-        query = query.eq('estado', options.estado);
-      }
-      if (options?.busqueda) {
-        query = query.or(`nombre.ilike.%${options.busqueda}%,sku.ilike.%${options.busqueda}%`);
-      }
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) throw fetchError;
-      setProductos(data || []);
+      
     } catch (err) {
-      console.error('Error fetching productos:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
-  };
+    // Usamos las variables primitivas en las dependencias
+  }, [catId, est, busq]);
 
-  return { productos, loading, error, refetch: fetchProductos };
+  useEffect(() => {
+    fetchProductos();
+  }, [fetchProductos]);
+
+  return { productos, categorias, loading, error, refetch: fetchProductos };
 }

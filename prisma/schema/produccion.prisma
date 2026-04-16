@@ -1,50 +1,52 @@
-// ============================================================
-//  PRODUCCIÓN — Pedidos, Confecciones, Talleres, Despachos
-//  + Incidencias de Taller
-//  + Estados de Producción (tracking por etapa)
-//  + Feedback de Cliente
-//  + Fichas Técnicas
-// ============================================================
-
 model pedidos {
-  id             BigInt           @id @default(autoincrement())
-  cliente_id     BigInt?
-  estado         EstadoPedido?    @default(pendiente)
-  prioridad      PrioridadPedido? @default(normal)
-  notas_cliente  String?
-  created_by     String?          @default(dbgenerated("uid()")) @db.Uuid
-  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
-  notas_pedido   String?
-  total_estimado Decimal?         @default(0) @db.Decimal(12, 2)
-  total_unidades Int              @default(0)
-  moq_aplicado   Int              @default(400)
-  cotizaciones   cotizaciones[]
-  pedido_items   pedido_items[]
-  confecciones   confecciones[]
-  despachos      despachos[]
-  clientes       clientes?        @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                 BigInt               @id @default(autoincrement())
+  cliente_id         BigInt?
+  estado             EstadoPedido?        @default(pendiente)
+  prioridad          PrioridadPedido?     @default(normal)
+  notas_cliente      String?
+  created_by         String?              @default(dbgenerated("uid()")) @db.Uuid
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  notas_pedido       String?
+  total_estimado     Decimal?             @default(0) @db.Decimal(12, 2)
+  total_unidades     Int                  @default(0)
+  moq_aplicado       Int                  @default(400)
+  cotizaciones       cotizaciones[]
+  pedido_items       pedido_items[]
+  confecciones       confecciones[]
+  despachos          despachos[]
+  seguimiento_pedido seguimiento_pedido[]
+  clientes           clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
 
 model confecciones {
-  id            BigInt           @id @default(autoincrement())
-  pedido_id     BigInt
-  taller_id     BigInt
-  estado        EstadoConfeccion @default(corte)
-  fecha_inicio  DateTime         @db.Timestamptz(6)
-  fecha_fin     DateTime?        @db.Timestamptz(6)
-  observaciones String?
-  created_at    DateTime         @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime         @default(now()) @db.Timestamptz(6)
-  responsable_id BigInt?         // Usuario asignado (cortador, jefe taller)
+  id                     BigInt                   @id @default(autoincrement())
+  pedido_id              BigInt
+  taller_id              BigInt
+  estado                 EstadoConfeccion         @default(pendiente)
+  fecha_inicio           DateTime                 @db.Timestamptz(6)
+  fecha_fin              DateTime?                @db.Timestamptz(6)
+  observaciones          String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  responsable_id         BigInt?
+  prenda                 String                   @default("")
+  cantidad               Int                      @default(1)
+  costo_unitario         Decimal?                 @db.Decimal(12, 2)
+  fecha_entrega          DateTime?                @db.Date
+  prioridad              String                   @default("media")
+  notas                  String?
   // Relaciones
-  pedido        pedidos          @relation(fields: [pedido_id], references: [id])
-  taller        talleres         @relation(fields: [taller_id], references: [id])
-  responsable   usuarios?        @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  incidencias_taller incidencias_taller[]
+  pedido                 pedidos                  @relation(fields: [pedido_id], references: [id])
+  taller                 talleres                 @relation(fields: [taller_id], references: [id])
+  responsable            usuarios?                @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  incidencias_taller     incidencias_taller[]
+  // FIX: relaciones de seguimiento añadidas
+  seguimiento_confeccion seguimiento_confeccion[]
+  seguimiento_produccion seguimiento_produccion[]
 
   @@index([pedido_id], map: "idx_confecciones_pedido")
   @@index([responsable_id], map: "idx_confecciones_responsable")
@@ -78,7 +80,6 @@ model despachos {
   updated_at        DateTime       @default(now())
   usuario_id        BigInt
   estado            EstadoDespacho @default(pendiente)
-  // Relaciones
   pedido            pedidos        @relation(fields: [pedido_id], references: [id])
   usuario           usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -86,35 +87,80 @@ model despachos {
   @@schema("public")
 }
 
-// ============================================================
-//  INCIDENCIAS DE TALLER
-//  Registro de fallas/obstáculos en producción
-// ============================================================
-model incidencias_taller {
-  id                BigInt              @id @default(autoincrement())
-  orden_id          BigInt
-  confeccion_id     BigInt?
-  tipo              TipoIncidencia
-  severidad         SeveridadIncidencia @default(media)
-  descripcion       String
-  // Registro y resolución
-  reportado_por     BigInt?             // Usuario que reporta
-  asignado_a        BigInt?             // Usuario responsable de resolver
-  fecha_reporte     DateTime            @default(now()) @db.Timestamptz(6)
-  fecha_resolucion  DateTime?           @db.Timestamptz(6)
-  resuelto          Boolean             @default(false)
-  solucion          String?             // Detalle de cómo se resolvió
-  impacto_horas     Float?              // Horas de retraso estimadas
-  // Evidencia
-  foto_url          String?             @db.VarChar(500)
-  // Auditoría
-  created_at        DateTime            @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
+model seguimiento_confeccion {
+  id              BigInt            @id @default(autoincrement())
+  confeccion_id   BigInt?
+  estado_anterior EstadoConfeccion?
+  estado_nuevo    EstadoConfeccion?
+  notas           String?
+  responsable_id  BigInt?
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
   // Relaciones
-  ordenes           ordenes             @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  confecciones      confecciones?       @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuario_reporta   usuarios?           @relation("incidencia_reporta", fields: [reportado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuario_resuelve  usuarios?           @relation("incidencia_resuelve", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  confecciones    confecciones?     @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios        usuarios?         @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([confeccion_id], map: "idx_seg_confeccion_id")
+  @@schema("public")
+}
+
+model seguimiento_pedido {
+  id         BigInt   @id @default(autoincrement())
+  pedido_id  BigInt
+  status     String
+  notas      String?
+  creado_por String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  // Relaciones
+  pedidos    pedidos  @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pedido_id], map: "idx_seg_pedido_id")
+  @@schema("public")
+}
+
+model seguimiento_produccion {
+  id               BigInt          @id @default(autoincrement())
+  confeccion_id    BigInt
+  etapa            EtapaProduccion
+  iniciado_en      DateTime        @default(now()) @db.Timestamptz(6)
+  completado_en    DateTime?       @db.Timestamptz(6)
+  duracion_minutos Int?
+  usuario_id       BigInt?
+  observaciones    String?
+  activo           Boolean         @default(true)
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  // Relaciones
+  confecciones     confecciones    @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([confeccion_id], map: "idx_seg_prod_confeccion")
+  @@index([etapa], map: "idx_seg_prod_etapa")
+  @@index([activo], map: "idx_seg_prod_activo")
+  @@index([iniciado_en(sort: Desc)], map: "idx_seg_prod_inicio")
+  @@schema("public")
+}
+
+model incidencias_taller {
+  id               BigInt              @id @default(autoincrement())
+  orden_id         BigInt
+  confeccion_id    BigInt?
+  tipo             TipoIncidencia
+  severidad        SeveridadIncidencia @default(media)
+  descripcion      String
+  reportado_por    BigInt?
+  asignado_a       BigInt?
+  fecha_reporte    DateTime            @default(now()) @db.Timestamptz(6)
+  fecha_resolucion DateTime?           @db.Timestamptz(6)
+  resuelto         Boolean             @default(false)
+  solucion         String?
+  impacto_horas    Float?
+  foto_url         String?             @db.VarChar(500)
+  created_at       DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?           @default(now()) @db.Timestamptz(6)
+  ordenes          ordenes             @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  confecciones     confecciones?       @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario_reporta  usuarios?           @relation("incidencia_reporta", fields: [reportado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario_resuelve usuarios?           @relation("incidencia_resuelve", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([orden_id], map: "idx_incidencias_orden")
   @@index([tipo], map: "idx_incidencias_tipo")
@@ -124,64 +170,23 @@ model incidencias_taller {
   @@schema("public")
 }
 
-// ============================================================
-//  ESTADOS DE PRODUCCIÓN
-//  Trackea el tiempo que pasa un pedido en cada etapa
-// ============================================================
-model estados_produccion {
-  id                BigInt          @id @default(autoincrement())
-  orden_id          BigInt
-  etapa             EtapaProduccion
-  // Control de tiempos
-  iniciado_en       DateTime        @default(now()) @db.Timestamptz(6)
-  completado_en     DateTime?       @db.Timestamptz(6)
-  duracion_minutos  Int?            // Calculado al completar
-  // Responsable de la etapa
-  usuario_id        BigInt?
-  observaciones     String?
-  // Estado actual
-  activo            Boolean         @default(true)  // true = en curso, false = completado/saltado
-  // Auditoría
-  created_at        DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?       @default(now()) @db.Timestamptz(6)
-  // Relaciones
-  ordenes           ordenes         @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios          usuarios?       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([orden_id], map: "idx_estados_prod_orden")
-  @@index([etapa], map: "idx_estados_prod_etapa")
-  @@index([activo], map: "idx_estados_prod_activo")
-  @@index([iniciado_en(sort: Desc)], map: "idx_estados_prod_inicio")
-  @@schema("public")
-}
-
-// ============================================================
-//  FEEDBACK DE CLIENTE
-//  Satisfacción post-entrega vinculado a orden y cliente
-// ============================================================
 model feedback_cliente {
-  id                BigInt      @id @default(autoincrement())
+  id                BigInt    @id @default(autoincrement())
   orden_id          BigInt
   cliente_id        BigInt
-  // Puntuación 1-5
-  puntuacion        Int         // 1 = muy insatisfecho, 5 = muy satisfecho
-  // Dimensiones opcionales de evaluación
-  calidad_producto  Int?        // 1-5
-  tiempo_entrega    Int?        // 1-5
-  atencion_personal  Int?       // 1-5
-  // Comentarios
+  puntuacion        Int
+  calidad_producto  Int?
+  tiempo_entrega    Int?
+  atencion_personal Int?
   comentarios       String?
-  recomendaria      Boolean?    // ¿Recomendaría el servicio?
-  // Metadata
-  enviado_en        DateTime?   @db.Timestamptz(6)  // Cuándo se envió la encuesta
-  respondido_en     DateTime?   @db.Timestamptz(6)  // Cuándo respondió el cliente
-  canal             String?     @db.VarChar(50)      // email, whatsapp, presencial, web
-  // Auditoría
-  created_at        DateTime    @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?   @default(now()) @db.Timestamptz(6)
-  // Relaciones
-  ordenes           ordenes     @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  clientes          clientes    @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recomendaria      Boolean?
+  enviado_en        DateTime? @db.Timestamptz(6)
+  respondido_en     DateTime? @db.Timestamptz(6)
+  canal             String?   @db.VarChar(50)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  ordenes           ordenes   @relation(fields: [orden_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  clientes          clientes  @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([orden_id], map: "idx_feedback_orden")
   @@index([cliente_id], map: "idx_feedback_cliente")
@@ -189,11 +194,6 @@ model feedback_cliente {
   @@schema("public")
 }
 
-// ============================================================
-//  FICHAS TÉCNICAS (con RLS — requieren setup adicional)
-// ============================================================
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model detalle_ficha_insumos {
   id               BigInt           @id @default(autoincrement())
   id_ficha         BigInt?
@@ -207,7 +207,6 @@ model detalle_ficha_insumos {
   @@schema("public")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model ficha_medidas {
   id              BigInt           @id @default(autoincrement())
   id_ficha        BigInt?
@@ -221,7 +220,6 @@ model ficha_medidas {
   @@schema("public")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model fichas_tecnicas {
   id                    BigInt                  @id @default(autoincrement())
   id_producto           BigInt?
@@ -234,8 +232,22 @@ model fichas_tecnicas {
   created_at            DateTime                @default(now()) @db.Timestamptz(6)
   detalle_ficha_insumos detalle_ficha_insumos[]
   ficha_medidas         ficha_medidas[]
-  productos             productos?              @relation(fields: [id_producto], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productos_rel         productos[]             @relation("producto_ficha_principal")
 
   @@map("fichas-tecnicas")
+  @@schema("public")
+}
+
+model pedido_items {
+  id                 BigInt              @id @default(autoincrement())
+  pedido_id          BigInt?
+  producto_id        BigInt?
+  variante_id        BigInt?
+  cantidad           Int
+  especificaciones   Json?
+  pedidos            pedidos?            @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos          productos?          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@schema("public")
 }

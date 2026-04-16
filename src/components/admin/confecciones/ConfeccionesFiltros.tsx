@@ -28,7 +28,7 @@ export const ConfeccionesFiltros = ({ filtroEstado, setFiltroEstado, filtroTalle
       <select 
         value={filtroTaller} 
         onChange={(e) => setFiltroTaller(e.target.value)}
-        className="form-select-style"
+        className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase bg-white cursor-pointer hover:border-slate-400 transition-colors"
       >
         <option value="todos">Todos los Talleres</option>
         {talleres.map(t => (

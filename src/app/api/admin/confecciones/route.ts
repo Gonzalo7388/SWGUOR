@@ -1,258 +1,84 @@
-export const runtime = 'nodejs';
-import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
-import { serializeBigInt } from '@/lib/utils/serialize';
-import { NextResponse } from 'next/server';
+import { createClient } from "@/lib/supabase/server";
+import { NextResponse }  from "next/server";
+import { confeccionOutputSchema } from "@/lib/schemas/confecciones";
+import { z } from "zod";
 
-type Tx = Prisma.TransactionClient;
+// ── GET /api/admin/confecciones ──────────────────────────────────────────────
+export async function GET(request: Request) {
+  const supabase = await createClient();
+  const { searchParams } = new URL(request.url);
 
-// GET: Obtener confecciones con filtros
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const estado = searchParams.get('estado');
-    const tallerId = searchParams.get('taller');
+  let query = supabase
+    .from("confecciones")
+    .select(`
+      id, pedido_id, prenda, cantidad, costo_unitario,
+      fecha_entrega, prioridad, estado, notas, created_at,
+      taller:talleres ( id, nombre ),
+      pedido:pedidos  ( id, numero_orden )
+    `)
+    .order("created_at", { ascending: false });
 
-    const where: Record<string, unknown> = {};
-    if (estado && estado !== 'todos') where.estado = estado;
-    if (tallerId && tallerId !== 'todos') where.taller_id = BigInt(tallerId);
+  // Filtros opcionales via query params
+  const estado    = searchParams.get("estado");
+  const taller_id = searchParams.get("taller_id");
+  const pedido_id = searchParams.get("pedido_id");
 
-    const confecciones = await prisma.confecciones.findMany({
-      where,
-      include: {
-        taller: { select: { id: true, nombre: true } },
-        pedido: {
-          include: {
-            clientes: { select: { id: true, razon_social: true } },
-            pedido_items: {
-              include: {
-                productos: { select: { id: true, nombre: true } },
-              },
-            },
-          },
-        },
-        responsable: {
-          select: {
-            id: true,
-            // nombre_completo vive en personal_interno, no en usuarios
-            personal_interno: { select: { nombre_completo: true } },
-          },
-        },
-        incidencias_taller: { select: { id: true } },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+  if (estado)    query = query.eq("estado",    estado);
+  if (taller_id) query = query.eq("taller_id", Number(taller_id));
+  if (pedido_id) query = query.eq("pedido_id", Number(pedido_id));
 
-    // Formato enriquecido para el frontend
-    const formatted = confecciones.map((conf) => {
-      const primerItem = conf.pedido?.pedido_items?.[0];
-      return {
-        ...serializeBigInt(conf),
-        pedido_id_link: conf.pedido?.id ?? null,
-        cliente: conf.pedido?.clientes?.razon_social ?? 'N/A',
-        prenda: primerItem?.productos?.nombre ?? 'N/A',
-        cantidad: primerItem?.cantidad ?? conf.pedido?.total_unidades ?? 0,
-        taller: conf.taller?.nombre ?? 'N/A',
-        // Navegar a través de personal_interno para obtener el nombre
-        responsable: conf.responsable?.personal_interno?.[0]?.nombre_completo ?? null,
-        progreso: calcularProgreso(conf.estado),
-        incidencias_count: conf.incidencias_taller.length,
-      };
-    });
+  const { data, error } = await query;
 
-    return NextResponse.json({ data: formatted, count: formatted.length });
-  } catch (error: any) {
-    console.error('Error fetching confecciones:', error);
+  if (error) {
+    console.error("[GET /confecciones]", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  return NextResponse.json(data);
 }
 
-// POST: Crear una nueva confección
-export async function POST(req: Request) {
+// ── POST /api/admin/confecciones ─────────────────────────────────────────────
+export async function POST(request: Request) {
+  const supabase = await createClient();
+
+  let body: unknown;
   try {
-    const body = await req.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+  }
 
-    if (!body.pedido_id || !body.taller_id) {
-      return NextResponse.json(
-        { error: 'pedido_id y taller_id son obligatorios' },
-        { status: 400 }
-      );
-    }
+  // Validar con el schema de output (transforma fecha y taller_id)
+  const parsed = confeccionOutputSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Datos inválidos", details: parsed.error.flatten() },
+      { status: 422 }
+    );
+  }
 
-    const confeccion = await prisma.confecciones.create({
-      data: {
-        pedido_id: BigInt(body.pedido_id),
-        taller_id: BigInt(body.taller_id),
-        estado: body.estado ?? 'corte',
-        fecha_inicio: new Date(),
-        observaciones: body.observaciones ?? null,
-        responsable_id: body.responsable_id ? BigInt(body.responsable_id) : null,
-      },
-      include: {
-        taller: { select: { id: true, nombre: true } },
-        pedido: {
-          include: {
-            clientes: { select: { id: true, razon_social: true } },
-          },
-        },
-      },
-    });
+  const { data, error } = await supabase
+    .from("confecciones")
+    .insert({
+      pedido_id:      parsed.data.pedido_id,
+      taller_id:      parsed.data.taller_id,
+      prenda:         parsed.data.prenda,
+      cantidad:       parsed.data.cantidad,
+      costo_unitario: parsed.data.costo_unitario ?? null,
+      fecha_entrega:  parsed.data.fecha_entrega,
+      prioridad:      parsed.data.prioridad,
+      estado:         parsed.data.estado,
+      notas:          parsed.data.notas ?? null,
+      // fecha_inicio se puede setear cuando estado cambia de pendiente → en_corte
+      fecha_inicio:   new Date().toISOString(),
+    })
+    .select()
+    .single();
 
-    return NextResponse.json(serializeBigInt(confeccion), { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating confeccion:', error);
-    if (error.code === 'P2003') {
-      return NextResponse.json({ error: 'Pedido o taller no encontrado' }, { status: 400 });
-    }
+  if (error) {
+    console.error("[POST /confecciones]", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
 
-// PUT: Actualizar confección + KPIs de producción
-export async function PUT(req: Request) {
-  try {
-    const body = await req.json();
-    const { id, estado, observaciones } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
-
-    const confeccion = await prisma.$transaction(async (tx: Tx) => {
-      const confeccionActual = await tx.confecciones.findUnique({
-        where: { id: BigInt(id) },
-        include: {
-          pedido: { include: { clientes: true } },
-        },
-      });
-
-      if (!confeccionActual) {
-        throw new Error('Confección no encontrada');
-      }
-
-      const data: Record<string, unknown> = {};
-      if (estado) data.estado = estado;
-      if (observaciones !== undefined) data.observaciones = observaciones;
-      if (estado === 'terminado') data.fecha_fin = new Date();
-
-      if (estado && confeccionActual.pedido) {
-        const ordenKpiData: Record<string, unknown> = {};
-
-        if (estado === 'corte') ordenKpiData.enviado_taller_at = new Date();
-        if (estado === 'terminado') ordenKpiData.recibido_taller_at = new Date();
-
-        const etapaMap: Record<string, string> = {
-          corte: 'corte',
-          confeccionando: 'confeccion',
-          remallado: 'remallado',
-          terminado: 'listo_entrega',
-        };
-
-        const etapa = etapaMap[estado];
-        if (etapa) {
-          await tx.estados_produccion.updateMany({
-            where: { orden_id: confeccionActual.pedido.id, activo: true },
-            data: { activo: false, completado_en: new Date() },
-          });
-
-          const inicio = new Date(confeccionActual.fecha_inicio).getTime();
-          const duracionMinutos = Math.round((Date.now() - inicio) / 60000);
-
-          await tx.estados_produccion.create({
-            data: {
-              orden_id: confeccionActual.pedido.id,
-              etapa: etapa as any,
-              usuario_id: body.usuario_id ? BigInt(body.usuario_id) : null,
-              observaciones: observaciones ?? null,
-              duracion_minutos: duracionMinutos,
-            },
-          });
-        }
-
-        if (Object.keys(ordenKpiData).length > 0) {
-          await tx.ordenes.update({
-            where: { id: confeccionActual.pedido.id },
-            data: ordenKpiData,
-          });
-        }
-      }
-
-      const updated = await tx.confecciones.update({
-        where: { id: BigInt(id) },
-        data,
-        include: {
-          taller: { select: { id: true, nombre: true } },
-          pedido: {
-            include: {
-              clientes: { select: { id: true, razon_social: true } },
-            },
-          },
-        },
-      });
-
-      if (body.incidencias && Array.isArray(body.incidencias)) {
-        for (const inc of body.incidencias) {
-          await tx.incidencias_taller.create({
-            data: {
-              orden_id: confeccionActual.pedido?.id ?? BigInt(id),
-              confeccion_id: BigInt(id),
-              tipo: inc.tipo,
-              severidad: inc.severidad ?? 'media',
-              descripcion: inc.descripcion,
-              reportado_por: inc.reportado_por ? BigInt(inc.reportado_por) : null,
-              asignado_a: inc.asignado_a ? BigInt(inc.asignado_a) : null,
-              impacto_horas: inc.impacto_horas ?? null,
-              foto_url: inc.foto_url ?? null,
-            },
-          });
-        }
-      }
-
-      return updated;
-    });
-
-    return NextResponse.json(serializeBigInt(confeccion));
-  } catch (error: any) {
-    console.error('Error updating confeccion:', error);
-    if (error.code === 'P2025' || error.message === 'Confección no encontrada') {
-      return NextResponse.json({ error: 'Confección no encontrada' }, { status: 404 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-// DELETE: Eliminar una confección
-export async function DELETE(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    }
-
-    await prisma.confecciones.delete({
-      where: { id: BigInt(id) },
-    });
-
-    return NextResponse.json({ message: 'Confección eliminada correctamente' });
-  } catch (error: any) {
-    console.error('Error deleting confeccion:', error);
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Confección no encontrada' }, { status: 404 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-// ─── Utilitarios ────────────────────────────────────────────────────────────
-
-function calcularProgreso(estado: string): number {
-  const progressMap: Record<string, number> = {
-    corte: 10,
-    confeccionando: 40,
-    remallado: 70,
-    terminado: 100,
-  };
-  return progressMap[estado] ?? 0;
+  return NextResponse.json(data, { status: 201 });
 }

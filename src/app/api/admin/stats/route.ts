@@ -133,7 +133,7 @@ export async function GET(req: Request) {
       atrasados: pedidosAtrasados,
       stockCritico: stockCritico.length,
       confeccionesEnCurso: produccionStats
-        .filter((p) => p.estado !== 'terminado')
+        .filter((p) => p.estado !== 'pendiente')
         .reduce((sum, p) => sum + p._count.id, 0),
     };
 
