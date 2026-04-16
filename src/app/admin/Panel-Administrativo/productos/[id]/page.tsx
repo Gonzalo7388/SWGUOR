@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
 import ProductForm from "@/components/admin/productos/form/ProductForm";
+export const dynamic = 'force-dynamic';
 
 const prisma = new PrismaClient();
 
