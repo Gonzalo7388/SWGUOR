@@ -40,7 +40,7 @@ const ProductoRow = memo(({
     ? `https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/${fileName}`
     : null;
 
-  const hasFicha = !!p.ficha_tecnica;
+  const hasFicha = !!p.ficha_tecnica_rel;
   
   const categoriaNombre = useMemo(() => {
     // 1. Si el objeto de la relación ya viene incluido por Prisma, lo usamos directamente (Es lo más rápido)

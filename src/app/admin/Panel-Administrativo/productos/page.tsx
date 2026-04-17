@@ -232,7 +232,19 @@ export default function ProductosPage() {
             sortOrder={sortOrder}
             setSortOrder={setSortOrder}
             categorias={categorias}
-            colors={[]}
+            colors={Array.from(
+              new Set(
+                productos.flatMap((p) => {
+                  // 1. Intentar sacar de la relación variantes_producto
+                  const deVariantes = p.variantes_producto?.map((v) => v.color) || [];
+                  
+                  // 2. Intentar sacar del campo JSON colores_disponibles (por si acaso)
+                  const deJson = Array.isArray(p.colores_disponibles) ? p.colores_disponibles : [];
+                  
+                  return [...deVariantes, ...deJson];
+                })
+              )
+            ).filter(Boolean) as string[]}
           />
 
         {/* ── Tabla ── */}

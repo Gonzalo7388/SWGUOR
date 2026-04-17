@@ -1,7 +1,6 @@
 model categorias {
   id               BigInt             @id @default(autoincrement())
   nombre           String
-  // FIX: BD NO tiene UNIQUE en nombre — el Prisma lo tenía incorrectamente
   descripcion      String?
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
   orden            BigInt?
@@ -30,8 +29,6 @@ model productos {
   moq                 Int            @default(400)
   colores_disponibles Json?          @default("[]")
   tallas_disponibles  Json?          @default("[]")
-  // FIX: campos que existen en BD pero faltaban en Prisma
-  // (el Prisma tenía ficha_tecnica Json que NO existe en la BD)
   ficha_url           String?
   fichas_tecnicas_id  BigInt?
   reglas_descuento    Json?
