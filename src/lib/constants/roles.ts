@@ -287,6 +287,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_proveedores', 'crear_proveedores', 'editar_proveedores', 'eliminar_proveedores', 'exportar_proveedores',
     // Notificaciones
     'ver_notificaciones',
+    // Perfil
     'ver_perfil', 'editar_perfil',
   ],
 
