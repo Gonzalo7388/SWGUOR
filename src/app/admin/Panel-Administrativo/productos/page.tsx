@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { useProducts } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,9 @@ import dynamic from "next/dynamic";
 import { exportToExcel, exportInventarioToPDF } from "@/lib/utils/export-utils";
 import ProductFilters from "@/components/admin/productos/ProductsFilters";
 import ProductosTable from "@/components/admin/productos/ProductsTable";
-import { ProductoConRelaciones, Categoria } from "./types";
+import { ProductoConRelaciones } from "./types";
 import { toast } from "sonner";
+import { useProductoStockResumen } from '@/lib/hooks/useStockResumen';
 
 const DeleteProductoDialog = dynamic(() => import("@/components/admin/productos/DeleteProductDialog"));
 const TechSheetDialog = dynamic(() => import("@/components/admin/productos/TechSheetDialog"));
@@ -34,7 +35,8 @@ export default function ProductosPage() {
   const [selectedProducto, setSelectedProducto] = useState<any>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isTechOpen, setIsTechOpen] = useState(false);
-  const [selectedCategoria, setSelectedCategoria] = useState("all")
+  const [selectedCategoria, setSelectedCategoria] = useState("all");
+  const { data: stockResumen } = useProductoStockResumen();
   const pageSize = 10;
   const { productos, categorias, loading, refetch } = useProducts({
     categoriaId: selectedCategoria,
@@ -80,23 +82,41 @@ export default function ProductosPage() {
     });
   }, [productosFormateados, searchTerm, categoryFilter, statusFilter, activeStat]);
 
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
   const paginatedData = filteredProducts.slice(
     currentPage * pageSize,
     (currentPage + 1) * pageSize
-  );
+  ).map((p) => ({
+    ...p,
+    stockResumenData: stockResumen.find(s => s.producto_id === Number(p.id)) ?? null,
+  }));
+
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
 
   const handleExportExcel = () => {
-    exportToExcel(filteredProducts, { filename: `Inventario_GUOR_${new Date().toISOString().split("T")[0]}` });
+    const dataConStock = filteredProducts.map((p) => ({
+      ...p,
+      stock: stockResumen.find(s => s.producto_id === Number(p.id))?.stock_total_adicional ?? p.stock,
+    }));
+
+    exportToExcel(dataConStock, { 
+      filename: `Inventario_GUOR_${new Date().toISOString().split("T")[0]}` 
+    });
   };
 
   const handleExportPDF = () => {
-    exportInventarioToPDF(filteredProducts, categorias, {
+  // Enriquecer cada producto con su stock real antes de exportar
+  const dataConStock = filteredProducts.map((p) => ({
+      ...p,
+      stock: stockResumen.find(s => s.producto_id === Number(p.id))?.stock_total_adicional ?? p.stock,
+    }));
+
+    exportInventarioToPDF(dataConStock, categorias, {
       filename: `Inventario_GUOR_${new Date().toISOString().split("T")[0]}`,
       title: "REPORTE DE INVENTARIO",
     });
   };
 
+  
   const handleToggleStatus = async (producto: ProductoConRelaciones) => {
     // 1. Identificar nuevo estado
     const nuevoEstado = producto.estado === 'activo' ? 'inactivo' : 'activo';

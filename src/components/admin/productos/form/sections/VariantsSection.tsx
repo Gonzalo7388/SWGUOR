@@ -4,11 +4,16 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { VarianteStockResumen } from '@/lib/hooks/useStockResumen';
+
+interface VariantsSectionProps {
+  stockResumen?: VarianteStockResumen[];
+}
 
 const CELL_INPUT =
   "h-10 bg-transparent border-none text-sm font-medium text-gray-700 focus-visible:ring-1 focus-visible:ring-pink-200 placeholder:text-gray-300 rounded-lg";
 
-export function VariantsSection() {
+export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
   const { control, register, watch } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({

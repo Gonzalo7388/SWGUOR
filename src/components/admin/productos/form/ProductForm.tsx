@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Save, Loader2, ArrowLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
+import { useVarianteStockResumen } from '@/lib/hooks/useStockResumen';
 import { GeneralInfoSection } from "./sections/GeneralInfoSection";
 import { VariantsSection } from "./sections/VariantsSection";
 import { TechSheetSection } from "./sections/TechSheetSection";
@@ -27,22 +27,35 @@ export default function ProductForm({
 }: ProductFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
+  const { data: variantes } = useVarianteStockResumen(
+    initialData?.id ? Number(initialData.id) : undefined
+  );
   const methods = useForm({
-    defaultValues: initialData || {
-      nombre: "",
-      precio: "",
-      categoria_id: "",
-      sku: "",
-      estado: "activo",
-      variantes: [{ color: "", talla: "", stock_adicional: 0, sku: "" }],
-      ficha_tecnica: {
-        material: "",
-        cuidado: "",
-        temporada: "Toda Temporada",
-        origen: "Perú",
-      },
-    },
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          variantes: initialData.variantes_producto?.map((v: any) => ({
+            id: v.id,
+            color: v.color,
+            talla: v.talla,
+            stock_adicional: v.stock_adicional,
+            sku: v.sku,
+          })) ?? [],
+        }
+      : {
+          nombre: "",
+          precio: "",
+          categoria_id: "",
+          sku: "",
+          estado: "activo",
+          variantes: [{ color: "", talla: "", stock_adicional: 0, sku: "" }],
+          ficha_tecnica: {
+            material: "",
+            cuidado: "",
+            temporada: "Toda Temporada",
+            origen: "Perú",
+          },
+        },
   });
 
   const onSubmit = async (data: any) => {
@@ -65,7 +78,18 @@ export default function ProductForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Error al procesar la solicitud");
+
+        let message = "Error al procesar la solicitud";
+        if (typeof errorData.error === 'string') {
+          message = errorData.error;
+        } else if (typeof errorData.message === 'string') {
+          message = errorData.message;
+        } else if (errorData.errors && Array.isArray(errorData.errors)) {
+          // Caso común en validaciones de formularios
+          message = errorData.errors[0].message || JSON.stringify(errorData.errors);
+        }
+
+        throw new Error(message);
       }
 
       toast.success(
@@ -74,7 +98,10 @@ export default function ProductForm({
       router.push("/admin/Panel-Administrativo/productos");
       router.refresh();
     } catch (error: any) {
-      toast.error(error.message || "Error de conexión con el servidor");
+      const errorMessage = typeof error.message === 'object' 
+        ? JSON.stringify(error.message) 
+        : error.message;
+      toast.error(errorMessage || "Error de conexión con el servidor");
     } finally {
       setLoading(false);
     }
@@ -146,7 +173,7 @@ export default function ProductForm({
             </SectionCard>
 
             <SectionCard>
-              <VariantsSection />
+              <VariantsSection stockResumen={variantes} />
             </SectionCard>
           </div>
 

@@ -40,7 +40,11 @@ export function serializeBigInt<T>(data: T): T {
   }
 
   // Decimal objects de Prisma → extraer valor numérico
-  if ((data as any)._isDecimal) {
+  if (
+    (data as any)._isDecimal === true ||
+    (data as any).constructor?.name === 'Decimal' ||
+    typeof (data as any).toDecimalPlaces === 'function'
+  ) {
     return Number((data as any).toNumber()) as unknown as T;
   }
 

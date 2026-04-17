@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Loader2, Package } from "lucide-react";
 import { ProductoConRelaciones, Categoria } from "@/app/admin/Panel-Administrativo/productos/types";
-import ProductoRow from "@/components/admin/productos/ProductosRow";
+import ProductoRow from "@/components/admin/productos/ProductsRow";
 
 interface ProductosTableProps {
   data: ProductoConRelaciones[];

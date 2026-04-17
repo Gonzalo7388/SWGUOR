@@ -135,7 +135,14 @@ export type PermissionKey =
   | 'crear_proveedores'
   | 'editar_proveedores'
   | 'eliminar_proveedores'
-  | 'exportar_proveedores';
+  | 'exportar_proveedores'
+  
+  // Notificaciones
+  | 'ver_notificaciones'
+  
+  // Perfil
+  |  'ver_perfil'
+  | 'editar_perfil';
 
 // ─────────────────────────────────────────────
 // TIPOS DE ACCIONES Y RECURSOS
@@ -236,6 +243,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_ventas', 'exportar_ventas',
     'ver_configuracion', 'editar_configuracion',
     'ver_proveedores', 'exportar_proveedores',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   administrador: [
@@ -276,6 +285,9 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_configuracion', 'editar_configuracion',
     // Proveedores
     'ver_proveedores', 'crear_proveedores', 'editar_proveedores', 'eliminar_proveedores', 'exportar_proveedores',
+    // Notificaciones
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   recepcionista: [
@@ -289,6 +301,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_pagos', 'registrar_pagos', 'exportar_pagos',
     'ver_cotizaciones', 'editar_cotizaciones', 'aprobar_cotizaciones',
     'ver_despachos', 'crear_despachos', 'exportar_despachos',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   disenador: [
@@ -301,6 +315,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_categorias', 'crear_categorias', 'editar_categorias',
     'ver_confecciones', 'crear_confecciones', 'editar_confecciones',
     'ver_reportes',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   cortador: [
@@ -310,6 +326,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_materiales', 'editar_materiales',
     'ver_confecciones', 'actualizar_estado_confecciones',
     'ver_productos', 'ver_variantes',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   ayudante: [
@@ -318,6 +336,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_productos', 'ver_variantes',
     'ver_confecciones',
     'ver_despachos',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   representante_taller: [
@@ -329,6 +349,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_talleres', 'editar_talleres',
     'ver_despachos',
     'ver_productos',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 
   cliente: [
@@ -336,6 +358,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_variantes',
     'ver_pedidos', 'crear_pedidos',
     'ver_cotizaciones',
+    'ver_notificaciones',
+    'ver_perfil', 'editar_perfil',
   ],
 };
 

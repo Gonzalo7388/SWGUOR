@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProductoConRelaciones, Categoria } from "@/app/admin/Panel-Administrativo/productos/types";
+import { usePermissions } from '@/lib/hooks/usePermissions';
 
 interface ProductoRowProps {
   p: ProductoConRelaciones;
@@ -29,9 +30,10 @@ const ProductoRow = memo(({
   onDelete,
   onFicha,
   onStatusChange,
-  canEdit,
-  canDelete
 }: ProductoRowProps) => {
+  const { can } =usePermissions();
+  const canEdit = can('edit', 'productos');
+  const canDelete = can('delete', 'productos');
   const rawImage = String(p.imagen || "").trim();
   const fileName = rawImage.split('/').pop();
   const publicUrl = fileName && fileName !== "null" && fileName !== ""
