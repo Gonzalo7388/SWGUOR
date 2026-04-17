@@ -23,9 +23,9 @@ const TechSheetDialog = dynamic(() => import("@/components/admin/productos/TechS
 export default function ProductosPage() {
   const { can } = usePermissions();
 
-  // 🔹 Estados de filtros
+  // 🔹 Filtros
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategoria, setSelectedCategoria] = useState("");
+  const [selectedCategoria, setSelectedCategoria] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [colorFilter, setColorFilter] = useState("");
   const [sizeFilter, setSizeFilter] = useState("");
@@ -41,9 +41,9 @@ export default function ProductosPage() {
   const pageSize = 10;
   const { data: stockResumen } = useProductoStockResumen();
 
-  // ✅ HOOK CON FILTROS REALES
+  // ✅ HOOK CORRECTO
   const { productos, categorias, loading, refetch } = useProducts({
-    categoriaId: selectedCategoria || undefined,
+    categoriaId: selectedCategoria !== "all" ? selectedCategoria : undefined,
     estado: statusFilter !== "all" ? statusFilter : undefined,
     busqueda: searchTerm || undefined,
     color: colorFilter || undefined,
@@ -51,12 +51,12 @@ export default function ProductosPage() {
     sortOrder
   });
 
-  // 🔹 Formateo
+  // 🔹 Formateo seguro
   const productosFormateados = useMemo(() => {
     if (!Array.isArray(productos)) return [];
     return productos.map((p: any) => ({
       ...p,
-      id: BigInt(p.id),
+      id: Number(p.id), // 🔥 FIX BigInt
       created_at: new Date(p.created_at),
       updated_at: new Date(p.updated_at),
     })) as ProductoConRelaciones[];
@@ -71,7 +71,7 @@ export default function ProductosPage() {
     return { total, agotados, bajoStock, activos };
   }, [productosFormateados]);
 
-  // 🔹 Filtro SOLO para stats (no backend)
+  // 🔹 Solo stats (no duplicar filtros backend)
   const filteredProducts = useMemo(() => {
     let data = productosFormateados;
 
@@ -82,22 +82,22 @@ export default function ProductosPage() {
     return data;
   }, [productosFormateados, activeStat]);
 
-  // 🔹 Paginación
+  // 🔹 Paginación segura
   const paginatedData = filteredProducts
     .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
     .map((p) => ({
       ...p,
-      stockResumenData: stockResumen.find(s => s.producto_id === Number(p.id)) ?? null,
+      stockResumenData: stockResumen?.find(s => s.producto_id === Number(p.id)) ?? null
     }));
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
 
-  // 🔴 RESET PAGINACIÓN
+  // 🔥 Reset página al cambiar filtros
   useEffect(() => {
     setCurrentPage(0);
   }, [searchTerm, selectedCategoria, colorFilter, sizeFilter, sortOrder, statusFilter]);
 
-  // 🔹 Exportaciones
+  // 🔹 Export
   const handleExportExcel = () => {
     exportToExcel(filteredProducts, {
       filename: `Inventario_${new Date().toISOString().split("T")[0]}`
@@ -111,7 +111,7 @@ export default function ProductosPage() {
     });
   };
 
-  // 🔹 Cambiar estado
+  // 🔹 Estado toggle
   const handleToggleStatus = async (producto: ProductoConRelaciones) => {
     const nuevoEstado = producto.estado === 'activo' ? 'inactivo' : 'activo';
 
