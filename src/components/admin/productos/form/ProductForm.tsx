@@ -11,6 +11,7 @@ import { useVarianteStockResumen } from '@/lib/hooks/useStockResumen';
 import { GeneralInfoSection } from "./sections/GeneralInfoSection";
 import { VariantsSection } from "./sections/VariantsSection";
 import { TechSheetSection } from "./sections/TechSheetSection";
+import { generateSKU, generateVariantSKU } from "@/lib/utils/producto-utils";
 
 interface ProductFormProps {
   mode: "create" | "edit";
@@ -66,42 +67,64 @@ export default function ProductForm({
         ? "/api/admin/productos"
         : `/api/admin/productos/${initialData.id}`;
 
+      // 1. Obtener nombre de categoría para el SKU
+      const categoria = categorias.find(c => c.id.toString() === data.categoria_id.toString());
+      const catNombre = categoria ? categoria.nombre : "GEN";
+
+      // 2. Generar SKU base del producto (ej: BLU-FALD-070)
+      // Usamos el SKU del formulario si existe (edit), sino lo generamos
+      const skuProducto = data.sku || generateSKU(data.nombre, catNombre, nextId || 0);
+
+      // 3. Generar el payload estructurado para la API
+      const bodyParaAPI = {
+        producto: {
+          nombre: data.nombre,
+          precio: parseFloat(data.precio) || 0,
+          categoria_id: parseInt(data.categoria_id),
+          sku: skuProducto, // <--- SKU Generado
+          estado: data.estado || "activo",
+          reglas_descuento: data.reglas_descuento || null,
+          fichas_tecnicas_id: data.fichas_tecnicas_id || null 
+        },
+        // Mapeamos las variantes generando el SKU para cada una (ej: BLU-FALD-070-CRE-S)
+        variantes: (data.variantes || []).map((v: any) => ({
+          color: v.color,
+          talla: v.talla,
+          // <--- Aquí aplicamos la generación del SKU de variante
+          sku: generateVariantSKU(skuProducto, v.color, v.talla),
+          stock_adicional: parseInt(v.stock_adicional) || 0,
+          estado: "activo"
+        })),
+        // --- AJUSTADO A TU TABLA fichas_tecnicas ---
+        nueva_ficha_relacional: data.ficha_tecnica ? {
+          version: data.ficha_tecnica.version || "1.0",
+          descripcion_detallada: data.ficha_tecnica.descripcion_detallada || "Sin descripción",
+          sam_total: parseFloat(data.ficha_tecnica.sam_total) || 0,
+          costo_estimado: parseFloat(data.ficha_tecnica.costo_estimado) || 0,
+          estado: "Borrador", // O el valor que use tu enum public.estado_ficha
+          imagen_geometral: null
+        } : null
+      };
+
       const response = await fetch(url, {
         method: isCreate ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          precio: parseFloat(data.precio),
-          categoria_id: parseInt(data.categoria_id),
-        }),
+        body: JSON.stringify(bodyParaAPI),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-
-        let message = "Error al procesar la solicitud";
-        if (typeof errorData.error === 'string') {
-          message = errorData.error;
-        } else if (typeof errorData.message === 'string') {
-          message = errorData.message;
-        } else if (errorData.errors && Array.isArray(errorData.errors)) {
-          // Caso común en validaciones de formularios
-          message = errorData.errors[0].message || JSON.stringify(errorData.errors);
-        }
-
-        throw new Error(message);
+        console.error("Error validación API:", result.error);
+        throw new Error("Error en los datos. Revisa la consola.");
       }
 
-      toast.success(
-        isCreate ? "Producto registrado correctamente" : "Producto actualizado correctamente"
-      );
+      toast.success("Operación exitosa");
       router.push("/admin/Panel-Administrativo/productos");
       router.refresh();
+
     } catch (error: any) {
-      const errorMessage = typeof error.message === 'object' 
-        ? JSON.stringify(error.message) 
-        : error.message;
-      toast.error(errorMessage || "Error de conexión con el servidor");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,9 @@
+/**
+ * Genera el SKU base para un producto
+ * Formato: CAT-PROD-ID (Ejemplo: BLU-BVBA-070)
+ */
 export function generateSKU(nombre: string, categoriaNombre: string, id: string | number): string {
-  // 1. Diccionario de prefijos (Opcional pero recomendado para estética)
+  // 1. Diccionario de prefijos
   const categoryMap: Record<string, string> = {
     'Blusas': 'BLU',
     'Vestidos': 'VES',
@@ -8,34 +12,56 @@ export function generateSKU(nombre: string, categoriaNombre: string, id: string 
     'Palazos': 'PAN',
     'Polos': 'POL',
     'Poleras': 'PLE',
+    'Faldas': 'FAL',
+    'Conjuntos': 'CON'
   };
 
-  // 2. Obtener prefijo de categoría (Si no está en el mapa, toma las 3 primeras letras)
+  // 2. Prefijo de categoría
   const catPart = categoryMap[categoriaNombre] || 
-                 categoriaNombre.trim().substring(0, 3).toUpperCase();
+                  categoriaNombre.trim().substring(0, 3).toUpperCase();
 
-  // 3. Limpiar nombre del producto: quitar tildes, espacios y caracteres raros
+  // 3. Limpiar nombre: quitar tildes y caracteres no alfabéticos
   const cleanNombre = nombre
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Quita tildes
-    .replace(/[^a-zA-Z]/g, "")      // Quita todo lo que no sea letra
+    .replace(/[\u0300-\u036f]/g, "") 
+    .replace(/[^a-zA-Z]/g, "")      
     .toUpperCase();
 
-  // 4. Tomar las primeras 4 letras del producto limpio
+  // 4. Primeras 4 letras del producto
   const prodPart = cleanNombre.substring(0, 4).padEnd(4, 'X');
 
-  // 5. Manejar el ID (Si es numérico, rellenar con ceros; si es UUID, tomar el final)
+  // 5. Manejar el ID
   let idPart: string;
   const idStr = id.toString();
 
   if (idStr.includes('-')) {
-    // Es un UUID
     idPart = idStr.split('-').pop()?.substring(0, 4).toUpperCase() || '0000';
   } else {
-    // Es un Serial/Numérico: lo formateamos a 3 dígitos (ej: 1 -> 001)
     idPart = idStr.padStart(3, '0');
   }
 
-  // Resultado: CAT-PROD-ID (Ejemplo: BLU-BSLV-001)
   return `${catPart}-${prodPart}-${idPart}`;
+}
+
+/**
+ * Genera el SKU específico para una variante de producto
+ * Formato: SKUBASE-COLOR-TALLA (Ejemplo: BLU-BVBA-070-CRE-S)
+ */
+export function generateVariantSKU(skuBase: string, color: string, talla: string): string {
+  // Limpiar y formatear Color (Tomamos las 3 primeras letras significativas)
+  const colorPart = color
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase()
+    .substring(0, 3)
+    .padEnd(3, 'X');
+
+  // Limpiar y formatear Talla (Eliminamos espacios y caracteres raros)
+  const tallaPart = talla
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '');
+
+  return `${skuBase}-${colorPart}-${tallaPart}`;
 }

@@ -54,6 +54,8 @@ export async function GET(req: Request) {
 
 // POST: Crear un nuevo producto (Transacción atómica)
 export async function POST(req: Request) {
+
+  
   try {
     const body = await req.json();
     
