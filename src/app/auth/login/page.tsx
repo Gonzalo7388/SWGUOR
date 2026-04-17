@@ -90,7 +90,7 @@ export default function LoginPage() {
         <div className="hidden md:flex bg-[#1A1A1A] p-12 flex-col justify-between text-white relative overflow-hidden group">
           <div className="relative z-10">
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-10 shadow-2xl transition-transform duration-700 group-hover:rotate-[5deg]">
-              <Image src="/logo.png" alt="Logo Guor" width={48} height={48} priority />
+              <Image src="/logo.png" alt="Logo Guor" width={48} height={48} priority className="h-auto w-auto" />
             </div>
             <h2 className="text-4xl font-serif italic leading-[1.1]">
               Excelencia en <br />
