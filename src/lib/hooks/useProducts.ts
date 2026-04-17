@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ProductoConRelaciones, Categoria } from '@/app/admin/Panel-Administrativo/productos/types';
 
 interface UseProductsOptions {
   categoriaId?: string;
@@ -11,17 +10,10 @@ interface UseProductsOptions {
 }
 
 export function useProducts(options?: UseProductsOptions) {
-  const [productos, setProductos] = useState<ProductoConRelaciones[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [productos, setProductos] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const catId = options?.categoriaId;
-  const est = options?.estado;
-  const busq = options?.busqueda;
-  const color = options?.color;
-  const talla = options?.talla;
-  const sort = options?.sortOrder;
 
   const fetchProductos = useCallback(async () => {
     try {
@@ -29,28 +21,30 @@ export function useProducts(options?: UseProductsOptions) {
 
       const params = new URLSearchParams();
 
-      if (catId) params.append('categoria_id', catId);
-      if (est) params.append('estado', est);
-      if (busq) params.append('busqueda', busq);
-      if (color) params.append('color', color);
-      if (talla) params.append('talla', talla);
-      if (sort && sort !== 'none') params.append('sort', sort);
+      if (options?.categoriaId) params.append('categoria_id', options.categoriaId);
+      if (options?.estado) params.append('estado', options.estado);
+      if (options?.busqueda) params.append('busqueda', options.busqueda);
+      if (options?.color) params.append('color', options.color);
+      if (options?.talla) params.append('talla', options.talla);
+      if (options?.sortOrder && options.sortOrder !== 'none') {
+        params.append('sort', options.sortOrder);
+      }
 
-      const response = await fetch(`/api/admin/productos?${params.toString()}`);
+      const res = await fetch(`/api/admin/productos?${params.toString()}`);
 
-      if (!response.ok) throw new Error('Error al conectar con la API');
+      if (!res.ok) throw new Error('Error en API');
 
-      const data = await response.json();
+      const data = await res.json();
 
-      setProductos(data.productos || data || []);
+      setProductos(data.productos || []);
       setCategorias(data.categorias || []);
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [catId, est, busq, color, talla, sort]);
+  }, [options]);
 
   useEffect(() => {
     fetchProductos();
