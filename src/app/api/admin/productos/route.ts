@@ -8,31 +8,61 @@ import { productoOutputSchema } from '@/lib/schemas/productos';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+
     const categoria_id = searchParams.get('categoria_id');
     const estado = searchParams.get('estado');
     const busqueda = searchParams.get('busqueda');
+    const color = searchParams.get('color');
+    const talla = searchParams.get('talla');
+    const sort = searchParams.get('sort');
 
     const where: any = {};
-    if (categoria_id && categoria_id !== 'null' && categoria_id !== 'undefined') {
+
+    // 📌 CATEGORÍA
+    if (categoria_id) {
       where.categoria_id = BigInt(categoria_id);
     }
-    
-    if (estado && estado !== 'all') {
+
+    // 📌 ESTADO
+    if (estado) {
       where.estado = estado;
     }
-    
+
+    // 📌 BÚSQUEDA
     if (busqueda) {
-      where.nombre = { contains: busqueda, mode: 'insensitive' };
+      where.OR = [
+        { nombre: { contains: busqueda, mode: 'insensitive' } },
+        { sku: { contains: busqueda, mode: 'insensitive' } }
+      ];
     }
 
-    const [productos, categorias] = await Promise.all([   
+    // 📌 FILTRO POR VARIANTES (COLOR / TALLA)
+    if (color || talla) {
+      where.variantes_producto = {
+        some: {
+          ...(color && { color }),
+          ...(talla && { talla })
+        }
+      };
+    }
+
+    // 📌 ORDENAMIENTO
+    let orderBy: any = { created_at: 'desc' };
+
+    if (sort === 'asc') {
+      orderBy = { precio: 'asc' };
+    } else if (sort === 'desc') {
+      orderBy = { precio: 'desc' };
+    }
+
+    const [productos, categorias] = await Promise.all([
       prisma.productos.findMany({
         where,
         include: {
           categorias: true,
           variantes_producto: true,
         },
-        orderBy: { created_at: 'desc' },
+        orderBy,
       }),
       prisma.categorias.findMany({
         where: { activo: true },
@@ -40,22 +70,24 @@ export async function GET(req: Request) {
       })
     ]);
 
-    // Devolvemos el objeto con ambas listas
     return NextResponse.json(serializeBigInt({
       productos,
       categorias
     }));
-    
+
   } catch (error: any) {
     console.error('Error detallado en GET productos:', error);
-    return NextResponse.json({ error: "Fallo en el servidor al obtener productos" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Fallo en el servidor al obtener productos" },
+      { status: 500 }
+    );
   }
 }
 
 // POST: Crear un nuevo producto (Transacción atómica)
 export async function POST(req: Request) {
 
-  
+
   try {
     const body = await req.json();
     

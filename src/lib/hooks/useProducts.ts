@@ -5,6 +5,9 @@ interface UseProductsOptions {
   categoriaId?: string;
   estado?: string;
   busqueda?: string;
+  color?: string;
+  talla?: string;
+  sortOrder?: 'asc' | 'desc' | 'none';
 }
 
 export function useProducts(options?: UseProductsOptions) {
@@ -13,43 +16,41 @@ export function useProducts(options?: UseProductsOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Extraemos las propiedades para que el useCallback no dependa del objeto completo
   const catId = options?.categoriaId;
   const est = options?.estado;
   const busq = options?.busqueda;
+  const color = options?.color;
+  const talla = options?.talla;
+  const sort = options?.sortOrder;
 
   const fetchProductos = useCallback(async () => {
     try {
       setLoading(true);
+
       const params = new URLSearchParams();
-      
-      // Solo agregamos si tienen valor real y no son "all"
-      if (catId && catId !== 'all') params.append('categoria_id', catId);
-      if (est && est !== 'all') params.append('estado', est);
+
+      if (catId) params.append('categoria_id', catId);
+      if (est) params.append('estado', est);
       if (busq) params.append('busqueda', busq);
+      if (color) params.append('color', color);
+      if (talla) params.append('talla', talla);
+      if (sort && sort !== 'none') params.append('sort', sort);
 
       const response = await fetch(`/api/admin/productos?${params.toString()}`);
-      
+
       if (!response.ok) throw new Error('Error al conectar con la API');
-      
+
       const data = await response.json();
 
-      // Validamos que data sea el objeto esperado { productos, categorias }
-      // Si la API solo devuelve un array, esto fallaría, por eso usamos:
-      if (Array.isArray(data)) {
-        setProductos(data);
-      } else {
-        setProductos(data.productos || []);
-        setCategorias(data.categorias || []);
-      }
-      
+      setProductos(data.productos || data || []);
+      setCategorias(data.categorias || []);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
-    // Usamos las variables primitivas en las dependencias
-  }, [catId, est, busq]);
+  }, [catId, est, busq, color, talla, sort]);
 
   useEffect(() => {
     fetchProductos();
