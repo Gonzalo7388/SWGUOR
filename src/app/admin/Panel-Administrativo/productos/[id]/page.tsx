@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import ProductForm from "@/components/admin/productos/form/ProductForm";
-import { prisma } from "@/lib/prisma"; 
+import { prisma } from "@/lib/prisma";
 import { serializeBigInt } from "@/lib/utils/serialize";
+import ProductoDetalle from "@/components/admin/productos/detalle/ProductoDetalle";
 
 export const dynamic = 'force-dynamic';
 
@@ -9,39 +9,33 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function EditarProductoPage({ params }: PageProps) {
+export default async function ProductoDetallePage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    // Buscamos el producto usando la instancia global
     const producto = await prisma.productos.findUnique({
       where: { id: BigInt(id) },
       include: {
         variantes_producto: true,
-        categorias: true
-      }
+        categorias:         true,
+        ficha_tecnica: {
+          include: { medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
+        },
+      },
     });
 
     if (!producto) notFound();
 
-    // Obtenemos las categorías
     const categorias = await prisma.categorias.findMany({
-      where: { activo: true },
-      orderBy: { nombre: 'asc' }
+      where:   { activo: true },
+      orderBy: { nombre: 'asc' },
     });
 
-    // Serializamos (Usamos tu función serializeBigInt para mayor limpieza)
-    const initialData = serializeBigInt(producto);
-    const categoriasSerializadas = serializeBigInt(categorias);
-
     return (
-      <div className="min-h-screen bg-[#f8fafc]">
-        <ProductForm 
-          mode="edit" 
-          initialData={initialData} 
-          categorias={categoriasSerializadas} 
-        />
-      </div>
+      <ProductoDetalle
+        producto={serializeBigInt(producto)}
+        categorias={serializeBigInt(categorias)}
+      />
     );
   } catch (error) {
     console.error("Error cargando producto:", error);
