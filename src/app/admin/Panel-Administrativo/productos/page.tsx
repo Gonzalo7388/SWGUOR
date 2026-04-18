@@ -58,11 +58,18 @@ export default function ProductosPage() {
     sortOrder
   });
 
-  // Colores 
+  // Ordenar por nombre de productos A-Z
+  const productosOrdenados = useMemo(() =>
+    [...productos].sort((a: any, b: any) =>
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    ), [productos]
+  );
+
+  // Colores
   const colors = useMemo(() => {
     return Array.from(
       new Set(
-        productos.flatMap((p: any) => [
+        productosOrdenados.flatMap((p: any) => [
           ...(p.variantes_producto?.map((v: any) => v.color) || []),
           ...(Array.isArray(p.colores_disponibles)
             ? p.colores_disponibles
@@ -70,23 +77,23 @@ export default function ProductosPage() {
         ])
       )
     ).filter(Boolean) as string[];
-  }, [productos]);
+  }, [productosOrdenados]);
 
-  // Stats estilo categorías
+  // Stats
   const stats = useMemo(() => {
-    const total = productos.length;
-    const activos = productos.filter((p: any) => p.estado === "activo").length;
-    const bajoStock = productos.filter(
+    const total = productosOrdenados.length;
+    const activos = productosOrdenados.filter((p: any) => p.estado === "activo").length;
+    const bajoStock = productosOrdenados.filter(
       (p: any) => p.stock > 0 && p.stock <= 5
     ).length;
 
     return { total, activos, bajoStock };
-  }, [productos]);
+  }, [productosOrdenados]);
 
-  // Paginación
-  const totalPages = Math.ceil(productos.length / pageSize);
+  // Paginación sobre la lista ordenada
+  const totalPages = Math.ceil(productosOrdenados.length / pageSize);
 
-  const paginatedData = productos
+  const paginatedData = productosOrdenados
     .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
     .map((p: any) => ({
       ...p,
@@ -101,12 +108,12 @@ export default function ProductosPage() {
 
   // EXPORTACIONES
   const handleExportExcel = () => {
-    exportProductosToExcel(productos, stockResumen || [], "Inventario");
+    exportProductosToExcel(productosOrdenados, stockResumen || [], "Inventario");
     toast.success("Excel generado");
   };
 
   const handleExportPDF = () => {
-    exportInventarioToPDF(productos, categorias, {
+    exportInventarioToPDF(productosOrdenados, categorias, {
       filename: "Inventario",
       title: "REPORTE DE INVENTARIO"
     });

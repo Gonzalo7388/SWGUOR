@@ -43,7 +43,7 @@ export default function TalleresPage() {
       const { data, error } = await supabase
         .from("talleres")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("nombre", { ascending: false });
 
       if (error) throw error;
       setTalleres(data || []);

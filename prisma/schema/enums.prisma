@@ -73,6 +73,7 @@ enum EstadoProducto {
   inactivo
   agotado
   descontinuado
+  en_produccion
 
   @@schema("public")
 }
@@ -131,6 +132,7 @@ enum EstadoPedido {
   en_produccion
   listo_para_despacho
   entregado
+  cancelado
 
   @@schema("public")
 }
@@ -226,7 +228,7 @@ enum EstadoTaller {
 
 enum EspecialidadTaller {
   corte
-  confecci_n @map("confección")
+  confeccion
   bordado
   estampado
   costura
@@ -332,15 +334,12 @@ enum UnidadMedida {
 }
 
 enum EtapaProduccion {
-  diseno
-  patronaje
   corte
-  confeccion
-  remallado
-  bordado_estampado
-  control_calidad
+  costura
+  bordado
   acabado
-  listo_entrega
+  control_calidad
+  entrega
 
   @@schema("public")
 }
@@ -366,7 +365,7 @@ enum SeveridadIncidencia {
   @@schema("public")
 }
 
-enum estado_ficha {
+enum EstadoFicha {
   borrador
   en_revision
   aprobada

@@ -7,6 +7,7 @@ model categorias {
   activo           Boolean?
   imagen           String?
   updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+
   productos        productos[]
   reglas_descuento reglas_descuento[]
 
@@ -17,11 +18,9 @@ model productos {
   id                  BigInt         @id @default(autoincrement())
   nombre              String
   descripcion         String?
-  created_at          DateTime       @default(now()) @db.Timestamptz(6)
   imagen              String?
   precio              Float
   stock               Int            @default(0)
-  updated_at          DateTime       @db.Timestamptz(6)
   estado              EstadoProducto @default(activo)
   sku                 String         @unique
   destacado           Boolean?       @default(false)
@@ -29,9 +28,10 @@ model productos {
   moq                 Int            @default(400)
   colores_disponibles Json?          @default("[]")
   tallas_disponibles  Json?          @default("[]")
-  ficha_url           String?
   fichas_tecnicas_id  BigInt?
   reglas_descuento    Json?
+  created_at          DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime       @db.Timestamptz(6)
 
   // Relaciones
   cotizacion_items       cotizacion_items[]
@@ -41,6 +41,7 @@ model productos {
   categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ficha_tecnica_rel      fichas_tecnicas?         @relation("producto_ficha_principal", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
+  ordenes_produccion     ordenes_produccion[]
 
   @@index([estado], map: "idx_productos_estado")
   @@index([nombre], map: "idx_productos_nombre")
@@ -60,6 +61,7 @@ model variantes_producto {
   imagen_url       String?
   created_at       DateTime?          @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+
   cotizacion_items cotizacion_items[]
   pedido_items     pedido_items[]
   reservas_stock   reservas_stock[]
@@ -79,6 +81,7 @@ model precio_historico {
   vigente_desde DateTime  @default(now()) @db.Timestamptz(6)
   vigente_hasta DateTime? @db.Timestamptz(6)
   creado_por    String?   @db.Uuid
+  
   users         users?    @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productos     productos @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 

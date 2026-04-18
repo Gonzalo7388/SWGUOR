@@ -39,7 +39,7 @@ const ProductoRow = memo(({
   const publicUrl = fileName && fileName !== "null" && fileName !== ""
     ? `https://fkpvmgfsopjhvorckoat.supabase.co/storage/v1/object/public/productos/${fileName}`
     : null;
-
+  
   const hasFicha = !!p.ficha_tecnica_rel;
   
   const categoriaNombre = useMemo(() => {

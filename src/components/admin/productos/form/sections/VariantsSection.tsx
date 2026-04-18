@@ -8,12 +8,13 @@ import { VarianteStockResumen } from '@/lib/hooks/useStockResumen';
 
 interface VariantsSectionProps {
   stockResumen?: VarianteStockResumen[];
+  mode?: "create" | "edit";  // ← nuevo
 }
 
 const CELL_INPUT =
   "h-10 bg-transparent border-none text-sm font-medium text-gray-700 focus-visible:ring-1 focus-visible:ring-pink-200 placeholder:text-gray-300 rounded-lg";
 
-export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
+export function VariantsSection({ stockResumen = [], mode = "create" }: VariantsSectionProps) {
   const { control, register, watch } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({
@@ -22,6 +23,7 @@ export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
   });
 
   const skuMaestro = watch("sku") || "SKU";
+  const isEdit = mode === "edit";
 
   return (
     <section className="space-y-5">
@@ -34,17 +36,20 @@ export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
               Variantes de Inventario
             </h3>
             <p className="text-[11px] text-gray-400 font-medium mt-0.5">
-              Tallas, colores y existencias por variante
+              {isEdit ? "Tallas, colores y existencias por variante" : "Tallas y colores del producto"}
             </p>
           </div>
         </div>
-        <Button
-          type="button"
-          onClick={() => append({ color: "", talla: "", stock_adicional: 0, sku: "" })}
-          className="bg-gray-900 hover:bg-gray-700 text-white h-9 px-4 rounded-lg font-bold text-xs gap-1.5 transition-all active:scale-95"
-        >
-          <Plus size={14} /> Agregar
-        </Button>
+        {/* Solo mostrar "Agregar" en edit */}
+        {isEdit && (
+          <Button
+            type="button"
+            onClick={() => append({ color: "", talla: "", stock_adicional: 0, sku: "" })}
+            className="bg-gray-900 hover:bg-gray-700 text-white h-9 px-4 rounded-lg font-bold text-xs gap-1.5 transition-all active:scale-95"
+          >
+            <Plus size={14} /> Agregar
+          </Button>
+        )}
       </div>
 
       {/* Tabla */}
@@ -61,9 +66,12 @@ export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
               <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-left">
                 SKU Variante
               </th>
-              <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-center">
-                Stock
-              </th>
+              {/* Stock solo en edit */}
+              {isEdit && (
+                <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-center">
+                  Stock
+                </th>
+              )}
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -91,16 +99,19 @@ export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
                     className={`${CELL_INPUT} font-mono text-[11px] text-gray-400 uppercase`}
                   />
                 </td>
-                <td className="px-3 py-2 w-28">
-                  <Input
-                    type="number"
-                    {...register(`variantes.${index}.stock_adicional` as const, {
-                      valueAsNumber: true,
-                      min: 0,
-                    })}
-                    className="h-10 bg-gray-100 border-none rounded-lg font-bold text-gray-700 text-center focus-visible:ring-1 focus-visible:ring-pink-200"
-                  />
-                </td>
+                {/* Stock solo en edit */}
+                {isEdit && (
+                  <td className="px-3 py-2 w-28">
+                    <Input
+                      type="number"
+                      {...register(`variantes.${index}.stock_adicional` as const, {
+                        valueAsNumber: true,
+                        min: 0,
+                      })}
+                      className="h-10 bg-gray-100 border-none rounded-lg font-bold text-gray-700 text-center focus-visible:ring-1 focus-visible:ring-pink-200"
+                    />
+                  </td>
+                )}
                 <td className="px-3 py-2 text-right w-12">
                   {fields.length > 1 && (
                     <button
@@ -124,11 +135,9 @@ export function VariantsSection({ stockResumen = [] }: VariantsSectionProps) {
         </p>
       )}
 
-      {/* Footer */}
       <div className="flex justify-end pt-1">
         <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
-          Total variantes:{" "}
-          <span className="text-pink-600 font-black">{fields.length}</span>
+          Total variantes: <span className="text-pink-600 font-black">{fields.length}</span>
         </span>
       </div>
     </section>

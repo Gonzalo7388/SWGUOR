@@ -63,6 +63,7 @@ export type PermissionKey =
   | 'eliminar_productos'
   | 'exportar_productos'
   | 'subir_ficha_tecnica'
+  | 'subir_ficha_medidas'
   // Variantes
   | 'ver_variantes'
   | 'crear_variantes'
@@ -250,15 +251,15 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
   administrador: [
     'ver_dashboard', 'exportar_data',
     // Órdenes
-    'ver_ordenes', 'crear_ordenes', 'editar_ordenes', 'eliminar_ordenes', 'exportar_ordenes',
+    'ver_ordenes', 'exportar_ordenes',
     // Pedidos
-    'ver_pedidos', 'crear_pedidos', 'editar_pedidos', 'cancelar_pedidos', 'cambiar_estado_pedidos', 'exportar_pedidos',
+    'ver_pedidos', 'exportar_pedidos',
     // Inventario
-    'ver_inventario', 'crear_inventario', 'editar_inventario', 'eliminar_inventario', 'ajustar_stock', 'exportar_inventario',
+    'ver_inventario', 'exportar_inventario',
     // Productos
-    'ver_productos', 'crear_productos', 'editar_productos', 'eliminar_productos', 'exportar_productos', 'subir_ficha_tecnica',
+    'ver_productos', 'exportar_productos',
     // Variantes
-    'ver_variantes', 'crear_variantes', 'editar_variantes', 'eliminar_variantes', 'exportar_variantes',
+    'ver_variantes','exportar_variantes',
     // Categorías
     'ver_categorias', 'crear_categorias', 'editar_categorias', 'eliminar_categorias', 'exportar_categorias',
     // Clientes
@@ -268,9 +269,9 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     // Reportes
     'ver_reportes', 'filtrar_reportes', 'exportar_reportes',
     // Despachos
-    'ver_despachos', 'crear_despachos', 'editar_despachos', 'actualizar_estado_despachos', 'exportar_despachos',
+    'ver_despachos', 'exportar_despachos',
     // Confecciones
-    'ver_confecciones', 'crear_confecciones', 'editar_confecciones', 'actualizar_estado_confecciones', 'exportar_confecciones',
+    'ver_confecciones', 'exportar_confecciones',
     // Talleres
     'ver_talleres', 'crear_talleres', 'editar_talleres', 'eliminar_talleres', 'exportar_talleres',
     // Pagos
@@ -326,7 +327,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_inventario',
     'ver_materiales', 'editar_materiales',
     'ver_confecciones', 'actualizar_estado_confecciones',
-    'ver_productos', 'ver_variantes',
+    'ver_productos', 'ver_variantes', 'subir_ficha_medidas',
     'ver_notificaciones',
     'ver_perfil', 'editar_perfil',
   ],

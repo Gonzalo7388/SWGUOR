@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { EstadoUsuario } from "@prisma/client";
 
-// Componentes dinámicos
 const UsuariosTable = dynamic(() => import("@/components/admin/usuarios/UsuarioTable"));
 const EditUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/EditUsuarioDialog"));
 const CreateUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/CreateUsuarioDialog"));
@@ -25,7 +24,6 @@ export default function UsuariosPage() {
   const [statusFilter, setStatusFilter] = useState<EstadoUsuario | null>(null);
   const pageSize = 10;
 
-  // Stats 
   const [stats, setStats] = useState({ 
     total: 0, 
     activo: 0, 
@@ -76,10 +74,9 @@ export default function UsuariosPage() {
 
       if (statusFilter) query = query.eq("estado", statusFilter);
 
-      const from = currentPage * pageSize;
-      const { data, error } = await query
-        .order("email", { ascending: true }) // ← orden por email, no nombre_completo
-        .range(from, from + pageSize - 1);
+      // Ordenamos por email (campo propio de usuarios) — el sort A-Z
+      // por nombre_completo se aplica en el useMemo ya que es campo relacionado
+      const { data, error } = await query.order("email", { ascending: true });
 
       if (error) throw error;
       setUsuarios(data || []);
@@ -89,11 +86,10 @@ export default function UsuariosPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, loadStats]);
+  }, [statusFilter, loadStats]);
 
   useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
 
-  // Manejadores de acciones
   const handleToggleStatus = async (usuario: any) => {
     try {
       const supabase = getSupabaseBrowserClient();
@@ -113,18 +109,29 @@ export default function UsuariosPage() {
     setDialogMode("edit");
   };
 
+  // ✅ Filtrado + orden A-Z por nombre_completo (con fallback a email)
   const filteredUsuarios = useMemo(() => {
-    return usuarios.filter(u => {
-      const nombre = u.personal_interno?.nombre_completo?.toLowerCase() ?? "";
-      const email = u.email?.toLowerCase() ?? "";
-      const rol = u.rol?.toLowerCase() ?? "";
-      const term = searchTerm.toLowerCase();
-      return nombre.includes(term) || email.includes(term) || rol.includes(term);
-    });
+    const term = searchTerm.toLowerCase();
+    return usuarios
+      .filter(u => {
+        const nombre = u.personal_interno?.nombre_completo?.toLowerCase() ?? "";
+        const email = u.email?.toLowerCase() ?? "";
+        const rol = u.rol?.toLowerCase() ?? "";
+        return nombre.includes(term) || email.includes(term) || rol.includes(term);
+      })
+      .sort((a, b) => {
+        const nombreA = a.personal_interno?.nombre_completo ?? a.email ?? "";
+        const nombreB = b.personal_interno?.nombre_completo ?? b.email ?? "";
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+      });
   }, [usuarios, searchTerm]);
 
-  const currentTotalForPagination = statusFilter ? (stats as any)[statusFilter] : stats.total;
-  const totalPages = Math.ceil(currentTotalForPagination / pageSize);
+  // Paginación sobre la lista filtrada y ordenada
+  const totalPages = Math.ceil(filteredUsuarios.length / pageSize);
+  const paginatedUsuarios = useMemo(() => {
+    const start = currentPage * pageSize;
+    return filteredUsuarios.slice(start, start + pageSize);
+  }, [filteredUsuarios, currentPage]);
 
   const { can, isLoading: authLoading } = usePermissions();
 
@@ -142,7 +149,7 @@ export default function UsuariosPage() {
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Header idéntico a Clientes */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -168,7 +175,7 @@ export default function UsuariosPage() {
           </div>
         </div>
 
-        {/* Cartas de Stats (5 Columnas como en Clientes) */}
+        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <StatCard title="TOTAL" value={stats.total} icon={<Users className="w-5 h-5" />} isActive={statusFilter === null} color="pink" onClick={() => {setStatusFilter(null); setCurrentPage(0);}} />
           <StatCard title="ACTIVOS" value={stats.activo} icon={<UserCheck className="w-5 h-5" />} isActive={statusFilter === 'activo'} color="emerald" onClick={() => {setStatusFilter('activo'); setCurrentPage(0);}} />
@@ -190,10 +197,10 @@ export default function UsuariosPage() {
           </div>
         </div>
 
-        {/* Tabla */}
+        {/* Tabla — ahora recibe paginatedUsuarios */}
         {!loading && (
           <UsuariosTable 
-            usuarios={filteredUsuarios} 
+            usuarios={paginatedUsuarios}
             onEdit={handleEdit}
             onToggleStatus={handleToggleStatus}
             onDelete={(u: any) => {
@@ -203,9 +210,10 @@ export default function UsuariosPage() {
           />
         )}
 
+        {/* Paginación */}
         <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
           <p className="text-xs text-gray-500">
-            Mostrando <span className="font-bold text-gray-900">{usuarios.length}</span> de <span className="font-bold text-gray-900">{currentTotalForPagination}</span>
+            Mostrando <span className="font-bold text-gray-900">{paginatedUsuarios.length}</span> de <span className="font-bold text-gray-900">{filteredUsuarios.length}</span>
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>
@@ -221,7 +229,7 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* Diálogos Dinámico */}
+      {/* Diálogos */}
       <CreateUsuarioDialog 
         isOpen={dialogMode === "new"} 
         onClose={() => setDialogMode(null)} 
@@ -249,7 +257,6 @@ export default function UsuariosPage() {
   );
 }
 
-// StatCard con cursor-pointer 
 function StatCard({ title, value, icon, isActive, color, onClick }: any) {
   const styles: any = {
     pink: { active: "border-pink-500 ring-pink-50 bg-white", icon: "bg-pink-600 text-white", text: "text-pink-600" },
@@ -262,7 +269,7 @@ function StatCard({ title, value, icon, isActive, color, onClick }: any) {
 
   return (
     <button onClick={onClick} className={`group p-3 rounded-xl border transition-all duration-300 flex items-center gap-3 cursor-pointer ${isActive ? `ring-4 shadow-md scale-[1.02] ${currentStyle.active}` : 'bg-white border-gray-100 hover:shadow-md active:scale-95'}`}>
-      <div className={`p-2 rounded-lg ${isActive ? currentStyle.icon : 'bg-gray-100 text-gray-600'}`}> {icon} </div>
+      <div className={`p-2 rounded-lg ${isActive ? currentStyle.icon : 'bg-gray-100 text-gray-600'}`}>{icon}</div>
       <div className="text-left overflow-hidden"> 
         <p className="text-[9px] text-gray-400 font-black uppercase tracking-tighter truncate">{title}</p>
         <p className={`text-xl font-black ${isActive ? currentStyle.text : 'text-gray-800'}`}>{value}</p>

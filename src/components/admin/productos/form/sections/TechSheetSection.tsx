@@ -3,7 +3,7 @@
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea"; // Importamos Textarea para la descripción
+import { Textarea } from "@/components/ui/textarea";
 
 const FIELD_LABEL =
   "text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] block mb-1.5";

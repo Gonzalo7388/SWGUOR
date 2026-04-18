@@ -25,7 +25,7 @@ interface GeneralInfoSectionProps {
   nextId?: number;
 }
 
-export function GeneralInfoSection({ categorias, nextId }: GeneralInfoSectionProps) {
+export function GeneralInfoSection({ categorias, isEdit = false, nextId }: GeneralInfoSectionProps) {
   const {
     register,
     watch,
@@ -35,16 +35,17 @@ export function GeneralInfoSection({ categorias, nextId }: GeneralInfoSectionPro
 
   const nombre = watch("nombre");
   const categoria_id = watch("categoria_id");
-  const idActual = watch("id") || nextId || "000";
 
   useEffect(() => {
+    if (isEdit) return;
+
     if (nombre && categoria_id) {
       const catNombre =
         categorias.find((c) => c.id.toString() === categoria_id)?.nombre || "";
-      const newSKU = generateSKU(nombre, catNombre, idActual);
+      const newSKU = generateSKU(nombre, catNombre, nextId ?? 0); // ← usar nextId, no idActual
       setValue("sku", newSKU);
     }
-  }, [nombre, categoria_id, categorias, setValue, idActual]);
+  }, [nombre, categoria_id]); 
 
   return (
     <section className="space-y-5">

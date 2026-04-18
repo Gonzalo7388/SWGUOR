@@ -18,17 +18,17 @@ export async function GET(req: Request) {
 
     const where: any = {};
 
-    // 📌 CATEGORÍA
+    // CATEGORÍA
     if (categoria_id) {
       where.categoria_id = BigInt(categoria_id);
     }
 
-    // 📌 ESTADO
+    // ESTADO
     if (estado) {
       where.estado = estado;
     }
 
-    // 📌 BÚSQUEDA
+    // BÚSQUEDA
     if (busqueda) {
       where.OR = [
         { nombre: { contains: busqueda, mode: 'insensitive' } },
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    // 📌 FILTRO POR VARIANTES (COLOR / TALLA)
+    // FILTRO POR VARIANTES (COLOR / TALLA)
     if (color || talla) {
       where.variantes_producto = {
         some: {
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
       };
     }
 
-    // 📌 ORDENAMIENTO
+    // ORDENAMIENTO
     let orderBy: any = { created_at: 'desc' };
 
     if (sort === 'asc') {

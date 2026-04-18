@@ -1,34 +1,34 @@
 model cotizaciones {
-  id                    BigInt      @id @default(autoincrement())
-  numero                String      @unique
+  id                    BigInt              @id @default(autoincrement())
+  numero                String              @unique
   pedido_id             BigInt?
   cliente_id            BigInt?
-  estado                String?     @default("borrador")
-  subtotal              Decimal?    @default(0) @db.Decimal(12, 2)
-  igv                   Decimal?    @default(0) @db.Decimal(12, 2)
-  total                 Decimal?    @default(0) @db.Decimal(12, 2)
-  valida_hasta          DateTime    @db.Date
-  expira_at             DateTime?   @db.Timestamptz(6)
-  aprobado_at           DateTime?   @db.Timestamptz(6)
-  aprobacion_automatica Boolean?    @default(false)
-  created_at            DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime?   @default(now()) @db.Timestamptz(6)
+  estado                EstadoCotizacion?  @default(borrador)
+  subtotal              Decimal?           @default(0) @db.Decimal(12, 2)
+  igv                   Decimal?           @default(0) @db.Decimal(12, 2)
+  total                 Decimal?           @default(0) @db.Decimal(12, 2)
+  valida_hasta          DateTime           @db.Date
+  expira_at             DateTime?          @db.Timestamptz(6)
+  aprobado_at           DateTime?          @db.Timestamptz(6)
+  aprobacion_automatica Boolean?           @default(false)
+  created_at            DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?          @default(now()) @db.Timestamptz(6)
   metodo_pago           MetodoPago?
   direccion_despacho    String?
   id_regla_descuento    BigInt?
-  monto_descuento       Decimal?    @default(0) @db.Decimal(12, 2)
-  costo_envio           Decimal?    @default(0) @db.Decimal(12, 2)
-  moneda                String      @default("PEN") @db.VarChar(3)
-  costo_total_estimado  Decimal?    @default(0) @db.Decimal(12, 2)
+  monto_descuento       Decimal?          @default(0) @db.Decimal(12, 2)
+  costo_envio           Decimal?          @default(0) @db.Decimal(12, 2)
+  moneda                String            @default("PEN") @db.VarChar(3)
+  costo_total_estimado  Decimal?          @default(0) @db.Decimal(12, 2)
   notas_internas        String?
-  origen                String?     @default("manual") @db.VarChar(50) // 'manual', 'web', 'api'
+  origen                String?           @default("manual") @db.VarChar(50) // 'manual', 'web', 'api'
 
   cotizacion_items cotizacion_items[]
   clientes         clientes?          @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reglas_descuento reglas_descuento?  @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction)
   pedidos          pedidos?           @relation(fields: [pedido_id], references: [id], onUpdate: NoAction)
   ordenes          ordenes[]
-
+  
   @@schema("public")
 }
 
@@ -44,6 +44,7 @@ model cotizacion_items {
   modelo_snapshot          String?             @db.VarChar(100)
   prenda_tipo_snapshot     String?             @db.VarChar(50)
   talla_snapshot           String              @db.VarChar(10)
+  
   cotizaciones             cotizaciones?       @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   productos                productos?          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto       variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -71,7 +72,7 @@ model ordenes {
   enviado_taller_at       DateTime?            @db.Timestamptz(6)
   recibido_taller_at      DateTime?            @db.Timestamptz(6)
   entregado_cliente_at    DateTime?            @db.Timestamptz(6)
-  // Relaciones
+
   cliente                 clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cotizaciones            cotizaciones?        @relation(fields: [cotizacion_id], references: [id], onUpdate: NoAction)
   proveedores             proveedores?         @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -178,3 +179,65 @@ model comprobantes {
 
   @@schema("public")
 }
+
+model pedidos {
+  id                 BigInt               @id @default(autoincrement())
+  cliente_id         BigInt?
+  estado             EstadoPedido?        @default(pendiente)
+  prioridad          PrioridadPedido?     @default(normal)
+  notas_cliente      String?
+  created_by         String?              @default(dbgenerated("uid()")) @db.Uuid
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  notas_pedido       String?
+  total_estimado     Decimal?             @default(0) @db.Decimal(12, 2)
+  total_unidades     Int                  @default(0)
+  moq_aplicado       Int                  @default(400)
+  cotizaciones       cotizaciones[]
+  pedido_items       pedido_items[]
+  confecciones       confecciones[]
+  despachos          despachos[]
+  seguimiento_pedido seguimiento_pedido[]
+  clientes           clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([cliente_id])
+  @@index([estado])
+  @@schema("public")
+}
+
+
+model pedido_items {
+  id                 BigInt              @id @default(autoincrement())
+  pedido_id          BigInt?
+  producto_id        BigInt?
+  variante_id        BigInt?
+  cantidad           Int
+  especificaciones   Json?
+
+  pedidos            pedidos?            @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos          productos?          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto? @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pedido_id])
+  @@index([producto_id])
+  @@index([variante_id])
+  @@schema("public")
+}
+
+
+model seguimiento_pedido {
+  id         BigInt   @id @default(autoincrement())
+  pedido_id  BigInt
+  status     String
+  notas      String?
+  creado_por String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  pedidos    pedidos  @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pedido_id])
+  @@schema("public")
+}
+

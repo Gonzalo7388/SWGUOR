@@ -390,6 +390,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cotizacion_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "v_variante_stock_resumen"
+            referencedColumns: ["variante_id"]
+          },
+          {
             foreignKeyName: "cotizacion_items_variante_id_fkey"
             columns: ["variante_id"]
             isOneToOne: false
@@ -735,6 +749,7 @@ export type Database = {
           created_at: string
           descripcion_detallada: string | null
           estado: Database["public"]["Enums"]["estado_ficha"] | null
+          ficha_url: string | null
           id: number
           id_producto: number | null
           imagen_geometral: string | null
@@ -746,6 +761,7 @@ export type Database = {
           created_at?: string
           descripcion_detallada?: string | null
           estado?: Database["public"]["Enums"]["estado_ficha"] | null
+          ficha_url?: string | null
           id?: number
           id_producto?: number | null
           imagen_geometral?: string | null
@@ -757,6 +773,7 @@ export type Database = {
           created_at?: string
           descripcion_detallada?: string | null
           estado?: Database["public"]["Enums"]["estado_ficha"] | null
+          ficha_url?: string | null
           id?: number
           id_producto?: number | null
           imagen_geometral?: string | null
@@ -770,6 +787,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fichas-tecnicas_id_producto_fkey"
+            columns: ["id_producto"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -921,48 +945,33 @@ export type Database = {
       movimientos_inventario: {
         Row: {
           cantidad: number | null
-          costo_unitario: number | null
           created_at: string
           id: number
           insumo_id: number | null
           motivo: string | null
           producto_id: number | null
-          referencia_id: number | null
-          referencia_tipo: string | null
-          stock_anterior: number | null
-          stock_posterior: number | null
           tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at: string | null
           usuario_id: number | null
         }
         Insert: {
           cantidad?: number | null
-          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           motivo?: string | null
           producto_id?: number | null
-          referencia_id?: number | null
-          referencia_tipo?: string | null
-          stock_anterior?: number | null
-          stock_posterior?: number | null
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at?: string | null
           usuario_id?: number | null
         }
         Update: {
           cantidad?: number | null
-          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           motivo?: string | null
           producto_id?: number | null
-          referencia_id?: number | null
-          referencia_tipo?: string | null
-          stock_anterior?: number | null
-          stock_posterior?: number | null
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at?: string | null
           usuario_id?: number | null
@@ -981,6 +990,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_inventario_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
           },
           {
             foreignKeyName: "movimientos_inventario_usuario_id_fkey"
@@ -1079,6 +1095,83 @@ export type Database = {
           },
         ]
       }
+      ordenes_produccion: {
+        Row: {
+          cantidad_solicitada: number
+          creado_por: number | null
+          created_at: string | null
+          email_enviado_at: string | null
+          estado: string
+          fecha_entrega: string | null
+          ficha_id: number
+          id: number
+          notas: string | null
+          notificado_at: string | null
+          producto_id: number
+          taller_id: number
+          updated_at: string | null
+        }
+        Insert: {
+          cantidad_solicitada?: number
+          creado_por?: number | null
+          created_at?: string | null
+          email_enviado_at?: string | null
+          estado?: string
+          fecha_entrega?: string | null
+          ficha_id: number
+          id?: number
+          notas?: string | null
+          notificado_at?: string | null
+          producto_id: number
+          taller_id: number
+          updated_at?: string | null
+        }
+        Update: {
+          cantidad_solicitada?: number
+          creado_por?: number | null
+          created_at?: string | null
+          email_enviado_at?: string | null
+          estado?: string
+          fecha_entrega?: string | null
+          ficha_id?: number
+          id?: number
+          notas?: string | null
+          notificado_at?: string | null
+          producto_id?: number
+          taller_id?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordenes_produccion_ficha_id_fkey"
+            columns: ["ficha_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "ordenes_produccion_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos_orden: {
         Row: {
           comprobante_url: string | null
@@ -1138,25 +1231,25 @@ export type Database = {
           cantidad: number
           especificaciones: Json | null
           id: number
-          pedido_id: number | null
-          producto_id: number | null
-          variante_id: number | null
+          pedido_id: number
+          producto_id: number
+          variante_id: number
         }
         Insert: {
           cantidad: number
           especificaciones?: Json | null
           id?: number
-          pedido_id?: number | null
-          producto_id?: number | null
-          variante_id?: number | null
+          pedido_id: number
+          producto_id: number
+          variante_id: number
         }
         Update: {
           cantidad?: number
           especificaciones?: Json | null
           id?: number
-          pedido_id?: number | null
-          producto_id?: number | null
-          variante_id?: number | null
+          pedido_id?: number
+          producto_id?: number
+          variante_id?: number
         }
         Relationships: [
           {
@@ -1172,6 +1265,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_items_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "v_variante_stock_resumen"
+            referencedColumns: ["variante_id"]
           },
           {
             foreignKeyName: "pedido_items_variante_id_fkey"
@@ -1318,6 +1425,13 @@ export type Database = {
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "precio_historico_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       productos: {
@@ -1328,7 +1442,6 @@ export type Database = {
           descripcion: string | null
           destacado: boolean | null
           estado: Database["public"]["Enums"]["EstadoProducto"]
-          ficha_url: string | null
           fichas_tecnicas_id: number | null
           id: number
           imagen: string | null
@@ -1348,7 +1461,6 @@ export type Database = {
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
-          ficha_url?: string | null
           fichas_tecnicas_id?: number | null
           id?: number
           imagen?: string | null
@@ -1368,7 +1480,6 @@ export type Database = {
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
-          ficha_url?: string | null
           fichas_tecnicas_id?: number | null
           id?: number
           imagen?: string | null
@@ -1451,7 +1562,7 @@ export type Database = {
           monto_min_compra: number | null
           nombre: string
           tipo_beneficio: Database["public"]["Enums"]["TipoBeneficio"]
-          tipo_conteo: string | null
+          tipo_conteo: Database["public"]["Enums"]["TipoConteo"] | null
           valor_descuento: number
         }
         Insert: {
@@ -1464,7 +1575,7 @@ export type Database = {
           monto_min_compra?: number | null
           nombre: string
           tipo_beneficio: Database["public"]["Enums"]["TipoBeneficio"]
-          tipo_conteo?: string | null
+          tipo_conteo?: Database["public"]["Enums"]["TipoConteo"] | null
           valor_descuento: number
         }
         Update: {
@@ -1477,7 +1588,7 @@ export type Database = {
           monto_min_compra?: number | null
           nombre?: string
           tipo_beneficio?: Database["public"]["Enums"]["TipoBeneficio"]
-          tipo_conteo?: string | null
+          tipo_conteo?: Database["public"]["Enums"]["TipoConteo"] | null
           valor_descuento?: number
         }
         Relationships: [
@@ -1525,6 +1636,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordenes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "v_variante_stock_resumen"
+            referencedColumns: ["variante_id"]
           },
           {
             foreignKeyName: "reservas_stock_variante_id_fkey"
@@ -1586,7 +1704,7 @@ export type Database = {
           id: number
           notas: string | null
           pedido_id: number
-          status: string
+          status: Database["public"]["Enums"]["EstadoPedido"]
           updated_at: string
         }
         Insert: {
@@ -1595,7 +1713,7 @@ export type Database = {
           id?: number
           notas?: string | null
           pedido_id: number
-          status: string
+          status?: Database["public"]["Enums"]["EstadoPedido"]
           updated_at?: string
         }
         Update: {
@@ -1604,7 +1722,7 @@ export type Database = {
           id?: number
           notas?: string | null
           pedido_id?: number
-          status?: string
+          status?: Database["public"]["Enums"]["EstadoPedido"]
           updated_at?: string
         }
         Relationships: [
@@ -1621,45 +1739,45 @@ export type Database = {
         Row: {
           activo: boolean
           completado_en: string | null
-          confeccion_id: number
           created_at: string
           duracion_minutos: number | null
           etapa: Database["public"]["Enums"]["EtapaProduccion"]
           id: number
           iniciado_en: string
           observaciones: string | null
+          orden_id: number
           usuario_id: string | null
         }
         Insert: {
           activo?: boolean
           completado_en?: string | null
-          confeccion_id: number
           created_at?: string
           duracion_minutos?: number | null
           etapa: Database["public"]["Enums"]["EtapaProduccion"]
           id?: number
           iniciado_en?: string
           observaciones?: string | null
+          orden_id: number
           usuario_id?: string | null
         }
         Update: {
           activo?: boolean
           completado_en?: string | null
-          confeccion_id?: number
           created_at?: string
           duracion_minutos?: number | null
           etapa?: Database["public"]["Enums"]["EtapaProduccion"]
           id?: number
           iniciado_en?: string
           observaciones?: string | null
+          orden_id?: number
           usuario_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "seguimiento_produccion_confeccion_fkey"
-            columns: ["confeccion_id"]
+            foreignKeyName: "seguimiento_produccion_orden_id_fkey"
+            columns: ["orden_id"]
             isOneToOne: false
-            referencedRelation: "confecciones"
+            referencedRelation: "ordenes_produccion"
             referencedColumns: ["id"]
           },
         ]
@@ -1797,6 +1915,13 @@ export type Database = {
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "variantes_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       ventas: {
@@ -1905,7 +2030,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_producto_stock_resumen: {
+        Row: {
+          producto_id: number | null
+          producto_nombre: string | null
+          stock_total_adicional: number | null
+        }
+        Relationships: []
+      }
+      v_variante_stock_resumen: {
+        Row: {
+          color: Database["public"]["Enums"]["ColorPrenda"] | null
+          producto_id: number | null
+          producto_nombre: string | null
+          stock_variante_stock_adicional: number | null
+          talla: Database["public"]["Enums"]["TallaProductos"] | null
+          variante_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variantes_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "variantes_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
     }
     Functions: {
       random_9_digit_phone: { Args: never; Returns: number }
@@ -1963,7 +2121,7 @@ export type Database = {
         | "gastos_operativos"
       EspecialidadTaller:
         | "corte"
-        | "confección"
+        | "confeccion"
         | "bordado"
         | "estampado"
         | "costura"
@@ -2001,12 +2159,25 @@ export type Database = {
         | "finalizado"
         | "cancelado"
       EstadoPago: "pendiente" | "pagado_parcial" | "pagado" | "vencido"
+      estadopedido:
+        | "pendiente"
+        | "confirmado"
+        | "en_preparacion"
+        | "enviado"
+        | "entregado"
+        | "cancelado"
       EstadoPedido:
         | "pendiente"
         | "en_produccion"
         | "listo_para_despacho"
         | "entregado"
-      EstadoProducto: "activo" | "inactivo" | "agotado" | "descontinuado"
+        | "cancelado"
+      EstadoProducto:
+        | "activo"
+        | "inactivo"
+        | "agotado"
+        | "descontinuado"
+        | "en_produccion"
       EstadoTaller: "activo" | "inactivo" | "suspendido"
       EstadoUsuario: "activo" | "inactivo" | "suspendido"
       EtapaProduccion:
@@ -2062,6 +2233,7 @@ export type Database = {
       TipoCategoria: "producto" | "insumo"
       TipoCliente: "corporativo" | "minorista" | "distribuidor"
       TipoComprobante: "boleta" | "factura" | "nota_venta"
+      TipoConteo: "modelos_distintos"
       TipoIncidencia:
         | "averia_maquina"
         | "falta_material"
@@ -2271,7 +2443,7 @@ export const Constants = {
       ],
       EspecialidadTaller: [
         "corte",
-        "confección",
+        "confeccion",
         "bordado",
         "estampado",
         "costura",
@@ -2314,13 +2486,28 @@ export const Constants = {
         "cancelado",
       ],
       EstadoPago: ["pendiente", "pagado_parcial", "pagado", "vencido"],
+      estadopedido: [
+        "pendiente",
+        "confirmado",
+        "en_preparacion",
+        "enviado",
+        "entregado",
+        "cancelado",
+      ],
       EstadoPedido: [
         "pendiente",
         "en_produccion",
         "listo_para_despacho",
         "entregado",
+        "cancelado",
       ],
-      EstadoProducto: ["activo", "inactivo", "agotado", "descontinuado"],
+      EstadoProducto: [
+        "activo",
+        "inactivo",
+        "agotado",
+        "descontinuado",
+        "en_produccion",
+      ],
       EstadoTaller: ["activo", "inactivo", "suspendido"],
       EstadoUsuario: ["activo", "inactivo", "suspendido"],
       EtapaProduccion: [
@@ -2381,6 +2568,7 @@ export const Constants = {
       TipoCategoria: ["producto", "insumo"],
       TipoCliente: ["corporativo", "minorista", "distribuidor"],
       TipoComprobante: ["boleta", "factura", "nota_venta"],
+      TipoConteo: ["modelos_distintos"],
       TipoIncidencia: [
         "averia_maquina",
         "falta_material",

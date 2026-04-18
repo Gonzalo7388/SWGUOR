@@ -31,6 +31,7 @@ export default function ProductForm({
   const { data: variantes } = useVarianteStockResumen(
     initialData?.id ? Number(initialData.id) : undefined
   );
+
   const methods = useForm({
     defaultValues: initialData
       ? {
@@ -67,43 +68,37 @@ export default function ProductForm({
         ? "/api/admin/productos"
         : `/api/admin/productos/${initialData.id}`;
 
-      // 1. Obtener nombre de categoría para el SKU
-      const categoria = categorias.find(c => c.id.toString() === data.categoria_id.toString());
+      const categoria = categorias.find(
+        c => c.id.toString() === data.categoria_id.toString()
+      );
       const catNombre = categoria ? categoria.nombre : "GEN";
-
-      // 2. Generar SKU base del producto (ej: BLU-FALD-070)
-      // Usamos el SKU del formulario si existe (edit), sino lo generamos
       const skuProducto = data.sku || generateSKU(data.nombre, catNombre, nextId || 0);
 
-      // 3. Generar el payload estructurado para la API
       const bodyParaAPI = {
         producto: {
-          nombre: data.nombre,
-          precio: parseFloat(data.precio) || 0,
-          categoria_id: parseInt(data.categoria_id),
-          sku: skuProducto, // <--- SKU Generado
-          estado: data.estado || "activo",
-          reglas_descuento: data.reglas_descuento || null,
-          fichas_tecnicas_id: data.fichas_tecnicas_id || null 
+          nombre:            data.nombre,
+          precio:            parseFloat(data.precio) || 0,
+          categoria_id:      parseInt(data.categoria_id),
+          sku:               skuProducto,
+          estado:            data.estado || "activo",
+          reglas_descuento:  data.reglas_descuento  || null,
+          fichas_tecnicas_id: data.fichas_tecnicas_id || null,
         },
-        // Mapeamos las variantes generando el SKU para cada una (ej: BLU-FALD-070-CRE-S)
         variantes: (data.variantes || []).map((v: any) => ({
-          color: v.color,
-          talla: v.talla,
-          // <--- Aquí aplicamos la generación del SKU de variante
-          sku: generateVariantSKU(skuProducto, v.color, v.talla),
+          color:           v.color,
+          talla:           v.talla,
+          sku:             generateVariantSKU(skuProducto, v.color, v.talla),
           stock_adicional: parseInt(v.stock_adicional) || 0,
-          estado: "activo"
+          estado:          "activo",
         })),
-        // --- AJUSTADO A TU TABLA fichas_tecnicas ---
         nueva_ficha_relacional: data.ficha_tecnica ? {
-          version: data.ficha_tecnica.version || "1.0",
+          version:               data.ficha_tecnica.version              || "1.0",
           descripcion_detallada: data.ficha_tecnica.descripcion_detallada || "Sin descripción",
-          sam_total: parseFloat(data.ficha_tecnica.sam_total) || 0,
-          costo_estimado: parseFloat(data.ficha_tecnica.costo_estimado) || 0,
-          estado: "Borrador", // O el valor que use tu enum public.estado_ficha
-          imagen_geometral: null
-        } : null
+          sam_total:             parseFloat(data.ficha_tecnica.sam_total)  || 0,
+          costo_estimado:        parseFloat(data.ficha_tecnica.costo_estimado) || 0,
+          estado:                "Borrador",
+          imagen_geometral:      null,
+        } : null,
       };
 
       const response = await fetch(url, {
@@ -132,10 +127,8 @@ export default function ProductForm({
 
   return (
     <FormProvider {...methods}>
-      <form
-        onSubmit={methods.handleSubmit(onSubmit)}
-        className="space-y-8"
-      >
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-8">
+
         {/* ── Barra de acciones ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
           <div>
@@ -196,7 +189,7 @@ export default function ProductForm({
             </SectionCard>
 
             <SectionCard>
-              <VariantsSection stockResumen={variantes} />
+              <VariantsSection stockResumen={variantes} mode={mode} />
             </SectionCard>
           </div>
 
@@ -206,7 +199,6 @@ export default function ProductForm({
               <TechSheetSection />
             </SectionCard>
 
-            {/* Aviso de sistema */}
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-5 space-y-3">
               <div className="flex items-center gap-2 text-gray-500">
                 <Info size={15} className="shrink-0" />
@@ -231,7 +223,6 @@ export default function ProductForm({
   );
 }
 
-// Wrapper de sección
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
