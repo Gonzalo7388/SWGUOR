@@ -2,7 +2,7 @@
 import { Loader2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useInventario } from "@/lib/hooks/useInventory";
+import { useInventario } from "@/lib/hooks/useInventario";
 
 interface EditInsumoProps {
   isOpen: boolean;
@@ -13,9 +13,8 @@ interface EditInsumoProps {
 
 export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }: EditInsumoProps) {
   const [loading, setLoading] = useState(false);
-  
-  // CORRECCIÓN: Eliminamos descontar e incrementar que no existen en el hook
-  const { actualizarStock } = useInventario();
+
+  const { ajustarStock } = useInventario();
   
   const [operacion, setOperacion] = useState<"actualizar" | "descontar" | "incrementar">("actualizar");
   const [cantidad, setCantidad] = useState("");
@@ -34,13 +33,13 @@ export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }:
         const formData = new FormData(e.currentTarget);
         const nuevoStock = Number(formData.get("stock_actual"));
 
-        success = await actualizarStock(insumo.id, nuevoStock, 'sumar'); 
+        success = await ajustarStock(insumo.id, nuevoStock, 'sumar'); 
         
       } else if (operacion === "descontar" && cantidad) {
-        success = await actualizarStock(insumo.id, valorNumerico, 'restar');
+        success = await ajustarStock(insumo.id, valorNumerico, 'restar');
         
       } else if (operacion === "incrementar" && cantidad) {
-        success = await actualizarStock(insumo.id, valorNumerico, 'sumar');
+        success = await ajustarStock(insumo.id, valorNumerico, 'sumar');
       }
 
       if (success) {

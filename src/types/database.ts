@@ -421,7 +421,7 @@ export type Database = {
           costo_total_estimado: number | null
           created_at: string | null
           direccion_despacho: string | null
-          estado: string | null
+          estado: Database["public"]["Enums"]["EstadoCotizacion"] | null
           expira_at: string | null
           id: number
           id_regla_descuento: number | null
@@ -446,7 +446,7 @@ export type Database = {
           costo_total_estimado?: number | null
           created_at?: string | null
           direccion_despacho?: string | null
-          estado?: string | null
+          estado?: Database["public"]["Enums"]["EstadoCotizacion"] | null
           expira_at?: string | null
           id?: number
           id_regla_descuento?: number | null
@@ -471,7 +471,7 @@ export type Database = {
           costo_total_estimado?: number | null
           created_at?: string | null
           direccion_despacho?: string | null
-          estado?: string | null
+          estado?: Database["public"]["Enums"]["EstadoCotizacion"] | null
           expira_at?: string | null
           id?: number
           id_regla_descuento?: number | null
@@ -494,6 +494,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_id_regla_descuento_fkey"
+            columns: ["id_regla_descuento"]
+            isOneToOne: false
+            referencedRelation: "reglas_descuento"
             referencedColumns: ["id"]
           },
           {
@@ -594,6 +601,208 @@ export type Database = {
             columns: ["id_insumo"]
             isOneToOne: false
             referencedRelation: "insumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devoluciones_cliente: {
+        Row: {
+          cantidad: number
+          cliente_id: number
+          condicion_recibido:
+            | Database["public"]["Enums"]["CondicionProducto"]
+            | null
+          created_at: string
+          estado_solicitud: Database["public"]["Enums"]["EstadoDevolucion"]
+          fecha_finalizacion: string | null
+          fotos_url: Json | null
+          id: number
+          monto_reembolsado: number | null
+          motivo: Database["public"]["Enums"]["MotivoDevolucion"]
+          notas_cliente: string | null
+          notas_internas: string | null
+          procesado_por: number | null
+          producto_id: number
+          updated_at: string
+          variante_id: number
+          venta_id: string
+        }
+        Insert: {
+          cantidad: number
+          cliente_id: number
+          condicion_recibido?:
+            | Database["public"]["Enums"]["CondicionProducto"]
+            | null
+          created_at?: string
+          estado_solicitud?: Database["public"]["Enums"]["EstadoDevolucion"]
+          fecha_finalizacion?: string | null
+          fotos_url?: Json | null
+          id?: never
+          monto_reembolsado?: number | null
+          motivo: Database["public"]["Enums"]["MotivoDevolucion"]
+          notas_cliente?: string | null
+          notas_internas?: string | null
+          procesado_por?: number | null
+          producto_id: number
+          updated_at?: string
+          variante_id: number
+          venta_id: string
+        }
+        Update: {
+          cantidad?: number
+          cliente_id?: number
+          condicion_recibido?:
+            | Database["public"]["Enums"]["CondicionProducto"]
+            | null
+          created_at?: string
+          estado_solicitud?: Database["public"]["Enums"]["EstadoDevolucion"]
+          fecha_finalizacion?: string | null
+          fotos_url?: Json | null
+          id?: never
+          monto_reembolsado?: number | null
+          motivo?: Database["public"]["Enums"]["MotivoDevolucion"]
+          notas_cliente?: string | null
+          notas_internas?: string | null
+          procesado_por?: number | null
+          producto_id?: number
+          updated_at?: string
+          variante_id?: number
+          venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devoluciones_cliente_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_producto_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_producto_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_producto_stock_resumen"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "devoluciones_usuario_fkey"
+            columns: ["procesado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_variante_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "v_variante_stock_resumen"
+            referencedColumns: ["variante_id"]
+          },
+          {
+            foreignKeyName: "devoluciones_variante_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes_producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_venta_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devoluciones_proveedor: {
+        Row: {
+          accion_requerida: string | null
+          cantidad: number
+          created_at: string
+          estado: Database["public"]["Enums"]["EstadoDevolucionProv"]
+          fecha_salida: string | null
+          fotos_evidencia: Json | null
+          id: number
+          insumo_id: number
+          monto_estimado_recuperar: number | null
+          motivo: Database["public"]["Enums"]["MotivoDevolucionProv"]
+          numero_guia_remision: string | null
+          observaciones: string | null
+          orden_id: number | null
+          proveedor_id: number
+          updated_at: string
+          usuario_id: number | null
+        }
+        Insert: {
+          accion_requerida?: string | null
+          cantidad: number
+          created_at?: string
+          estado?: Database["public"]["Enums"]["EstadoDevolucionProv"]
+          fecha_salida?: string | null
+          fotos_evidencia?: Json | null
+          id?: never
+          insumo_id: number
+          monto_estimado_recuperar?: number | null
+          motivo: Database["public"]["Enums"]["MotivoDevolucionProv"]
+          numero_guia_remision?: string | null
+          observaciones?: string | null
+          orden_id?: number | null
+          proveedor_id: number
+          updated_at?: string
+          usuario_id?: number | null
+        }
+        Update: {
+          accion_requerida?: string | null
+          cantidad?: number
+          created_at?: string
+          estado?: Database["public"]["Enums"]["EstadoDevolucionProv"]
+          fecha_salida?: string | null
+          fotos_evidencia?: Json | null
+          id?: never
+          insumo_id?: number
+          monto_estimado_recuperar?: number | null
+          motivo?: Database["public"]["Enums"]["MotivoDevolucionProv"]
+          numero_guia_remision?: string | null
+          observaciones?: string | null
+          orden_id?: number | null
+          proveedor_id?: number
+          updated_at?: string
+          usuario_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_prov_insumo_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dev_prov_orden_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dev_prov_proveedor_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dev_prov_usuario_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -748,7 +957,7 @@ export type Database = {
           costo_estimado: number | null
           created_at: string
           descripcion_detallada: string | null
-          estado: Database["public"]["Enums"]["estado_ficha"] | null
+          estado: Database["public"]["Enums"]["EstadoFicha"] | null
           ficha_url: string | null
           id: number
           id_producto: number | null
@@ -760,7 +969,7 @@ export type Database = {
           costo_estimado?: number | null
           created_at?: string
           descripcion_detallada?: string | null
-          estado?: Database["public"]["Enums"]["estado_ficha"] | null
+          estado?: Database["public"]["Enums"]["EstadoFicha"] | null
           ficha_url?: string | null
           id?: number
           id_producto?: number | null
@@ -772,7 +981,7 @@ export type Database = {
           costo_estimado?: number | null
           created_at?: string
           descripcion_detallada?: string | null
-          estado?: Database["public"]["Enums"]["estado_ficha"] | null
+          estado?: Database["public"]["Enums"]["EstadoFicha"] | null
           ficha_url?: string | null
           id?: number
           id_producto?: number | null
@@ -945,33 +1154,54 @@ export type Database = {
       movimientos_inventario: {
         Row: {
           cantidad: number | null
+          costo_unitario: number | null
           created_at: string
           id: number
           insumo_id: number | null
           motivo: string | null
           producto_id: number | null
+          referencia_id: number | null
+          referencia_tipo:
+            | Database["public"]["Enums"]["ReferenciaMovimiento"]
+            | null
+          stock_anterior: number | null
+          stock_posterior: number | null
           tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at: string | null
           usuario_id: number | null
         }
         Insert: {
           cantidad?: number | null
+          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           motivo?: string | null
           producto_id?: number | null
+          referencia_id?: number | null
+          referencia_tipo?:
+            | Database["public"]["Enums"]["ReferenciaMovimiento"]
+            | null
+          stock_anterior?: number | null
+          stock_posterior?: number | null
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at?: string | null
           usuario_id?: number | null
         }
         Update: {
           cantidad?: number | null
+          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           motivo?: string | null
           producto_id?: number | null
+          referencia_id?: number | null
+          referencia_tipo?:
+            | Database["public"]["Enums"]["ReferenciaMovimiento"]
+            | null
+          stock_anterior?: number | null
+          stock_posterior?: number | null
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at?: string | null
           usuario_id?: number | null
@@ -1875,7 +2105,7 @@ export type Database = {
           precio_adicional: number
           producto_id: number
           sku: string
-          stock_adicional: number
+          stock: number
           talla: Database["public"]["Enums"]["TallaProductos"]
           updated_at: string | null
         }
@@ -1889,7 +2119,7 @@ export type Database = {
           precio_adicional?: number
           producto_id: number
           sku: string
-          stock_adicional?: number
+          stock?: number
           talla: Database["public"]["Enums"]["TallaProductos"]
           updated_at?: string | null
         }
@@ -1903,7 +2133,7 @@ export type Database = {
           precio_adicional?: number
           producto_id?: number
           sku?: string
-          stock_adicional?: number
+          stock?: number
           talla?: Database["public"]["Enums"]["TallaProductos"]
           updated_at?: string | null
         }
@@ -2107,6 +2337,12 @@ export type Database = {
         | "rose"
         | "verde"
         | "vino"
+      CondicionProducto:
+        | "perfecto_estado"
+        | "reproceso"
+        | "segunda"
+        | "merma"
+        | "sucio"
       CuentaContable:
         | "caja"
         | "bancos"
@@ -2127,7 +2363,6 @@ export type Database = {
         | "costura"
         | "acabados"
         | "otro"
-      estado_ficha: "borrador" | "en_revision" | "aprobada" | "obsoleta"
       EstadoCategoria: "activo" | "inactivo"
       EstadoCliente: "activo" | "inactivo" | "suspendido" | "potencial"
       EstadoConfeccion:
@@ -2150,6 +2385,20 @@ export type Database = {
         | "entregado"
         | "preparando"
         | "incidencia"
+      EstadoDevolucion:
+        | "pendiente"
+        | "en_revision"
+        | "aprobada"
+        | "rechazada"
+        | "completada"
+        | "anulada"
+      EstadoDevolucionProv:
+        | "pendiente_envio"
+        | "en_transito"
+        | "aceptado_proveedor"
+        | "rechazado_proveedor"
+        | "completado"
+      EstadoFicha: "borrador" | "en_revision" | "aprobada" | "obsoleta"
       EstadoOrden:
         | "solicitado"
         | "cotizado"
@@ -2159,13 +2408,6 @@ export type Database = {
         | "finalizado"
         | "cancelado"
       EstadoPago: "pendiente" | "pagado_parcial" | "pagado" | "vencido"
-      estadopedido:
-        | "pendiente"
-        | "confirmado"
-        | "en_preparacion"
-        | "enviado"
-        | "entregado"
-        | "cancelado"
       EstadoPedido:
         | "pendiente"
         | "en_produccion"
@@ -2197,7 +2439,22 @@ export type Database = {
         | "plin"
         | "visa"
         | "mastercard"
+      MotivoDevolucion:
+        | "defecto_fabrica"
+        | "talla_incorrecta"
+        | "error_envio"
+        | "insatisfaccion"
+        | "danado_transporte"
+        | "otros"
+      MotivoDevolucionProv:
+        | "insumo_defectuoso"
+        | "no_cumple_especificaciones"
+        | "exceso_pedido"
+        | "pedido_incompleto_danado"
+        | "vencimiento"
+        | "otros"
       PrioridadPedido: "baja" | "normal" | "alta" | "urgente"
+      ReferenciaMovimiento: "ORDEN" | "COMPRA" | "VENTA" | "AJUSTE"
       Rol:
         | "administrador"
         | "cortador"
@@ -2428,6 +2685,13 @@ export const Constants = {
         "verde",
         "vino",
       ],
+      CondicionProducto: [
+        "perfecto_estado",
+        "reproceso",
+        "segunda",
+        "merma",
+        "sucio",
+      ],
       CuentaContable: [
         "caja",
         "bancos",
@@ -2450,7 +2714,6 @@ export const Constants = {
         "acabados",
         "otro",
       ],
-      estado_ficha: ["borrador", "en_revision", "aprobada", "obsoleta"],
       EstadoCategoria: ["activo", "inactivo"],
       EstadoCliente: ["activo", "inactivo", "suspendido", "potencial"],
       EstadoConfeccion: [
@@ -2476,6 +2739,22 @@ export const Constants = {
         "preparando",
         "incidencia",
       ],
+      EstadoDevolucion: [
+        "pendiente",
+        "en_revision",
+        "aprobada",
+        "rechazada",
+        "completada",
+        "anulada",
+      ],
+      EstadoDevolucionProv: [
+        "pendiente_envio",
+        "en_transito",
+        "aceptado_proveedor",
+        "rechazado_proveedor",
+        "completado",
+      ],
+      EstadoFicha: ["borrador", "en_revision", "aprobada", "obsoleta"],
       EstadoOrden: [
         "solicitado",
         "cotizado",
@@ -2486,14 +2765,6 @@ export const Constants = {
         "cancelado",
       ],
       EstadoPago: ["pendiente", "pagado_parcial", "pagado", "vencido"],
-      estadopedido: [
-        "pendiente",
-        "confirmado",
-        "en_preparacion",
-        "enviado",
-        "entregado",
-        "cancelado",
-      ],
       EstadoPedido: [
         "pendiente",
         "en_produccion",
@@ -2529,7 +2800,24 @@ export const Constants = {
         "visa",
         "mastercard",
       ],
+      MotivoDevolucion: [
+        "defecto_fabrica",
+        "talla_incorrecta",
+        "error_envio",
+        "insatisfaccion",
+        "danado_transporte",
+        "otros",
+      ],
+      MotivoDevolucionProv: [
+        "insumo_defectuoso",
+        "no_cumple_especificaciones",
+        "exceso_pedido",
+        "pedido_incompleto_danado",
+        "vencimiento",
+        "otros",
+      ],
       PrioridadPedido: ["baja", "normal", "alta", "urgente"],
+      ReferenciaMovimiento: ["ORDEN", "COMPRA", "VENTA", "AJUSTE"],
       Rol: [
         "administrador",
         "cortador",

@@ -169,6 +169,7 @@ model fichas_tecnicas {
   imagen_geometral      String?                 @db.VarChar
   estado                EstadoFicha?            @default(borrador)
   created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  ficha_url             String?                 
   
   productos_rel         productos[]             @relation("producto_ficha_principal")
   medidas               ficha_medidas[]
@@ -183,6 +184,7 @@ model ordenes_produccion {
   producto_id         BigInt
   taller_id           BigInt
   ficha_id            BigInt
+  pedido_id           BigInt
   estado              String                   @default("pendiente")
   cantidad_solicitada Int                      @default(0)
   fecha_entrega       DateTime?                @db.Date
@@ -193,9 +195,10 @@ model ordenes_produccion {
   created_at          DateTime?                @default(now()) @db.Timestamptz(6)
   updated_at          DateTime?                @default(now()) @db.Timestamptz(6)
 
-  producto            productos                @relation(fields: [producto_id], references: [id])
-  taller              talleres                 @relation(fields: [taller_id], references: [id])
-  ficha               fichas_tecnicas          @relation(fields: [ficha_id], references: [id])
+  pedido_rel          pedidos?                 @relation(fields: [pedido_id], references: [id])
+  producto            productos?               @relation(fields: [producto_id], references: [id])
+  taller              talleres?                @relation(fields: [taller_id], references: [id])
+  ficha               fichas_tecnicas?         @relation(fields: [ficha_id], references: [id])
   confecciones        confecciones[]
   seguimientos        seguimiento_produccion[]
 

@@ -1,146 +1,124 @@
-import { createClient } from '@/lib/supabase/client';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Database } from '@/types/database';
+import type { ApiResponse } from '@/lib/schemas/usuarios';
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-type EstadoUsuario = Database['public']['Enums']['EstadoUsuario'];
-type Rol = Database['public']['Enums']['Rol'];
+const API = '/api/admin/usuarios';
 
-type UsuarioUpdate = {
-  email?: string;
-  estado?: EstadoUsuario | null;
-  rol?: Rol | null;
-  updated_at?: string;
-};
+export async function fetchUsuarios(): Promise<any[]> {
+  const res = await fetch(API, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Error al cargar usuarios');
+  const result = await res.json();
+  return result.data ?? [];
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+export async function fetchUsuarioById(id: string): Promise<any> {
+  const res = await fetch(`${API}/${id}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Usuario no encontrado');
+  const result = await res.json();
+  return result.data;
+}
 
-export const getUsuarioData = async (userId: string) => {
-  const supabase = getSupabaseBrowserClient();
+export async function createUsuario(data: {
+  email:    string;
+  rol:      string;
+  estado?:  string;
+  password: string;
+  personal?: {
+    dni:             number;
+    nombre_completo: string;
+    cargo:           string;
+    telefono?:       number;
+    fecha_ingreso?:  string;
+  };
+}): Promise<ApiResponse> {
+  const res = await fetch(API, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// ← email agregado al tipo para compatibilidad con perfil/page.tsx
+export async function updateUsuario(
+  id: string,
+  data: Partial<{
+    rol:    string;
+    estado: string;
+    email:  string;
+    personal: {
+      dni?:             number;
+      nombre_completo?: string;
+      cargo?:           string;
+      telefono?:        number;
+      fecha_ingreso?:   string;
+      estado?:          boolean;
+    };
+  }>
+): Promise<{ error: any }> {
   try {
-    const { data, error } = await supabase
-      .from("usuarios")
-      .select(`
-        id,
-        email,
-        rol,
-        estado,
-        created_at,
-        updated_at,
-        ultimo_acceso,
-        auth_id,
-        created_by,
-        personal_interno (
-           id,
-            nombre_completo,
-            dni,
-            cargo,
-            telefono
-          )
-      `)
-      .eq("auth_id", userId)
-      .single();
+    const res = await fetch(`${API}/${id}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!result.success) return { error: result.error ?? 'Error al actualizar' };
+    return { error: null };
+  } catch (error) {
+    return { error };
+  }
+}
 
-    if (error) throw error;
+export async function toggleEstadoUsuario(
+  id: string,
+  estado: 'activo' | 'inactivo' | 'suspendido'
+): Promise<ApiResponse> {
+  const res = await fetch(`${API}/${id}`, {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ estado }),
+  });
+  return res.json();
+}
 
-    const flattened = data ? {
-      ...data,
-      nombre_completo: (data.personal_interno as any)?.[0]?.nombre_completo ?? '',
-      personal_interno_id: (data.personal_interno as any)?.[0]?.id ?? null,
-      telefono: (data.personal_interno as any)?.[0]?.telefono ?? null,
-      dni: (data.personal_interno as any)?.[0]?.dni ?? null,
-    } : null;
+export async function deleteUsuario(id: string): Promise<ApiResponse> {
+  const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+  return res.json();
+}
 
-    return { data: flattened, error: null };
-  } catch (error: any) {
-    console.error("Error en getUsuarioData:", error.message);
+// ← retorna { data, error } para compatibilidad con perfil/page.tsx
+export async function getUsuarioData(_authId?: string): Promise<{ data: any; error: any }> {
+  try {
+    const res = await fetch(`${API}/me`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Error al obtener datos del usuario');
+    const result = await res.json();
+    return { data: result.data, error: null };
+  } catch (error) {
     return { data: null, error };
   }
-};
+}
 
-export const updateUsuario = async (
-  userId: string,
-  updates: UsuarioUpdate
-) => {
-  const supabase = getSupabaseBrowserClient();
+// ← retorna { error } para compatibilidad con perfil/page.tsx
+export async function updatePersonalInterno(
+  usuarioId: string,
+  data: Partial<{
+    nombre_completo: string;
+    dni:             number;
+    cargo:           string;
+    telefono:        number;
+    fecha_ingreso:   string;
+    estado:          boolean;
+  }>
+): Promise<{ error: any }> {
   try {
-    const { data, error } = await supabase
-      .from("usuarios")
-      .update(updates)
-      .eq("auth_id", userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error: any) {
-    console.error("Error en updateUsuario:", error.message);
-    return { data: null, error };
+    const res = await fetch(`${API}/${usuarioId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ personal: data }),
+    });
+    const result = await res.json();
+    if (!result.success) return { error: result.error ?? 'Error al actualizar' };
+    return { error: null };
+  } catch (error) {
+    return { error };
   }
-};
-
-export const updatePersonalInterno = async (
-  personalInternoId: number | bigint,
-  updates: { nombre_completo?: string }
-) => {
-  const supabase = getSupabaseBrowserClient();
-  try {
-    const { data, error } = await supabase
-      .from("personal_interno")
-      .update(updates)
-      .eq("id", Number(personalInternoId))
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error: any) {
-    console.error("Error en updatePersonalInterno:", error.message);
-    return { data: null, error };
-  }
-};
-
-export const obtenerPerfilUsuario = async () => {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: perfil } = await supabase
-    .from('usuarios')
-    .select(`
-      *,
-      personal_interno (
-        id,
-        nombre_completo
-      )
-    `)
-    .eq('auth_id', user.id)
-    .single();
-
-  return perfil; // sin cast forzado
-};
-
-export const obtenerClienteAsociado = async (userId: string) => {
-  const supabase = createClient();
-
-  const { data: usuario } = await supabase
-    .from('usuarios')
-    .select('id')
-    .eq('auth_id', userId)
-    .single();
-
-  if (!usuario) return null;
-
-  const { data, error } = await supabase
-    .from('clientes')
-    .select('*')
-    .eq('usuario_id', usuario.id)
-    .single();
-
-  if (error) {
-    console.error("Error al obtener cliente:", error.message);
-    return null;
-  }
-
-  return data;
-};
+}

@@ -7,6 +7,8 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import ProductForm from "@/components/admin/productos/form/ProductForm";
 import { FichaTecnicaTab } from "./FichaTecnicaTab";
 import { FichaMedidasTab } from "./FichaMedidasTab";
+import { useFichaTecnica, useFichaMedidas } from "@/lib/hooks/useFichasTecnicas";
+import { ESTADO_FICHA_LABELS }              from "@/lib/schemas/fichas-tecnicas";
 
 interface ProductoDetalleProps {
   producto: any;
@@ -26,6 +28,20 @@ export default function ProductoDetalle({ producto, categorias }: ProductoDetall
   const { can } = usePermissions();
 
   const puedeEditarFicha = can("upload", "ficha_tecnica") || can("upload", "ficha_medidas");
+  const {
+    ficha,
+    create: createFicha,
+    update: updateFicha,
+    isCreating,
+    isUpdating,
+  } = useFichaTecnica(producto.id.toString());
+    const {
+    medidas,
+    save:   saveMedidas,
+    remove: deleteMedida,
+    isSaving,
+    isDeleting,
+  } = useFichaMedidas(ficha?.id ?? "");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,15 +98,21 @@ export default function ProductoDetalle({ producto, categorias }: ProductoDetall
           {activeTab === "ficha" && (
             <FichaTecnicaTab
               producto={producto}
-              fichaInicial={producto.ficha_tecnica ?? null}
+              ficha={ficha} 
+              onCreate={createFicha} 
+              onUpdate={updateFicha}
+              isLoading={isCreating || isUpdating}
               canEdit={puedeEditarFicha}
             />
           )}
 
           {activeTab === "medidas" && (
             <FichaMedidasTab
-              fichaId={producto.ficha_tecnica?.id ?? null}
-              medidasIniciales={producto.ficha_tecnica?.medidas ?? []}
+              fichaId={ficha?.id ?? null}
+              medidas={medidas} 
+              onSave={saveMedidas}
+              onDelete={deleteMedida}
+              isLoading={isSaving || isDeleting}
               canEdit={puedeEditarFicha}
             />
           )}

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { serializePrismaPayload } from '@/lib/serializers';
 import { createCotizacionSchema, type CreateCotizacionInput } from '@/lib/schemas/cotizaciones';
-import { Prisma, EstadoProducto, EstadoCliente } from '@prisma/client';
+import { Prisma, EstadoProducto, EstadoCliente, EstadoCotizacion} from '@prisma/client';
 
 export interface CotizacionRow {
   id: number;
@@ -37,7 +37,7 @@ export async function getCotizaciones(estado?: string): Promise<CotizacionRow[]>
     rows.map((row) => {
       const validaHasta = new Date(row.valida_hasta);
       validaHasta.setHours(0, 0, 0, 0);
-      const estaExpirada = row.estado === 'pendiente' && today > validaHasta;
+      const estaExpirada = row.estado === EstadoCotizacion.enviada && today > validaHasta;
 
       return {
         id: Number(row.id),
@@ -242,7 +242,7 @@ export async function aprobarCotizacion(
 
     if (!cotizacion) return { success: false, error: 'Cotización no encontrada' };
 
-    if (!['pendiente', 'borrador'].includes(cotizacion.estado ?? '')) {
+    if (!['enviada', 'borrador'].includes(cotizacion.estado ?? '')) {
       return {
         success: false,
         error: `No se puede aprobar una cotización con estado '${cotizacion.estado}'`,
@@ -261,7 +261,7 @@ export async function aprobarCotizacion(
     const result = await prisma.$transaction(async (tx) => {
       await tx.cotizaciones.update({
         where: { id },
-        data: { estado: 'aceptada', aprobado_at: new Date() },
+        data: { estado: 'aprobada', aprobado_at: new Date() },
       });
 
       let pedidoId: number | undefined;
@@ -325,7 +325,7 @@ export async function rechazarCotizacion(
     const cotizacion = await prisma.cotizaciones.findUnique({ where: { id } });
     if (!cotizacion) return { success: false, error: 'Cotización no encontrada' };
 
-    if (!['pendiente', 'borrador'].includes(cotizacion.estado ?? '')) {
+    if (!['enviada', 'borrador'].includes(cotizacion.estado ?? '')) {
       return {
         success: false,
         error: `No se puede rechazar una cotización con estado '${cotizacion.estado}'`,
@@ -352,7 +352,7 @@ export async function rechazarCotizacion(
 
 export async function actualizarEstadoCotizacion(
   cotizacionId: string | bigint,
-  nuevoEstado: 'pendiente' | 'aceptada' | 'rechazada' | 'expirada' | 'borrador',
+  nuevoEstado: 'enviada' | 'aprobada' | 'rechazada' | 'expirada' | 'borrador' | 'convertida',
   motivo?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -362,11 +362,12 @@ export async function actualizarEstadoCotizacion(
     if (!cotizacion) return { success: false, error: 'Cotización no encontrada' };
 
     const transicionesValidas: Record<string, string[]> = {
-      borrador:  ['pendiente'],
-      pendiente: ['aceptada', 'rechazada', 'expirada'],
-      aceptada:  [],
-      rechazada: ['pendiente'],
-      expirada:  ['pendiente'],
+      borrador:   ['enviada'],
+      enviada:    ['aprobada', 'rechazada', 'expirada'],
+      aprobada:   ['convertida'],
+      rechazada:  ['enviada'],
+      expirada:   ['enviada'],
+      convertida: [],
     };
 
     const estadoActual = cotizacion.estado ?? 'borrador';
@@ -380,7 +381,7 @@ export async function actualizarEstadoCotizacion(
     }
 
     const updateData: Prisma.cotizacionesUpdateInput = { estado: nuevoEstado };
-    if (nuevoEstado === 'aceptada') updateData.aprobado_at = new Date();
+    if (nuevoEstado === 'aprobada') updateData.aprobado_at = new Date();
     if (motivo) {
       const prefijo = nuevoEstado === 'rechazada' ? '[RECHAZO]' : '[NOTA]';
       updateData.notas_internas =
@@ -407,7 +408,7 @@ export async function expirarCotizacionesVencidas(): Promise<{
     today.setHours(0, 0, 0, 0);
 
     const cotizacionesVencidas = await prisma.cotizaciones.findMany({
-      where: { estado: 'pendiente', valida_hasta: { lt: today } },
+      where: { estado: EstadoCotizacion.enviada, valida_hasta: { lt: today } },
       select: { id: true },
     });
 

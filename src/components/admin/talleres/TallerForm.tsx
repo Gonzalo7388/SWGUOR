@@ -33,7 +33,7 @@ const tallerSchema = z.object({
   telefono: z.string().min(9, "Teléfono inválido"),
   direccion: z.string().min(5, "Dirección requerida"),
   email: z.string().email("Email inválido").or(z.literal("")),
-  especialidad: z.enum(["corte", "confección", "bordado", "estampado", "acabados", "costura", "otro"]),
+  especialidad: z.enum(["corte", "confeccion", "bordado", "estampado", "acabados", "costura", "otro"]),
   estado: z.enum(["activo", "inactivo", "suspendido"]),
 });
 

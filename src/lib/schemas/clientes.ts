@@ -1,65 +1,45 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-// ENUMS (Basados en los tipos de tu base de datos)
-const ESTADOS_CLIENTE = ['activo', 'inactivo'] as const;
-const TIPOS_CLIENTE = ['corporativo', 'minorista', 'distribuidor'] as const; // <-- Actualizado
+export const TIPO_CLIENTE   = ["corporativo", "retail"] as const;
+export const ESTADO_CLIENTE = ["activo", "inactivo"]    as const;
 
-// SCHEMA DE CREACIÓN (Alineado estrictamente a SQL)
-export const createClienteSchema = z.object({
-  // Obligatorio en BD (NOT NULL)
-  ruc: z.string()
-    .min(8, 'El RUC debe tener al menos 8 caracteres')
-    .max(11, 'El RUC no puede exceder los 11 caracteres'),
-  razon_social: z.string().max(255, 'Máximo 255 caracteres').nullable(),
-  nombre_comercial: z.string().max(255, 'Máximo 255 caracteres').nullable(),
-  telefono: z.string().max(50, 'Máximo 50 caracteres').nullable(),
-  
-  email: z.string()
-    .email('Email inválido')
-    .max(150, 'Máximo 150 caracteres')
-    .optional()
-    .or(z.literal(''))
-    .nullable(),
-    
-  direccion_fiscal: z.string().max(255, 'Máximo 255 caracteres').optional().nullable(),
-
-  // Campos con valor por defecto en BD
-  activo: z.enum(ESTADOS_CLIENTE).optional().default('activo'),
-  tipo_cliente: z.enum(TIPOS_CLIENTE).optional().default('corporativo'),
-
-  // Clave foránea opcional
-  usuario_id: z.coerce.number().optional().nullable(), 
-
-  // Auxiliares para el formulario (direcciones_cliente)
-  direccion_alias: z.string().optional().or(z.literal('')),
-  direccion_direccion: z.string().optional().or(z.literal('')),
-  direccion_ciudad: z.string().optional().or(z.literal('')),
-  direccion_departamento: z.string().optional().or(z.literal('')),
-}).superRefine((data, ctx) => {
-  // Si el usuario decide agregar una dirección, validamos los campos obligatorios de Prisma
-  if (data.direccion_alias || data.direccion_direccion || data.direccion_ciudad || data.direccion_departamento) {
-    if (!data.direccion_alias) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "El alias es obligatorio (Ej: Principal, Almacén)",
-        path: ["direccion_alias"],
-      });
-    }
-    if (!data.direccion_direccion) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "La dirección exacta es obligatoria",
-        path: ["direccion_direccion"],
-      });
-    }
-  }
+export const clienteSchema = z.object({
+  ruc:              z.string().regex(/^\d{11}$/, "RUC debe tener 11 dígitos"),
+  razon_social:     z.string().min(3, "Razón social requerida").optional(),
+  nombre_comercial: z.string().optional(),
+  telefono:         z.string().optional(),
+  email:            z.string().email("Email inválido").optional().or(z.literal("")),
+  direccion_fiscal: z.string().optional(),
+  tipo_cliente:     z.enum(TIPO_CLIENTE).default("corporativo"),
+  activo:           z.enum(ESTADO_CLIENTE).default("activo"),
 });
 
-// SCHEMA PARA EDICIÓN
-export const updateClienteSchema = createClienteSchema.partial().extend({
-  id: z.coerce.number().min(1, 'El ID es obligatorio para actualizar'),
+// Schema extendido para el formulario de creación (incluye dirección opcional)
+export const createClienteSchema = clienteSchema.extend({
+  nombre_comercial:       z.string().optional(),
+  crear_direccion:        z.boolean().optional(),
+  direccion_alias:        z.string().optional(),
+  direccion_direccion:    z.string().optional(),
+  direccion_ciudad:       z.string().optional(),
+  direccion_departamento: z.string().optional(),
 });
 
-// TYPES EXPORTADOS
+export type ClienteFormValues  = z.infer<typeof clienteSchema>;
 export type CreateClienteInput = z.infer<typeof createClienteSchema>;
-export type UpdateClienteInput = z.infer<typeof updateClienteSchema>;
+
+export const TIPO_CLIENTE_LABELS: Record<typeof TIPO_CLIENTE[number], string> = {
+  corporativo: "Corporativo",
+  retail:      "Retail",
+};
+
+export const ESTADO_CLIENTE_LABELS: Record<typeof ESTADO_CLIENTE[number], string> = {
+  activo:   "Activo",
+  inactivo: "Inactivo",
+};
+
+export interface ApiResponse<T = any> {
+  success:  boolean;
+  data?:    T;
+  error?:   string;
+  message?: string;
+}

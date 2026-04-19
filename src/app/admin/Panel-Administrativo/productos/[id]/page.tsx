@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeBigInt } from "@/lib/utils/serialize";
-import ProductoDetalle from "@/components/admin/productos/detalle/ProductoDetalle";
+import ProductoDetalle from "@/components/admin/productos/detalles/ProductoDetalle";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export default async function ProductoDetallePage({ params }: PageProps) {
       include: {
         variantes_producto: true,
         categorias:         true,
-        ficha_tecnica: {
+        ficha_tecnica_rel: {
           include: { medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
         },
       },

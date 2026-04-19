@@ -7,7 +7,7 @@ import {
   upsertProveedor,
   getHistorialOrdenes,
   getProveedorById,
-} from '@/lib/services/proveedor-service';
+} from '@/lib/services/proveedor-services';
 import { NextResponse } from 'next/server';
 
 // ─────────────────────────────────────────────────────────────

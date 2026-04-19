@@ -186,18 +186,20 @@ model pedidos {
   estado             EstadoPedido?        @default(pendiente)
   prioridad          PrioridadPedido?     @default(normal)
   notas_cliente      String?
-  created_by         String?              @default(dbgenerated("uid()")) @db.Uuid
-  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
   notas_pedido       String?
   total_estimado     Decimal?             @default(0) @db.Decimal(12, 2)
   total_unidades     Int                  @default(0)
   moq_aplicado       Int                  @default(400)
+  created_by         String?              @default(dbgenerated("uid()")) @db.Uuid
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  
   cotizaciones       cotizaciones[]
   pedido_items       pedido_items[]
   confecciones       confecciones[]
   despachos          despachos[]
   seguimiento_pedido seguimiento_pedido[]
+  ordenes_produccion ordenes_produccion[]
   clientes           clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users              users?               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 

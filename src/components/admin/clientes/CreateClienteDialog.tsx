@@ -36,7 +36,6 @@ import {
   createClienteSchema,
   type CreateClienteInput,
 } from '@/lib/schemas/clientes';
-
 import { createCliente } from '@/app/admin/Panel-Administrativo/clientes/actions';
 
 // Estilo de etiquetas basado en la imagen
@@ -90,12 +89,16 @@ export function CreateClienteDialog({
   const onSubmit = async (data: CreateClienteInput) => {
     try {
       setIsSubmitting(true);
-      const payload = {...data, crear_direccion: mostrarDireccion, direccion: mostrarDireccion ? {
-        alias: data.direccion_alias,
-        direccion: data.direccion_direccion,
-        ciudad: data.direccion_ciudad,
-        departamento: data.direccion_departamento,
-      } : undefined};
+      const payload = {
+        ...data,
+        crear_direccion: mostrarDireccion,
+        direccion: mostrarDireccion ? {
+          alias:        data.direccion_alias        || 'Principal',
+          direccion:    data.direccion_direccion    || '',
+          ciudad:       data.direccion_ciudad,
+          departamento: data.direccion_departamento,
+        } : undefined,
+      };
 
       const result = await createCliente(payload);
 

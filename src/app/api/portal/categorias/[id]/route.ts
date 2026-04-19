@@ -52,12 +52,12 @@ export async function GET(
       where: { categoria_id: categoriaId, estado: 'activo' },
       include: {
         variantes_producto: {
-          where: { estado: 'activo', stock_adicional: { gt: 0 } },
+          where: { estado: 'activo', stock: { gt: 0 } },
           select: {
             id: true,
             color: true,
             talla: true,
-            stock_adicional: true,
+            stock: true,
             precio_adicional: true,
             sku: true,
             imagen_url: true,
@@ -104,7 +104,7 @@ export async function GET(
       }
 
       const stockTotal = variantes.reduce(
-        (sum, v) => sum + v.stock_adicional,
+        (sum, v) => sum + v.stock,
         0
       );
 
@@ -131,7 +131,7 @@ export async function GET(
           id: v.id,
           color: v.color,
           talla: v.talla,
-          stock: v.stock_adicional,
+          stock: v.stock,
           precio_adicional: Number(v.precio_adicional),
           sku: v.sku,
           imagen_url: v.imagen_url

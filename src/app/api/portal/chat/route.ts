@@ -178,8 +178,8 @@ async function ejecutarTool(nombre: string, args: any) {
         include: {
           categorias: { select: { nombre: true } },
           variantes_producto: {
-            where: { estado: 'activo', stock_adicional: { gt: 0 } },
-            select: { id: true, color: true, talla: true, stock_adicional: true, precio_adicional: true, sku: true },
+            where: { estado: 'activo', stock: { gt: 0 } },
+            select: { id: true, color: true, talla: true, stock: true, precio_adicional: true, sku: true },
           },
         },
         take: 8,
@@ -193,7 +193,7 @@ async function ejecutarTool(nombre: string, args: any) {
           precio:   Number(p.precio),
           variantes: p.variantes_producto.map((v) => ({
             color: v.color, talla: v.talla,
-            stock: v.stock_adicional,
+            stock: v.stock,
             precio_adicional: Number(v.precio_adicional),
             sku: v.sku,
           })),

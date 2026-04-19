@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Plus, Trash2, Save, Loader2, Lock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,66 +11,45 @@ interface Medida {
   id?:          string;
   punto_medida: string;
   talla:        string;
-  valor_cm:     number | "";
-  tolerancia:   number | "";
+  valor_cm:     number | null;
+  tolerancia:   number | null;
 }
 
 interface FichaMedidasTabProps {
-  fichaId:          string | null;
-  medidasIniciales: any[];
-  canEdit:          boolean;
+  fichaId:    string | null;
+  medidas:    any[];
+  canEdit:    boolean;
+  isLoading?: boolean;
+  onSave:     (medidas: Omit<Medida, "id">[]) => void;
+  onDelete:   (id: string) => void;
 }
 
-export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMedidasTabProps) {
-  const [loading, setLoading] = useState(false);
+export function FichaMedidasTab({ fichaId, medidas, canEdit, isLoading = false, onSave, onDelete }: FichaMedidasTabProps) {
 
   const { control, register, handleSubmit } = useForm<{ medidas: Medida[] }>({
     defaultValues: {
-      medidas: medidasIniciales.length > 0
-        ? medidasIniciales.map((m: any) => ({
+      medidas: medidas.length > 0
+        ? medidas.map((m: any) => ({
             id:           m.id,
             punto_medida: m.punto_medida ?? "",
             talla:        m.talla        ?? "",
-            valor_cm:     m.valor_cm     ?? "",
-            tolerancia:   m.tolerancia   ?? "",
+            valor_cm:     m.valor_cm     ?? null,
+            tolerancia:   m.tolerancia   ?? null,
           }))
-        : [{ punto_medida: "", talla: "", valor_cm: "", tolerancia: "" }],
+        : [{ punto_medida: "", talla: "", valor_cm: null, tolerancia: null }],
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "medidas" });
 
-  const onSubmit = async (data: { medidas: Medida[] }) => {
-    if (!fichaId) {
-      toast.error("Primero debes crear la ficha técnica en el tab anterior.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/ficha-medidas", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          ficha_id: fichaId,
-          medidas:  data.medidas.map(m => ({
-            punto_medida: m.punto_medida,
-            talla:        m.talla,
-            valor_cm:     m.valor_cm     !== "" ? Number(m.valor_cm)   : null,
-            tolerancia:   m.tolerancia   !== "" ? Number(m.tolerancia) : null,
-          })),
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-
-      toast.success("Medidas guardadas correctamente");
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = (data: { medidas: Medida[] }) => {
+    if (!fichaId) return;
+    onSave(data.medidas.map(m => ({
+      punto_medida: m.punto_medida,
+      talla:        m.talla,
+      valor_cm:     m.valor_cm  != null ? Number(m.valor_cm)  : null,
+      tolerancia:   m.tolerancia != null ? Number(m.tolerancia) : null,
+    })));
   };
 
   if (!fichaId) {
@@ -89,8 +66,6 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
-
-      {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="w-1 h-5 bg-blue-500 rounded-full" />
@@ -112,7 +87,7 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
           {canEdit && (
             <Button
               type="button"
-              onClick={() => append({ punto_medida: "", talla: "", valor_cm: "", tolerancia: "" })}
+              onClick={() => append({ punto_medida: "", talla: "", valor_cm: null, tolerancia: null })}
               className="bg-gray-900 hover:bg-gray-700 text-white h-8 px-3 rounded-lg font-bold text-xs gap-1.5"
             >
               <Plus size={13} /> Agregar fila
@@ -138,7 +113,7 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
                 <tr key={field.id} className="group hover:bg-gray-50 transition-colors">
                   <td className="px-3 py-1.5">
                     <Input
-                      {...register(`medidas.${index}.punto_medida` as const, { required: true })}
+                      {...register(`medidas.${index}.punto_medida`, { required: true })}
                       disabled={!canEdit}
                       placeholder="Ej. Pecho"
                       className={CELL}
@@ -146,7 +121,7 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
                   </td>
                   <td className="px-3 py-1.5 w-24">
                     <Input
-                      {...register(`medidas.${index}.talla` as const, { required: true })}
+                      {...register(`medidas.${index}.talla`, { required: true })}
                       disabled={!canEdit}
                       placeholder="M"
                       className={CELL}
@@ -156,7 +131,7 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
                     <Input
                       type="number"
                       step="0.1"
-                      {...register(`medidas.${index}.valor_cm` as const)}
+                      {...register(`medidas.${index}.valor_cm`, { valueAsNumber: true })}
                       disabled={!canEdit}
                       placeholder="0.0"
                       className={CELL}
@@ -166,7 +141,7 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
                     <Input
                       type="number"
                       step="0.1"
-                      {...register(`medidas.${index}.tolerancia` as const)}
+                      {...register(`medidas.${index}.tolerancia`, { valueAsNumber: true })}
                       disabled={!canEdit}
                       placeholder="±0.5"
                       className={CELL}
@@ -196,10 +171,10 @@ export function FichaMedidasTab({ fichaId, medidasIniciales, canEdit }: FichaMed
             </span>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="bg-blue-600 hover:bg-blue-700 text-white h-10 px-6 font-bold gap-2"
             >
-              {loading ? (
+              {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <><Save size={15} /> Guardar medidas</>

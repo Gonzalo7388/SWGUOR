@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
       const variante = await prisma.variantes_producto.findUnique({
         where: { id: BigInt(item.variante_id) },
-        select: { id: true, stock_adicional: true, producto_id: true },
+        select: { id: true, stock: true, producto_id: true },
       });
 
       if (!variante) {
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
         0
       );
 
-      const stockDisponible = variante.stock_adicional - stockReservado;
+      const stockDisponible = variante.stock - stockReservado;
 
       if (item.cantidad > stockDisponible) {
         faltantes.push({

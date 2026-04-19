@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { serializePrismaPayload } from '@/lib/serializers';
+import { EstadoCotizacion } from '@prisma/client';
 
 /**
  * Get cotizaciones for portal client
@@ -35,7 +36,7 @@ export async function getPortalCotizaciones(clienteId: number) {
     const validaHasta = new Date(row.valida_hasta);
     validaHasta.setHours(0, 0, 0, 0);
     
-    const estaExpirada = row.estado === 'pendiente' && today > validaHasta;
+    const estaExpirada = row.estado === EstadoCotizacion.borrador && today > validaHasta;
 
     return {
       id: Number(row.id),
@@ -103,7 +104,7 @@ export async function getPortalCotizacionDetalle(cotizacionId: number, clienteId
   const validaHasta = new Date(row.valida_hasta);
   validaHasta.setHours(0, 0, 0, 0);
   
-  const estaExpirada = row.estado === 'pendiente' && today > validaHasta;
+  const estaExpirada = row.estado === EstadoCotizacion.borrador && today > validaHasta;
 
   return serializePrismaPayload({
     id: Number(row.id),

@@ -1,154 +1,69 @@
-import type { Database } from '@/types/database';
+import type { ApiResponse } from '@/lib/schemas/productos';
 
-type Insumo = Database['public']['Tables']['insumo']['Row'];
-type InsumoInsert = Database['public']['Tables']['insumo']['Insert'];
-type ProductoPortal = Database['public']['Tables']['productos']['Row'];
+const API = '/api/admin/productos';
 
-/**
- * PRODUCTOS (Panel Administrativo & API)
- */
-// Cambiamos id: number por id: string para soportar UUID
-export async function obtenerProductos(supabase: any, filtros?: any) {
-  let query = supabase
-    .from('productos')
-    .select(`
-      *,
-      categorias (nombre)
-    `);
+export async function fetchProductos(params?: {
+  categoriaId?: string;
+  estado?:      string;
+  busqueda?:    string;
+  color?:       string;
+  talla?:       string;
+  sortOrder?:   'asc' | 'desc' | 'none';
+}): Promise<{ productos: any[]; categorias: any[] }> {
+  const query = new URLSearchParams();
+  if (params?.categoriaId)                        query.set('categoria_id', params.categoriaId);
+  if (params?.estado)                             query.set('estado',       params.estado);
+  if (params?.busqueda)                           query.set('busqueda',     params.busqueda);
+  if (params?.color)                              query.set('color',        params.color);
+  if (params?.talla)                              query.set('talla',        params.talla);
+  if (params?.sortOrder && params.sortOrder !== 'none') query.set('sort', params.sortOrder);
 
-  if (filtros?.categoria_id) query = query.eq('categoria_id', filtros.categoria_id);
-  if (filtros?.estado) query = query.eq('estado', filtros.estado);
-  if (filtros?.busqueda) query = query.ilike('nombre', `%${filtros.busqueda}%`);
-
-  return await query.order('created_at', { ascending: false });
+  const res = await fetch(`${API}?${query.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Error al cargar productos');
+  return res.json();
 }
 
-export async function crearProducto(supabase: any, datos: any) {
-  return await supabase
-    .from('productos')
-    .insert([datos])
-    .select()
-    .single();
+export async function fetchProductoById(id: string): Promise<any> {
+  const res = await fetch(`${API}/${id}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Producto no encontrado');
+  const result = await res.json();
+  return result.data ?? result;
 }
 
-export async function actualizarProducto(supabase: any, id: string, datos: any) {
-  return await supabase
-    .from('productos')
-    .update(datos)
-    .eq('id', id)
-    .select()
-    .single();
+export async function createProducto(data: any): Promise<ApiResponse> {
+  const res = await fetch(API, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(data),
+  });
+  return res.json();
 }
 
-export async function eliminarProducto(supabase: any, id: string) {
-  return await supabase
-    .from('productos')
-    .delete()
-    .eq('id', id);
+export async function updateProducto(
+  id: string,
+  data: { estado?: string; nombre?: string; precio?: number; stock?: number; categoria_id?: string }
+): Promise<ApiResponse> {
+  const res = await fetch(`${API}/${id}`, {
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(data),
+  });
+  return res.json();
 }
 
-/**
- * PRODUCTOS DEL PORTAL (Venta B2B)
- */
-export const obtenerProductosPortal = async (supabase: any): Promise<any[]> => {
-  const { data, error } = await supabase
-    .from('productos')
-    .select(`
-      id,
-      nombre,
-      sku,
-      precio,
-      stock,
-      categorias (nombre)
-    `)
-    .eq('estado', 'activo'); // Ajustado según tu enum EstadoProducto
+export async function toggleEstadoProducto(
+  id: string,
+  estado: 'activo' | 'inactivo'
+): Promise<ApiResponse> {
+  const res = await fetch(`${API}/${id}`, {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ estado }),
+  });
+  return res.json();
+}
 
-  if (error) {
-    console.error('Error al obtener productos portal:', error);
-    return [];
-  }
-
-  return data.map((p: any) => ({
-    id: p.id,
-    nombre: p.nombre,
-    sku: p.sku,
-    precioBase: p.precio,
-    stockActual: p.stock,
-    categoria: p.categorias?.nombre || 'General'
-  }));
-};
-
-/**
- * INSUMOS (Materia Prima / Taller)
- * Corregido nombre de tabla a 'insumo' (singular) según tu SQL
- */
-export const obtenerInsumos = async (supabase: any): Promise<Insumo[]> => {
-  const { data, error } = await supabase
-    .from('insumo') 
-    .select('*')
-    .order('nombre', { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data as Insumo[];
-};
-
-export const crearInsumo = async (supabase: any, insumo: InsumoInsert) => {
-  const { data, error } = await supabase
-    .from('insumo')
-    .insert([insumo])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-/**
- * ACTUALIZAR STOCK
- * Se cambia id a string para resolver el error 2345
- */
-export const actualizarStockInsumo = async (supabase: any, id: string, nuevoStock: number) => {
-  try {
-    const { error } = await supabase
-      .from('insumo')
-      .update({ stock_actual: nuevoStock })
-      .eq('id', id);
-
-    if (error) throw error;
-    return { success: true, error: null };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * UTILITARIOS
- */
-export const actualizarStockFisico = async (supabase: any, id: string, cantidad: number, operacion: 'sumar' | 'restar') => {
-  const { data: insumo } = await supabase
-    .from('insumo')
-    .select('stock_actual')
-    .eq('id', id)
-    .single();
-
-  if (!insumo) return null;
-
-  const nuevoStock = operacion === 'sumar' 
-    ? insumo.stock_actual + cantidad 
-    : insumo.stock_actual - cantidad;
-
-  const { data, error } = await supabase
-    .from('insumo')
-    .update({ stock_actual: nuevoStock })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export function calcularMargen(costo: number, precio: number) {
-  if (!costo || !precio) return 0;
-  return ((precio - costo) / precio) * 100;
+export async function deleteProducto(id: string): Promise<ApiResponse> {
+  const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+  return res.json();
 }

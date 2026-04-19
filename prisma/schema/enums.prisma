@@ -408,3 +408,12 @@ enum TipoConteo {
 
   @@schema("public")
 }
+
+enum ReferenciaMovimiento {
+  ORDEN
+  COMPRA
+  VENTA
+  AJUSTE
+
+  @@schema("public")
+}

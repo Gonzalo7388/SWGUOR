@@ -39,7 +39,7 @@ model productos {
   pedido_items           pedido_items[]
   precio_historico       precio_historico[]
   categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ficha_tecnica_rel      fichas_tecnicas?         @relation("producto_ficha_principal", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ficha_tecnicas         fichas_tecnicas?         @relation("producto_ficha_principal", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
   ordenes_produccion     ordenes_produccion[]
 
@@ -56,7 +56,7 @@ model variantes_producto {
   talla            TallaProductos
   estado           EstadoProducto     @default(activo)
   precio_adicional Decimal            @default(0.00) @db.Decimal(10, 2)
-  stock_adicional  Int                @default(0)
+  stock            Int                @default(0)
   sku              String             @unique(map: "unique_variant_sku") @db.VarChar(100)
   imagen_url       String?
   created_at       DateTime?          @default(now()) @db.Timestamptz(6)

@@ -1,4 +1,3 @@
-// src/components/admin/productos/detalle/FichaTecnicaTab.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,14 +13,15 @@ const FIELD_LABEL = "text-[10px] font-black text-gray-400 uppercase tracking-[0.
 const FIELD_INPUT  = "bg-gray-50 border-gray-200 h-11 rounded-lg text-sm font-medium text-gray-800 focus-visible:ring-2 focus-visible:ring-pink-300 transition-all placeholder:text-gray-300";
 
 interface FichaTecnicaTabProps {
-  producto:     any;
-  fichaInicial: any | null;
-  canEdit:      boolean;
+  producto:   any;
+  ficha:      any | null;
+  canEdit:    boolean;
+  isLoading?: boolean;
+  onCreate:   (data: any) => void;
+  onUpdate:   (id: string, data: any) => void;
 }
 
-export function FichaTecnicaTab({ producto, fichaInicial, canEdit }: FichaTecnicaTabProps) {
-  const [loading, setLoading]   = useState(false);
-  const [ficha,   setFicha]     = useState(fichaInicial);
+export function FichaTecnicaTab({ producto, ficha, canEdit, isLoading = false, onCreate, onUpdate }: FichaTecnicaTabProps) {
 
   const { register, handleSubmit } = useForm({
     defaultValues: {
@@ -34,31 +34,11 @@ export function FichaTecnicaTab({ producto, fichaInicial, canEdit }: FichaTecnic
     },
   });
 
-  const onSubmit = async (data: any) => {
-    setLoading(true);
-    try {
-      const isCreate = !ficha?.id;
-      const url    = "/api/admin/fichas-tecnicas";
-      const method = isCreate ? "POST" : "PUT";
-      const body   = isCreate
-        ? { producto_id: producto.id, ...data }
-        : { id: ficha.id,             ...data };
-
-      const res    = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-
-      setFicha(result.data);
-      toast.success(isCreate ? "Ficha creada correctamente" : "Ficha actualizada correctamente");
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
+  const onSubmit = (data: any) => {
+    if (!ficha?.id) {
+      onCreate({ producto_id: producto.id, ...data });
+    } else {
+      onUpdate(ficha.id, data);
     }
   };
 
@@ -187,10 +167,10 @@ export function FichaTecnicaTab({ producto, fichaInicial, canEdit }: FichaTecnic
           <div className="flex justify-end pt-2 border-t border-gray-100">
             <Button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 font-bold gap-2"
             >
-              {loading ? (
+              {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <><Save size={15} /> {ficha?.id ? "Guardar cambios" : "Crear ficha"}</>

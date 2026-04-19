@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { exportToExcel, exportToPDF } from "@/lib/utils/export-utils";
-import { useInventario } from "@/lib/hooks/useInventory";
+import { useInventario } from "@/lib/hooks/useInventario";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // Lazy loading de componentes de Modales
