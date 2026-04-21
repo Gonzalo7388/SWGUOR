@@ -13,7 +13,7 @@ export async function fetchInsumos(params?: {
 }): Promise<{ insumos: any[]; proveedores: any[] }> {
   const query = new URLSearchParams();
   if (params?.tipo)                                     query.set("tipo",       params.tipo);
-  if (params?.categoria)                                query.set("categoria",  params.categoria);
+  if (params?.categoria)                                query.set("categoria_insumo", params.categoria);
   if (params?.busqueda)                                 query.set("busqueda",   params.busqueda);
   if (params?.stockBajo)                                query.set("stock_bajo", "true");
   if (params?.sortOrder && params.sortOrder !== "none") query.set("sort",       params.sortOrder);
@@ -69,21 +69,23 @@ export async function deleteInsumo(id: string): Promise<ApiResponse> {
 
 // ── STOCK ─────────────────────────────────────────────────────────────────────
 
-export async function ajustarStock(
-  id: string,
-  data: {
-    operacion:        "sumar" | "restar" | "absoluto";
-    cantidad:         number;
-    motivo?:          string | null;
-    costo_unitario?:  number | null;
-    referencia_tipo?: string | null;
-    referencia_id?:   number | null;
-  }
-): Promise<ApiResponse> {
-  const res = await fetch(`${API}/${id}/stock`, {
-    method:  "PATCH",
+export async function ajustarStock(id: string, data: any) {
+  // Traducimos 'sumar'/'restar' a stock_delta para el servicio de backend
+  let payload: any = {
+    id,
+    motivo: data.motivo,
+    costo_unitario: data.costo_unitario,
+    precio_unitario: data.precio_unitario,
+  };
+
+  if (data.operacion === "sumar") payload.stock_delta = data.cantidad;
+  else if (data.operacion === "restar") payload.stock_delta = -data.cantidad;
+  else payload.stock_actual = data.cantidad;
+
+  const res = await fetch(`/api/admin/inventario/movimientos`, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   return res.json();
 }

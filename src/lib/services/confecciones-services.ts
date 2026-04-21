@@ -1,6 +1,6 @@
-// src/lib/services/confecciones.service.ts
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
+import { EstadoConfeccion } from '@prisma/client';
 
 export const ConfeccionesService = {
 
@@ -17,7 +17,7 @@ export const ConfeccionesService = {
     const confecciones = await prisma.confecciones.findMany({
       where,
       include: {
-        taller: { select: { id: true, nombre: true } },
+        talleres: { select: { id: true, nombre: true } },
         pedido:  { select: { id: true, estado: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -46,14 +46,14 @@ export const ConfeccionesService = {
 
       const confeccion = await tx.confecciones.update({
         where: { id: BigInt(id) },
-        data:  { estado: estado as any, ...extra, updated_at: new Date() },
+        data:  { estado: estado, ...extra, updated_at: new Date() },
       });
 
       await tx.seguimiento_confeccion.create({
         data: {
           confeccion_id:  BigInt(id),
-          estado_nuevo:   estado as any,
-          responsable_id: usuario_id ? BigInt(usuario_id) : null,
+          estado_nuevo:   estado as EstadoConfeccion,
+          responsable_id: usuario_id ?? null, 
         },
       });
 
@@ -75,7 +75,7 @@ export const ConfeccionesService = {
           estado_anterior: data.estado_anterior as any ?? null,
           estado_nuevo:    data.estado_nuevo    as any,
           notas:           data.notas           ?? null,
-          responsable_id:  data.usuario_id ? BigInt(data.usuario_id) : null,
+          responsable_id:  data.usuario_id      ?? null,
         },
       });
 

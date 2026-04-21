@@ -265,7 +265,7 @@ export async function PATCH(req: Request) {
             ...(ci.producto_id && { producto_id: ci.producto_id }),
             ...(ci.variante_id && { variante_id: ci.variante_id }),
             cantidad: ci.cantidad,
-          },
+          } as Prisma.pedido_itemsUncheckedCreateInput,
         });
       }
 

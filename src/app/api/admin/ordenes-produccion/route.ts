@@ -19,14 +19,22 @@ export async function GET_ORDENES(req: Request) {
 export async function POST_ORDENES(req: Request, usuario_id: string) {
   try {
     const body = await req.json();
-    const { producto_id, taller_id, ficha_id, cantidad_solicitada } = body;
-    if (!producto_id || !taller_id || !ficha_id || !cantidad_solicitada) {
+    const { producto_id, taller_id, ficha_id, cantidad_solicitada, pedido_id } = body;
+
+    // Validación básica de campos requeridos para la DB
+    if (!producto_id || !taller_id || !ficha_id || !cantidad_solicitada || !pedido_id) {
       return NextResponse.json(
-        { error: 'producto_id, taller_id, ficha_id y cantidad_solicitada son requeridos' },
+        { error: 'producto_id, taller_id, ficha_id, pedido_id y cantidad son requeridos' },
         { status: 400 }
       );
     }
-    const orden = await OrdenesProduccionService.crear({ ...body, creado_por: usuario_id });
+
+    // El servicio ahora se encarga de: Crear Orden -> Crear Seguimiento 'corte' -> Poner Producto 'en_produccion'
+    const orden = await OrdenesProduccionService.crear({ 
+      ...body, 
+      creado_por: usuario_id 
+    });
+
     return NextResponse.json({ success: true, data: orden }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

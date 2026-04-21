@@ -37,10 +37,9 @@ export default function ProductosPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>("none");
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedProducto, setSelectedProducto] = useState<any>(null);
+  const [isEditOpen, setIsEditOpen ] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isTechOpen, setIsTechOpen] = useState(false);
-  
-  // Nuevo: Filtro de estado vinculado a las Stats
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   const pageSize = 10;
@@ -212,9 +211,10 @@ export default function ProductosPage() {
               data={paginatedData}
               categorias={categorias}
               loading={isLoading}
+              onEdit={(p) => { setSelectedProducto(p); setIsEditOpen(true); }}
               onDelete={(p) => { setSelectedProducto(p); setIsDeleteOpen(true); }}
               onFicha={(p) => { setSelectedProducto(p); setIsTechOpen(true); }}
-              onStatusChange={(p) => toggleEstado(p.id.toString(), p.estado === 'activo' ? 'inactivo' : 'activo')}
+              onStatusChange={(p) => toggleEstado(p.id.toString(), p.estado === 'activo' ? 'inactivo' : 'activo' )}
             />
 
             {/* PAGINACIÓN ESTILO CATEGORÍAS */}

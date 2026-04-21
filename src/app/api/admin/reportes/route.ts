@@ -59,7 +59,7 @@ export async function GET(req: Request) {
         include: {
           ordenes: {
             include: {
-              cliente: { select: { razon_social: true, ruc: true } },
+              clientes: { select: { razon_social: true, ruc: true } },
             },
           },
         },

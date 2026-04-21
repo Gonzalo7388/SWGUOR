@@ -16,7 +16,10 @@ export async function GET(req: Request) {
       sort:             (searchParams.get('sort') as 'asc' | 'desc') ?? undefined,
     });
 
-    return NextResponse.json(insumos);
+    return NextResponse.json({
+      insumos,
+      proveedores: [],
+    });
   } catch (error: any) {
     console.error('[GET /inventario]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

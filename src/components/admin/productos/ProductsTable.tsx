@@ -13,6 +13,7 @@ interface ProductosTableProps {
   loading?: boolean;
   onDelete: (p: ProductoConRelaciones) => void;
   onFicha: (p: ProductoConRelaciones) => void;
+  onEdit: (p: ProductoConRelaciones) => void;
   onStatusChange?: (p: ProductoConRelaciones) => void;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -24,11 +25,11 @@ function ProductosTable({
   loading,
   onDelete,
   onFicha,
+  onEdit,
   onStatusChange,
   canEdit = false,
   canDelete = false
 }: ProductosTableProps) {
-  const router = useRouter();
 
   return (
     <div className="space-y-4">
@@ -94,10 +95,10 @@ function ProductosTable({
                   categorias={categorias}
                   onDelete={onDelete}
                   onFicha={onFicha}
+                  onEdit={onEdit}
                   onStatusChange={onStatusChange}
                   canEdit={canEdit}
                   canDelete={canDelete}
-                  onClick={() => router.push(`/admin/Panel-Administrativo/productos/${p.id}`)}
                 />
               ))
             )}

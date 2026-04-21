@@ -281,15 +281,19 @@ export async function aprobarCotizacion(
             total_estimado:  cotizacion.total ?? new Prisma.Decimal(0),
             total_unidades:  totalUnidades,
             pedido_items: {
-              create: cotizacion.cotizacion_items.map((item) => ({
-                producto_id:     item.producto_id,
-                variante_id:     item.variante_id,
-                cantidad:        item.cantidad,
-                especificaciones: {
-                  precio_unitario: Number(item.precio_unitario_snapshot),
-                  subtotal:        Number(item.subtotal),
-                },
-              })),
+            create: cotizacion.cotizacion_items.map((item) => ({
+              producto_id: item.producto_id,
+              variante_id: item.variante_id,
+              cantidad:    item.cantidad,
+              especificaciones: {
+                precio_unitario: Number(item.precio_unitario_snapshot),
+                subtotal:        Number(item.subtotal),
+                color:           item.color_snapshot,
+                modelo:          item.modelo_snapshot,
+                prenda_tipo:     item.prenda_tipo_snapshot,
+                talla:           item.talla_snapshot,
+              },
+              })) as Prisma.pedido_itemsUncheckedCreateWithoutPedidosInput[],
             },
           },
         });

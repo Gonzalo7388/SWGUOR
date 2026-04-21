@@ -34,7 +34,7 @@ export const ProductosService = {
           variantes_producto: { 
             orderBy: { created_at: 'asc' } 
           },
-          ficha_tecnica_rel: { select: { id: true, version: true, estado: true } },
+          ficha_tecnicas: { select: { id: true, version: true, estado: true } },
         },
         orderBy: { nombre: 'asc' },
       }),

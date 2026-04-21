@@ -34,7 +34,7 @@ export const PedidosService = {
         seguimiento_pedido: { orderBy: { created_at: 'desc' } },
         ordenes_produccion: {
           include: {
-            taller: { select: { id: true, nombre: true, contacto: true, email: true } },
+            talleres: { select: { id: true, nombre: true, contacto: true, email: true } },
             ficha:    { select: { id: true, version: true, estado: true } },
             seguimientos: { where: { activo: true }, take: 1, orderBy: { created_at: 'desc' } },
           },

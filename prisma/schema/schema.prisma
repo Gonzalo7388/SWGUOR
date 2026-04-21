@@ -1,9 +1,0 @@
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["partialIndexes", "prismaSchemaFolder"]
-}
-
-datasource db {
-  provider = "postgresql"
-  schemas  = ["auth", "public"]
-}

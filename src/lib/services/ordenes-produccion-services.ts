@@ -1,4 +1,3 @@
-// src/lib/services/ordenes-produccion.service.ts
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 
@@ -8,10 +7,14 @@ export const OrdenesProduccionService = {
     const ordenes = await prisma.ordenes_produccion.findMany({
       where:   producto_id ? { producto_id: BigInt(producto_id) } : undefined,
       include: {
-        producto: { select: { id: true, nombre: true, sku: true } },
-        taller:   { select: { id: true, nombre: true, email: true, contacto: true } },
-        ficha:    { select: { id: true, version: true, estado: true } },
-        seguimientos: { where: { activo: true }, take: 1, orderBy: { created_at: 'desc' } },
+        productos: { select: { id: true, nombre: true, sku: true } },
+        taller:    { select: { id: true, nombre: true, email: true, contacto: true } },
+        ficha:     { select: { id: true, version: true, estado: true } },
+        seguimientos: { 
+          where: { activo: true }, 
+          take: 1, 
+          orderBy: { created_at: 'desc' } 
+        },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -37,12 +40,12 @@ export const OrdenesProduccionService = {
           pedido_id:           BigInt(data.pedido_id),
           cantidad_solicitada: data.cantidad_solicitada,
           fecha_entrega:       data.fecha_entrega ? new Date(data.fecha_entrega) : null,
-          notas:               data.notas     ?? null,
+          notas:               data.notas      ?? null,
           creado_por:          data.creado_por ? BigInt(data.creado_por) : null,
           estado:              'pendiente',
         },
         include: {
-          producto: { select: { id: true, nombre: true, sku: true } },
+          productos: { select: { id: true, nombre: true, sku: true } },
           taller:   { select: { id: true, nombre: true, email: true } },
           ficha:    { select: { id: true, version: true } },
         },
@@ -67,14 +70,12 @@ export const OrdenesProduccionService = {
   },
 
   async actualizar(id: string, data: {
-    estado?:        string;
     fecha_entrega?: string;
     notas?:         string;
   }) {
     const orden = await prisma.ordenes_produccion.update({
       where: { id: BigInt(id) },
       data: {
-        ...(data.estado        !== undefined && { estado:        data.estado }),
         ...(data.fecha_entrega !== undefined && { fecha_entrega: new Date(data.fecha_entrega) }),
         ...(data.notas         !== undefined && { notas:         data.notas }),
         updated_at: new Date(),
@@ -97,13 +98,35 @@ export const OrdenesProduccionService = {
 
       const seg = await tx.seguimiento_produccion.create({
         data: {
-          orden_id:     BigInt(data.orden_id),
-          etapa:        data.etapa as any,
+          orden_id:      BigInt(data.orden_id),
+          etapa:         data.etapa as any,
           observaciones: data.observaciones ?? null,
-          usuario_id:    data.usuario_id ? BigInt(data.usuario_id) : null,
-          activo:       true,
+          usuarios_id:   data.usuario_id ? BigInt(data.usuario_id) : null,
+          activo:        true,
         },
       });
+
+      if (data.etapa === 'almacen') {
+        const orden = await tx.ordenes_produccion.findUnique({
+          where: { id: BigInt(data.orden_id) },
+          select: { producto_id: true, cantidad_solicitada: true }
+        });
+
+        if (orden) {
+          await tx.productos.update({
+            where: { id: orden.producto_id },
+            data: {
+              estado: 'activo',
+              stock: { increment: orden.cantidad_solicitada }
+            }
+          });
+
+          await tx.ordenes_produccion.update({
+            where: { id: BigInt(data.orden_id) },
+            data: { estado: 'completada' }
+          });
+        }
+      }
 
       return serializeBigInt(seg);
     });

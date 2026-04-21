@@ -1006,6 +1006,58 @@ export type Database = {
           },
         ]
       }
+      fichas_tecnicas_detalle: {
+        Row: {
+          cantidad_consumo: number
+          ficha_id: number
+          id: number
+          insumo_id: number | null
+          material_id: number | null
+          observaciones: string | null
+          porcentaje_desperdicio: number | null
+        }
+        Insert: {
+          cantidad_consumo?: number
+          ficha_id: number
+          id?: number
+          insumo_id?: number | null
+          material_id?: number | null
+          observaciones?: string | null
+          porcentaje_desperdicio?: number | null
+        }
+        Update: {
+          cantidad_consumo?: number
+          ficha_id?: number
+          id?: number
+          insumo_id?: number | null
+          material_id?: number | null
+          observaciones?: string | null
+          porcentaje_desperdicio?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ficha_cabecera"
+            columns: ["ficha_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_insumo_rel"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_material_rel"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidencias_taller: {
         Row: {
           asignado_a: number | null
@@ -1144,6 +1196,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "insumo_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material: {
+        Row: {
+          alerta_bajo_stock: boolean | null
+          ancho_total: number | null
+          ancho_util: number | null
+          codigo_color: string | null
+          color: string | null
+          composicion: string | null
+          created_at: string
+          descripcion: string | null
+          gramaje: number | null
+          id: number
+          nombre: string
+          precio_unitario: number | null
+          proveedor_id: number | null
+          stock_actual: number
+          stock_minimo: number
+          tipo: Database["public"]["Enums"]["TipoMaterial"]
+          ubicacion_almacen: string | null
+          unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at: string | null
+        }
+        Insert: {
+          alerta_bajo_stock?: boolean | null
+          ancho_total?: number | null
+          ancho_util?: number | null
+          codigo_color?: string | null
+          color?: string | null
+          composicion?: string | null
+          created_at?: string
+          descripcion?: string | null
+          gramaje?: number | null
+          id?: number
+          nombre: string
+          precio_unitario?: number | null
+          proveedor_id?: number | null
+          stock_actual?: number
+          stock_minimo?: number
+          tipo?: Database["public"]["Enums"]["TipoMaterial"]
+          ubicacion_almacen?: string | null
+          unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at?: string | null
+        }
+        Update: {
+          alerta_bajo_stock?: boolean | null
+          ancho_total?: number | null
+          ancho_util?: number | null
+          codigo_color?: string | null
+          color?: string | null
+          composicion?: string | null
+          created_at?: string
+          descripcion?: string | null
+          gramaje?: number | null
+          id?: number
+          nombre?: string
+          precio_unitario?: number | null
+          proveedor_id?: number | null
+          stock_actual?: number
+          stock_minimo?: number
+          tipo?: Database["public"]["Enums"]["TipoMaterial"]
+          ubicacion_almacen?: string | null
+          unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_proveedor_id_fkey"
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
@@ -1337,6 +1463,7 @@ export type Database = {
           id: number
           notas: string | null
           notificado_at: string | null
+          pedido_id: number | null
           producto_id: number
           taller_id: number
           updated_at: string | null
@@ -1352,6 +1479,7 @@ export type Database = {
           id?: number
           notas?: string | null
           notificado_at?: string | null
+          pedido_id?: number | null
           producto_id: number
           taller_id: number
           updated_at?: string | null
@@ -1367,6 +1495,7 @@ export type Database = {
           id?: number
           notas?: string | null
           notificado_at?: string | null
+          pedido_id?: number | null
           producto_id?: number
           taller_id?: number
           updated_at?: string | null
@@ -1377,6 +1506,13 @@ export type Database = {
             columns: ["ficha_id"]
             isOneToOne: false
             referencedRelation: "fichas_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_produccion_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
           {
@@ -1574,7 +1710,7 @@ export type Database = {
       }
       personal_interno: {
         Row: {
-          cargo: Database["public"]["Enums"]["RolPersonal"] | null
+          cargo: Database["public"]["Enums"]["Cargo"] | null
           created_at: string | null
           dni: number | null
           estado: boolean | null
@@ -1586,7 +1722,7 @@ export type Database = {
           usuario_id: number | null
         }
         Insert: {
-          cargo?: Database["public"]["Enums"]["RolPersonal"] | null
+          cargo?: Database["public"]["Enums"]["Cargo"] | null
           created_at?: string | null
           dni?: number | null
           estado?: boolean | null
@@ -1598,7 +1734,7 @@ export type Database = {
           usuario_id?: number | null
         }
         Update: {
-          cargo?: Database["public"]["Enums"]["RolPersonal"] | null
+          cargo?: Database["public"]["Enums"]["Cargo"] | null
           created_at?: string | null
           dni?: number | null
           estado?: boolean | null
@@ -2296,9 +2432,18 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_costo_ficha: { Args: { p_ficha_id: number }; Returns: number }
       random_9_digit_phone: { Args: never; Returns: number }
     }
     Enums: {
+      Cargo:
+        | "administrador"
+        | "cortador"
+        | "disenador"
+        | "recepcionista"
+        | "ayudante"
+        | "representante_taller"
+        | "gerente"
       CategoriaInsumo:
         | "tela"
         | "avios"
@@ -2307,6 +2452,7 @@ export type Database = {
         | "etiquetas"
         | "forro"
         | "otro"
+        | "accesorios"
       ColorPrenda:
         | "animal_print"
         | "azul"
@@ -2464,15 +2610,6 @@ export type Database = {
         | "representante_taller"
         | "cliente"
         | "gerente"
-      RolPersonal:
-        | "administrador"
-        | "cortador"
-        | "disenador"
-        | "recepcionista"
-        | "ayudante"
-        | "representante_taller"
-        | "cliente"
-        | "gerente"
       SeveridadIncidencia: "baja" | "media" | "alta" | "critica"
       TallaProductos:
         | "XS"
@@ -2507,6 +2644,10 @@ export type Database = {
         | "cierre"
         | "empaque"
         | "otro"
+        | "etiqueta"
+        | "cinta"
+        | "elastico"
+      TipoMaterial: "punto" | "plano" | "no_tejido" | "especial"
       TipoMovimiento: "entrada" | "salida" | "ajuste"
       UnidadMedida:
         | "metros"
@@ -2515,6 +2656,7 @@ export type Database = {
         | "docenas"
         | "kilogramos"
         | "set"
+        | "millares"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2645,6 +2787,15 @@ export const Constants = {
   },
   public: {
     Enums: {
+      Cargo: [
+        "administrador",
+        "cortador",
+        "disenador",
+        "recepcionista",
+        "ayudante",
+        "representante_taller",
+        "gerente",
+      ],
       CategoriaInsumo: [
         "tela",
         "avios",
@@ -2653,6 +2804,7 @@ export const Constants = {
         "etiquetas",
         "forro",
         "otro",
+        "accesorios",
       ],
       ColorPrenda: [
         "animal_print",
@@ -2828,16 +2980,6 @@ export const Constants = {
         "cliente",
         "gerente",
       ],
-      RolPersonal: [
-        "administrador",
-        "cortador",
-        "disenador",
-        "recepcionista",
-        "ayudante",
-        "representante_taller",
-        "cliente",
-        "gerente",
-      ],
       SeveridadIncidencia: ["baja", "media", "alta", "critica"],
       TallaProductos: [
         "XS",
@@ -2874,7 +3016,11 @@ export const Constants = {
         "cierre",
         "empaque",
         "otro",
+        "etiqueta",
+        "cinta",
+        "elastico",
       ],
+      TipoMaterial: ["punto", "plano", "no_tejido", "especial"],
       TipoMovimiento: ["entrada", "salida", "ajuste"],
       UnidadMedida: [
         "metros",
@@ -2883,6 +3029,7 @@ export const Constants = {
         "docenas",
         "kilogramos",
         "set",
+        "millares",
       ],
     },
   },

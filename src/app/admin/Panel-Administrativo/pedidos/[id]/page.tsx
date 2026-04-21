@@ -35,7 +35,7 @@ export default async function PedidoDetallePage({ params }: PageProps) {
         seguimiento_pedido: { orderBy: { created_at: 'desc' } },
         confecciones: {
           include: {
-            taller: { select: { id: true, nombre: true, contacto: true, email: true } },
+            talleres: { select: { id: true, nombre: true, contacto: true, email: true } },
             ordenes: {
               include: {
                 ficha:        { select: { id: true, version: true, estado: true } },

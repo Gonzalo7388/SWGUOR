@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Trash2, Layers, Loader2 } from "lucide-react";
+import { Edit2, Trash2, Layers, Loader2, CircleDollarSign } from "lucide-react";
 import type { Database } from "@/types/database";
 type Insumo = Database['public']['Tables']['insumo']['Row'];
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,11 @@ interface InventarioTableProps {
   loading?: boolean;
   onEdit: (item: Insumo) => void;
   onDelete: (item: Insumo) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
-export default function InventarioTable({ data, loading, onEdit, onDelete }: InventarioTableProps) {
+export default function InventarioTable({ data, loading, onEdit, onDelete, canEdit, canDelete }: InventarioTableProps) {
   
   const getStockStatus = (actual: number, minimo: number) => {
     if (actual <= 0) return { label: 'Agotado', style: 'bg-red-50 text-red-700 border-red-100' };
@@ -22,9 +24,9 @@ export default function InventarioTable({ data, loading, onEdit, onDelete }: Inv
 
   if (loading) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-pink-600 animate-spin mb-2" />
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sincronizando Almacén...</p>
+      <div className="h-64 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 shadow-sm">
+        <Loader2 className="w-8 h-8 text-slate-900 animate-spin mb-2" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizando Almacén...</p>
       </div>
     );
   }
@@ -34,8 +36,9 @@ export default function InventarioTable({ data, loading, onEdit, onDelete }: Inv
       <table className="w-full border-separate border-spacing-y-3">
         <thead>
           <tr className="text-left">
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Insumo / Material</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Insumo / Material</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Tipo</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Precio Reposición</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Stock</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
@@ -44,11 +47,14 @@ export default function InventarioTable({ data, loading, onEdit, onDelete }: Inv
         <tbody>
           {data.map((item) => {
             const status = getStockStatus(item.stock_actual, item.stock_minimo);
+            const precio = item.precio_unitario ? Number(item.precio_unitario) : 0;
+
             return (
               <tr key={item.id} className="group transition-all duration-200">
+                {/* Nombre e Icono */}
                 <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-600 transition-colors border border-slate-100">
+                    <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300 border border-slate-100">
                       <Layers size={18} />
                     </div>
                     <div>
@@ -57,41 +63,75 @@ export default function InventarioTable({ data, loading, onEdit, onDelete }: Inv
                     </div>
                   </div>
                 </td>
+
+                {/* Categoría */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
-                   <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 text-[9px] font-black uppercase border border-slate-100">
+                   <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 text-[9px] font-black uppercase border border-slate-100">
                     {item.tipo}
                   </span>
                 </td>
+
+                {/* Precio Reposición (Clave para la automatización) */}
+                <td className="bg-white border-y border-slate-100 text-center shadow-sm">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-pink-50/50 rounded-lg border border-pink-100">
+                      <CircleDollarSign size={12} className="text-pink-600" />
+                      <span className="text-sm font-black text-pink-700">
+                        S/ {precio.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Stock Numérico */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
                   <div className="flex flex-col items-center">
                     <span className={`text-sm font-black ${item.stock_actual <= item.stock_minimo ? 'text-rose-600' : 'text-slate-800'}`}>
                       {item.stock_actual}
                     </span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Cant. Disponible</span>
                   </div>
                 </td>
+
+                {/* Badge de Estado */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-black border uppercase ${status.style}`}>
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-black border uppercase tracking-wider ${status.style}`}>
                     {status.label}
                   </span>
                 </td>
+
+                {/* Acciones */}
                 <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm group-hover:shadow-md transition-all">
                   <div className="flex justify-end gap-2">
+
+                    {/* Solo mostrar si tiene permiso de edición */}
+                    {canEdit && (
                     <Button 
                       variant="outline" 
                       size="icon" 
                       onClick={() => onEdit(item)}
-                      className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer transition-all"
+                      title="Gestionar Stock y Precios"
+                      className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 cursor-pointer transition-all active:scale-90"
                     >
                       <Edit2 size={16}/>
                     </Button>
+                    )}
+
+                    {/* Solo mostrar si tiene permiso de eliminación */}
+                    {canDelete && (
                     <Button 
                       variant="outline" 
                       size="icon"
                       onClick={() => onDelete(item)}
-                      className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-all"
+                      className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-all active:scale-90"
                     >
                       <Trash2 size={16}/>
                     </Button>
+                    )}
+
+                    {!canEdit && !canDelete && (
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Lectura</span>
+                    )}
                   </div>
                 </td>
               </tr>

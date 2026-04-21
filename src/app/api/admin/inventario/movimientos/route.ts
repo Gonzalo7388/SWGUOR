@@ -16,3 +16,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, ...input } = body; // 'id' es el ID del insumo
+
+    if (!id) return NextResponse.json({ error: 'ID de insumo requerido' }, { status: 400 });
+
+    // Invocamos al servicio que acabas de definir
+    const data = await InventarioService.ajustarStock(id, input);
+
+    return NextResponse.json({ success: true, data });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

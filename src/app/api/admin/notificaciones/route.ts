@@ -43,7 +43,7 @@ export async function GET(req: Request) {
             created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
           include: {
-            cliente: { select: { razon_social: true } },
+            clientes: { select: { razon_social: true } },
           },
           orderBy: { created_at: 'asc' },
           take: 20,
@@ -92,7 +92,7 @@ export async function GET(req: Request) {
         id: `pago-${o.id.toString()}`,
         tipo: 'pago' as const,
         titulo: 'PAGO PENDIENTE',
-        descripcion: `Orden de ${o.cliente?.razon_social ?? 'Cliente'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
+        descripcion: `Orden de ${o.clientes?.razon_social ?? 'Cliente'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
         importante: Number(o.saldo_pendiente ?? 0) > 1000,
         fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
       })),

@@ -7,7 +7,7 @@ export const FichasTecnicasService = {
   async obtenerPorProducto(producto_id: string) {
     const ficha = await prisma.fichas_tecnicas.findFirst({
       where:   { id_producto: BigInt(producto_id) },
-      include: { medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
+      include: { ficha_medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
     });
     return ficha ? serializeBigInt(ficha) : null;
   },

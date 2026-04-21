@@ -13,7 +13,7 @@ export async function GET() {
       include: {
         ordenes: {
           include: {
-            cliente: true,
+            clientes: true,
           },
         },
       },
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
         include: {
           ordenes: {
             include: {
-              cliente: true,
+              clientes: true,
             },
           },
         },

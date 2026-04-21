@@ -94,7 +94,6 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       icon: Users,
       roles: ['gerente', 'administrador'],
       subItems: [
-        { title: 'Clientes', href: '/admin/Panel-Administrativo/clientes', icon: Users },
         { title: 'Usuarios', href: '/admin/Panel-Administrativo/usuarios', icon: Users },
       ],
     },

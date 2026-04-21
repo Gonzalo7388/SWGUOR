@@ -21,12 +21,12 @@ export async function GET(req: Request) {
     const despachos = await prisma.despachos.findMany({
       where,
       include: {
-        pedido: {
+        pedidos: {
           include: {
             clientes: { select: { id: true, razon_social: true } },
           },
         },
-        usuario: {
+        usuarios: {
           select: {
             id: true,
             personal_interno: { select: { nombre_completo: true } },
@@ -39,9 +39,9 @@ export async function GET(req: Request) {
     const data = despachos.map((d) => ({
       ...serializeBigInt(d),
       despacho_id:    `DSP-${String(d.id).padStart(6, '0')}`,
-      cliente:        d.pedido?.clientes?.razon_social ?? 'N/A',
+      cliente:        d.pedidos?.clientes?.razon_social ?? 'N/A',
       direccion:      d.direccion_entrega,
-      usuario_nombre: d.usuario?.personal_interno?.[0]?.nombre_completo ?? 'N/A',
+      usuario_nombre: d.usuarios?.personal_interno?.[0]?.nombre_completo ?? 'N/A',
     }));
 
     return NextResponse.json({ data, count: data.length });
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         estado:            body.estado ?? 'pendiente',
       },
       include: {
-        pedido: { include: { clientes: { select: { razon_social: true } } } },
+        pedidos: { include: { clientes: { select: { razon_social: true } } } },
         usuario: {
           select: {
             personal_interno: { select: { nombre_completo: true } },
@@ -138,7 +138,7 @@ export async function PATCH(req: Request) {
     const despacho = await prisma.$transaction(async (tx) => {
       const existing = await tx.despachos.findUnique({
         where: { id: BigInt(id) },
-        include: { pedido: { include: { clientes: { select: { razon_social: true } } } } },
+        include: { pedidos: { include: { clientes: { select: { razon_social: true } } } } },
       });
 
       if (!existing) throw new Error('Despacho no encontrado');
@@ -153,7 +153,7 @@ export async function PATCH(req: Request) {
         where: { id: BigInt(id) },
         data,
         include: {
-          pedido: { include: { clientes: { select: { razon_social: true } } } },
+          pedidos: { include: { clientes: { select: { razon_social: true } } } },
           usuario: {
             select: {
               personal_interno: { select: { nombre_completo: true } },
@@ -162,7 +162,7 @@ export async function PATCH(req: Request) {
         },
       });
 
-      if (data.estado === 'entregado' && existing.pedido) {
+      if (data.estado === 'entregado' && existing.pedidos) {
         await tx.pedidos.update({
           where: { id: existing.pedido_id },
           data: { estado: 'entregado' },

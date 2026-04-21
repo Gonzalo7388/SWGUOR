@@ -145,7 +145,7 @@ export async function getHistorialOrdenes(
   return prisma.ordenes.findMany({
     where: { proveedor_id: BigInt(proveedorId) },
     include: {
-      cliente: {
+      clientes: {
         select: { id: true, razon_social: true },
       },
       pagos_orden: {
@@ -166,7 +166,7 @@ export async function getProveedorById(id: bigint | number) {
   return prisma.proveedores.findUnique({
     where: { id: BigInt(id) },
     include: {
-      insumos: {                                      
+      insumo: {                                      
         select: {
           id:              true,
           nombre:          true,

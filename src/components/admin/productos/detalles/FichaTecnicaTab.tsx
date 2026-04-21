@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { Save, Loader2, FileText, Lock } from "lucide-react";
+import { Save, Loader2, FileText, Lock, Calculator, Plus, Layers, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useFichaDetalle } from '@/lib/hooks/useFichaDetalle';
+import { useMateriales } from '@/lib/hooks/useMateriales';
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const FIELD_LABEL = "text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] block mb-1.5";
 const FIELD_INPUT  = "bg-gray-50 border-gray-200 h-11 rounded-lg text-sm font-medium text-gray-800 focus-visible:ring-2 focus-visible:ring-pink-300 transition-all placeholder:text-gray-300";
@@ -23,22 +25,41 @@ interface FichaTecnicaTabProps {
 
 export function FichaTecnicaTab({ producto, ficha, canEdit, isLoading = false, onCreate, onUpdate }: FichaTecnicaTabProps) {
 
+  const { detalles, save: saveDetalle, isSaving } = useFichaDetalle(ficha?.id);
+  const { materiales } = useMateriales();
+  const [items, setItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (detalles) setItems(detalles);
+  }, [detalles]);
+
   const { register, handleSubmit } = useForm({
     defaultValues: {
-      version:               ficha?.version               ?? "1.0",
+      version: ficha?.version ?? "1.0",
       descripcion_detallada: ficha?.descripcion_detallada ?? "",
-      sam_total:             ficha?.sam_total             ?? "",
-      costo_estimado:        ficha?.costo_estimado        ?? "",
-      ficha_url:             ficha?.ficha_url             ?? "",
-      imagen_geometral:      ficha?.imagen_geometral      ?? "",
+      sam_total: ficha?.sam_total ?? "",
+      costo_estimado: ficha?.costo_estimado ?? "",
+      ficha_url: ficha?.ficha_url ?? "",
+      imagen_geometral: ficha?.imagen_geometral ?? "",
     },
   });
 
-  const onSubmit = (data: any) => {
+  // Cálculo de costo dinámico
+  const costoTotalMateriales = items.reduce((acc, item) => {
+    const mat = materiales.find(m => String(m.id) === String(item.material_id));
+    const precio = Number(mat?.precio_unitario || 0);
+    const desperdicio = 1 + (Number(item.porcentaje_desperdicio || 0) / 100);
+    return acc + (precio * Number(item.cantidad_consumo || 0) * desperdicio);
+  }, 0);
+
+  const onSubmit = async (data: any) => {
+    // Primero guardamos la cabecera
     if (!ficha?.id) {
-      onCreate({ producto_id: producto.id, ...data });
+      await onCreate({ producto_id: producto.id, ...data });
     } else {
-      onUpdate(ficha.id, data);
+      await onUpdate(ficha.id, data);
+      // Luego guardamos los materiales si ya existe la ficha
+      await saveDetalle(items);
     }
   };
 
@@ -163,21 +184,134 @@ export function FichaTecnicaTab({ producto, ficha, canEdit, isLoading = false, o
           )}
         </div>
 
+        {/* Detalle de Materiales */}
+
+        {ficha?.id && (
+             <div className="mt-8 space-y-4">
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                   <Layers className="text-pink-500 w-4 h-4" />
+                   <h4 className="text-[11px] font-black text-gray-800 uppercase tracking-widest">
+                     Consumos y Materiales
+                   </h4>
+                 </div>
+                 {canEdit && (
+                   <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-[10px] h-7 font-bold uppercase"
+                    onClick={() => setItems([...items, { material_id: '', cantidad_consumo: 0, porcentaje_desperdicio: 5 }])}
+                   >
+                     <Plus className="w-3 h-3 mr-1" /> Añadir Material
+                   </Button>
+                 )}
+               </div>
+
+               <div className="border rounded-lg overflow-hidden">
+                 <Table>
+                   <TableHeader className="bg-gray-50">
+                     <TableRow>
+                       <TableHead className="text-[10px] font-bold">Material</TableHead>
+                       <TableHead className="text-[10px] font-bold">Cantidad</TableHead>
+                       <TableHead className="text-[10px] font-bold">% Desp.</TableHead>
+                       <TableHead className="text-[10px] font-bold text-right">Subtotal</TableHead>
+                       <TableHead className="w-[40px]"></TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {items.map((item, index) => (
+                       <TableRow key={index} className="hover:bg-gray-50/50">
+                         <TableCell>
+                           <select 
+                             disabled={!canEdit}
+                             className="w-full bg-transparent text-xs font-medium focus:outline-none"
+                             value={item.material_id || ''}
+                             onChange={(e) => {
+                               const n = [...items];
+                               n[index].material_id = e.target.value;
+                               setItems(n);
+                             }}
+                           >
+                             <option value="">Seleccionar...</option>
+                             {materiales.map(m => (
+                               <option key={m.id} value={m.id}>{m.nombre} - {m.color}</option>
+                             ))}
+                           </select>
+                         </TableCell>
+                         <TableCell>
+                           <input
+                             type="number"
+                             disabled={!canEdit}
+                             className="w-16 bg-transparent text-xs font-mono focus:outline-none"
+                             value={item.cantidad_consumo}
+                             onChange={(e) => {
+                               const n = [...items];
+                               n[index].cantidad_consumo = e.target.value;
+                               setItems(n);
+                             }}
+                           />
+                         </TableCell>
+                         <TableCell>
+                           <input
+                             type="number"
+                             disabled={!canEdit}
+                             className="w-12 bg-transparent text-xs font-mono focus:outline-none text-gray-400"
+                             value={item.porcentaje_desperdicio}
+                             onChange={(e) => {
+                               const n = [...items];
+                               n[index].porcentaje_desperdicio = e.target.value;
+                               setItems(n);
+                             }}
+                           />
+                         </TableCell>
+                         <TableCell className="text-right text-xs font-bold text-gray-600">
+                           S/ {(Number(materiales.find(m => String(m.id) === String(item.material_id))?.precio_unitario || 0) * Number(item.cantidad_consumo)).toFixed(2)}
+                         </TableCell>
+                         <TableCell>
+                           {canEdit && (
+                             <button type="button" onClick={() => setItems(items.filter((_, i) => i !== index))}>
+                               <Trash2 className="w-3.5 h-3.5 text-gray-300 hover:text-red-500 transition-colors" />
+                             </button>
+                           )}
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               </div>
+               
+               {/* Resumen de Costos */}
+               <div className="flex justify-end">
+                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex items-center gap-4">
+                   <div className="flex items-center gap-1.5 text-gray-400">
+                     <Calculator size={14} />
+                     <span className="text-[10px] font-bold uppercase tracking-tight">Costo Materiales:</span>
+                   </div>
+                   <span className="text-sm font-black text-emerald-600">
+                     S/ {costoTotalMateriales.toFixed(2)}
+                   </span>
+                 </div>
+               </div>
+             </div>
+           )}
+
+        {/* Botón de Guardado */}
         {canEdit && (
-          <div className="flex justify-end pt-2 border-t border-gray-100">
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-6 font-bold gap-2"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <><Save size={15} /> {ficha?.id ? "Guardar cambios" : "Crear ficha"}</>
-              )}
-            </Button>
-          </div>
-        )}
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <Button
+                type="submit"
+                disabled={isLoading || isSaving}
+                className="bg-gray-900 hover:bg-black text-white h-10 px-6 font-bold gap-2 rounded-lg transition-all"
+              >
+                {(isLoading || isSaving) ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <><Save size={15} /> {ficha?.id ? "Sincronizar Ficha Técnica" : "Crear Ficha"}</>
+                )}
+              </Button>
+            </div>
+          )}
       </form>
     </div>
   );

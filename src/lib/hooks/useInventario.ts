@@ -63,19 +63,27 @@ export function useInventario(params?: {
       id,
       cantidad,
       operacion,
+      costo_unitario,
+      precio_unitario,
+      motivo,
     }: {
       id: string;
       cantidad: number;
       operacion: "sumar" | "restar" | "absoluto";
+      costo_unitario?: number;
+      precio_unitario?: number;
+      motivo?: string;
     }) =>
       ajustarStock(id, {
         operacion,
         cantidad,
-        motivo: operacion === "absoluto" ? "Ajuste manual de stock" : undefined,
+        costo_unitario,
+        precio_unitario,
+        motivo: motivo ?? (operacion === "absoluto" ? "Ajuste manual de stock" : undefined),
       }),
     onSuccess: (res) => {
       if (!res.success) { toast.error(res.error ?? "Error al ajustar stock"); return; }
-      toast.success("Stock actualizado");
+      toast.success("Inventario y precios actualizados");
       queryClient.invalidateQueries({ queryKey: [INVENTARIO_KEY] });
       queryClient.invalidateQueries({ queryKey: [MOVIMIENTOS_KEY] });
     },
@@ -105,9 +113,14 @@ export function useInventario(params?: {
     update: (id: string, data: any) =>
       updateMutation.mutateAsync({ id, data }).then(r => r.success),
 
-    // ↓ Firma que usa EditInsumoDialog: (id, cantidad, operacion) → Promise<boolean>
-    ajustarStock: (id: string, cantidad: number, operacion: "sumar" | "restar" | "absoluto") =>
-      ajustarStockMutation.mutateAsync({ id, cantidad, operacion }).then(r => r.success),
+    ajustarStock: (params: { 
+      id: string; 
+      cantidad: number; 
+      operacion: "sumar" | "restar" | "absoluto"; 
+      costo_unitario?: number; 
+      precio_unitario?: number; 
+      motivo?: string; 
+    }) => ajustarStockMutation.mutateAsync(params).then(r => r.success),
 
     remove: (id: string) =>
       deleteMutation.mutateAsync(id).then(r => r.success),

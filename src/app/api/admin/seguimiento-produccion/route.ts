@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         orden_id:      BigInt(orden_id),
         etapa,
         observaciones: observaciones ?? null,
-        usuario_id:    usuario.id ? BigInt(usuario.id) : null,
+        usuario_id:    usuario.id ? String(usuario.id) : null,
         activo:        true,
       },
     });

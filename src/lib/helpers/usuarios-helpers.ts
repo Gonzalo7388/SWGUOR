@@ -1,124 +1,99 @@
-import type { ApiResponse } from '@/lib/schemas/usuarios';
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 const API = '/api/admin/usuarios';
+
+// --- API ROUTES (Consumidos por el Panel Administrativo) ---
 
 export async function fetchUsuarios(): Promise<any[]> {
   const res = await fetch(API, { cache: 'no-store' });
   if (!res.ok) throw new Error('Error al cargar usuarios');
-  const result = await res.json();
-  return result.data ?? [];
+  return await res.json();
 }
 
 export async function fetchUsuarioById(id: string): Promise<any> {
   const res = await fetch(`${API}/${id}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Usuario no encontrado');
-  const result = await res.json();
-  return result.data;
+  return await res.json();
 }
 
-export async function createUsuario(data: {
-  email:    string;
-  rol:      string;
-  estado?:  string;
-  password: string;
-  personal?: {
-    dni:             number;
-    nombre_completo: string;
-    cargo:           string;
-    telefono?:       number;
-    fecha_ingreso?:  string;
-  };
-}): Promise<ApiResponse> {
+export async function createUsuario(data: any): Promise<any> {
   const res = await fetch(API, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(data),
+    body: JSON.stringify(data),
   });
-  return res.json();
+  const result = await res.json();
+  if (!res.ok) return { success: false, error: result.error };
+  return { success: true, data: result };
 }
 
-// ← email agregado al tipo para compatibilidad con perfil/page.tsx
-export async function updateUsuario(
-  id: string,
-  data: Partial<{
-    rol:    string;
-    estado: string;
-    email:  string;
-    personal: {
-      dni?:             number;
-      nombre_completo?: string;
-      cargo?:           string;
-      telefono?:        number;
-      fecha_ingreso?:   string;
-      estado?:          boolean;
-    };
-  }>
-): Promise<{ error: any }> {
-  try {
-    const res = await fetch(`${API}/${id}`, {
-      method:  'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(data),
-    });
-    const result = await res.json();
-    if (!result.success) return { error: result.error ?? 'Error al actualizar' };
-    return { error: null };
-  } catch (error) {
-    return { error };
-  }
-}
-
-export async function toggleEstadoUsuario(
-  id: string,
-  estado: 'activo' | 'inactivo' | 'suspendido'
-): Promise<ApiResponse> {
-  const res = await fetch(`${API}/${id}`, {
-    method:  'PATCH',
+export async function toggleEstadoUsuario(id: string, estado: string): Promise<any> {
+  const res = await fetch(API, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ estado }),
+    body: JSON.stringify({ id, estado }),
   });
-  return res.json();
+  const result = await res.json();
+  if (!res.ok) return { success: false, error: result.error };
+  return { success: true };
 }
 
-export async function deleteUsuario(id: string): Promise<ApiResponse> {
-  const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
-  return res.json();
+export async function deleteUsuario(id: string): Promise<any> {
+  const res = await fetch(`${API}?id=${id}`, { method: 'DELETE' });
+  const result = await res.json();
+  if (!res.ok) return { success: false, error: result.error };
+  return { success: true };
 }
 
-// ← retorna { data, error } para compatibilidad con perfil/page.tsx
-export async function getUsuarioData(_authId?: string): Promise<{ data: any; error: any }> {
-  try {
-    const res = await fetch(`${API}/me`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Error al obtener datos del usuario');
-    const result = await res.json();
-    return { data: result.data, error: null };
-  } catch (error) {
-    return { data: null, error };
-  }
-}
+// --- DIRECT SUPABASE (Consumidos por la página de Perfil) ---
 
-// ← retorna { error } para compatibilidad con perfil/page.tsx
-export async function updatePersonalInterno(
-  usuarioId: string,
-  data: Partial<{
-    nombre_completo: string;
-    dni:             number;
-    cargo:           string;
-    telefono:        number;
-    fecha_ingreso:   string;
-    estado:          boolean;
-  }>
-): Promise<{ error: any }> {
-  try {
-    const res = await fetch(`${API}/${usuarioId}`, {
-      method:  'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ personal: data }),
-    });
-    const result = await res.json();
-    if (!result.success) return { error: result.error ?? 'Error al actualizar' };
-    return { error: null };
-  } catch (error) {
-    return { error };
-  }
-}
+export const getUsuarioData = async (authId: string) => {
+  const supabase = getSupabaseBrowserClient();
+  
+  const { data, error } = await supabase
+    .from("usuarios")
+    .select(`
+      *,
+      personal_interno (*),
+      clientes (
+        *,
+        direcciones_cliente (*)
+      )
+    `)
+    .eq("auth_id", authId)
+    .single();
+
+  if (error || !data) return { data: null, error };
+
+  // Aplanamos la relación 1:N que Prisma/Supabase devuelve como array
+  const pInterno = Array.isArray(data.personal_interno) ? data.personal_interno[0] : data.personal_interno;
+  const cliente = Array.isArray(data.clientes) ? data.clientes[0] : data.clientes;
+
+  const formattedData = {
+    ...data,
+    personal_interno: pInterno || null,
+    clientes: cliente || null,
+    personal_interno_id: pInterno?.id || null,
+    nombre_completo: pInterno?.nombre_completo || cliente?.razon_social || "",
+    dni: pInterno?.dni?.toString() || cliente?.ruc || "",
+    telefono: pInterno?.telefono?.toString() || cliente?.telefono || ""
+  };
+
+  return { data: formattedData, error: null };
+};
+
+export const updatePersonalInterno = async (id: string, updates: any) => {
+  const supabase = getSupabaseBrowserClient();
+  return await supabase
+    .from("personal_interno")
+    .update(updates)
+    .eq("id", Number(id));
+};
+
+export const updateUsuario = async (id: string, updates: any) => {
+  const supabase = getSupabaseBrowserClient();
+  return await supabase
+    .from("usuarios")
+    .update(updates)
+    .eq("id", Number(id));
+};

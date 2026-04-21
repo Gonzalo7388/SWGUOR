@@ -108,7 +108,7 @@ export const InventarioService = {
     return prisma.$transaction(async (tx) => {
       const insumo = await tx.insumo.findUniqueOrThrow({ where: { id: BigInt(id) } });
 
-      const stockAnterior = insumo.stock_actual;
+      const stockAnterior = Number(insumo.stock_actual);
       const nuevoStock = input.stock_delta !== undefined
         ? stockAnterior + input.stock_delta
         : Number(input.stock_actual);
@@ -137,7 +137,7 @@ export const InventarioService = {
             motivo:          input.motivo          ?? 'Ajuste de stock manual',
             tipo_movimiento: tipoMovimiento        as any,
             usuario_id:      input.usuario_id      ? BigInt(input.usuario_id) : null,
-            costo_unitario:  input.costo_unitario  ?? (insumo.precio_unitario ? Number(insumo.precio_unitario) : null),
+            costo_unitario:  input.costo_unitario ?? (insumo.precio_unitario ? insumo.precio_unitario.toNumber() : null),
             stock_anterior:  stockAnterior,
             stock_posterior: nuevoStock,
             referencia_tipo: input.referencia_tipo ?? 'AJUSTE' as ReferenciaMovimiento,

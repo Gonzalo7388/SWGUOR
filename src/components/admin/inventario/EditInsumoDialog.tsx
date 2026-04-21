@@ -1,5 +1,5 @@
 "use client";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, CircleDollarSign, Package } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useInventario } from "@/lib/hooks/useInventario";
@@ -13,11 +13,11 @@ interface EditInsumoProps {
 
 export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }: EditInsumoProps) {
   const [loading, setLoading] = useState(false);
-
   const { ajustarStock } = useInventario();
   
-  const [operacion, setOperacion] = useState<"actualizar" | "descontar" | "incrementar">("actualizar");
+  const [operacion, setOperacion] = useState<"actualizar" | "descontar" | "incrementar">("incrementar");
   const [cantidad, setCantidad] = useState("");
+  const [precioCompra, setPrecioCompra] = useState(""); // Nuevo estado para el precio
 
   if (!isOpen || !insumo) return null;
 
@@ -26,30 +26,34 @@ export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }:
     setLoading(true);
     
     try {
-      let success = false;
       const valorNumerico = Number(cantidad);
+      const valorPrecio = precioCompra ? Number(precioCompra) : undefined;
       
-      if (operacion === "actualizar") {
-        const formData = new FormData(e.currentTarget);
-        const nuevoStock = Number(formData.get("stock_actual"));
+      // Mapeo de operaciones para el hook que definimos antes
+      const operacionMap: Record<string, "sumar" | "restar" | "absoluto"> = {
+        incrementar: "sumar",
+        descontar: "restar",
+        actualizar: "absoluto"
+      };
 
-        success = await ajustarStock(insumo.id, nuevoStock, 'sumar'); 
-        
-      } else if (operacion === "descontar" && cantidad) {
-        success = await ajustarStock(insumo.id, valorNumerico, 'restar');
-        
-      } else if (operacion === "incrementar" && cantidad) {
-        success = await ajustarStock(insumo.id, valorNumerico, 'sumar');
-      }
+      const success = await ajustarStock({
+        id: insumo.id,
+        cantidad: operacion === "actualizar" ? Number((e.currentTarget.elements.namedItem("stock_actual") as HTMLInputElement).value) : valorNumerico,
+        operacion: operacionMap[operacion],
+        precio_unitario: valorPrecio, // Esto actualizará la ficha maestra
+        costo_unitario: valorPrecio,  // Esto quedará en el historial de movimientos
+        motivo: operacion === "incrementar" ? "Compra / Entrada de material" : "Ajuste manual"
+      });
 
       if (success) {
-        toast.success(`Insumo actualizado correctamente`);
+        toast.success(`Inventario y precios actualizados`);
         onSuccess();
         onClose();
         setCantidad("");
+        setPrecioCompra("");
       }
     } catch (error) {
-      toast.error("No se pudo actualizar el insumo");
+      toast.error("Error al procesar el movimiento");
     } finally {
       setLoading(false);
     }
@@ -63,10 +67,11 @@ export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }:
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
+        {/* Header */}
         <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h2 className="text-xl font-black text-gray-900 uppercase">Editar Insumo</h2>
-            <p className="text-xs text-gray-500 font-bold">{insumo.nombre}</p>
+            <h2 className="text-xl font-black text-gray-900 uppercase">Gestión de Stock</h2>
+            <p className="text-xs text-pink-600 font-bold">{insumo.nombre}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
@@ -74,13 +79,14 @@ export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }:
         </div>
 
         <form onSubmit={handleUpdate} className="p-6 space-y-4">
+          {/* Selector de Operación */}
           <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-            {(["actualizar", "descontar", "incrementar"] as const).map((op) => (
+            {(["incrementar", "descontar", "actualizar"] as const).map((op) => (
               <button
                 key={op}
                 type="button"
                 onClick={() => setOperacion(op)}
-                className={`flex-1 py-2 rounded-lg text-xs font-black transition-all capitalize ${
+                className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all capitalize ${
                   operacion === op ? "bg-white text-pink-600 shadow-sm" : "text-gray-500"
                 }`}
               >
@@ -89,73 +95,84 @@ export default function EditInsumoDialog({ isOpen, onClose, onSuccess, insumo }:
             ))}
           </div>
 
-          {operacion !== "actualizar" && (
-            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl">
-              <div className="text-center">
-                <p className="text-[9px] font-bold text-gray-500 uppercase">Actual</p>
-                <p className="text-lg font-black text-gray-900">{insumo.stock_actual}</p>
-              </div>
-              <div className={`text-center rounded-lg p-2 ${
-                operacion === "descontar" ? "bg-red-50" : "bg-green-50"
-              }`}>
-                <p className="text-[9px] font-bold text-gray-500 uppercase">Nuevo</p>
-                <p className={`text-lg font-black ${
-                  operacion === "descontar" ? "text-red-600" : "text-green-600"
-                }`}>{nuevoStockCalculado}</p>
-              </div>
+          {/* Visualización de Cambio */}
+          <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <div className="text-center">
+              <p className="text-[9px] font-bold text-gray-400 uppercase">Stock Actual</p>
+              <p className="text-lg font-black text-gray-700">{insumo.stock_actual} <span className="text-[10px]">{insumo.unidad_medida}</span></p>
             </div>
-          )}
+            <div className={`text-center rounded-lg p-2 ${operacion === "descontar" ? "bg-red-50" : "bg-emerald-50"}`}>
+              <p className="text-[9px] font-bold text-gray-400 uppercase">Proyectado</p>
+              <p className={`text-lg font-black ${operacion === "descontar" ? "text-red-600" : "text-emerald-600"}`}>
+                {nuevoStockCalculado}
+              </p>
+            </div>
+          </div>
 
-          {operacion === "actualizar" ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Stock Actual</label>
+          {/* Inputs Dinámicos */}
+          <div className="space-y-4">
+            {operacion === "actualizar" ? (
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                  <Package size={12} /> Ajuste de Inventario Físico
+                </label>
                 <input 
                   name="stock_actual" 
                   type="number" 
                   step="0.01" 
                   required
                   defaultValue={insumo.stock_actual} 
-                  className="w-full border-gray-200 border p-3 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all font-bold" 
+                  className="w-full border-gray-200 border p-3 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none font-bold" 
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Stock Mínimo</label>
-                <input 
-                  name="stock_minimo" 
-                  type="number" 
-                  step="0.01" 
-                  required
-                  defaultValue={insumo.stock_minimo} 
-                  className="w-full border-gray-200 border p-3 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all font-bold text-orange-600" 
-                />
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cantidad</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={cantidad}
+                    onChange={(e) => setCantidad(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full border-gray-200 border p-3 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none font-bold text-lg" 
+                    required
+                  />
+                </div>
+
+                {/* CAMPO CLAVE: Solo aparece en incremento (Compra) */}
+                {operacion === "incrementar" && (
+                  <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                    <label className="text-[10px] font-black text-pink-600 uppercase tracking-widest flex items-center gap-2">
+                      <CircleDollarSign size={12} /> Nuevo Precio Unitario (S/.)
+                    </label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      value={precioCompra}
+                      onChange={(e) => setPrecioCompra(e.target.value)}
+                      placeholder={insumo.precio_unitario?.toString() || "0.00"}
+                      className="w-full border-pink-100 bg-pink-50/30 border p-3 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none font-bold text-pink-700" 
+                    />
+                    <p className="text-[9px] text-gray-400 leading-tight">
+                      * Al completar, se actualizará el costo en todas las fichas técnicas automáticamente.
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cantidad a {operacion}</label>
-              <input 
-                type="number" 
-                step="0.01" 
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-                placeholder="0.00"
-                className="w-full border-gray-200 border p-3 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none transition-all font-bold text-center text-lg" 
-                required
-              />
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-gray-500 hover:text-gray-700">
-              Cancelar
+            <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-gray-400 hover:text-gray-600">
+              Cerrar
             </button>
             <button 
               type="submit" 
               disabled={loading || (operacion !== "actualizar" && !cantidad)}
-              className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-3 rounded-xl font-black flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-pink-100"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-xl font-black flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95 shadow-xl"
             >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : "GUARDAR CAMBIOS"}
+              {loading ? <Loader2 className="animate-spin" size={18} /> : "PROCESAR"}
             </button>
           </div>
         </form>
