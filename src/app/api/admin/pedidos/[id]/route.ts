@@ -2,18 +2,13 @@ export const runtime = 'nodejs';
 import { PedidosService } from '@/lib/services/pedidos-services';
 import { NextResponse } from 'next/server';
 
-// CORREGIDO: La firma de rutas dinámicas en Next.js App Router es siempre:
-//   (req: Request, { params }: { params: { id: string } })
-// Antes era GET(id: string) y PUT(id: string, body: any) — ambas completamente inválidas.
-// Con esas firmas, `id` recibía el objeto Request (no el string) y `body` siempre era undefined.
-
 // GET /api/admin/pedidos/[id]
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: 'id requerido' }, { status: 400 });
@@ -35,10 +30,10 @@ export async function GET(
 // actualizar() solo acepta: estado, prioridad, notas_pedido, notas_cliente
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     const { estado, prioridad, notas_pedido, notas_cliente } = body;
