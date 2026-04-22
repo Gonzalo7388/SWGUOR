@@ -3,7 +3,7 @@ import { ConfeccionesService } from '@/lib/services/confecciones-services';
 import { NextResponse } from 'next/server';
  
 // GET /api/admin/confecciones
-export async function GET_CONFECCIONES(req: Request) {
+export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     return NextResponse.json(await ConfeccionesService.listar({
