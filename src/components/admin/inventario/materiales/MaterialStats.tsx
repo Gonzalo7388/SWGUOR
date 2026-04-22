@@ -1,21 +1,21 @@
-"use client";
+'use client'
 
-import { useMemo } from "react";
-import { Layers, AlertTriangle, XCircle, CircleDollarSign } from "lucide-react";
+import { useMemo } from 'react'
+import { Layers, AlertTriangle, XCircle, CircleDollarSign } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────
 //  Tipos
 // ─────────────────────────────────────────────────────────────
 interface Material {
-  stock_actual:   number;
-  stock_minimo:   number;
-  precio_unitario?: number | string;
+  stock_actual:    number
+  stock_minimo:    number
+  precio_unitario?: number | string
 }
 
 interface MaterialStatsProps {
-  data:           Material[];
-  statusFilter:   string | null;
-  onFilterChange: (filter: string | null) => void;
+  data:           Material[]
+  statusFilter:   string | null
+  onFilterChange: (filter: string | null) => void
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -27,207 +27,162 @@ export default function MaterialStats({
   onFilterChange,
 }: MaterialStatsProps) {
   const stats = useMemo(() => {
-    const total      = data.length;
-    const bajoStock  = data.filter(m => m.stock_actual > 0 && m.stock_actual <= m.stock_minimo).length;
-    const sinStock   = data.filter(m => m.stock_actual <= 0).length;
-    const optimo     = total - bajoStock - sinStock;
+    const total      = data.length
+    const bajoStock  = data.filter(m => m.stock_actual > 0 && m.stock_actual <= m.stock_minimo).length
+    const sinStock   = data.filter(m => m.stock_actual <= 0).length
+    const optimo     = total - bajoStock - sinStock
     const valorTotal = data.reduce(
       (acc, m) => acc + (Number(m.precio_unitario ?? 0) * Number(m.stock_actual ?? 0)),
       0
-    );
-    return { total, bajoStock, sinStock, optimo, valorTotal };
-  }, [data]);
+    )
+    return { total, bajoStock, sinStock, optimo, valorTotal }
+  }, [data])
 
-  const valorFormateado = stats.valorTotal.toLocaleString("es-PE", {
+  const valorFormateado = stats.valorTotal.toLocaleString('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  });
+  })
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 
       {/* ── Total ── */}
       <StatCard
-        label="Total ítems"
+        title="TOTAL MATERIALES"
         value={stats.total}
         sub={`${stats.optimo} en estado óptimo`}
-        icon={<Layers className="w-5 h-5" />}
+        icon={<Layers className="w-6 h-6" />}
         isActive={statusFilter === null}
+        color="pink"
         onClick={() => onFilterChange(null)}
-        variant="neutral"
       />
 
       {/* ── Bajo stock ── */}
       <StatCard
-        label="Stock bajo"
+        title="STOCK BAJO"
         value={stats.bajoStock}
         sub="Próximos a agotarse"
-        icon={<AlertTriangle className="w-5 h-5" />}
-        isActive={statusFilter === "bajoStock"}
-        onClick={() => onFilterChange(statusFilter === "bajoStock" ? null : "bajoStock")}
-        variant="warning"
+        icon={<AlertTriangle className="w-6 h-6" />}
+        isActive={statusFilter === 'bajoStock'}
+        color="orange"
+        onClick={() => onFilterChange(statusFilter === 'bajoStock' ? null : 'bajoStock')}
       />
 
       {/* ── Sin stock ── */}
       <StatCard
-        label="Sin stock"
+        title="SIN STOCK"
         value={stats.sinStock}
         sub="Requieren reposición"
-        icon={<XCircle className="w-5 h-5" />}
-        isActive={statusFilter === "sinStock"}
-        onClick={() => onFilterChange(statusFilter === "sinStock" ? null : "sinStock")}
-        variant="danger"
+        icon={<XCircle className="w-6 h-6" />}
+        isActive={statusFilter === 'sinStock'}
+        color="red"
+        onClick={() => onFilterChange(statusFilter === 'sinStock' ? null : 'sinStock')}
       />
 
       {/* ── Valor estimado ── no filtra ── */}
       <StatCard
-        label="Valor estimado"
+        title="VALOR ESTIMADO"
         value={`S/ ${valorFormateado}`}
         sub="Basado en precio unitario"
-        icon={<CircleDollarSign className="w-5 h-5" />}
+        icon={<CircleDollarSign className="w-6 h-6" />}
         isActive={false}
+        color="emerald"
         onClick={() => {}}
-        variant="success"
         noFilter
       />
     </div>
-  );
+  )
 }
 
 // ─────────────────────────────────────────────────────────────
-//  StatCard rediseñado
+//  StatCard — mismo diseño que Categorías
 // ─────────────────────────────────────────────────────────────
-type Variant = "neutral" | "warning" | "danger" | "success";
+type Color = 'pink' | 'orange' | 'red' | 'emerald'
 
-const VARIANT_CONFIG: Record<Variant, {
-  idle:       string;   // clases cuando NO está activo
-  active:     string;   // clases cuando SÍ está activo
-  iconIdle:   string;
-  iconActive: string;
-  valueColor: string;
-  bar:        string;   // color de la barra decorativa
+const COLOR_STYLES: Record<Color, {
+  active:     string
+  iconActive: string
+  textActive: string
 }> = {
-  neutral: {
-    idle:       "border-gray-100 hover:border-pink-200 hover:shadow-pink-100",
-    active:     "border-pink-400 shadow-pink-100 ring-2 ring-pink-100",
-    iconIdle:   "bg-pink-50   text-pink-500",
-    iconActive: "bg-pink-600  text-white",
-    valueColor: "text-pink-700",
-    bar:        "bg-gradient-to-r from-pink-400 to-rose-400",
+  pink: {
+    active:     'border-pink-500 ring-pink-50 bg-white',
+    iconActive: 'bg-pink-600 text-white',
+    textActive: 'text-pink-600',
   },
-  warning: {
-    idle:       "border-gray-100 hover:border-orange-200 hover:shadow-orange-100",
-    active:     "border-orange-400 shadow-orange-100 ring-2 ring-orange-100",
-    iconIdle:   "bg-orange-50  text-orange-500",
-    iconActive: "bg-orange-500 text-white",
-    valueColor: "text-orange-600",
-    bar:        "bg-gradient-to-r from-orange-400 to-amber-400",
+  orange: {
+    active:     'border-orange-500 ring-orange-50 bg-white',
+    iconActive: 'bg-orange-600 text-white',
+    textActive: 'text-orange-600',
   },
-  danger: {
-    idle:       "border-gray-100 hover:border-red-200 hover:shadow-red-100",
-    active:     "border-red-400 shadow-red-100 ring-2 ring-red-100",
-    iconIdle:   "bg-red-50    text-red-500",
-    iconActive: "bg-red-600   text-white",
-    valueColor: "text-red-600",
-    bar:        "bg-gradient-to-r from-red-400 to-rose-500",
+  red: {
+    active:     'border-red-500 ring-red-50 bg-white',
+    iconActive: 'bg-red-600 text-white',
+    textActive: 'text-red-600',
   },
-  success: {
-    idle:       "border-gray-100 hover:border-emerald-200 hover:shadow-emerald-50",
-    active:     "border-emerald-400 shadow-emerald-50 ring-2 ring-emerald-100",
-    iconIdle:   "bg-emerald-50 text-emerald-500",
-    iconActive: "bg-emerald-600 text-white",
-    valueColor: "text-emerald-700",
-    bar:        "bg-gradient-to-r from-emerald-400 to-teal-400",
+  emerald: {
+    active:     'border-emerald-500 ring-emerald-50 bg-white',
+    iconActive: 'bg-emerald-600 text-white',
+    textActive: 'text-emerald-600',
   },
-};
+}
 
 function StatCard({
-  label,
+  title,
   value,
   sub,
   icon,
   isActive,
+  color,
   onClick,
-  variant,
   noFilter = false,
 }: {
-  label:    string;
-  value:    number | string;
-  sub:      string;
-  icon:     React.ReactNode;
-  isActive: boolean;
-  onClick:  () => void;
-  variant:  Variant;
-  noFilter?: boolean;
+  title:     string
+  value:     number | string
+  sub:       string
+  icon:      React.ReactNode
+  isActive:  boolean
+  color:     Color
+  onClick:   () => void
+  noFilter?: boolean
 }) {
-  const cfg = VARIANT_CONFIG[variant];
+  const s = COLOR_STYLES[color]
 
   return (
     <button
       onClick={onClick}
       disabled={noFilter}
       className={[
-        // base
-        "group relative overflow-hidden w-full text-left",
-        "bg-white rounded-2xl border shadow-sm",
-        "p-4 transition-all duration-200",
-        // cursor
-        noFilter ? "cursor-default" : "cursor-pointer",
-        // estado activo / inactivo
+        'group p-4 rounded-xl border transition-all duration-300',
+        'flex items-center gap-4',
+        noFilter ? 'cursor-default' : 'cursor-pointer',
         isActive
-          ? `${cfg.active} shadow-md -translate-y-0.5`
-          : `${cfg.idle} hover:shadow-md hover:-translate-y-0.5 active:translate-y-0`,
-      ].join(" ")}
+          ? `ring-4 shadow-xl scale-[1.02] z-10 ${s.active}`
+          : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95',
+      ].join(' ')}
     >
-      {/* Barra superior de color */}
-      <span
-        className={[
-          "absolute inset-x-0 top-0 h-[3px] rounded-t-2xl transition-all duration-300",
-          cfg.bar,
-          isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60",
-        ].join(" ")}
-      />
-
-      {/* Contenido */}
-      <div className="flex items-start justify-between gap-3">
-
-        {/* Texto */}
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 truncate mb-1">
-            {label}
-          </p>
-          <p className={[
-            "text-2xl font-black leading-none tracking-tight",
-            isActive ? cfg.valueColor : "text-gray-800",
-          ].join(" ")}>
-            {value}
-          </p>
-          <p className="text-[11px] text-gray-400 mt-1.5 truncate">{sub}</p>
-        </div>
-
-        {/* Ícono */}
-        <div className={[
-          "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
-          "transition-all duration-200",
-          isActive ? cfg.iconActive : cfg.iconIdle,
-          !noFilter && "group-hover:scale-110",
-        ].join(" ")}>
-          {icon}
-        </div>
+      {/* Ícono */}
+      <div className={[
+        'p-3 rounded-lg transition-all duration-300',
+        isActive
+          ? `${s.iconActive} rotate-3`
+          : 'bg-gray-100 text-gray-600 group-hover:rotate-3',
+      ].join(' ')}>
+        {icon}
       </div>
 
-      {/* Indicador de filtro activo */}
-      {isActive && !noFilter && (
-        <div className="mt-3 flex items-center gap-1.5">
-          <span className={[
-            "inline-block w-1.5 h-1.5 rounded-full animate-pulse",
-            cfg.bar,
-          ].join(" ")} />
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Filtro activo
-          </span>
-        </div>
-      )}
+      {/* Texto */}
+      <div className="text-left min-w-0">
+        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest truncate">
+          {title}
+        </p>
+        <p className={[
+          'text-2xl font-black tracking-tight',
+          isActive ? s.textActive : 'text-gray-800',
+        ].join(' ')}>
+          {value}
+        </p>
+        <p className="text-[11px] text-gray-400 mt-0.5 truncate">{sub}</p>
+      </div>
     </button>
-  );
+  )
 }

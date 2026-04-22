@@ -114,10 +114,11 @@ export default function ProductosPage() {
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* HEADER ESTILO CATEGORÍAS */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Inventario</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Gestión de Inventario
+            </h1>
             <p className="text-gray-500 text-sm">Control de productos y existencias de Modas GUOR</p>
           </div>
 

@@ -740,3 +740,121 @@ export const exportCotizacionesToPDF = async (
   a.click();
   URL.revokeObjectURL(url);
 };
+
+// =====================================================
+// EXPORTACIÓN PERSONAL — EXCEL
+// =====================================================
+ 
+const CARGO_LABELS_MAP: Record<string, string> = {
+  gerente:              'Gerente',
+  disenador:            'Diseñador',
+  cortador:             'Cortador',
+  recepcionista:        'Recepcionista',
+  administrador:        'Administrador',
+  ayudante:             'Ayudante',
+  representante_taller: 'Rep. de Taller',
+};
+ 
+export const exportPersonalToExcel = async (data: any[], config?: { filename?: string }) => {
+  if (!data || data.length === 0) return;
+  const rows = data.map(p => ({
+    'NOMBRE COMPLETO':  p.nombre_completo ?? '—',
+    'CARGO':            CARGO_LABELS_MAP[p.cargo] ?? p.cargo ?? '—',
+    'DNI':              p.dni             ?? '—',
+    'TELÉFONO':         p.telefono        ?? '—',
+    'EMAIL':            p.usuarios?.email ?? '—',
+    'ROL SISTEMA':      p.usuarios?.rol   ?? '—',
+    'ESTADO':           p.estado !== false ? 'ACTIVO' : 'INACTIVO',
+    'FECHA INGRESO':    p.fecha_ingreso
+      ? new Date(p.fecha_ingreso).toLocaleDateString('es-PE')
+      : '—',
+    'ÚLTIMO ACCESO':    p.usuarios?.ultimo_acceso
+      ? new Date(p.usuarios.ultimo_acceso).toLocaleDateString('es-PE')
+      : '—',
+  }));
+  await exportToExcel(rows, {
+    filename: config?.filename ?? `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
+    sheetName: 'Personal Interno',
+  });
+};
+ 
+// =====================================================
+// EXPORTACIÓN PERSONAL — PDF
+// =====================================================
+ 
+export const exportPersonalToPDF = async (data: any[], config?: { filename?: string }) => {
+  if (!data || data.length === 0) return;
+  const headers = [["NOMBRE", "CARGO", "DNI", "TELÉFONO", "EMAIL", "ESTADO"]];
+  const body = data.map(p => [
+    p.nombre_completo ?? '—',
+    CARGO_LABELS_MAP[p.cargo] ?? p.cargo ?? '—',
+    p.dni      ?? '—',
+    p.telefono ?? '—',
+    p.usuarios?.email ?? '—',
+    p.estado !== false ? 'ACTIVO' : 'INACTIVO',
+  ]);
+  await exportToPDF(headers, body, {
+    title:       'REPORTE DE PERSONAL INTERNO',
+    subtitle:    'Modas y Estilos GUOR S.A.C.',
+    filename:    config?.filename ?? `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
+    orientation: 'landscape',
+  });
+};
+ 
+// =====================================================
+// EXPORTACIÓN CLIENTES — EXCEL
+// =====================================================
+ 
+export const exportClientesToExcel = async (data: any[], config?: { filename?: string }) => {
+  if (!data || data.length === 0) return;
+  const rows = data.map(u => {
+    const c = u.clientes ?? u;
+    return {
+      'RUC':              c.ruc              ?? '—',
+      'RAZÓN SOCIAL':     c.razon_social     ?? '—',
+      'NOMBRE COMERCIAL': c.nombre_comercial ?? '—',
+      'EMAIL':            u.email            ?? c.email ?? '—',
+      'TELÉFONO':         c.telefono         ?? '—',
+      'TIPO':             (c.tipo_cliente    ?? '—').toString().toUpperCase(),
+      'DIRECCIÓN FISCAL': c.direccion_fiscal ?? '—',
+      'ESTADO':           (u.estado ?? c.activo ?? '—').toString().toUpperCase(),
+      'REGISTRADO':       c.created_at
+        ? new Date(c.created_at).toLocaleDateString('es-PE')
+        : '—',
+      'ÚLTIMO ACCESO':    u.ultimo_acceso
+        ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE')
+        : '—',
+    };
+  });
+  await exportToExcel(rows, {
+    filename: config?.filename ?? `Clientes_GUOR_${new Date().toISOString().split('T')[0]}`,
+    sheetName: 'Clientes',
+  });
+};
+ 
+// =====================================================
+// EXPORTACIÓN CLIENTES — PDF
+// =====================================================
+ 
+export const exportClientesToPDF = async (data: any[], config?: { filename?: string }) => {
+  if (!data || data.length === 0) return;
+  const headers = [["RUC", "RAZÓN SOCIAL", "EMAIL", "TELÉFONO", "TIPO", "ESTADO"]];
+  const body = data.map(u => {
+    const c = u.clientes ?? u;
+    return [
+      c.ruc              ?? '—',
+      c.razon_social     ?? '—',
+      u.email            ?? c.email ?? '—',
+      c.telefono         ?? '—',
+      (c.tipo_cliente    ?? '—').toString().toUpperCase(),
+      (u.estado          ?? c.activo ?? '—').toString().toUpperCase(),
+    ];
+  });
+  await exportToPDF(headers, body, {
+    title:       'DIRECTORIO DE CLIENTES',
+    subtitle:    'Modas y Estilos GUOR S.A.C.',
+    filename:    config?.filename ?? `Clientes_GUOR_${new Date().toISOString().split('T')[0]}`,
+    orientation: 'landscape',
+  });
+};
+ 

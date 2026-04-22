@@ -1,43 +1,61 @@
 export const runtime = 'nodejs';
 import { ClientesService } from '@/lib/services/clientes-services';
-import { NextResponse } from 'next/server';
- 
-// GET /api/admin/clientes
+import { NextResponse }    from 'next/server';
+
+// GET /api/admin/clientes?busqueda=xxx&estado=xxx
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    return NextResponse.json(await ClientesService.listar({
-      busqueda:     searchParams.get('search')       ?? undefined,
-      tipo_cliente: searchParams.get('tipo_cliente') ?? undefined,
-      activo:       searchParams.get('activo')       ?? undefined,
-    }));
+    const data = await ClientesService.listar({
+      busqueda: searchParams.get('busqueda') ?? undefined,
+      estado:   searchParams.get('estado')   ?? undefined,
+    });
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
+    console.error('[GET /clientes]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
- 
-// PATCH /api/admin/clientes  — actualizar datos
-export async function PATCH(req: Request) {
+
+// POST /api/admin/clientes — crea usuario Auth + clientes
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { ruc, email, password } = body;
+
+    if (!ruc)      return NextResponse.json({ error: 'ruc requerido' },      { status: 400 });
+    if (!email)    return NextResponse.json({ error: 'email requerido' },    { status: 400 });
+    if (!password) return NextResponse.json({ error: 'password requerido' }, { status: 400 });
+
+    const cliente = await ClientesService.crear(body);
+    return NextResponse.json({ success: true, data: cliente }, { status: 201 });
+  } catch (error: any) {
+    console.error('[POST /clientes]', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'RUC o email ya registrado' }, { status: 409 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PUT /api/admin/clientes — actualiza datos del cliente
+export async function PUT(req: Request) {
   try {
     const body = await req.json();
     const { id, ...data } = body;
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    return NextResponse.json(await ClientesService.actualizar(id, data));
+
+    if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 });
+    }
+
+    const cliente = await ClientesService.actualizar(id, data);
+    return NextResponse.json({ success: true, data: cliente });
   } catch (error: any) {
-    if (error.code === 'P2025') return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
- 
-// DELETE /api/admin/clientes?id=xxx  — soft delete
-export async function DELETE(req: Request) {
-  try {
-    const id = new URL(req.url).searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    await ClientesService.desactivar(id);
-    return NextResponse.json({ message: 'Cliente desactivado correctamente' });
-  } catch (error: any) {
-    if (error.code === 'P2025') return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    console.error('[PUT /clientes]', error);
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -225,13 +225,12 @@ export default function InventarioPage() {
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* ── Header rediseñado con Historial Integrado ── */}
-        <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
-          <div className="absolute left-0 inset-y-0 w-1 bg-gradient-to-b from-pink-400 via-rose-500 to-pink-300 rounded-l-2xl" />
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-5 pl-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Gestión de Inventario</h1>
-              <p className="text-gray-400 text-[13px] font-medium">Control de telas, avíos e insumos · Modas GUOR</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gestión de Inventario
+              </h1>
+              <p className="text-slate-500 font-medium">Control de telas, avíos e insumos · Modas GUOR</p>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -304,7 +303,7 @@ export default function InventarioPage() {
               </div>
             </div>
           )}
-        </div>
+
 
         {/* ── Tabs + Stats ── */}
         <div className="space-y-3">

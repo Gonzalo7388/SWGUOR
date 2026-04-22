@@ -1,196 +1,326 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Search, Users, RefreshCw, UserCheck, UserMinus, ChevronLeft, ChevronRight, ShieldAlert, Plus, ShieldCheck } from "lucide-react";
-import dynamic from "next/dynamic"; 
-import { toast } from "sonner";
+import { useState, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient }        from "@tanstack/react-query";
+import { Button }     from "@/components/ui/button";
+import { toast }      from "sonner";
+import {
+  RefreshCw, Users, Briefcase, Building2, UserPlus,
+  FileSpreadsheet, FileText,
+  CheckCircle2, XCircle, ShieldOff,
+} from "lucide-react";
+import dynamic from "next/dynamic";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import type { EstadoUsuario } from "@prisma/client";
+import {
+  exportPersonalToExcel, exportPersonalToPDF,
+  exportClientesToExcel, exportClientesToPDF,
+} from "@/lib/utils/export-utils";
 
-const UsuariosTable = dynamic(() => import("@/components/admin/usuarios/UsuarioTable"));
+import UsuariosTable  from "@/components/admin/usuarios/UsuarioTable";
+import UsuarioFilters, { EMPTY_FILTERS, type UsuarioFiltrosState }
+                      from "@/components/admin/usuarios/UsuarioFilter";
+import PersonalTable, { type PersonalRow }
+                      from "@/components/admin/usuarios/personal/PersonalTable";
+import PersonalFilters, { EMPTY_PERSONAL_FILTERS, type PersonalFiltrosState }
+                      from "@/components/admin/usuarios/personal/FiltersPersonal";
+import ClientesTable  from "@/components/admin/usuarios/clientes/ClientesTable";
+import ClienteFilters, { EMPTY_CLIENTE_FILTERS, type ClienteFiltrosState }
+                      from "@/components/admin/usuarios/clientes/FiltersClientes";
+import type { UsuarioConRelaciones } from "@/lib/services/usuarios-services";
+
 const CreateUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/CreateUsuarioDialog"));
-const EditUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/EditUsuarioDialog"));
-const DeleteUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/DeleteUsuarioDialog"));
+const EditUsuarioDialog   = dynamic(() => import("@/components/admin/usuarios/EditUsuarioDialog"));
+const SuspenderDialog     = dynamic(() => import("@/components/admin/usuarios/SuspenderUsuarioDialog"));
+const EditClienteDialog   = dynamic(() => import("@/components/admin/usuarios/clientes/EditClienteDialog"));
+const EditPersonalDialog  = dynamic(() => import("@/components/admin/usuarios/personal/EditPersonalDialog"));
+
+async function fetchUsuarios(): Promise<UsuarioConRelaciones[]> {
+  const res = await fetch("/api/admin/usuarios"); const body = await res.json();
+  if (!res.ok) throw new Error(body.error); return body.data ?? body;
+}
+async function fetchPersonal(): Promise<PersonalRow[]> {
+  const res = await fetch("/api/admin/personal"); const body = await res.json();
+  if (!res.ok) throw new Error(body.error); return body.data ?? [];
+}
+async function fetchClientes(): Promise<UsuarioConRelaciones[]> {
+  const res = await fetch("/api/admin/usuarios"); const body = await res.json();
+  if (!res.ok) throw new Error(body.error);
+  return (body.data ?? body).filter((u: UsuarioConRelaciones) => u.clientes != null);
+}
+
+type Tab = "usuarios" | "personal" | "clientes";
+type StatColor = "pink" | "emerald" | "blue" | "red" | "amber";
+
+const STAT_COLOR: Record<StatColor, { border: string; ring: string; icon: string; label: string }> = {
+  pink:    { border: "border-pink-500",    ring: "ring-pink-50",    icon: "bg-pink-600",    label: "text-pink-600"    },
+  emerald: { border: "border-emerald-500", ring: "ring-emerald-50", icon: "bg-emerald-600", label: "text-emerald-600" },
+  blue:    { border: "border-blue-500",    ring: "ring-blue-50",    icon: "bg-blue-600",    label: "text-blue-600"    },
+  red:     { border: "border-red-500",     ring: "ring-red-50",     icon: "bg-red-500",     label: "text-red-600"     },
+  amber:   { border: "border-amber-500",   ring: "ring-amber-50",   icon: "bg-amber-500",   label: "text-amber-600"   },
+};
 
 export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUsuario, setSelectedUsuario] = useState<any | null>(null);
-  const [dialogMode, setDialogMode] = useState<"edit" | "new" | "delete" | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<EstadoUsuario | null>(null);
-  const pageSize = 10;
-
-  const fetchUsuarios = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/usuarios');
-      if (!res.ok) throw new Error("Error al obtener usuarios");
-      const data = await res.json();
-      setUsuarios(data || []);
-    } catch (err) {
-      toast.error("Error al sincronizar con el servidor");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
-
-  // Lógica de Filtrado Multicapa (Personal + Cliente)
-  const filteredUsuarios = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return usuarios
-      .filter(u => {
-        const matchStatus = statusFilter ? u.estado === statusFilter : true;
-        const nombre = u.personal_interno?.nombre_completo?.toLowerCase() ?? "";
-        const email = u.email?.toLowerCase() ?? "";
-        const razonSocial = u.clientes?.razon_social?.toLowerCase() ?? "";
-        const ruc = u.clientes?.ruc?.toLowerCase() ?? "";
-        
-        return matchStatus && (
-          nombre.includes(term) || email.includes(term) || razonSocial.includes(term) || ruc.includes(term)
-        );
-      })
-      .sort((a, b) => {
-        const labelA = a.personal_interno?.nombre_completo ?? a.clientes?.razon_social ?? a.email;
-        const labelB = b.personal_interno?.nombre_completo ?? b.clientes?.razon_social ?? b.email;
-        return labelA.localeCompare(labelB, 'es');
-      });
-  }, [usuarios, searchTerm, statusFilter]);
-
-  // Cálculos para las estadísticas
-  const stats = useMemo(() => ({
-    total: usuarios.length,
-    activos: usuarios.filter(u => u.estado === 'activo').length,
-    inactivos: usuarios.filter(u => u.estado === 'inactivo').length,
-    admins: usuarios.filter(u => u.rol === 'admin').length,
-  }), [usuarios]);
-
-  const paginatedUsuarios = useMemo(() => {
-    const start = currentPage * pageSize;
-    return filteredUsuarios.slice(start, start + pageSize);
-  }, [filteredUsuarios, currentPage]);
-
   const { can, isLoading: authLoading } = usePermissions();
+  const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState<Tab>("usuarios");
 
-  if (!authLoading && !can('view', 'usuarios')) {
-    return (
-      <div className="h-[80vh] flex flex-col items-center justify-center text-center p-6">
-        <ShieldAlert className="w-16 h-16 text-red-500 mb-4 opacity-20" />
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Acceso Restringido</h2>
-        <p className="text-gray-500 max-w-sm mt-2">No tienes los privilegios necesarios para gestionar usuarios.</p>
-      </div>
-    );
-  }
+  const usuariosQ = useQuery({ queryKey: ["usuarios"], queryFn: fetchUsuarios, refetchOnWindowFocus: false });
+  const personalQ = useQuery({ queryKey: ["personal"], queryFn: fetchPersonal, refetchOnWindowFocus: false });
+  const clientesQ = useQuery({ queryKey: ["clientes"], queryFn: fetchClientes, refetchOnWindowFocus: false });
+
+  const [usuFiltros, setUsuFiltros] = useState<UsuarioFiltrosState>(EMPTY_FILTERS);
+  const [perFiltros, setPerFiltros] = useState<PersonalFiltrosState>(EMPTY_PERSONAL_FILTERS);
+  const [cliFiltros, setCliFiltros] = useState<ClienteFiltrosState>(EMPTY_CLIENTE_FILTERS);
+
+  const [createUsuOpen, setCreateUsuOpen] = useState(false);
+  const [selectedUser,  setSelectedUser]  = useState<UsuarioConRelaciones | null>(null);
+  const [selectedPer,   setSelectedPer]   = useState<PersonalRow | null>(null);
+  const [selectedCli,   setSelectedCli]   = useState<any | null>(null);
+  const [dialogMode, setDialogMode] = useState<
+    "edit-usu"|"suspender-usu"|"edit-per"|"suspender-per"|"edit-cli"|"suspender-cli"|null
+  >(null);
+
+  const canCreate = can("create", "usuarios");
+  const canEdit   = can("edit",   "usuarios");
+  const canExport = can("export", "usuarios");
+
+  const usuariosFiltrados = useMemo(() => (usuariosQ.data ?? []).filter(u => {
+    const nombre = u.personal_interno?.nombre_completo ?? "";
+    const q = usuFiltros.q.toLowerCase();
+    return (!q || nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+      (!usuFiltros.estado || u.estado === usuFiltros.estado) &&
+      (!usuFiltros.rol    || u.rol    === usuFiltros.rol)    &&
+      (!usuFiltros.cargo  || u.personal_interno?.cargo === usuFiltros.cargo);
+  }), [usuariosQ.data, usuFiltros]);
+
+  const personalFiltrado = useMemo(() => (personalQ.data ?? []).filter(p => {
+    const q = perFiltros.q.toLowerCase();
+    return (!q || (p.nombre_completo ?? "").toLowerCase().includes(q) || (p.usuarios?.email ?? "").toLowerCase().includes(q)) &&
+      (!perFiltros.cargo  || p.cargo === perFiltros.cargo) &&
+      (!perFiltros.estado || String(p.estado === true) === (perFiltros.estado === "activo" ? "true" : "false"));
+  }), [personalQ.data, perFiltros]);
+
+  const clientesFiltrados = useMemo(() => (clientesQ.data ?? []).filter(u => {
+    const q = cliFiltros.q.toLowerCase(); const c = u.clientes;
+    return (!q || (c?.razon_social ?? "").toLowerCase().includes(q) || (c?.ruc ?? "").includes(q) || u.email.toLowerCase().includes(q)) &&
+      (!cliFiltros.estado || u.estado === cliFiltros.estado);
+  }), [clientesQ.data, cliFiltros]);
+
+  const usuStats = useMemo(() => {
+    const l = usuariosQ.data ?? [];
+    return { total: l.length, activos: l.filter(u => u.estado === "activo").length, inactivos: l.filter(u => u.estado !== "activo").length };
+  }, [usuariosQ.data]);
+
+  const perStats = useMemo(() => {
+    const l = personalQ.data ?? [];
+    return { total: l.length, activos: l.filter(p => p.estado !== false).length, inactivos: l.filter(p => p.estado === false).length };
+  }, [personalQ.data]);
+
+  const cliStats = useMemo(() => {
+    const l = clientesQ.data ?? [];
+    return { total: l.length, activos: l.filter(u => u.estado === "activo").length, inactivos: l.filter(u => u.estado !== "activo").length };
+  }, [clientesQ.data]);
+
+  const refresh = useCallback((key: "usuarios"|"personal"|"clientes") =>
+    qc.invalidateQueries({ queryKey: [key] }), [qc]);
+
+  if (authLoading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
+      <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Verificando permisos…</p>
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* Header Profersional */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
-              Gestión de <span className="text-pink-600">Usuarios</span>
-            </h1>
-            <p className="text-slate-500 font-medium">Control unificado de personal administrativo y accesos de clientes.</p>
+            <h1 className="text-3xl font-bold text-gray-900">Módulo de Usuarios</h1>
+            <p className="text-gray-500 text-sm">Gestión de accesos, personal interno y clientes</p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <Button onClick={fetchUsuarios} variant="outline" className="bg-white border-slate-200 font-bold h-12 px-6 hover:bg-slate-50 transition-all">
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading && 'animate-spin'}`} />
-              Actualizar
+          {canCreate && (activeTab === "usuarios" || activeTab === "personal") && (
+            <Button onClick={() => setCreateUsuOpen(true)}
+              className={`${activeTab === "personal" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-pink-600 hover:bg-pink-700"} text-white font-bold gap-2 h-11 px-5 active:scale-95`}>
+              <UserPlus className="w-4 h-4" />
+              {activeTab === "personal" ? "Nuevo Personal" : "Nuevo Usuario"}
             </Button>
-            <Button onClick={() => setDialogMode("new")} className="bg-slate-900 hover:bg-pink-700 text-white font-bold h-12 px-8 shadow-xl transition-all">
-              <Plus className="w-5 h-5 mr-2" /> Nuevo Usuario
-            </Button>
-          </div>
+          )}
         </div>
 
-        {/* PANEL DE ESTADÍSTICAS UTILIZANDO LOS ICONOS FALTANTES */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total" value={stats.total} icon={<Users className="w-5 h-5" />} color="blue" />
-          <StatCard title="Activos" value={stats.activos} icon={<UserCheck className="w-5 h-5" />} color="emerald" />
-          <StatCard title="Inactivos" value={stats.inactivos} icon={<UserMinus className="w-5 h-5" />} color="orange" />
-          <StatCard title="Staff / Admin" value={stats.admins} icon={<ShieldCheck className="w-5 h-5" />} color="pink" />
+        {/* StatCards como tabs */}
+        <div className="grid grid-cols-3 gap-4">
+          <TabStatCard active={activeTab === "usuarios"} onClick={() => setActiveTab("usuarios")}
+            color="pink" icon={<Users className="w-5 h-5" />} label="USUARIOS DEL SISTEMA"
+            stats={[
+              { label: "Total",     value: usuStats.total,     icon: <Users        size={12} /> },
+              { label: "Activos",   value: usuStats.activos,   icon: <CheckCircle2 size={12} />, color: "emerald" },
+              { label: "Inactivos", value: usuStats.inactivos, icon: <XCircle      size={12} />, color: "red"     },
+            ]} />
+          <TabStatCard active={activeTab === "personal"} onClick={() => setActiveTab("personal")}
+            color="emerald" icon={<Briefcase className="w-5 h-5" />} label="PERSONAL INTERNO"
+            stats={[
+              { label: "Total",     value: perStats.total,     icon: <Briefcase    size={12} /> },
+              { label: "Activos",   value: perStats.activos,   icon: <CheckCircle2 size={12} />, color: "emerald" },
+              { label: "Inactivos", value: perStats.inactivos, icon: <XCircle      size={12} />, color: "red"     },
+            ]} />
+          <TabStatCard active={activeTab === "clientes"} onClick={() => setActiveTab("clientes")}
+            color="blue" icon={<Building2 className="w-5 h-5" />} label="CLIENTES REGISTRADOS"
+            stats={[
+              { label: "Total",     value: cliStats.total,     icon: <Building2    size={12} /> },
+              { label: "Activos",   value: cliStats.activos,   icon: <CheckCircle2 size={12} />, color: "emerald" },
+              { label: "Inactivos", value: cliStats.inactivos, icon: <ShieldOff    size={12} />, color: "amber"   },
+            ]} />
         </div>
 
-        {/* Buscador Avanzado */}
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-pink-500 transition-colors" />
-          <input 
-            placeholder="Buscar por nombre, email, RUC o razón social..." 
-            className="w-full pl-12 pr-4 h-14 bg-white border-2 border-slate-100 rounded-2xl focus:border-pink-500 focus:ring-0 outline-none transition-all shadow-sm text-lg font-medium"
-            value={searchTerm}
-            onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(0);}}
-          />
-        </div>
+        {/* TAB: USUARIOS */}
+        {activeTab === "usuarios" && (
+          <TabSection loading={usuariosQ.isLoading} onRefresh={() => refresh("usuarios")}
+            filters={<UsuarioFilters filters={usuFiltros} onChange={setUsuFiltros} totalCount={usuariosFiltrados.length} />}>
+            <UsuariosTable usuarios={usuariosFiltrados} loading={usuariosQ.isLoading}
+              onEdit={canEdit ? (u) => { setSelectedUser(u); setDialogMode("edit-usu"); } : undefined}
+              onSuspender={canEdit ? (u) => { setSelectedUser(u); setDialogMode("suspender-usu"); } : undefined} />
+          </TabSection>
+        )}
 
-        {/* Tabla de Resultados */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <UsuariosTable 
-            usuarios={paginatedUsuarios}
-            loading={loading}
-            onEdit={(u) => { setSelectedUsuario(u); setDialogMode("edit"); }}
-            onDelete={(u) => { setSelectedUsuario(u); setDialogMode("delete"); }}
-            onToggleStatus={async (u) => {
-              const res = await fetch('/api/admin/usuarios', {
-                method: 'PATCH',
-                body: JSON.stringify({ id: u.id, estado: u.estado === 'activo' ? 'inactivo' : 'activo' })
-              });
-              if (res.ok) { toast.success("Estado actualizado"); fetchUsuarios(); }
-            }}
-          />
-        </div>
+        {/* TAB: PERSONAL */}
+        {activeTab === "personal" && (
+          <TabSection loading={personalQ.isLoading} onRefresh={() => refresh("personal")}
+            exportButtons={canExport ? (
+              <>
+                <ExportBtn label="PDF"   icon={<FileText        className="w-4 h-4" />} color="red"
+                  onClick={() => { if (!personalFiltrado.length) return toast.error("Sin datos"); exportPersonalToPDF(personalFiltrado).then(() => toast.success("PDF generado")); }} />
+                <ExportBtn label="Excel" icon={<FileSpreadsheet className="w-4 h-4" />} color="emerald"
+                  onClick={() => { if (!personalFiltrado.length) return toast.error("Sin datos"); exportPersonalToExcel(personalFiltrado).then(() => toast.success("Excel generado")); }} />
+              </>
+            ) : undefined}
+            filters={<PersonalFilters filters={perFiltros} onChange={setPerFiltros} totalCount={personalFiltrado.length} />}>
+            <PersonalTable data={personalFiltrado} loading={personalQ.isLoading}
+              onEdit={canEdit ? (p) => { setSelectedPer(p); setDialogMode("edit-per"); } : undefined}
+              onSuspender={canEdit ? (p) => { setSelectedPer(p); setDialogMode("suspender-per"); } : undefined} />
+          </TabSection>
+        )}
 
-        {/* Paginación */}
-        <div className="flex items-center justify-between px-2">
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-            {filteredUsuarios.length} Usuarios encontrados
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0} className="rounded-xl h-10 w-10 p-0">
-              <ChevronLeft />
-            </Button>
-            <span className="bg-white border px-4 py-2 rounded-xl text-sm font-black shadow-sm">
-              {currentPage + 1} / {Math.ceil(filteredUsuarios.length / pageSize) || 1}
-            </span>
-            <Button variant="ghost" onClick={() => setCurrentPage(p => p + 1)} disabled={(currentPage + 1) * pageSize >= filteredUsuarios.length} className="rounded-xl h-10 w-10 p-0">
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
+        {/* TAB: CLIENTES — solo editar y suspender, NO crear */}
+        {activeTab === "clientes" && (
+          <TabSection loading={clientesQ.isLoading} onRefresh={() => refresh("clientes")}
+            exportButtons={canExport ? (
+              <>
+                <ExportBtn label="PDF"   icon={<FileText        className="w-4 h-4" />} color="red"
+                  onClick={() => { if (!clientesFiltrados.length) return toast.error("Sin datos"); exportClientesToPDF(clientesFiltrados).then(() => toast.success("PDF generado")); }} />
+                <ExportBtn label="Excel" icon={<FileSpreadsheet className="w-4 h-4" />} color="emerald"
+                  onClick={() => { if (!clientesFiltrados.length) return toast.error("Sin datos"); exportClientesToExcel(clientesFiltrados).then(() => toast.success("Excel generado")); }} />
+              </>
+            ) : undefined}
+            filters={<ClienteFilters filters={cliFiltros} onChange={setCliFiltros} totalCount={clientesFiltrados.length} />}>
+            <ClientesTable usuarios={clientesFiltrados} loading={clientesQ.isLoading}
+              onEdit={canEdit ? (u) => { setSelectedCli(u.clientes); setDialogMode("edit-cli"); } : undefined}
+              onSuspender={canEdit ? (u) => { setSelectedUser(u); setDialogMode("suspender-cli"); } : undefined} />
+          </TabSection>
+        )}
+
       </div>
 
-      {/* Diálogos de Gestión */}
-      <CreateUsuarioDialog isOpen={dialogMode === "new"} onClose={() => setDialogMode(null)} onSuccess={fetchUsuarios} />
-      {selectedUsuario && (
-        <>
-          <EditUsuarioDialog isOpen={dialogMode === "edit"} usuario={selectedUsuario} onClose={() => setDialogMode(null)} onSuccess={fetchUsuarios} />
-          <DeleteUsuarioDialog isOpen={dialogMode === "delete"} usuario={selectedUsuario} onClose={() => setDialogMode(null)} onSuccess={fetchUsuarios} />
-        </>
+      {/* Diálogos */}
+      <CreateUsuarioDialog isOpen={createUsuOpen} onClose={() => setCreateUsuOpen(false)}
+        onSuccess={() => { refresh("usuarios"); refresh("personal"); }} />
+      {selectedUser && dialogMode === "edit-usu" && (
+        <EditUsuarioDialog isOpen usuario={selectedUser as any}
+          onClose={() => { setDialogMode(null); setSelectedUser(null); }}
+          onSuccess={() => { refresh("usuarios"); refresh("personal"); }} />
+      )}
+      {selectedUser && (dialogMode === "suspender-usu" || dialogMode === "suspender-cli") && (
+        <SuspenderDialog isOpen usuario={selectedUser}
+          onClose={() => { setDialogMode(null); setSelectedUser(null); }}
+          onSuccess={() => { refresh("usuarios"); refresh("clientes"); }} />
+      )}
+      {selectedPer && dialogMode === "edit-per" && (
+        <EditPersonalDialog isOpen persona={selectedPer}
+          onClose={() => { setDialogMode(null); setSelectedPer(null); }}
+          onSuccess={() => refresh("personal")} />
+      )}
+      {selectedCli && dialogMode === "edit-cli" && (
+        <EditClienteDialog isOpen cliente={selectedCli}
+          onClose={() => { setDialogMode(null); setSelectedCli(null); }}
+          onSuccess={() => { refresh("clientes"); refresh("usuarios"); }} />
       )}
     </div>
   );
 }
 
-function StatCard({ title, value, icon, color }: any) {
-  const colors: any = {
-    blue: "text-blue-600 bg-blue-50",
-    emerald: "text-emerald-600 bg-emerald-50",
-    orange: "text-orange-600 bg-orange-50",
-    pink: "text-pink-600 bg-pink-50"
-  };
+// ─── TabStatCard ─────────────────────────────────────────────
+function TabStatCard({ active, onClick, color, icon, label, stats }: {
+  active: boolean; onClick: () => void; color: StatColor;
+  icon: React.ReactNode; label: string;
+  stats: { label: string; value: number; icon: React.ReactNode; color?: StatColor }[];
+}) {
+  const s = STAT_COLOR[color];
   return (
-    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colors[color]}`}>{icon}</div>
-      <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-        <p className="text-xl font-black text-slate-900">{value}</p>
+    <button onClick={onClick}
+      className={`group w-full p-4 rounded-xl border-2 transition-all duration-300 text-left space-y-3 cursor-pointer ${
+        active ? `bg-white ${s.border} ring-4 ${s.ring} shadow-xl scale-[1.02]`
+               : "bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+      }`}>
+      <div className="flex items-center gap-2.5">
+        <div className={`p-2 rounded-lg transition-all ${active ? `${s.icon} text-white rotate-3` : "bg-gray-100 text-gray-500 group-hover:rotate-3"}`}>
+          {icon}
+        </div>
+        <span className={`text-[10px] font-black uppercase tracking-widest ${active ? s.label : "text-gray-400"}`}>
+          {label}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {stats.map((stat, i) => {
+          const sc = STAT_COLOR[stat.color ?? color];
+          return (
+            <div key={i} className="rounded-lg p-2 text-center bg-slate-50">
+              <div className={`flex items-center justify-center gap-1 mb-0.5 ${active && stat.color ? sc.label : "text-gray-400"}`}>
+                {stat.icon}
+                <span className="text-[9px] font-bold uppercase tracking-wider">{stat.label}</span>
+              </div>
+              <p className={`text-xl font-black tracking-tight ${
+                active && stat.color ? sc.label : active ? s.label : "text-gray-700"
+              }`}>{stat.value}</p>
+            </div>
+          );
+        })}
+      </div>
+    </button>
+  );
+}
+
+// ─── TabSection ───────────────────────────────────────────────
+function TabSection({ loading, onRefresh, filters, exportButtons, children }: {
+  loading: boolean; onRefresh: () => void; filters: React.ReactNode;
+  exportButtons?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-2">
+        <div className="flex-1">{filters}</div>
+        {exportButtons && <div className="flex gap-1.5 shrink-0 mt-0.5">{exportButtons}</div>}
+        <Button variant="outline" size="icon" onClick={onRefresh} className="h-9 w-9 border-slate-200 shrink-0 mt-0.5">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+        {children}
       </div>
     </div>
+  );
+}
+
+// ─── ExportBtn ────────────────────────────────────────────────
+function ExportBtn({ label, icon, color, onClick }: {
+  label: string; icon: React.ReactNode; color: "red"|"emerald"; onClick: () => void;
+}) {
+  const cls = { red: "border-red-200 text-red-600 hover:bg-red-50", emerald: "border-emerald-200 text-emerald-600 hover:bg-emerald-50" }[color];
+  return (
+    <Button variant="outline" size="sm" onClick={onClick}
+      className={`h-9 gap-1.5 font-bold text-xs border ${cls} transition-all active:scale-95`}>
+      {icon}<span className="hidden sm:inline">{label}</span>
+    </Button>
   );
 }
