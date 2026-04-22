@@ -23,13 +23,20 @@ export function useInventario(params?: {
   busqueda?:  string;
   stockBajo?: boolean;
   sortOrder?: "asc" | "desc" | "none";
+  limiteMovimientos?: number;
 }) {
   const queryClient = useQueryClient();
-  const { tipo, categoria, busqueda, stockBajo, sortOrder } = params ?? {};
+  const { tipo, categoria, busqueda, stockBajo, sortOrder, limiteMovimientos } = params ?? {};
 
   const query = useQuery({
     queryKey: [INVENTARIO_KEY, { tipo, categoria, busqueda, stockBajo, sortOrder }],
     queryFn:  () => fetchInsumos({ tipo, categoria, busqueda, stockBajo, sortOrder }),
+    refetchOnWindowFocus: false,
+  });
+
+  const movimientosQuery = useQuery({
+    queryKey: [MOVIMIENTOS_KEY, { limite: limiteMovimientos }],
+    queryFn:  () => fetchMovimientos({ limite: limiteMovimientos }),
     refetchOnWindowFocus: false,
   });
 
@@ -102,10 +109,14 @@ export function useInventario(params?: {
   });
 
   return {
-    insumos:     (query.data as any)?.insumos     ?? [],
-    proveedores: (query.data as any)?.proveedores ?? [],
+    insumos:     (query.data)?.insumos     ?? [],
+    proveedores: (query.data)?.proveedores ?? [],
+    movimientos: (movimientosQuery.data)?.movimientos ?? [],
     isLoading:   query.isLoading,
-    refetch:     query.refetch,
+    refetch:     () => {
+      query.refetch();
+      movimientosQuery.refetch();
+    },
 
     create: (data: any) =>
       createMutation.mutateAsync(data).then(r => r.success),
@@ -130,10 +141,13 @@ export function useInventario(params?: {
     isAjustandoStock: ajustarStockMutation.isPending,
     isDeleting:       deleteMutation.isPending,
 
-    cargando:           query.isLoading,
+    cargando:           query.isLoading || movimientosQuery.isLoading,
     error:              query.error,
     obtenerInsumosList: query.refetch,
-    limpiar:            () => queryClient.removeQueries({ queryKey: [INVENTARIO_KEY] }),
+    limpiar:            () => {
+      queryClient.removeQueries({ queryKey: [INVENTARIO_KEY] });
+      queryClient.removeQueries({ queryKey: [MOVIMIENTOS_KEY] });
+    },
   };
 }
 

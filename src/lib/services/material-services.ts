@@ -6,67 +6,63 @@ export const MaterialesService = {
   async listar(params?: {
     tipo?:      string;
     busqueda?:  string;
-    stockBajo?: boolean;
+    bajo_stock?: boolean;
+    sort?:      'asc' | 'desc';
   }) {
     const where: any = {};
-
-    if (params?.tipo && params.tipo !== 'todos') {
-      where.tipo = params.tipo;
-    }
-    if (params?.busqueda) {
-      where.OR = [
-        { nombre:      { contains: params.busqueda, mode: 'insensitive' } },
-        { composicion: { contains: params.busqueda, mode: 'insensitive' } },
-        { color:       { contains: params.busqueda, mode: 'insensitive' } },
-      ];
-    }
-    if (params?.stockBajo) {
-      where.stock_actual = { lte: prisma.material.fields.stock_minimo };
-    }
+    if (params?.tipo)      where.tipo   = params.tipo;
+    if (params?.busqueda)  where.nombre = { contains: params.busqueda, mode: 'insensitive' };
 
     const materiales = await prisma.material.findMany({
       where,
       include: {
         proveedores: { select: { id: true, razon_social: true } },
       },
-      orderBy: { nombre: 'asc' },
+      orderBy: params?.sort
+        ? { precio_unitario: params.sort }
+        : { nombre: 'asc' },
     });
 
-    return serializeBigInt(materiales);
+    // Prisma no permite comparar dos columnas → filtramos en JS
+    const resultado = params?.bajo_stock
+      ? materiales.filter(m => m.stock_actual <= m.stock_minimo)
+      : materiales;
+
+    return serializeBigInt(resultado);
   },
 
   async obtenerPorId(id: string) {
     const material = await prisma.material.findUnique({
       where:   { id: BigInt(id) },
-      include: { proveedores: true },
+      include: { proveedores: { select: { id: true, razon_social: true } } },
     });
     return material ? serializeBigInt(material) : null;
   },
 
   async crear(data: {
-    nombre:           string;
-    descripcion?:     string;
-    tipo?:            string;
-    composicion?:     string;
-    gramaje?:         number;
-    ancho_total?:     number;
-    ancho_util?:      number;
-    color?:           string;
-    codigo_color?:    string;
-    unidad_medida?:   string;
-    stock_actual?:    number;
-    stock_minimo?:    number;
-    precio_unitario?: number;
-    proveedor_id?:    string | number;
+    nombre:             string;
+    tipo?:              string;
+    descripcion?:       string;
+    composicion?:       string;
+    gramaje?:           number;
+    ancho_total?:       number;
+    ancho_util?:        number;
+    color?:             string;
+    codigo_color?:      string;
+    unidad_medida?:     string;
+    stock_actual?:      number;
+    stock_minimo?:      number;
+    precio_unitario?:   number;
+    proveedor_id?:      string;
     ubicacion_almacen?: string;
     alerta_bajo_stock?: boolean;
   }) {
     const material = await prisma.material.create({
       data: {
         nombre:            data.nombre,
+        tipo:              (data.tipo             as any) ?? 'plano',
         descripcion:       data.descripcion       ?? null,
-        tipo:              (data.tipo              as any) ?? 'plano',
-        composicion:       data.composicion        ?? null,
+        composicion:       data.composicion       ?? null,
         gramaje:           data.gramaje            ?? null,
         ancho_total:       data.ancho_total        ?? null,
         ancho_util:        data.ancho_util         ?? null,
@@ -85,61 +81,74 @@ export const MaterialesService = {
   },
 
   async actualizar(id: string, data: Partial<{
-    nombre:           string;
-    descripcion:      string;
-    tipo:             string;
-    composicion:      string;
-    gramaje:          number;
-    ancho_total:      number;
-    ancho_util:       number;
-    color:            string;
-    codigo_color:     string;
-    unidad_medida:    string;
-    stock_actual:     number;
-    stock_minimo:     number;
-    precio_unitario:  number;
-    proveedor_id:     string | number;
-    ubicacion_almacen: string;
-    alerta_bajo_stock: boolean;
+    nombre:             string;
+    tipo:               string;
+    descripcion:        string;
+    composicion:        string;
+    gramaje:            number;
+    ancho_total:        number;
+    ancho_util:         number;
+    color:              string;
+    codigo_color:       string;
+    unidad_medida:      string;
+    stock_minimo:       number;
+    precio_unitario:    number;
+    proveedor_id:       string;
+    ubicacion_almacen:  string;
+    alerta_bajo_stock:  boolean;
   }>) {
+    const { proveedor_id, ...rest } = data as any;
     const material = await prisma.material.update({
       where: { id: BigInt(id) },
-      data: {
-        ...data,
-        proveedor_id: data.proveedor_id ? BigInt(data.proveedor_id) : undefined,
-        updated_at:   new Date(),
-      } as any,
+      data:  {
+        ...rest,
+        ...(proveedor_id !== undefined && {
+          proveedor_id: proveedor_id ? BigInt(proveedor_id) : null,
+        }),
+        updated_at: new Date(),
+      },
     });
     return serializeBigInt(material);
+  },
+
+  // Ajusta stock directamente (material no tiene tabla de movimientos propia)
+  async ajustarStock(id: string, input: {
+    operacion:        'sumar' | 'restar' | 'absoluto';
+    cantidad:         number;
+    precio_unitario?: number;
+    motivo?:          string;
+  }) {
+    const material = await prisma.material.findUniqueOrThrow({
+      where: { id: BigInt(id) },
+    });
+
+    const stockAnterior = Number(material.stock_actual);
+    let nuevoStock: number;
+
+    if (input.operacion === 'sumar')    nuevoStock = stockAnterior + input.cantidad;
+    else if (input.operacion === 'restar') nuevoStock = stockAnterior - input.cantidad;
+    else                                   nuevoStock = input.cantidad;
+
+    if (nuevoStock < 0) {
+      throw new Error(`Stock insuficiente. Actual: ${stockAnterior}`);
+    }
+
+    const actualizado = await prisma.material.update({
+      where: { id: BigInt(id) },
+      data:  {
+        stock_actual: nuevoStock,
+        updated_at:   new Date(),
+        ...(input.precio_unitario !== undefined && {
+          precio_unitario: input.precio_unitario,
+        }),
+      },
+    });
+
+    return serializeBigInt(actualizado);
   },
 
   async eliminar(id: string) {
     await prisma.material.delete({ where: { id: BigInt(id) } });
     return { success: true };
-  },
-
-  async ajustarStock(id: string, data: {
-    operacion: 'sumar' | 'restar' | 'absoluto';
-    cantidad:  number;
-    motivo?:   string;
-  }) {
-    const material = await prisma.material.findUnique({
-      where:  { id: BigInt(id) },
-      select: { stock_actual: true },
-    });
-    if (!material) throw new Error('Material no encontrado');
-
-    const stockActual = Number(material.stock_actual);
-    let nuevoStock: number;
-
-    if (data.operacion === 'sumar')    nuevoStock = stockActual + data.cantidad;
-    else if (data.operacion === 'restar') nuevoStock = Math.max(0, stockActual - data.cantidad);
-    else                               nuevoStock = data.cantidad;
-
-    const actualizado = await prisma.material.update({
-      where: { id: BigInt(id) },
-      data:  { stock_actual: nuevoStock, updated_at: new Date() },
-    });
-    return serializeBigInt(actualizado);
   },
 };

@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   FileSpreadsheet, Plus, FileText, ChevronLeft, ChevronRight,
-  Package, AlertTriangle, CheckCircle2, Search, RefreshCw, XCircle
-} from "lucide-react";
+  Package, AlertTriangle, CheckCircle2, Search, RefreshCw} from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import ProductFilters from "@/components/admin/productos/ProductsFilters";

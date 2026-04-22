@@ -40,13 +40,16 @@ export default function ConfeccionesPage() {
         fetch(`/api/admin/confecciones${params}`),
         fetch("/api/admin/talleres"),
       ]);
-      if (!confRes.ok || !tallerRes.ok) throw new Error();
+      if (!confRes.ok || !tallerRes.ok) throw new Error("Error al obtener datos");
+
       const [confData, tallerData] = await Promise.all([
         confRes.json(),
         tallerRes.json(),
       ]);
-      setConfecciones(confData);
-      setTalleres(tallerData);
+
+      // Ambas APIs retornan { success: true, data: [...] }
+      setConfecciones(confData.data);
+      setTalleres(tallerData.data);
     } catch {
       toast.error("Error al cargar las órdenes de confección.");
     } finally {
@@ -61,16 +64,19 @@ export default function ConfeccionesPage() {
   const canCreate = can("create", "confecciones") || can("edit", "confecciones");
 
   // ── Stats ──────────────────────────────────────────────────
-  const stats = useMemo(() => ({
-    total:      confecciones.length,
-    activas:    confecciones.filter(c => !["completado", "cancelado"].includes(c.estado)).length,
-    urgentes:   confecciones.filter(c => c.prioridad === "urgente" && c.estado !== "completado").length,
-    completadas: confecciones.filter(c => c.estado === "completado").length,
-  }), [confecciones]);
+  const stats = useMemo(() => {
+    const list = Array.isArray(confecciones) ? confecciones : [];
+    return {
+      total:       list.length,
+      activas:     list.filter(c => !["completado", "cancelado"].includes(c.estado)).length,
+      urgentes:    list.filter(c => c.prioridad === "urgente" && c.estado !== "completado").length,
+      completadas: list.filter(c => c.estado === "completado").length,
+    };
+  }, [confecciones]);
 
   // ── Filtrado + búsqueda ────────────────────────────────────
   const confeccionesFiltradas = useMemo(() => {
-    let result = [...confecciones];
+    let result = Array.isArray(confecciones) ? [...confecciones] : [];
 
     if (statusFilter === "activas")    result = result.filter(c => !["completado", "cancelado"].includes(c.estado));
     if (statusFilter === "urgentes")   result = result.filter(c => c.prioridad === "urgente" && c.estado !== "completado");

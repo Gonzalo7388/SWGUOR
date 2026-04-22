@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit2, Trash2, Layers, Loader2, CircleDollarSign } from "lucide-react";
+import { Edit2, Trash2, Loader2, CircleDollarSign } from "lucide-react";
 import type { Database } from "@/types/database";
 type Insumo = Database['public']['Tables']['insumo']['Row'];
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface InventarioTableProps {
   canDelete: boolean;
 }
 
-export default function InventarioTable({ data, loading, onEdit, onDelete, canEdit, canDelete }: InventarioTableProps) {
+export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit, canDelete }: InventarioTableProps) {
   
   const getStockStatus = (actual: number, minimo: number) => {
     if (actual <= 0) return { label: 'Agotado', style: 'bg-red-50 text-red-700 border-red-100' };
@@ -51,12 +51,9 @@ export default function InventarioTable({ data, loading, onEdit, onDelete, canEd
 
             return (
               <tr key={item.id} className="group transition-all duration-200">
-                {/* Nombre e Icono */}
+                {/* Nombre */}
                 <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300 border border-slate-100">
-                      <Layers size={18} />
-                    </div>
                     <div>
                       <p className="font-black text-slate-900 text-sm tracking-tight uppercase">{item.nombre}</p>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.unidad_medida}</p>
