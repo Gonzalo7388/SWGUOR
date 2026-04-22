@@ -3,7 +3,7 @@ import { ClientesService } from '@/lib/services/clientes-services';
 import { NextResponse } from 'next/server';
  
 // GET /api/admin/clientes
-export async function GET_CLIENTES(req: Request) {
+export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     return NextResponse.json(await ClientesService.listar({
@@ -17,7 +17,7 @@ export async function GET_CLIENTES(req: Request) {
 }
  
 // PATCH /api/admin/clientes  — actualizar datos
-export async function PATCH_CLIENTES(req: Request) {
+export async function PATCH(req: Request) {
   try {
     const body = await req.json();
     const { id, ...data } = body;
@@ -30,7 +30,7 @@ export async function PATCH_CLIENTES(req: Request) {
 }
  
 // DELETE /api/admin/clientes?id=xxx  — soft delete
-export async function DELETE_CLIENTES(req: Request) {
+export async function DELETE(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
