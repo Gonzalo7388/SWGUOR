@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const data = await MaterialesService.listar({
       tipo:      searchParams.get('tipo')      ?? undefined,
       busqueda:  searchParams.get('busqueda')  ?? undefined,
-      stockBajo: searchParams.get('stockBajo') === 'true',
+      bajo_stock: searchParams.get('stockBajo') === 'true',
     });
 
     return NextResponse.json({ success: true, data });
