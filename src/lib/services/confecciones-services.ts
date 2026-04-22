@@ -18,7 +18,7 @@ export const ConfeccionesService = {
       where,
       include: {
         talleres: { select: { id: true, nombre: true } },
-        pedido:  { select: { id: true, estado: true } },
+        pedidos:  { select: { id: true, estado: true } },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -29,8 +29,8 @@ export const ConfeccionesService = {
     const confeccion = await prisma.confecciones.findUnique({
       where: { id: BigInt(id) },
       include: {
-        taller:  { select: { id: true, nombre: true, contacto: true, email: true, telefono: true, especialidad: true } },
-        pedido:   { select: { id: true, estado: true, total_unidades: true,
+        talleres:  { select: { id: true, nombre: true, contacto: true, email: true, telefono: true, especialidad: true } },
+        pedidos:   { select: { id: true, estado: true, total_unidades: true,
           clientes: { select: { id: true, razon_social: true, nombre_comercial: true } } } },
         seguimiento_confeccion: { orderBy: { created_at: 'desc' } },
       },
@@ -53,7 +53,7 @@ export const ConfeccionesService = {
         data: {
           confeccion_id:  BigInt(id),
           estado_nuevo:   estado as EstadoConfeccion,
-          responsable_id: usuario_id ?? null, 
+          responsable_id: usuario_id ? BigInt(usuario_id) : null,
         },
       });
 
@@ -75,7 +75,7 @@ export const ConfeccionesService = {
           estado_anterior: data.estado_anterior as any ?? null,
           estado_nuevo:    data.estado_nuevo    as any,
           notas:           data.notas           ?? null,
-          responsable_id:  data.usuario_id      ?? null,
+          responsable_id:  data.usuario_id ? BigInt(data.usuario_id) : null,
         },
       });
 

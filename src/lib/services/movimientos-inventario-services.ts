@@ -38,7 +38,7 @@ export const InventarioService = {
           material_id:     data.material_id ? BigInt(data.material_id) : null,
           insumo_id:       data.insumo_id ? BigInt(data.insumo_id) : null,
           cantidad:        data.cantidad,
-          tipo_movimiento: data.tipo as any,
+          tipo_movimiento: data.tipo,
           motivo:          data.motivo,
           costo_unitario:  data.costo_unitario ?? null,
           stock_anterior:  stockAnterior,

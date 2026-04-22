@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   FileSpreadsheet, Plus, Search,
-  AlertTriangle, XCircle, BarChart3, ChevronLeft, ChevronRight, 
+  AlertTriangle, XCircle, ChevronLeft, ChevronRight, 
   FileText, Layers, RefreshCw, CircleDollarSign
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

@@ -36,19 +36,21 @@ export default async function PedidoDetallePage({ params }: PageProps) {
         confecciones: {
           include: {
             talleres: { select: { id: true, nombre: true, contacto: true, email: true } },
-            ordenes: {
-              include: {
-                ficha:        { select: { id: true, version: true, estado: true } },
-                seguimientos: {
-                  where:   { activo: true },
-                  take:    1,
-                  orderBy: { created_at: 'desc' },
-                },
-              },
+          },
+          orderBy: { created_at: 'desc' },
+        },
+        ordenes_produccion: {
+          include: {
+            fichas_tecnicas:        { select: { id: true, version: true, estado: true } },
+            talleres:               { select: { id: true, nombre: true } },
+            seguimiento_produccion: {
+              where:   { activo: true },
+              take:    1,
+              orderBy: { created_at: 'desc' },
             },
           },
           orderBy: { created_at: 'desc' },
-          },
+        },
       },
     });
 

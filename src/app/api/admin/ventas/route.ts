@@ -59,7 +59,6 @@ export async function POST(req: Request) {
       const venta = await tx.ventas.create({
         data: {
           orden_id: ordenId,
-          vendedor_id: body.vendedor_id ?? null,
           usuario_id: body.usuario_id ? BigInt(body.usuario_id) : null,
           subtotal,
           impuestos,

@@ -8,9 +8,9 @@ export const OrdenesProduccionService = {
       where:   producto_id ? { producto_id: BigInt(producto_id) } : undefined,
       include: {
         productos: { select: { id: true, nombre: true, sku: true } },
-        taller:    { select: { id: true, nombre: true, email: true, contacto: true } },
-        ficha:     { select: { id: true, version: true, estado: true } },
-        seguimientos: { 
+        talleres:    { select: { id: true, nombre: true, email: true, contacto: true } },
+        fichas_tecnicas:     { select: { id: true, version: true, estado: true } },
+        seguimiento_produccion: { 
           where: { activo: true }, 
           take: 1, 
           orderBy: { created_at: 'desc' } 
@@ -46,8 +46,8 @@ export const OrdenesProduccionService = {
         },
         include: {
           productos: { select: { id: true, nombre: true, sku: true } },
-          taller:   { select: { id: true, nombre: true, email: true } },
-          ficha:    { select: { id: true, version: true } },
+          talleres:   { select: { id: true, nombre: true, email: true } },
+          fichas_tecnicas:    { select: { id: true, version: true } },
         },
       });
 
@@ -101,7 +101,7 @@ export const OrdenesProduccionService = {
           orden_id:      BigInt(data.orden_id),
           etapa:         data.etapa as any,
           observaciones: data.observaciones ?? null,
-          usuarios_id:   data.usuario_id ? BigInt(data.usuario_id) : null,
+          usuario_id:   data.usuario_id ? BigInt(data.usuario_id) : null,
           activo:        true,
         },
       });

@@ -121,7 +121,6 @@ export const exportToExcel = async (data: any[], config: ExcelExportConfig) => {
 
 // =====================================================
 // EXPORTACIÓN A EXCEL - INVENTARIO DE PRODUCTOS
-// ✅ NUEVO: columnas limpias + stock real desde variantes
 // =====================================================
 
 export const prepareProductosForExcel = (
@@ -264,7 +263,6 @@ const styles = StyleSheet.create({
   tableCol: { borderStyle: 'solid', borderWidth: 1, borderColor: '#eee', borderLeftWidth: 0, borderTopWidth: 0, padding: 6, justifyContent: 'center' },
   tableCellHeader: { color: 'white', fontSize: 8, fontWeight: 'bold' },
   tableCell: { fontSize: 8, color: '#333' },
-  // ✅ NUEVO: estilos para badge de estado en el inventario
   badgeAgotado: { fontSize: 7, color: '#dc2626', backgroundColor: '#fef2f2', padding: 2, borderRadius: 3 },
   badgeBajo:    { fontSize: 7, color: '#d97706', backgroundColor: '#fffbeb', padding: 2, borderRadius: 3 },
   badgeDisp:    { fontSize: 7, color: '#16a34a', backgroundColor: '#f0fdf4', padding: 2, borderRadius: 3 },
@@ -272,7 +270,6 @@ const styles = StyleSheet.create({
 
 // =====================================================
 // EXPORTACIÓN A PDF - INVENTARIO (@react-pdf/renderer)
-// ✅ MODIFICADO: usa stock enriquecido + badge de estado
 // =====================================================
 
 const InventarioDocument = ({ data, categorias, config }: any) => {
@@ -303,12 +300,10 @@ const InventarioDocument = ({ data, categorias, config }: any) => {
 
           {/* Filas */}
           {data.map((item: any, rowIndex: number) => {
-            // ✅ Busca la categoría por id normalizado (string o number)
             const cat = categorias.find(
               (c: any) => String(c.id).replace(/\D/g, '') === String(item.categoria_id).replace(/\D/g, '')
             )?.nombre || "General";
 
-            // ✅ Stock ya viene enriquecido desde ProductosPage (stock_total_adicional)
             const stockVal = Number(item.stock ?? 0);
             const estLabel = stockVal === 0 ? "Agotado" : stockVal <= 5 ? "Bajo" : "Disponible";
             const estStyle = stockVal === 0 ? styles.badgeAgotado : stockVal <= 5 ? styles.badgeBajo : styles.badgeDisp;
@@ -333,7 +328,6 @@ const InventarioDocument = ({ data, categorias, config }: any) => {
                   <Text style={styles.tableCell}>{pre}</Text>
                 </View>
                 <View style={[styles.tableCol, { width: colWidths[5] }]}>
-                  {/* ✅ Badge de estado con color */}
                   <Text style={estStyle}>{estLabel}</Text>
                 </View>
               </View>
@@ -669,4 +663,80 @@ export const exportConfeccionesDetailedPDF = async (data: any[], config: PDFExpo
   }
 
   doc.save(`${config.filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
+
+// =====================================================
+// EXPORTACIÓN A PDF - COTIZACIONES
+// =====================================================
+
+const CotizacionesDocument = ({ data, config }: any) => {
+  const colWidths = ['18%', '22%', '15%', '12%', '13%', '20%'];
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{config.title}</Text>
+            <Text style={styles.subtitle}>Reporte Comercial - Modas y Estilos GUOR</Text>
+            <Text style={styles.subtitle}>Generado: {new Date().toLocaleString('es-PE')}</Text>
+          </View>
+        </View>
+
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            {['N° COT.', 'CLIENTE', 'MONTO', 'ESTADO', 'VENCIMIENTO', 'DESCRIPCIÓN'].map((header, i) => (
+              <View key={i} style={[styles.tableColHeader, { width: colWidths[i] }]}>
+                <Text style={styles.tableCellHeader}>{header}</Text>
+              </View>
+            ))}
+          </View>
+
+          {data.map((item: any, rowIndex: number) => (
+            <View key={rowIndex} style={rowIndex % 2 === 0 ? styles.tableRow : styles.tableRowStriped}>
+              <View style={[styles.tableCol, { width: colWidths[0] }]}>
+                <Text style={styles.tableCell}>{item.cotizacion_id || '---'}</Text>
+              </View>
+              <View style={[styles.tableCol, { width: colWidths[1] }]}>
+                <Text style={styles.tableCell}>{item.cliente || 'Sin cliente'}</Text>
+              </View>
+              <View style={[styles.tableCol, { width: colWidths[2] }]}>
+                <Text style={styles.tableCell}>
+                  {`S/ ${Number(item.monto || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`}
+                </Text>
+              </View>
+              <View style={[styles.tableCol, { width: colWidths[3] }]}>
+                <Text style={styles.tableCell}>{(item.estado || 'borrador').toUpperCase()}</Text>
+              </View>
+              <View style={[styles.tableCol, { width: colWidths[4] }]}>
+                <Text style={styles.tableCell}>{item.fecha_vencimiento || '---'}</Text>
+              </View>
+              <View style={[styles.tableCol, { width: colWidths[5] }]}>
+                <Text style={styles.tableCell}>{item.descripcion || '---'}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
+export const exportCotizacionesToPDF = async (
+  data: any[],
+  config: { title: string; filename: string }
+) => {
+  if (!data || data.length === 0) return;
+
+  const asPdf = pdf();
+  asPdf.updateContainer(<CotizacionesDocument data={data} config={config} />);
+  const blob = await asPdf.toBlob();
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${config.filename}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
 };

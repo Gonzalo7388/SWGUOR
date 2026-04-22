@@ -67,7 +67,7 @@ export async function POST(req: Request) {
           estado_anterior: estado_anterior ?? null,
           estado_nuevo,
           notas:           notas ?? null,
-          responsable_id:  usuario.id ? BigInt(usuario.id) : null,
+          responsable_id: usuario.id ?? null
         },
       });
 

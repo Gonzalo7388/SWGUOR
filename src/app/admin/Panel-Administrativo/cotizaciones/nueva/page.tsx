@@ -1,15 +1,14 @@
-import { getClientesList, getProductosList } from '../actions';
+import { CotizacionesService } from '@/lib/services/cotizaciones-services';
 import { CotizacionForm } from '@/components/admin/cotizaciones/CotizacionForm';
 
 export default async function NuevaCotizacionPage() {
   const [clientes, productos] = await Promise.all([
-    getClientesList(),
-    getProductosList(),
+    CotizacionesService.listarClientes(),
+    CotizacionesService.listarProductos(),
   ]);
 
   return (
     <div className="space-y-6 p-6 bg-slate-50 min-h-screen">
-      {/* Header */}
       <div>
         <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
           Nueva Cotización
@@ -19,7 +18,6 @@ export default async function NuevaCotizacionPage() {
         </p>
       </div>
 
-      {/* Form */}
       <CotizacionForm
         clientes={clientes}
         productos={productos}

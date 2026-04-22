@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       },
       include: {
         pedidos: { include: { clientes: { select: { razon_social: true } } } },
-        usuario: {
+        usuarios: {
           select: {
             personal_interno: { select: { nombre_completo: true } },
           },
@@ -154,7 +154,7 @@ export async function PATCH(req: Request) {
         data,
         include: {
           pedidos: { include: { clientes: { select: { razon_social: true } } } },
-          usuario: {
+          usuarios: {
             select: {
               personal_interno: { select: { nombre_completo: true } },
             },

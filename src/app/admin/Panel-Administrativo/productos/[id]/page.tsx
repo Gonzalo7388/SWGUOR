@@ -18,8 +18,8 @@ export default async function ProductoDetallePage({ params }: PageProps) {
       include: {
         variantes_producto: true,
         categorias:         true,
-        ficha_tecnicas: {
-          include: { medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
+        fichasTecnicas: {
+          include: { ficha_medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
         },
       },
     });
