@@ -11,7 +11,6 @@ import {
   Globe,
   Thermometer,
   CheckCircle2,
-  X,
   Info
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -62,14 +61,6 @@ export default function TechSheetDialog({
 
           {/* Panel de Contenido Principal */}
           <div className="flex-1 p-8 relative">
-            {/* Botón Cerrar (X) */}
-            <button 
-              onClick={onClose}
-              className="absolute right-6 top-6 text-slate-300 hover:text-slate-600 transition-colors"
-            >
-              <X size={20} />
-            </button>
-
             <div className="space-y-8">
               {/* Info Cabecera Producto */}
               <div>
