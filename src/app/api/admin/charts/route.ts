@@ -49,7 +49,7 @@ export async function GET(req: Request) {
       }),
 
       // 4. ÓRDENES POR ESTADO
-      prisma.ordenes.groupBy({
+      prisma.ordenes_produccion.groupBy({
         by: ['estado'],
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },

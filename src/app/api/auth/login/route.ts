@@ -2,7 +2,41 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+// Rate limiting simple en memoria (para producción usar Redis)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 5; // intentos por IP
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_MS });
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
 export async function POST(request: Request) {
+  // Obtener IP del cliente
+  const ip = request.headers.get('x-forwarded-for') || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Demasiados intentos. Intenta de nuevo en 15 minutos.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const { email, password } = await request.json();
     const cookieStore = await cookies();

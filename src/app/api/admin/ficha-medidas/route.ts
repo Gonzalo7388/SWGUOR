@@ -3,30 +3,18 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-async function getRolUsuario() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('usuarios')
-    .select('rol')
-    .eq('auth_id', user.id)
-    .single();
-  return data?.rol ?? null;
-}
-
-const ROLES_PERMITIDOS = ['disenador', 'cortador', 'administrador', 'gerente'];
+const FICHA_MEDIDAS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador'];
 
 // ── GET: Medidas por ficha ────────────────────────────────────────────────
 export async function GET(req: Request) {
+  const auth = await requireServerRole(FICHA_MEDIDAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const ficha_id = searchParams.get('ficha_id');
@@ -48,11 +36,10 @@ export async function GET(req: Request) {
 
 // ── POST: Guardar medidas en bloque (reemplaza todas) ─────────────────────
 export async function POST(req: Request) {
-  try {
-    const rol = await getRolUsuario();
-    if (!rol || !ROLES_PERMITIDOS.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(FICHA_MEDIDAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
     const body = await req.json();
     const { ficha_id, medidas } = body;
@@ -94,11 +81,10 @@ export async function POST(req: Request) {
 
 // ── DELETE: Eliminar una medida por id ────────────────────────────────────
 export async function DELETE(req: Request) {
-  try {
-    const rol = await getRolUsuario();
-    if (!rol || !ROLES_PERMITIDOS.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(FICHA_MEDIDAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

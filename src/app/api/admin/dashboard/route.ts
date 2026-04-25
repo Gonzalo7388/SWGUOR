@@ -4,8 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server'; // ajusta el path a tu cliente
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
+
+const DASHBOARD_ROLES: RolUsuario[] = ['administrador', 'gerente'];
 
 export async function GET(req: NextRequest) {
+  const auth = await requireServerRole(DASHBOARD_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const days = Number(req.nextUrl.searchParams.get('days') ?? '30');
   const supabase = await createClient();
 

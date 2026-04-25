@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
 import type { EstadoOrden } from '@prisma/client';
+import type { RolUsuario } from '@/lib/constants/roles';
+
+const ORDENES_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller'];
 
 // Estados válidos según el schema
 const ESTADOS_VALIDOS: EstadoOrden[] = [
@@ -9,6 +13,11 @@ const ESTADOS_VALIDOS: EstadoOrden[] = [
 
 // GET: Listar órdenes con filtros opcionales
 export async function GET(request: NextRequest) {
+  const auth = await requireServerRole(ORDENES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const supabase = await createClient();
 
   try {
@@ -95,6 +104,11 @@ export async function GET(request: NextRequest) {
 
 // POST: Crear nueva orden (a partir de una cotización aprobada)
 export async function POST(request: NextRequest) {
+  const auth = await requireServerRole(ORDENES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const supabase = await createClient();
 
   try {
@@ -153,6 +167,11 @@ export async function POST(request: NextRequest) {
 
 // PATCH: Actualizar estado o datos de una orden
 export async function PATCH(request: NextRequest) {
+  const auth = await requireServerRole(ORDENES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const supabase = await createClient();
 
   try {
@@ -203,6 +222,11 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE: Cancelar una orden (soft delete via estado)
 export async function DELETE(request: NextRequest) {
+  const auth = await requireServerRole(ORDENES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   const supabase = await createClient();
 
   try {

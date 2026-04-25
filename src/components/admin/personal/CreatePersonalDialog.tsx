@@ -29,7 +29,6 @@ const CARGOS: { value: Cargo; label: string }[] = [
   { value: "ayudante",             label: "Ayudante"       },
 ];
 
-// ✅ Sin "cliente" — rol exclusivo del portal, no del panel interno
 const ROLES_INTERNOS: { value: Rol; label: string; descripcion: string }[] = [
   { value: "gerente",              label: "Gerente",        descripcion: "Acceso total al sistema"              },
   { value: "administrador",        label: "Administrador",  descripcion: "Gestión completa excepto reportes"    },
@@ -116,7 +115,6 @@ export default function CreatePersonalDialog({
 
     setLoading(true);
     try {
-      // ✅ Endpoint de personal interno, no de usuarios genéricos
       const res = await fetch("/api/admin/personal", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },

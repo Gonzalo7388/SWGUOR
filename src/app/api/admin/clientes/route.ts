@@ -1,9 +1,17 @@
 export const runtime = 'nodejs';
 import { ClientesService } from '@/lib/services/clientes-services';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 import { NextResponse }    from 'next/server';
+
+const CLIENTES_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista'];
 
 // GET /api/admin/clientes?busqueda=xxx&estado=xxx
 export async function GET(req: Request) {
+  const auth = await requireServerRole(CLIENTES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
   try {
     const { searchParams } = new URL(req.url);
     const data = await ClientesService.listar({
@@ -19,6 +27,11 @@ export async function GET(req: Request) {
 
 // POST /api/admin/clientes — crea usuario Auth + clientes
 export async function POST(req: Request) {
+  const auth = await requireServerRole(CLIENTES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
     const { ruc, email, password } = body;
@@ -40,6 +53,11 @@ export async function POST(req: Request) {
 
 // PUT /api/admin/clientes — actualiza datos del cliente
 export async function PUT(req: Request) {
+  const auth = await requireServerRole(CLIENTES_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
     const { id, ...data } = body;

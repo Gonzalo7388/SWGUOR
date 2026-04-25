@@ -548,12 +548,12 @@ model clientes {
   direccion_fiscal     String?                @db.VarChar(255)
   tipo_cliente         TipoCliente?           @default(corporativo)
   nombre_comercial     String?
-  usuarios             usuarios?              @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cotizaciones         cotizaciones[]
-  devoluciones_cliente devoluciones_cliente[]
-  direcciones_cliente  direcciones_cliente[]
-  feedback_cliente     feedback_cliente[]
-  pedidos              pedidos[]
+  usu                   usu?                   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cot                   cot[]
+  dev_cli               dev_cli[]
+  dir                   dir[]
+  fdb                   fdb[]
+  ped                   ped[]
 
   @@schema("public")
 }
@@ -591,11 +591,11 @@ model confecciones {
   fecha_entrega          DateTime?                @db.Date
   prioridad              String                   @default("media")
   notas                  String?
-  pedidos                pedidos                  @relation(fields: [pedido_id], references: [id])
-  talleres               talleres                 @relation(fields: [taller_id], references: [id])
-  usuarios               usuarios?                @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_confecciones_responsable_id")
-  incidencias            incidencias[]
-  seguimiento_confeccion seguimiento_confeccion[]
+  ped                   ped                   @relation(fields: [pedido_id], references: [id])
+  tall                  tall                  @relation(fields: [taller_id], references: [id])
+  usr                   usr?                  @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_confecciones_responsable_id")
+  inc                   inc[]
+  seg_conf              seg_conf[]
 
   @@index([pedido_id], map: "idx_confecciones_pedido")
   @@index([responsable_id], map: "idx_confecciones_responsable")
@@ -630,9 +630,9 @@ model cotizacion_items {
   modelo_snapshot          String?            @db.VarChar(100)
   prenda_tipo_snapshot     String?            @db.VarChar(50)
   talla_snapshot           String             @db.VarChar(10)
-  cotizaciones             cotizaciones       @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_items_cotizacion_id")
-  productos                productos          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_items_producto_id")
-  variantes_producto       variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_items_variante_id")
+  cot                   cot                   @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_items_cotizacion_id")
+  prod                  prod                  @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_items_producto_id")
+  var                   var                   @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_items_variante_id")
 
   @@schema("public")
 }
@@ -662,10 +662,10 @@ model cotizaciones {
   costo_total_estimado  Decimal?           @default(0) @db.Decimal(12, 2)
   notas_internas        String?
   origen                String?            @default("manual") @db.VarChar(20)
-  cotizacion_items      cotizacion_items[]
-  clientes              clientes?          @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  pedidos               pedidos?           @relation(fields: [pedido_id], references: [id], onUpdate: NoAction)
-  reglas_descuento      reglas_descuento?  @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizaciones_id_regla_descuento")
+  its                   its[]
+  cli                   cli?                   @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ped                   ped?                   @relation(fields: [pedido_id], references: [id], onUpdate: NoAction)
+  reg_desc              reg_desc?              @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizaciones_id_regla_descuento")
 
   @@schema("public")
 }
@@ -962,9 +962,9 @@ model pedido_items {
   variante_id        BigInt
   cantidad           Int
   especificaciones   Json?
-  pedidos            pedidos            @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  productos          productos          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ped                   ped                   @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  prod                  prod                  @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  var                   var                   @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([pedido_id], map: "idx_pedido_items_pedido")
   @@index([producto_id], map: "idx_pedido_items_producto")
@@ -986,14 +986,14 @@ model pedidos {
   total_estimado     Decimal?             @default(0) @db.Decimal(12, 2)
   total_unidades     Int                  @default(0)
   moq_aplicado       Int                  @default(400)
-  confecciones       confecciones[]
-  cotizaciones       cotizaciones[]
-  despachos          despachos[]
-  ordenes_produccion ordenes_produccion[]
-  pedido_items       pedido_items[]
-  clientes           clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios           usuarios?            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  seguimiento_pedido seguimiento_pedido[]
+  conf                  conf[]
+  cots                  cots[]
+  desp                  desp[]
+  ord_prod              ord_prod[]
+  its                   its[]
+  cli                   cli?                  @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usr                   usr?                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  seg_ped               seg_ped[]
 
   @@index([cliente_id], map: "idx_pedidos_cliente")
   @@index([estado], map: "idx_pedidos_estado")
@@ -1051,16 +1051,16 @@ model productos {
   tallas_disponibles     Json?                    @default("[]")
   fichas_tecnicas_id     BigInt?
   reglas_descuento       Json?
-  cotizacion_items       cotizacion_items[]
-  devoluciones_cliente   devoluciones_cliente[]
-  fichasTecnicas         fichas_tecnicas[]        @relation("FichaProducto")
-  movimientos_inventario movimientos_inventario[]
-  ordenes_produccion     ordenes_produccion[]
-  pedido_items           pedido_items[]
-  precio_historico       precio_historico[]
-  fichaTecnicaRef        fichas_tecnicas?         @relation("ProductoFichaTecnica", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_productos_fichas_tecnicas_id")
-  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  variantes_producto     variantes_producto[]
+  cots_it               cots_it[]
+  dev_cli               dev_cli[]
+  fich_tec              fich_tec[]            @relation("FichaProducto")
+  mov_inv               mov_inv[]
+  ord_prod              ord_prod[]
+  ped_it                ped_it[]
+  prec_hist             prec_hist[]
+  fich_tec_ref          fich_tec_ref?         @relation("ProductoFichaTecnica", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_productos_fichas_tecnicas_id")
+  cat                   cat?                  @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  var_prod              var_prod[]
 
   @@index([categoria_id, estado], map: "idx_productos_categoria_estado")
   @@index([estado], map: "idx_productos_estado")
@@ -1190,8 +1190,8 @@ model talleres {
   contacto           String
   especialidad       EspecialidadTaller?
   estado             EstadoTaller         @default(activo)
-  confecciones       confecciones[]
-  ordenes_produccion ordenes_produccion[]
+  conf                  conf[]
+  ord_prod              ord_prod[]
 
   @@schema("public")
 }
@@ -1207,22 +1207,22 @@ model usuarios {
   ultimo_acceso                                   DateTime?                @db.Timestamptz(6)
   created_by                                      String?                  @db.Uuid
   auth_id                                         String?                  @unique @db.Uuid
-  clientes                                        clientes?
-  confecciones                                    confecciones[]
-  despachos                                       despachos[]
-  devoluciones_cliente                            devoluciones_cliente[]
-  devoluciones_proveedor                          devoluciones_proveedor[]
-  incidencias_incidencias_asignado_aTousuarios    incidencias[]            @relation("incidencias_asignado_aTousuarios")
-  incidencias_incidencias_reportado_porTousuarios incidencias[]            @relation("incidencias_reportado_porTousuarios")
-  movimientos_inventario                          movimientos_inventario[]
-  pagos_orden                                     pagos_orden[]
-  pedidos                                         pedidos[]
-  personal_interno                                personal_interno[]
-  precio_historico                                precio_historico[]
-  seguimiento_confeccion                          seguimiento_confeccion[]
-  seguimiento_produccion                          seguimiento_produccion[]
-  users                                           users?                   @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ventas                                          ventas[]
+  cli                                           cli?
+  conf                                          conf[]
+  desp                                          desp[]
+  dev_cli                                       dev_cli[]
+  dev_prov                                      dev_prov[]
+  inc_asig                                      inc[]                  @relation("incidencias_asignado_aTousuarios")
+  inc_rep                                       inc[]                  @relation("incidencias_reportado_porTousuarios")
+  mov_inv                                       mov_inv[]
+  pag_ord                                       pag_ord[]
+  ped                                           ped[]
+  per_int                                       per_int[]
+  prec_hist                                     prec_hist[]
+  seg_conf                                      seg_conf[]
+  seg_prod                                      seg_prod[]
+  usr_auth                                      usr_auth?              @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vent                                          vent[]
 
   @@schema("public")
 }
@@ -1241,11 +1241,11 @@ model variantes_producto {
   imagen_url           String?
   created_at           DateTime?              @default(now()) @db.Timestamptz(6)
   updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
-  cotizacion_items     cotizacion_items[]
-  devoluciones_cliente devoluciones_cliente[]
-  pedido_items         pedido_items[]
-  reservas_stock       reservas_stock[]
-  productos            productos              @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_variantes_producto_producto_id")
+  cots_it               cots_it[]
+  dev_cli               dev_cli[]
+  ped_it                ped_it[]
+  res_stock             res_stock[]
+  prod                  prod                  @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_variantes_producto_producto_id")
 
   @@unique([producto_id, talla, color], map: "unique_producto_talla_color")
   @@index([talla, color], map: "idx_variantes_busqueda_cliente", where: raw("(estado = 'activo'::\"EstadoProducto\")"))
