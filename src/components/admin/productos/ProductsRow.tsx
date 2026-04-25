@@ -34,7 +34,7 @@ const ProductoRow = memo(({
 }: ProductoRowProps) => {
   const { can } = usePermissions();
   const canEdit   = can('edit',   'productos');
-  const canDelete = can('delete', 'productos');
+  const canDelete = can('archive', 'productos');
 
   const rawImage  = String(p.imagen || "").trim();
   const fileName  = rawImage.split('/').pop();

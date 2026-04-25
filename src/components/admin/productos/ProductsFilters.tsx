@@ -114,7 +114,7 @@ export default function ProductFilters({
           )}
         </div>
 
-        {/* ✅ CATEGORÍA (FIX AQUÍ) */}
+        {/* CATEGORIAS */}
         <div className="w-full lg:w-64">
           <Select value={selectedCategoria} onValueChange={setSelectedCategoria}>
             <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-slate-50/50">

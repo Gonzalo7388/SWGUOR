@@ -72,7 +72,7 @@ export default function NuevoTallerPage() {
                 name="contacto"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Persona de Contacto</FormLabel>
+                    <FormLabel>personal de Contacto</FormLabel>
                     <FormControl><Input placeholder="Nombre del encargado" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>

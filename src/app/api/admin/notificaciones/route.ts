@@ -43,12 +43,12 @@ export async function GET(req: Request) {
             created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
           include: {
-            clientes: { select: { razon_social: true } },
+            proveedores: { select: { nombre: true } }, // ← proveedor, no cliente
           },
           orderBy: { created_at: 'asc' },
           take: 20,
         }),
-      ]);
+      ])
 
     // Filtrar insumos con stock bajo (Prisma no soporta field refs directos en where)
     const insumosAlerta = insumosBajoStock.filter(

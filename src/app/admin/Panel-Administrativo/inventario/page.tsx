@@ -19,30 +19,25 @@ import { useMateriales } from "@/lib/hooks/useMateriales";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import BuscarMaterial      from "@/components/admin/inventario/BuscarMaterial";
-import HistorialMovimiento from "@/components/admin/inventario/HistorialMovimiento";
 import UnitConverter from "@/components/admin/inventario/ConvertirUnidad";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import SkeletonInsumosTable from "@/components/admin/inventario/insumos/SkeletonInsumo";
+import InsumosTable from "@/components/admin/inventario/insumos/InsumosTable";
+import MaterialesTable from "@/components/admin/inventario/materiales/MaterialesTable";
+import SkeletonMaterialesTable from "@/components/admin/inventario/materiales/SkeletonMateriales";
 
 
-const InsumosTable = dynamic(
-  () => import("@/components/admin/inventario/insumos/InsumosTable"),
-  { loading: () => <SkeletonTable /> }
-);
-const MaterialesTable = dynamic(
-  () => import("@/components/admin/inventario/materiales/MaterialesTable"),
-  { loading: () => <SkeletonTable /> }
-);
 const CreateInsumoDialog   = dynamic(() => import("@/components/admin/inventario/insumos/CreateInsumoDialog"));
 const EditInsumoDialog     = dynamic(() => import("@/components/admin/inventario/insumos/EditInsumoDialog"));
-const DeleteInsumoDialog   = dynamic(() => import("@/components/admin/inventario/insumos/DeleteInsumoDialog"));
+const DescontinuarInsumoDialog   = dynamic(() => import("@/components/admin/inventario/insumos/DescontinuarInsumoDialog"));
 const CreateMaterialDialog = dynamic(() => import("@/components/admin/inventario/materiales/CreateMaterialDialog"));
 const EditMaterialDialog   = dynamic(() => import("@/components/admin/inventario/materiales/EditMaterialDialog"));
-const DeleteMaterialDialog = dynamic(() => import("@/components/admin/inventario/materiales/DeleteMaterialDialog"));
+const DescontinuarMaterialDialog = dynamic(() => import("@/components/admin/inventario/materiales/DescontinuarMaterialDialog"));
 
 type ActiveTab = "insumos" | "materiales";
 
 export default function InventarioPage() {
-  const { can, isLoading: authLoading } = usePermissions();
+  const { can, role, isLoading: authLoading } = usePermissions();
   const { insumos, cargando: cargandoInsumos, obtenerInsumosList, movimientos } = useInventario();
   const { materiales, isLoading: cargandoMateriales, refetch: refetchMateriales } = useMateriales();
 
@@ -56,7 +51,7 @@ export default function InventarioPage() {
   const [currentPageIns,     setCurrentPageIns]     = useState(0);
   const [isCreateInsumoOpen, setIsCreateInsumoOpen] = useState(false);
   const [selectedInsumo,     setSelectedInsumo]     = useState<any | null>(null);
-  const [dialogModeIns,      setDialogModeIns]      = useState<"edit" | "delete" | null>(null);
+  const [dialogModeIns, setDialogModeIns] = useState<"edit" | "archive" | null>(null);
 
   // Materiales state
   const [searchTermMat,    setSearchTermMat]    = useState("");
@@ -65,12 +60,12 @@ export default function InventarioPage() {
   const [currentPageMat,   setCurrentPageMat]   = useState(0);
   const [isCreateMatOpen,  setIsCreateMatOpen]  = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<any | null>(null);
-  const [dialogModeMat,    setDialogModeMat]    = useState<"edit" | "delete" | null>(null);
+  const [dialogModeMat,    setDialogModeMat]    = useState<"edit" | "archive" | null>(null);
 
   const pageSize  = 10;
   const canCreate = can("create", "inventario");
   const canEdit   = can("edit",   "inventario");
-  const canDelete = can("delete", "inventario");
+  const canDelete = can("archive", "inventario");
   const canExport = can("export", "inventario");
 
   useEffect(() => {
@@ -216,10 +211,6 @@ export default function InventarioPage() {
     ? (v: string | null) => setStatusFilterIns(v)
     : (v: string | null) => setStatusFilterMat(v);
 
-  const movimientosFiltrados = (movimientos ?? []).filter((m: any) =>
-    isInsumos ? m.insumo_id !== undefined : m.material_id !== undefined
-  );
-
   return (
     <div className="p-4 md:p-8 space-y-6 bg-[#f7f7f8] min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -234,23 +225,6 @@ export default function InventarioPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Botón Movimientos (Alterna el historial abajo) */}
-              <button
-                onClick={() => setDrawerOpen(!drawerOpen)}
-                className={`flex items-center gap-2 h-10 px-5 rounded-xl border transition-all font-bold text-sm ${
-                  drawerOpen 
-                    ? "bg-gray-900 border-gray-900 text-white shadow-lg shadow-gray-200" 
-                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <RefreshCw className={`w-4 h-4 ${drawerOpen ? 'rotate-180' : ''} transition-transform duration-500`} />
-                {drawerOpen ? "Cerrar Historial" : "Movimientos"}
-                {!drawerOpen && movimientosFiltrados.length > 0 && (
-                  <span className="ml-1 bg-pink-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                    {movimientosFiltrados.length}
-                  </span>
-                )}
-              </button>
 
               {canExport && (
                 <>
@@ -296,9 +270,6 @@ export default function InventarioPage() {
                   <button onClick={() => setDrawerOpen(false)} className="text-xs font-bold text-gray-400 hover:text-gray-600">
                     Ocultar
                   </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <HistorialMovimiento movimientos={movimientosFiltrados.slice(0, 6)} />
                 </div>
               </div>
             </div>
@@ -412,57 +383,78 @@ export default function InventarioPage() {
           </div>
         </div>
           
-        {/* ── Tabla de Datos ── */}
-        {cargando ? (
-          <SkeletonTable />
-        ) : (
-          <div className="space-y-3">
-            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-              {isInsumos ? (
+       {/* ── Tabla de Datos ── */}
+        <div className="space-y-3">
+          <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+            {isInsumos ? (
+              cargandoInsumos ? (
+                <SkeletonInsumosTable />
+              ) : (
                 <InsumosTable
-                  data={paginatedInsumos} loading={cargandoInsumos} canEdit={canEdit} canDelete={canDelete}
+                  data={paginatedInsumos}
+                  loading={cargandoInsumos}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
                   onEdit={(item: any) => { setSelectedInsumo(item); setDialogModeIns("edit"); }}
-                  onDelete={(item: any) => { setSelectedInsumo(item); setDialogModeIns("delete"); }}
+                  onDelete={(item: any) => { setSelectedInsumo(item); setDialogModeIns("archive"); }}
                 />
+              )
+            ) : (
+              cargandoMateriales ? (
+                <SkeletonMaterialesTable />
               ) : (
                 <MaterialesTable
-                  data={paginatedMateriales} loading={cargandoMateriales} canEdit={canEdit} canDelete={canDelete}
+                  data={paginatedMateriales}
+                  loading={cargandoMateriales}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
                   onEdit={(item: any) => { setSelectedMaterial(item); setDialogModeMat("edit"); }}
-                  onDelete={(item: any) => { setSelectedMaterial(item); setDialogModeMat("delete"); }}
+                  onDelete={(item: any) => { setSelectedMaterial(item); setDialogModeMat("archive"); }}
                 />
-              )}
-            </div>
+              )
+            )}
 
-            {/* Paginación */}
-            <div className="flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
-              <p className="text-xs text-gray-400 font-medium">
-                Mostrando <span className="font-bold text-gray-700">{isInsumos ? paginatedInsumos.length : paginatedMateriales.length}</span> de <span className="font-bold text-gray-700">{isInsumos ? filteredInsumos.length : filteredMateriales.length}</span> registros
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline" size="sm" className="h-8 w-8 p-0 rounded-xl"
-                  onClick={() => isInsumos ? setCurrentPageIns(p => p - 1) : setCurrentPageMat(p => p - 1)}
-                  disabled={isInsumos ? currentPageIns === 0 : currentPageMat === 0}
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </Button>
-                <span className="text-xs font-bold text-gray-500">
-                  {(isInsumos ? currentPageIns : currentPageMat) + 1} / {(isInsumos ? totalPagesIns : totalPagesMat) || 1}
-                </span>
-                <Button
-                  variant="outline" size="sm" className="h-8 w-8 p-0 rounded-xl"
-                  onClick={() => isInsumos ? setCurrentPageIns(p => p + 1) : setCurrentPageMat(p => p + 1)}
-                  disabled={isInsumos ? currentPageIns + 1 >= totalPagesIns : currentPageMat + 1 >= totalPagesMat}
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
           </div>
-        )}
+        </div>
+        
+        {/* Paginación */}
+        <div className="flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-xs text-gray-400 font-medium">
+            Mostrando{" "}
+            <span className="font-bold text-gray-700">
+              {isInsumos ? paginatedInsumos.length : paginatedMateriales.length}
+            </span>{" "}
+            de{" "}
+            <span className="font-bold text-gray-700">
+              {isInsumos ? filteredInsumos.length : filteredMateriales.length}
+            </span>{" "}
+            registros
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline" size="sm" className="h-8 w-8 p-0 rounded-xl"
+              onClick={() => isInsumos ? setCurrentPageIns(p => p - 1) : setCurrentPageMat(p => p - 1)}
+              disabled={isInsumos ? currentPageIns === 0 : currentPageMat === 0}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </Button>
+            <span className="text-xs font-bold text-gray-500">
+              {(isInsumos ? currentPageIns : currentPageMat) + 1} /{" "}
+              {(isInsumos ? totalPagesIns : totalPagesMat) || 1}
+            </span>
+            <Button
+              variant="outline" size="sm" className="h-8 w-8 p-0 rounded-xl"
+              onClick={() => isInsumos ? setCurrentPageIns(p => p + 1) : setCurrentPageMat(p => p + 1)}
+              disabled={isInsumos ? currentPageIns + 1 >= totalPagesIns : currentPageMat + 1 >= totalPagesMat}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+
       </div>
 
-      {/* Diálogos (Originales) */}
+      {/* Diálogos */}
       {canCreate && (
         <>
           <CreateInsumoDialog isOpen={isCreateInsumoOpen} onClose={() => setIsCreateInsumoOpen(false)} onSuccess={obtenerInsumosList} />
@@ -472,15 +464,16 @@ export default function InventarioPage() {
       {selectedInsumo && (
         <>
           <EditInsumoDialog isOpen={dialogModeIns === "edit"} insumo={selectedInsumo} onClose={() => setDialogModeIns(null)} onSuccess={obtenerInsumosList} />
-          <DeleteInsumoDialog isOpen={dialogModeIns === "delete"} insumo={selectedInsumo} onClose={() => setDialogModeIns(null)} onSuccess={obtenerInsumosList} />
+          <DescontinuarInsumoDialog isOpen={dialogModeIns === "archive"} insumo={selectedInsumo} onClose={() => setDialogModeIns(null)} onSuccess={obtenerInsumosList} rolUsuario={role} />
         </>
       )}
       {selectedMaterial && (
         <>
           <EditMaterialDialog isOpen={dialogModeMat === "edit"} material={selectedMaterial} onClose={() => setDialogModeMat(null)} onSuccess={refetchMateriales} />
-          <DeleteMaterialDialog isOpen={dialogModeMat === "delete"} material={selectedMaterial} onClose={() => setDialogModeMat(null)} onSuccess={refetchMateriales} />
+          <DescontinuarMaterialDialog isOpen={dialogModeMat === "archive"} material={selectedMaterial} onClose={() => setDialogModeMat(null)} onSuccess={refetchMateriales} rolUsuario={role} />
         </>
       )}
+
     </div>
   );
 }
@@ -533,15 +526,5 @@ function StatCard({ title, value, sub, icon, isActive, onClick, variant, noFilte
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${styles.bg}`}>{icon}</div>
       </div>
     </button>
-  );
-}
-
-function SkeletonTable() {
-  return (
-    <div className="space-y-2 p-4 bg-white rounded-2xl border border-gray-100">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />
-      ))}
-    </div>
   );
 }

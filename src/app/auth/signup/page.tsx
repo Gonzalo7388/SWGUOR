@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 <select name="tipoCliente" required className="register-input appearance-none cursor-pointer">
                   <option value="" disabled>TIPO DE CLIENTE</option>
                   <option value="corporativo">CORPORATIVO</option>
-                  <option value="persona_natural">PERSONA NATURAL</option>
+                  <option value="persona_natural">personal NATURAL</option>
                 </select>
               </div>
 

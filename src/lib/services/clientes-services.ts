@@ -3,6 +3,47 @@ import { serializeBigInt } from '@/lib/utils/serialize';
 import { createClient }    from '@/lib/supabase/server';
 import type { EstadoCliente, TipoCliente } from '@prisma/client';
 
+export interface ClienteListItem {
+  id:               string;
+  ruc:              string;
+  razon_social:     string | null;
+  nombre_comercial: string | null;
+  activo:           string;
+  email:            string | null;
+  telefono:         string | null;
+  tipo_cliente:     string | null;
+  direccion_fiscal: string | null;
+  ultimo_pedido_en: string | null;
+  usuarios: {
+    id:            string;
+    email:         string;
+    estado:        string;
+    rol:           string | null;
+    ultimo_acceso: string | null;
+  } | null;
+  direcciones_cliente: DireccionCliente[];
+}
+
+export interface DireccionCliente {
+  id:           string;
+  alias:        string;
+  direccion:    string;
+  ciudad:       string | null;
+  departamento: string | null;
+  es_principal: boolean;
+}
+
+export interface ClienteEditable {
+  id:               string;
+  ruc:              string;
+  razon_social:     string | null;
+  nombre_comercial: string | null;
+  telefono:         string | null;
+  direccion_fiscal: string | null;
+  tipo_cliente:     TipoCliente | null;
+  direcciones_cliente: DireccionCliente[];
+}
+
 export const ClientesService = {
 
   // ── Listar ──────────────────────────────────────────────────
@@ -25,10 +66,22 @@ export const ClientesService = {
       include: {
         usuarios: { select: { id: true, email: true, estado: true, rol: true, ultimo_acceso: true } },
         direcciones_cliente: { orderBy: [{ es_principal: 'desc' }, { created_at: 'asc' }] },
+         pedidos: {
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          select: { id: true, created_at: true, estado: true },
+        },
       },
       orderBy: { created_at: 'desc' },
     });
-    return serializeBigInt(clientes);
+
+    // Mapear ultimo_pedido_en antes del serialize
+    const resultado = clientes.map(c => ({
+      ...c,
+      ultimo_pedido_en: c.pedidos?.[0]?.created_at ?? null,
+      pedidos: undefined, // limpiar el array, no hace falta enviarlo
+    }));
+    return serializeBigInt(resultado);
   },
 
   // ── Obtener por ID ──────────────────────────────────────────
@@ -215,4 +268,148 @@ export const ClientesService = {
     await prisma.direcciones_cliente.delete({ where: { id: BigInt(dirId) } });
     return { success: true };
   },
+
+  // ── Obtener detalle completo (perfil + pedidos + productos más comprados) ──
+  async obtenerDetalle(id: string) {
+    const cliente = await prisma.clientes.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        usuarios: {
+          select: {
+            id: true, email: true, estado: true,
+            rol: true, ultimo_acceso: true, auth_id: true,
+          },
+        },
+        direcciones_cliente: {
+          orderBy: [{ es_principal: 'desc' }, { created_at: 'asc' }],
+        },
+        pedidos: {
+          orderBy: { created_at: 'desc' },
+          select: {
+            id:             true,
+            estado:         true,
+            prioridad:      true,
+            total_estimado: true,
+            total_unidades: true,
+            moq_aplicado:   true,
+            notas_cliente:  true,
+            notas_pedido:   true,
+            created_at:     true,
+            updated_at:     true,
+            pedido_items: {
+              select: {
+                id:       true,
+                cantidad: true,
+                productos: {
+                  select: { id: true, nombre: true, sku: true, imagen: true },
+                },
+                variantes_producto: {
+                  select: { id: true, color: true, talla: true, sku: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!cliente) return null;
+
+    const pedidos = cliente.pedidos ?? [];
+
+    // ── Métricas de pedidos ──────────────────────────────────────
+    const ahora           = Date.now();
+    const totalPedidos    = pedidos.length;
+    const pedidosActivos  = pedidos.filter(p =>
+      !['entregado', 'cancelado'].includes(p.estado ?? '')
+    ).length;
+    const ultimoPedido    = pedidos[0]?.created_at ?? null;
+    const diasDesdeUltimo = ultimoPedido
+      ? Math.floor((ahora - new Date(ultimoPedido).getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+    const totalUnidades  = pedidos.reduce((acc, p) => acc + (p.total_unidades ?? 0), 0);
+    const totalEstimado  = pedidos.reduce((acc, p) => acc + Number(p.total_estimado ?? 0), 0);
+
+    // ── Productos más comprados ──────────────────────────────────
+    // Agrupa todos los pedido_items por producto_id y suma cantidades
+    const mapaProductos = new Map<string, {
+      producto_id:    string;
+      nombre:         string;
+      sku:            string | null;
+      imagen:         string | null;
+      total_cantidad: number;
+      total_pedidos:  number;
+      variantes: Map<string, {
+        color:    string | null;
+        talla:    string | null;
+        sku:      string | null;
+        cantidad: number;
+      }>;
+    }>();
+
+    for (const pedido of pedidos) {
+      for (const item of pedido.pedido_items ?? []) {
+        if (!item.productos) continue;
+        const pid = String(item.productos.id);
+
+        if (!mapaProductos.has(pid)) {
+          mapaProductos.set(pid, {
+            producto_id:    pid,
+            nombre:         item.productos.nombre,
+            sku:            item.productos.sku    ?? null,
+            imagen:         item.productos.imagen ?? null,
+            total_cantidad: 0,
+            total_pedidos:  0,
+            variantes:      new Map(),
+          });
+        }
+
+        const entrada = mapaProductos.get(pid)!;
+        entrada.total_cantidad += item.cantidad;
+        entrada.total_pedidos  += 1;
+
+        // Desglose por variante (color + talla)
+        const vid = String(item.variantes_producto?.id ?? 'sin-variante');
+        if (!entrada.variantes.has(vid)) {
+          entrada.variantes.set(vid, {
+            color:    item.variantes_producto?.color ?? null,
+            talla:    item.variantes_producto?.talla ?? null,
+            sku:      item.variantes_producto?.sku   ?? null,
+            cantidad: 0,
+          });
+        }
+        entrada.variantes.get(vid)!.cantidad += item.cantidad;
+      }
+    }
+
+    // Top 10 ordenado por cantidad total descendente
+    const productosTop = Array.from(mapaProductos.values())
+      .sort((a, b) => b.total_cantidad - a.total_cantidad)
+      .slice(0, 10)
+      .map(p => ({
+        producto_id:    p.producto_id,
+        nombre:         p.nombre,
+        sku:            p.sku,
+        imagen:         p.imagen,
+        total_cantidad: p.total_cantidad,
+        total_pedidos:  p.total_pedidos,
+        variantes: Array.from(p.variantes.values())
+          .sort((a, b) => b.cantidad - a.cantidad),
+      }));
+
+    return serializeBigInt({
+      ...cliente,
+      productosTop,
+      metricas: {
+        totalPedidos,
+        pedidosActivos,
+        ultimoPedido,
+        diasDesdeUltimo,
+        totalUnidades,
+        totalEstimado,
+        totalProductosDistintos: mapaProductos.size,
+      },
+    });
+  },
 };
+

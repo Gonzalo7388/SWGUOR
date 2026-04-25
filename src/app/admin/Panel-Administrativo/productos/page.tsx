@@ -20,15 +20,12 @@ import {
   exportInventarioToPDF
 } from "@/lib/utils/export-utils";
 
-const DeleteProductoDialog = dynamic(() =>
-  import("@/components/admin/productos/DeleteProductDialog")
-);
-const TechSheetDialog = dynamic(() =>
-  import("@/components/admin/productos/TechSheetDialog")
+const DescontinuarProductoDialog = dynamic(() =>
+  import("@/components/admin/productos/DescontinuarProductDialog")
 );
 
 export default function ProductosPage() {
-  const { can, isLoading: authLoading } = usePermissions();
+  const { can, role,  isLoading: authLoading } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("all");
   const [colorFilter, setColorFilter] = useState("");
@@ -239,22 +236,20 @@ export default function ProductosPage() {
       </div>
 
       {/* MODALES */}
-      <DeleteProductoDialog
-        isOpen={isDeleteOpen}
-        producto={selectedProducto}
-        onClose={() => setIsDeleteOpen(false)}
-        onSuccess={() => remove(selectedProducto?.id?.toString())} 
-      />
-      <TechSheetDialog
-        isOpen={isTechOpen}
-        producto={selectedProducto}
-        onClose={() => setIsTechOpen(false)}
-      />
+      {role && (
+        <DescontinuarProductoDialog
+          isOpen={isDeleteOpen}
+          producto={selectedProducto}
+          onClose={() => setIsDeleteOpen(false)}
+          onSuccess={() => remove(selectedProducto?.id?.toString())}
+          rolUsuario={role} 
+        />
+      )}
     </div>
   );
 }
 
-// Componente StatCard replicado de Categorías
+// Componente StatCard
 function StatCard({ title, value, icon, isActive, color, onClick }: any) {
   const styles: any = {
     pink: { active: "border-pink-500 ring-pink-50 bg-white", iconActive: "bg-pink-600 text-white", textActive: "text-pink-600" },

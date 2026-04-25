@@ -17,7 +17,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
 // Lazy loading de componentes de talleres
 const TalleresTable = dynamic(() => import("@/components/admin/talleres/TalleresTable"));
 const CreateTallerDialog = dynamic(() => import("@/components/admin/talleres/CreateTallerDialog"));
-const DeleteTallerDialog = dynamic(() => import("@/components/admin/talleres/DeleteTallerDialog"));
+const DeleteTallerDialog = dynamic(() => import("@/components/admin/talleres/SuspenderTallerDialog"));
 const TallerSkeleton = dynamic(() => import("@/components/admin/talleres/TallerSkeleton"));
 
 export default function TalleresPage() {
@@ -168,7 +168,7 @@ export default function TalleresPage() {
             <TalleresTable 
               data={paginatedData}
               canEdit={can('edit', 'talleres')}
-              canDelete={can('delete', 'talleres')}
+              canDelete={can('archive', 'talleres')}
               onDelete={handleDelete}
             />
             

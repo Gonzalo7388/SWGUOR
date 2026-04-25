@@ -153,7 +153,7 @@ export default function TallerForm({ initialData, onSubmit, isLoading }: TallerF
             name="contacto"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-bold">Persona de Contacto</FormLabel>
+                <FormLabel className="font-bold">personal de Contacto</FormLabel>
                 <FormControl><Input placeholder="Nombre del responsable" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>

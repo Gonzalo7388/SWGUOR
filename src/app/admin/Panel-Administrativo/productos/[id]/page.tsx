@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeBigInt } from "@/lib/utils/serialize";
-import ProductoDetalle from "@/components/admin/productos/detalles/ProductoDetalle";
+import ProductoDetalle from "@/components/admin/productos/detalle/ProductoDetalle";
 
 export const dynamic = 'force-dynamic';
 
