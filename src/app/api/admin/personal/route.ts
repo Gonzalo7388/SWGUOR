@@ -31,11 +31,11 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 });
     }
 
-    const persona = id
+    const personal = id
       ? await PersonalInternoService.actualizar(String(id), data)
       : await PersonalInternoService.actualizarPorUsuarioId(String(usuario_id), data);
 
-    return NextResponse.json({ success: true, data: persona });
+    return NextResponse.json({ success: true, data: personal });
   } catch (error: any) {
     console.error('[PATCH /personal]', error);
     if (error.code === 'P2025') {

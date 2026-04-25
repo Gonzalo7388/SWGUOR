@@ -81,21 +81,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "asientos_contables_orden_id_fkey"
+            foreignKeyName: "fk_asientos_contables_orden_id"
             columns: ["orden_id"]
             isOneToOne: false
             referencedRelation: "ordenes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "asientos_contables_pago_id_fkey"
+            foreignKeyName: "fk_asientos_contables_pago_id"
             columns: ["pago_id"]
             isOneToOne: false
             referencedRelation: "pagos_orden"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "asientos_contables_venta_id_fkey"
+            foreignKeyName: "fk_asientos_contables_venta_id"
             columns: ["venta_id"]
             isOneToOne: false
             referencedRelation: "ventas"
@@ -220,7 +220,15 @@ export type Database = {
           tipo?: string
           xml_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comprobantes_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       confecciones: {
         Row: {
@@ -286,17 +294,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "confecciones_responsable_id_fkey"
-            columns: ["responsable_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "confecciones_taller_id_fkey"
             columns: ["taller_id"]
             isOneToOne: false
             referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_confecciones_responsable_id"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -338,73 +346,73 @@ export type Database = {
         Row: {
           cantidad: number
           color_snapshot: string
-          cotizacion_id: number | null
+          cotizacion_id: number
           id: number
           modelo_snapshot: string | null
           precio_unitario_snapshot: number
           prenda_tipo_snapshot: string | null
-          producto_id: number | null
+          producto_id: number
           subtotal: number
           talla_snapshot: string
-          variante_id: number | null
+          variante_id: number
         }
         Insert: {
           cantidad: number
           color_snapshot: string
-          cotizacion_id?: number | null
+          cotizacion_id: number
           id?: number
           modelo_snapshot?: string | null
           precio_unitario_snapshot: number
           prenda_tipo_snapshot?: string | null
-          producto_id?: number | null
+          producto_id: number
           subtotal: number
           talla_snapshot: string
-          variante_id?: number | null
+          variante_id: number
         }
         Update: {
           cantidad?: number
           color_snapshot?: string
-          cotizacion_id?: number | null
+          cotizacion_id?: number
           id?: number
           modelo_snapshot?: string | null
           precio_unitario_snapshot?: number
           prenda_tipo_snapshot?: string | null
-          producto_id?: number | null
+          producto_id?: number
           subtotal?: number
           talla_snapshot?: string
-          variante_id?: number | null
+          variante_id?: number
         }
         Relationships: [
           {
-            foreignKeyName: "cotizacion_items_cotizacion_id_fkey"
+            foreignKeyName: "fk_cotizacion_items_cotizacion_id"
             columns: ["cotizacion_id"]
             isOneToOne: false
             referencedRelation: "cotizaciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotizacion_items_producto_id_fkey"
+            foreignKeyName: "fk_cotizacion_items_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotizacion_items_producto_id_fkey"
+            foreignKeyName: "fk_cotizacion_items_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
             referencedColumns: ["producto_id"]
           },
           {
-            foreignKeyName: "cotizacion_items_variante_id_fkey"
+            foreignKeyName: "fk_cotizacion_items_variante_id"
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "v_variante_stock_resumen"
             referencedColumns: ["variante_id"]
           },
           {
-            foreignKeyName: "cotizacion_items_variante_id_fkey"
+            foreignKeyName: "fk_cotizacion_items_variante_id"
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes_producto"
@@ -497,17 +505,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cotizaciones_id_regla_descuento_fkey"
-            columns: ["id_regla_descuento"]
-            isOneToOne: false
-            referencedRelation: "reglas_descuento"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "cotizaciones_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cotizaciones_id_regla_descuento"
+            columns: ["id_regla_descuento"]
+            isOneToOne: false
+            referencedRelation: "reglas_descuento"
             referencedColumns: ["id"]
           },
         ]
@@ -590,14 +598,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "detalle_ficha_insumos_id_ficha_fkey"
+            foreignKeyName: "fk_detalle_ficha_insumos_id_ficha"
             columns: ["id_ficha"]
             isOneToOne: false
             referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "detalle_ficha_insumos_id_insumo_fkey"
+            foreignKeyName: "fk_detalle_ficha_insumos_id_insumo"
             columns: ["id_insumo"]
             isOneToOne: false
             referencedRelation: "insumo"
@@ -840,7 +848,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "direcciones_cliente_cliente_id_fkey"
+            foreignKeyName: "fk_direcciones_cliente_cliente_id"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
@@ -899,17 +907,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "feedback_cliente_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "feedback_cliente_orden_id_fkey"
             columns: ["orden_id"]
             isOneToOne: false
             referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_feedback_cliente_cliente_id"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
@@ -991,14 +999,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fichas-tecnicas_id_producto_fkey"
+            foreignKeyName: "fk_fichas_tecnicas_id_producto"
             columns: ["id_producto"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fichas-tecnicas_id_producto_fkey"
+            foreignKeyName: "fk_fichas_tecnicas_id_producto"
             columns: ["id_producto"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
@@ -1115,28 +1123,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "incidencias_taller_asignado_a_fkey"
+            foreignKeyName: "fk_incidencias_taller_asignado_a"
             columns: ["asignado_a"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "incidencias_taller_confeccion_id_fkey"
+            foreignKeyName: "fk_incidencias_taller_confeccion_id"
             columns: ["confeccion_id"]
             isOneToOne: false
             referencedRelation: "confecciones"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "incidencias_taller_orden_id_fkey"
+            foreignKeyName: "fk_incidencias_taller_orden_id"
             columns: ["orden_id"]
             isOneToOne: false
             referencedRelation: "ordenes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "incidencias_taller_reportado_por_fkey"
+            foreignKeyName: "fk_incidencias_taller_reportado_por"
             columns: ["reportado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
@@ -1284,6 +1292,7 @@ export type Database = {
           created_at: string
           id: number
           insumo_id: number | null
+          material_id: number | null
           motivo: string | null
           producto_id: number | null
           referencia_id: number | null
@@ -1302,6 +1311,7 @@ export type Database = {
           created_at?: string
           id?: number
           insumo_id?: number | null
+          material_id?: number | null
           motivo?: string | null
           producto_id?: number | null
           referencia_id?: number | null
@@ -1320,6 +1330,7 @@ export type Database = {
           created_at?: string
           id?: number
           insumo_id?: number | null
+          material_id?: number | null
           motivo?: string | null
           producto_id?: number | null
           referencia_id?: number | null
@@ -1334,28 +1345,35 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "movimientos_inventario_insumo_id_fkey"
+            foreignKeyName: "fk_movimientos_inventario_insumo_id"
             columns: ["insumo_id"]
             isOneToOne: false
             referencedRelation: "insumo"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_inventario_producto_id_fkey"
+            foreignKeyName: "fk_movimientos_inventario_material_id"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_movimientos_inventario_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "movimientos_inventario_producto_id_fkey"
+            foreignKeyName: "fk_movimientos_inventario_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
             referencedColumns: ["producto_id"]
           },
           {
-            foreignKeyName: "movimientos_inventario_usuario_id_fkey"
+            foreignKeyName: "fk_movimientos_inventario_usuario_id"
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
@@ -1502,35 +1520,35 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ordenes_produccion_ficha_id_fkey"
+            foreignKeyName: "fk_ordenes_produccion_ficha_id"
             columns: ["ficha_id"]
             isOneToOne: false
             referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ordenes_produccion_pedido_id_fkey"
+            foreignKeyName: "fk_ordenes_produccion_pedido_id"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            foreignKeyName: "fk_ordenes_produccion_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            foreignKeyName: "fk_ordenes_produccion_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
             referencedColumns: ["producto_id"]
           },
           {
-            foreignKeyName: "ordenes_produccion_taller_id_fkey"
+            foreignKeyName: "fk_ordenes_produccion_taller_id"
             columns: ["taller_id"]
             isOneToOne: false
             referencedRelation: "talleres"
@@ -1659,7 +1677,7 @@ export type Database = {
         Row: {
           cliente_id: number | null
           created_at: string | null
-          created_by: string | null
+          created_by: number | null
           estado: Database["public"]["Enums"]["EstadoPedido"] | null
           id: number
           moq_aplicado: number
@@ -1673,7 +1691,7 @@ export type Database = {
         Insert: {
           cliente_id?: number | null
           created_at?: string | null
-          created_by?: string | null
+          created_by?: number | null
           estado?: Database["public"]["Enums"]["EstadoPedido"] | null
           id?: number
           moq_aplicado?: number
@@ -1687,7 +1705,7 @@ export type Database = {
         Update: {
           cliente_id?: number | null
           created_at?: string | null
-          created_by?: string | null
+          created_by?: number | null
           estado?: Database["public"]["Enums"]["EstadoPedido"] | null
           id?: number
           moq_aplicado?: number
@@ -1706,6 +1724,13 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedidos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
         ]
       }
       personal_interno: {
@@ -1713,7 +1738,7 @@ export type Database = {
           cargo: Database["public"]["Enums"]["Cargo"] | null
           created_at: string | null
           dni: number | null
-          estado: boolean | null
+          estado: Database["public"]["Enums"]["EstadoPersonal"]
           fecha_ingreso: string | null
           id: number
           nombre_completo: string | null
@@ -1725,7 +1750,7 @@ export type Database = {
           cargo?: Database["public"]["Enums"]["Cargo"] | null
           created_at?: string | null
           dni?: number | null
-          estado?: boolean | null
+          estado?: Database["public"]["Enums"]["EstadoPersonal"]
           fecha_ingreso?: string | null
           id?: number
           nombre_completo?: string | null
@@ -1737,7 +1762,7 @@ export type Database = {
           cargo?: Database["public"]["Enums"]["Cargo"] | null
           created_at?: string | null
           dni?: number | null
-          estado?: boolean | null
+          estado?: Database["public"]["Enums"]["EstadoPersonal"]
           fecha_ingreso?: string | null
           id?: number
           nombre_completo?: string | null
@@ -1747,7 +1772,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "personal_interno_usuario_id_fkey"
+            foreignKeyName: "fk_personal_interno_usuario_id"
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
@@ -1757,7 +1782,7 @@ export type Database = {
       }
       precio_historico: {
         Row: {
-          creado_por: string | null
+          creado_por: number | null
           id: number
           motivo: string | null
           precio: number
@@ -1766,7 +1791,7 @@ export type Database = {
           vigente_hasta: string | null
         }
         Insert: {
-          creado_por?: string | null
+          creado_por?: number | null
           id?: number
           motivo?: string | null
           precio: number
@@ -1775,7 +1800,7 @@ export type Database = {
           vigente_hasta?: string | null
         }
         Update: {
-          creado_por?: string | null
+          creado_por?: number | null
           id?: number
           motivo?: string | null
           precio?: number
@@ -1785,14 +1810,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "precio_historico_producto_id_fkey"
+            foreignKeyName: "fk_precio_historico_creado_por"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_precio_historico_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "precio_historico_producto_id_fkey"
+            foreignKeyName: "fk_precio_historico_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
@@ -1860,17 +1892,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_productos_fichas_tecnicas_id"
+            columns: ["fichas_tecnicas_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "productos_categoria_id_fkey"
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "productos_fichas_tecnicas_id_fkey"
-            columns: ["fichas_tecnicas_id"]
-            isOneToOne: false
-            referencedRelation: "fichas_tecnicas"
             referencedColumns: ["id"]
           },
         ]
@@ -1959,7 +1991,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "reglas_descuento_categoria_id_fkey"
+            foreignKeyName: "fk_reglas_descuento_categoria_id"
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
@@ -1997,24 +2029,24 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "reservas_stock_orden_id_fkey"
-            columns: ["orden_id"]
-            isOneToOne: false
-            referencedRelation: "ordenes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reservas_stock_variante_id_fkey"
+            foreignKeyName: "fk_reservas_stock_variante_id"
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "v_variante_stock_resumen"
             referencedColumns: ["variante_id"]
           },
           {
-            foreignKeyName: "reservas_stock_variante_id_fkey"
+            foreignKeyName: "fk_reservas_stock_variante_id"
             columns: ["variante_id"]
             isOneToOne: false
             referencedRelation: "variantes_producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
             referencedColumns: ["id"]
           },
         ]
@@ -2029,7 +2061,7 @@ export type Database = {
           estado_nuevo: Database["public"]["Enums"]["EstadoConfeccion"] | null
           id: number
           notas: string | null
-          responsable_id: string | null
+          responsable_id: number | null
         }
         Insert: {
           confeccion_id?: number | null
@@ -2040,7 +2072,7 @@ export type Database = {
           estado_nuevo?: Database["public"]["Enums"]["EstadoConfeccion"] | null
           id?: number
           notas?: string | null
-          responsable_id?: string | null
+          responsable_id?: number | null
         }
         Update: {
           confeccion_id?: number | null
@@ -2051,14 +2083,21 @@ export type Database = {
           estado_nuevo?: Database["public"]["Enums"]["EstadoConfeccion"] | null
           id?: number
           notas?: string | null
-          responsable_id?: string | null
+          responsable_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "seguimiento_confeccion_confeccion_id_fkey"
+            foreignKeyName: "fk_seguimiento_confeccion_confeccion_id"
             columns: ["confeccion_id"]
             isOneToOne: false
             referencedRelation: "confecciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_seguimiento_confeccion_responsable_id"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -2112,7 +2151,7 @@ export type Database = {
           iniciado_en: string
           observaciones: string | null
           orden_id: number
-          usuario_id: string | null
+          usuario_id: number | null
         }
         Insert: {
           activo?: boolean
@@ -2124,7 +2163,7 @@ export type Database = {
           iniciado_en?: string
           observaciones?: string | null
           orden_id: number
-          usuario_id?: string | null
+          usuario_id?: number | null
         }
         Update: {
           activo?: boolean
@@ -2136,14 +2175,21 @@ export type Database = {
           iniciado_en?: string
           observaciones?: string | null
           orden_id?: number
-          usuario_id?: string | null
+          usuario_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "seguimiento_produccion_orden_id_fkey"
+            foreignKeyName: "fk_seguimiento_produccion_orden_id"
             columns: ["orden_id"]
             isOneToOne: false
             referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_seguimiento_produccion_usuario_id"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -2275,14 +2321,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "variantes_producto_producto_id_fkey"
+            foreignKeyName: "fk_variantes_producto_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "variantes_producto_producto_id_fkey"
+            foreignKeyName: "fk_variantes_producto_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
@@ -2307,7 +2353,6 @@ export type Database = {
           total: number
           updated_at: string | null
           usuario_id: number | null
-          vendedor_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2325,7 +2370,6 @@ export type Database = {
           total?: number
           updated_at?: string | null
           usuario_id?: number | null
-          vendedor_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2343,7 +2387,6 @@ export type Database = {
           total?: number
           updated_at?: string | null
           usuario_id?: number | null
-          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -2415,14 +2458,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "variantes_producto_producto_id_fkey"
+            foreignKeyName: "fk_variantes_producto_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "variantes_producto_producto_id_fkey"
+            foreignKeyName: "fk_variantes_producto_producto_id"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_producto_stock_resumen"
@@ -2560,6 +2603,7 @@ export type Database = {
         | "listo_para_despacho"
         | "entregado"
         | "cancelado"
+      EstadoPersonal: "activo" | "inactivo" | "suspendido"
       EstadoProducto:
         | "activo"
         | "inactivo"
@@ -2924,6 +2968,7 @@ export const Constants = {
         "entregado",
         "cancelado",
       ],
+      EstadoPersonal: ["activo", "inactivo", "suspendido"],
       EstadoProducto: [
         "activo",
         "inactivo",

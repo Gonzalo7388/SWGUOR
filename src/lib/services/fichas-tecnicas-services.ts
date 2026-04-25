@@ -4,6 +4,48 @@ import { EstadoFicha } from '@prisma/client';
 
 export const FichasTecnicasService = {
 
+  // ── listar todas las fichas ────────────────────────
+  async listar(filtros?: { estado?: EstadoFicha; busqueda?: string }) {
+    const fichas = await prisma.fichas_tecnicas.findMany({
+      where: {
+        ...(filtros?.estado && { estado: filtros.estado }),
+        ...(filtros?.busqueda && {
+          OR: [
+            { version: { contains: filtros.busqueda, mode: 'insensitive' } },
+            { descripcion_detallada: { contains: filtros.busqueda, mode: 'insensitive' } },
+            { productos_fichaTecnica: { nombre: { contains: filtros.busqueda, mode: 'insensitive' } } },
+            { productos_fichaTecnica: { sku:    { contains: filtros.busqueda, mode: 'insensitive' } } },
+          ],
+        }),
+      },
+      include: {
+        productosRef: { select: { id: true, nombre: true, sku: true, imagen: true } },
+        ficha_medidas: { select: { id: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    return serializeBigInt(fichas);
+  },
+
+  // ── obtener una ficha por ID con todo el detalle ───
+  async obtenerPorId(id: string) {
+    const ficha = await prisma.fichas_tecnicas.findUnique({
+      where:   { id: BigInt(id) },
+      include: {
+        productosRef:   { select: { id: true, nombre: true, sku: true, imagen: true } },
+        ficha_medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] },
+        fichas_tecnicas_detalle: {
+          include: {
+            material: { select: { id: true, nombre: true, tipo: true, composicion: true, color: true, unidad_medida: true, precio_unitario: true } },
+            insumo:   { select: { id: true, nombre: true, tipo: true, unidad_medida: true, precio_unitario: true } },
+          },
+          orderBy: { id: 'asc' },
+        },
+      },
+    });
+    return ficha ? serializeBigInt(ficha) : null;
+  },
+
   async obtenerPorProducto(producto_id: string) {
     const ficha = await prisma.fichas_tecnicas.findFirst({
       where:   { id_producto: BigInt(producto_id) },
@@ -13,13 +55,13 @@ export const FichasTecnicasService = {
   },
 
   async crear(data: {
-    producto_id:           string | number;
-    version?:              string;
+    producto_id:            string | number;
+    version?:               string;
     descripcion_detallada?: string;
-    sam_total?:            number;
-    costo_estimado?:       number;
-    ficha_url?:            string;
-    imagen_geometral?:     string;
+    sam_total?:             number;
+    costo_estimado?:        number;
+    ficha_url?:             string;
+    imagen_geometral?:      string;
   }) {
     const existe = await prisma.fichas_tecnicas.findFirst({
       where: { id_producto: BigInt(data.producto_id) },
@@ -77,11 +119,11 @@ export const FichasTecnicasService = {
       if (medidas.length > 0) {
         await tx.ficha_medidas.createMany({
           data: medidas.map(m => ({
-            id_ficha:    BigInt(ficha_id),
+            id_ficha:     BigInt(ficha_id),
             punto_medida: m.punto_medida,
-            talla:       m.talla,
-            valor_cm:    m.valor_cm   ?? null,
-            tolerancia:  m.tolerancia ?? null,
+            talla:        m.talla,
+            valor_cm:     m.valor_cm   ?? null,
+            tolerancia:   m.tolerancia ?? null,
           })),
         });
       }

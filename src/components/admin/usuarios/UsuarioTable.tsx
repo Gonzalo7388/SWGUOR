@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Mail, Edit, ShieldOff, Eye, User, ShieldCheck } from "lucide-react";
+import { Mail, Edit, ShieldOff, User, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,21 +9,19 @@ import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { useRouter } from "next/navigation";
-import type { UsuarioConRelaciones } from "@/lib/services/usuarios-services";
+import type { usuarios } from "@prisma/client";
 
 // ─── Props ────────────────────────────────────────────────────
 interface Props {
-  usuarios:       UsuarioConRelaciones[];
-  loading?:       boolean;
-  onEdit?:        (user: UsuarioConRelaciones) => void;
-  onSuspender?:   (user: UsuarioConRelaciones) => void;
+  usuarios:     usuarios[];
+  loading?:     boolean;
+  onEdit?:      (user: usuarios) => void;
+  onSuspender?: (user: usuarios) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
-function Iniciales({ texto, email }: { texto?: string | null; email: string }) {
-  const base = texto ?? email;
-  return (base.substring(0, 2).toUpperCase());
+function Iniciales({ email }: { email: string }) {
+  return <>{email.substring(0, 2).toUpperCase()}</>;
 }
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -44,9 +42,8 @@ function EstadoBadge({ estado }: { estado: string }) {
 
 // ─── Componente ───────────────────────────────────────────────
 function UsuariosTable({ usuarios, loading, onEdit, onSuspender }: Props) {
-  const router  = useRouter();
   const showActions = !!onEdit || !!onSuspender;
-  const colSpan = 4 + (showActions ? 1 : 0);
+  const colSpan     = 4 + (showActions ? 1 : 0);
 
   return (
     <Table>
@@ -70,10 +67,7 @@ function UsuariosTable({ usuarios, loading, onEdit, onSuspender }: Props) {
             <TableCell className="py-4 px-6 rounded-l-xl">
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
-                <div className="space-y-1.5">
-                  <Skeleton className="h-3.5 w-36" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
+                <Skeleton className="h-3 w-24" />
               </div>
             </TableCell>
             <TableCell className="text-center"><Skeleton className="h-6 w-20 mx-auto rounded-lg" /></TableCell>
@@ -82,7 +76,6 @@ function UsuariosTable({ usuarios, loading, onEdit, onSuspender }: Props) {
             {showActions && (
               <TableCell className="text-right px-6 rounded-r-xl">
                 <div className="flex justify-end gap-1.5">
-                  <Skeleton className="h-8 w-8 rounded-lg" />
                   <Skeleton className="h-8 w-8 rounded-lg" />
                   <Skeleton className="h-8 w-8 rounded-lg" />
                 </div>
@@ -107,31 +100,21 @@ function UsuariosTable({ usuarios, loading, onEdit, onSuspender }: Props) {
 
         {/* ── Filas ── */}
         {!loading && usuarios.map((user) => {
-          const nombre = user.personal_interno?.nombre_completo;
-          const activo = user.estado.toLowerCase() === "activo";
+          const activo = user.estado?.toLowerCase() === "activo";
 
           return (
-            <TableRow key={user.id} className={`${rowCls} group`}>
+            <TableRow key={String(user.id)} className={`${rowCls} group`}>
 
               {/* Usuario */}
               <TableCell className="py-4 px-6 rounded-l-xl">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-pink-50 border border-pink-100 text-pink-600 flex items-center justify-center font-black text-xs uppercase shrink-0 group-hover:scale-105 transition-transform">
-                    <Iniciales texto={nombre} email={user.email} />
+                    <Iniciales email={user.email} />
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-slate-800 truncate">
-                      {nombre ?? (
-                        <span className="text-slate-400 font-medium normal-case text-xs">
-                          Sin nombre
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5 truncate">
-                      <Mail size={11} className="shrink-0 text-slate-300" />
-                      {user.email}
-                    </span>
-                  </div>
+                  <span className="text-xs text-slate-400 flex items-center gap-1 truncate">
+                    <Mail size={11} className="shrink-0 text-slate-300" />
+                    {user.email}
+                  </span>
                 </div>
               </TableCell>
 
@@ -157,27 +140,18 @@ function UsuariosTable({ usuarios, loading, onEdit, onSuspender }: Props) {
 
               {/* Estado */}
               <TableCell className="text-center">
-                <EstadoBadge estado={user.estado} />
+                <EstadoBadge estado={user.estado ?? "inactivo"} />
               </TableCell>
 
               {/* Acciones */}
               {showActions && (
                 <TableCell className="text-right px-6 rounded-r-xl">
                   <div className="flex justify-end items-center gap-1.5">
-                    <ActionBtn
-                      title="Ver detalle"
-                      color="pink"
-                      onClick={() => router.push(`/admin/Panel-Administrativo/usuarios/${user.id}`)}
-                    >
-                      <Eye size={15} />
-                    </ActionBtn>
-
                     {onEdit && (
                       <ActionBtn title="Editar" color="emerald" onClick={() => onEdit(user)}>
                         <Edit size={15} />
                       </ActionBtn>
                     )}
-
                     {onSuspender && (
                       <ActionBtn
                         title={activo ? "Suspender" : "Reactivar"}
@@ -211,13 +185,11 @@ const COLOR_MAP: Record<ColorKey, string> = {
   red:     "hover:text-red-600 hover:border-red-200 hover:bg-red-50",
 };
 
-function ActionBtn({
-  children, onClick, title, color,
-}: {
+function ActionBtn({ children, onClick, title, color }: {
   children: React.ReactNode;
-  onClick: () => void;
-  title: string;
-  color: ColorKey;
+  onClick:  () => void;
+  title:    string;
+  color:    ColorKey;
 }) {
   return (
     <Button

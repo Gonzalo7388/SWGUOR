@@ -7,21 +7,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ShieldOff, Loader2 } from "lucide-react";
-
-// ─── Tipos ────────────────────────────────────────────────────
-interface UsuarioResumen {
-  id: string;
-  email: string;
-  personal_interno?: {
-    nombre_completo: string | null;
-  } | null;
-}
+import type { usuarios } from "@prisma/client";
 
 interface SuspenderUsuarioDialogProps {
   isOpen:    boolean;
   onClose:   () => void;
   onSuccess: () => void;
-  usuario:   UsuarioResumen | null;
+  usuario:   usuarios | null;
 }
 
 // ─── Componente ───────────────────────────────────────────────
@@ -30,7 +22,7 @@ export default function SuspenderUsuarioDialog({
 }: SuspenderUsuarioDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  const nombre = usuario?.personal_interno?.nombre_completo ?? usuario?.email ?? "este usuario";
+  const nombre = usuario?.email ?? "este usuario";
 
   const handleSuspender = async () => {
     if (!usuario) return;

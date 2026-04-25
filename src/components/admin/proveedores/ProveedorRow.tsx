@@ -18,7 +18,7 @@ interface ProveedorRowProps {
 const ProveedorRow = memo(({ p, onEdit, onDelete, onViewDetail }: ProveedorRowProps) => {
   const { can } = usePermissions();
   const canEdit   = can('edit',   'proveedores');
-  const canDelete = can('delete', 'proveedores');
+  const canDelete = can('archive', 'proveedores');
 
   const iniciales = (p.razon_social ?? p.ruc ?? '??').substring(0, 2).toUpperCase();
 

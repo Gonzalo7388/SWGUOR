@@ -2,34 +2,7 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { createClient } from '@/lib/supabase/server';
-import type { Rol, EstadoUsuario } from '@prisma/client';
-
-// ─────────────────────────────────────────────────────────────
-//  Tipos
-// ─────────────────────────────────────────────────────────────
-export interface UsuarioConRelaciones {
-  id: string;
-  email: string;
-  estado: string;
-  rol: string | null;
-  ultimo_acceso: string | null;
-  created_at: string;
-  auth_id: string | null;
-
-  personal_interno?: {
-    nombre_completo: string | null;
-    cargo: string | null;
-    dni: string | null;
-    ficha_ingres: string | null;
-  } | null;
-
-  clientes?: {
-    id: string;
-    ruc: string;
-    razon_social: string | null;
-    activo: string;
-  } | null;
-}
+import { Rol, EstadoUsuario, Cargo, EstadoPersonal } from '@prisma/client';
 
 export interface CrearUsuarioInput {
   // Acceso al sistema
@@ -41,6 +14,7 @@ export interface CrearUsuarioInput {
   dni?: number;
   cargo: string;
   telefono?: number;
+  estado; string;
   fecha_ingreso?: string; // 'YYYY-MM-DD'
 }
 
@@ -53,7 +27,7 @@ export interface ActualizarUsuarioInput {
     cargo?: string;
     telefono?: number;
     fecha_ingreso?: string;
-    estado?: boolean;
+    estado?: string;
   };
 }
 
@@ -62,25 +36,19 @@ export interface ActualizarUsuarioInput {
 // ─────────────────────────────────────────────────────────────
 export const UsuariosService = {
 
-  // ── Listar todos ────────────────────────────────────────────
   async listar() {
     const usuarios = await prisma.usuarios.findMany({
       include: {
         personal_interno: {
           select: {
-            id: true,
             nombre_completo: true,
-            cargo: true,
-            dni: true,
-            telefono: true,
-            estado: true,
+            cargo:           true,
           },
         },
         clientes: {
           select: {
-            id: true,
             razon_social: true,
-            ruc: true,
+            ruc:          true,
           },
         },
       },
@@ -115,7 +83,7 @@ export const UsuariosService = {
   async crear(input: CrearUsuarioInput) {
     const {
       email, password, rol,
-      nombre_completo, dni, cargo, telefono, fecha_ingreso,
+      nombre_completo, dni, cargo, telefono, estado, fecha_ingreso,
     } = input;
 
     const supabase = await createClient();
@@ -152,10 +120,10 @@ export const UsuariosService = {
             usuario_id: usuario.id,
             nombre_completo,
             dni: dni ? BigInt(dni) : null,
-            cargo: cargo as any,
+            cargo: cargo as Cargo,
             telefono: telefono ? BigInt(telefono) : null,
             fecha_ingreso: fecha_ingreso ? new Date(fecha_ingreso) : null,
-            estado: true,
+            estado: estado as EstadoPersonal,
           },
         });
 
@@ -201,11 +169,11 @@ export const UsuariosService = {
             where: { id: personalExistente.id },
             data: {
               ...(personal.nombre_completo !== undefined && { nombre_completo: personal.nombre_completo }),
-              ...(personal.cargo !== undefined           && { cargo: personal.cargo as any }),
+              ...(personal.cargo !== undefined           && { cargo: personal.cargo as Cargo }),
               ...(personal.dni !== undefined             && { dni: BigInt(personal.dni) }),
               ...(personal.telefono !== undefined        && { telefono: BigInt(personal.telefono) }),
               ...(personal.fecha_ingreso !== undefined   && { fecha_ingreso: new Date(personal.fecha_ingreso) }),
-              ...(personal.estado !== undefined          && { estado: personal.estado }),
+              ...(personal.estado !== undefined          && { estado: personal.estado as EstadoPersonal }),
               updated_at: new Date(),
             },
           });

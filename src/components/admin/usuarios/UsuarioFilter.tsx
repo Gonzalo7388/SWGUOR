@@ -6,90 +6,78 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
-import type { Cargo, Rol, EstadoUsuario } from "@prisma/client";
+import { Search, X, RefreshCw } from "lucide-react";
+import type { Rol, EstadoUsuario } from "@prisma/client";
 
-// ─── Arrays locales tipados con los enums de Prisma ───────────
+// ─── Arrays locales ───────────────────────────────────────────
 const ESTADOS: { value: EstadoUsuario; label: string }[] = [
-  { value: "activo",     label: "Activo" },
-  { value: "inactivo",   label: "Inactivo" },
+  { value: "activo",     label: "Activo"     },
+  { value: "inactivo",   label: "Inactivo"   },
   { value: "suspendido", label: "Suspendido" },
 ];
 
 const ROLES: { value: Rol; label: string }[] = [
-  { value: "gerente",              label: "Gerente"},
-  { value: "administrador",        label: "Administrador" },
-  { value: "gerente",              label: "Gerente" },
-  { value: "disenador",            label: "Diseñador" },
-  { value: "cortador",             label: "Cortador" },
-  { value: "ayudante",             label: "Ayudante" },
-  { value: "representante_taller", label: "Rep. de Taller" },
-  { value: "cliente",              label: "Cliente"},
+  { value: "gerente",              label: "Gerente"                 },
+  { value: "administrador",        label: "Administrador"           },
+  { value: "disenador",            label: "Diseñador"               },
+  { value: "cortador",             label: "Cortador"                },
+  { value: "ayudante",             label: "Ayudante"                },
+  { value: "recepcionista",        label: "Recepcionista"           },
+  { value: "representante_taller", label: "Rep. de Taller"          },
+  { value: "cliente",              label: "Cliente"                 },
 ];
 
-const CARGOS: { value: Cargo; label: string }[] = [
-  { value: "gerente",              label: "Gerente" },
-  { value: "disenador",            label: "Diseñador" },
-  { value: "cortador",             label: "Cortador" },
-  { value: "recepcionista",        label: "Recepcionista" },
-  { value: "administrador",        label: "Administrador" },
-  { value: "ayudante",             label: "Ayudante" },
-  { value: "representante_taller", label: "Rep. de Taller" },
-];
-
-// ─── Chips: clase Tailwind por campo+valor ────────────────────
+// ─── Chips ────────────────────────────────────────────────────
 const CHIP_CLASS: Record<string, string> = {
-  estado_activo:   "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-  estado_inactivo: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
-  rol_admin:       "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
-  rol_gerente:     "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
-  rol_vendedor:    "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-  rol_almacenero:  "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-  rol_disenador:   "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
-  rol_cortador:    "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
-  cargo_gerente:   "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
-  // fallback para cargos sin entrada explícita
-  cargo_default:   "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-  q:               "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  estado_activo:              "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+  estado_inactivo:            "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  estado_suspendido:          "bg-red-50 text-red-600 border-red-200 hover:bg-red-100",
+  rol_gerente:                "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100",
+  rol_administrador:          "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100",
+  rol_recepcionista:          "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
+  rol_disenador:              "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100",
+  rol_cortador:               "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100",
+  rol_representante_taller:   "bg-lime-50 text-lime-700 border-lime-200 hover:bg-lime-100",
+  rol_ayudante:               "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
+  rol_cliente:                "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+  q:                          "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
 };
 
 function getChipClass(field: string, value: string): string {
-  return CHIP_CLASS[`${field}_${value}`] ?? CHIP_CLASS[`${field}_default`] ?? CHIP_CLASS.q;
+  return CHIP_CLASS[`${field}_${value}`] ?? CHIP_CLASS.q;
 }
 
 // ─── Tipos ────────────────────────────────────────────────────
-// Renombrado a UsuarioFiltrosState para evitar colisión con el
-// nombre del componente exportado (UsuarioFilters).
 export interface UsuarioFiltrosState {
   q:      string;
   estado: string;
   rol:    string;
-  cargo:  string;
 }
 
-interface UsuarioFiltersProps {
-  filters:    UsuarioFiltrosState;
-  onChange:   (filters: UsuarioFiltrosState) => void;
-  totalCount: number;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────
 export const EMPTY_FILTERS: UsuarioFiltrosState = {
-  q: "", estado: "", rol: "", cargo: "",
+  q: "", estado: "", rol: "",
 };
 
-function hasActiveFilters(f: UsuarioFiltrosState) {
-  return f.q !== "" || f.estado !== "" || f.rol !== "" || f.cargo !== "";
+interface UsuarioFiltersProps {
+  filters:       UsuarioFiltrosState;
+  onChange:      (filters: UsuarioFiltrosState) => void;
+  totalCount:    number;
+  onRefresh?:    () => void;
+  isRefreshing?: boolean;
 }
 
-function getLabel(field: "estado" | "rol" | "cargo", value: string): string {
-  const map = { estado: ESTADOS, rol: ROLES, cargo: CARGOS } as const;
+function hasActiveFilters(f: UsuarioFiltrosState) {
+  return f.q !== "" || f.estado !== "" || f.rol !== "";
+}
+
+function getLabel(field: "estado" | "rol", value: string): string {
+  const map = { estado: ESTADOS, rol: ROLES } as const;
   return map[field].find((x) => x.value === value)?.label ?? value;
 }
 
 // ─── Componente ───────────────────────────────────────────────
 export default function UsuarioFilters({
-  filters, onChange, totalCount,
+  filters, onChange, totalCount, onRefresh, isRefreshing,
 }: UsuarioFiltersProps) {
 
   const set = useCallback(
@@ -105,7 +93,6 @@ export default function UsuarioFilters({
 
   const reset = () => onChange(EMPTY_FILTERS);
 
-  // Chips activos
   const activeChips: {
     key: keyof UsuarioFiltrosState;
     label: string;
@@ -118,13 +105,11 @@ export default function UsuarioFilters({
     activeChips.push({ key: "estado", label: getLabel("estado", filters.estado), chipClass: getChipClass("estado", filters.estado) });
   if (filters.rol)
     activeChips.push({ key: "rol",    label: getLabel("rol",    filters.rol),    chipClass: getChipClass("rol",    filters.rol) });
-  if (filters.cargo)
-    activeChips.push({ key: "cargo",  label: getLabel("cargo",  filters.cargo),  chipClass: getChipClass("cargo",  filters.cargo) });
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
 
-      {/* ── Fila principal: search + selects + limpiar ── */}
+      {/* ── Fila principal ── */}
       <div className="flex flex-wrap items-center gap-2">
 
         {/* Búsqueda */}
@@ -133,18 +118,15 @@ export default function UsuarioFilters({
           <Input
             value={filters.q}
             onChange={(e) => set("q", e.target.value)}
-            placeholder="Buscar por nombre, email o DNI…"
+            placeholder="Buscar por email…"
             className="pl-8 h-9 bg-slate-50 border-slate-200 focus:bg-white text-sm transition-colors"
           />
         </div>
 
         {/* Estado */}
-        <Select
-          value={filters.estado || "all"}
-          onValueChange={(v) => set("estado", v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="h-9 w-[130px] bg-slate-50 border-slate-200 text-sm">
-            <SelectValue placeholder="Estado" />
+        <Select value={filters.estado || "all"} onValueChange={(v) => set("estado", v === "all" ? "" : v)}>
+          <SelectTrigger className="h-9 w-[145px] bg-slate-50 border-slate-200 text-sm">
+            <SelectValue placeholder="Todos los estados" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
@@ -155,12 +137,9 @@ export default function UsuarioFilters({
         </Select>
 
         {/* Rol */}
-        <Select
-          value={filters.rol || "all"}
-          onValueChange={(v) => set("rol", v === "all" ? "" : v)}
-        >
+        <Select value={filters.rol || "all"} onValueChange={(v) => set("rol", v === "all" ? "" : v)}>
           <SelectTrigger className="h-9 w-[145px] bg-slate-50 border-slate-200 text-sm">
-            <SelectValue placeholder="Rol" />
+            <SelectValue placeholder="Todos los roles" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los roles</SelectItem>
@@ -170,23 +149,7 @@ export default function UsuarioFilters({
           </SelectContent>
         </Select>
 
-        {/* Cargo */}
-        <Select
-          value={filters.cargo || "all"}
-          onValueChange={(v) => set("cargo", v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="h-9 w-[145px] bg-slate-50 border-slate-200 text-sm">
-            <SelectValue placeholder="Cargo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los cargos</SelectItem>
-            {CARGOS.map((c) => (
-              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Separador + Limpiar (solo si hay filtros activos) */}
+        {/* Separador + Limpiar */}
         {hasActiveFilters(filters) && (
           <>
             <div className="w-px h-5 bg-slate-200 hidden sm:block" />
@@ -201,10 +164,28 @@ export default function UsuarioFilters({
             </Button>
           </>
         )}
+
+        {/* Separador + Refresh */}
+        {onRefresh && (
+          <>
+            <div className="w-px h-5 bg-slate-200 hidden sm:block" />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              title="Actualizar tabla"
+              className="h-9 w-9 rounded-lg border-slate-200 bg-slate-50 hover:bg-white text-slate-400 hover:text-slate-600 transition-all shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* ── Fila de chips activos + conteo ── */}
-      {(activeChips.length > 0 || totalCount >= 0) && (
+      {/* ── Chips activos ── */}
+      {activeChips.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap min-h-[24px]">
           {activeChips.map(({ key, label, chipClass }) => (
             <span
@@ -216,10 +197,6 @@ export default function UsuarioFilters({
               <X className="w-3 h-3 opacity-60" />
             </span>
           ))}
-
-          <span className="ml-auto text-xs text-slate-400 tabular-nums">
-            {totalCount} {totalCount === 1 ? "usuario" : "usuarios"}
-          </span>
         </div>
       )}
 

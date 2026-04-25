@@ -7,9 +7,9 @@ import { Input }         from "@/components/ui/input";
 import { Label }         from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast }         from "sonner";
-import { UserCog, ShieldCheck, User, Mail } from "lucide-react";
+import { UserCog, ShieldCheck, Mail } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import type { Rol, usuarios, personal_interno } from "@prisma/client";
+import type { Rol, usuarios } from "@prisma/client";
 
 const ROLES_SISTEMA: { value: Rol; label: string }[] = [
   { value: "gerente",              label: "Gerente General"         },
@@ -22,14 +22,11 @@ const ROLES_SISTEMA: { value: Rol; label: string }[] = [
   { value: "cliente",              label: "Cliente"                 },
 ];
 
-// El tipo del prop incluye personal_interno anidado para acceder al nombre y teléfono
 interface EditUsuarioDialogProps {
   isOpen:    boolean;
   onClose:   () => void;
   onSuccess: () => void;
-  usuario:   usuarios & {
-    personal_interno?: Pick<personal_interno, 'nombre_completo' | 'dni'>[];
-  };
+  usuario:   usuarios;
 }
 
 export default function EditUsuarioDialog({
@@ -40,9 +37,6 @@ export default function EditUsuarioDialog({
   const [rolActual,       setRolActual]       = useState<Rol | null>(null);
 
   const puedeEditarEmail = rolActual === 'administrador';
-
-  // Nombre y teléfono vienen de personal_interno, no de usuarios
-  const nombreActual   = usuario?.personal_interno?.[0]?.nombre_completo ?? '';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -87,27 +81,13 @@ export default function EditUsuarioDialog({
       payloadUsuario.email = formData.get('email') as string;
     }
 
-    // Payload separado para actualizar personal_interno (nombre_completo)
-    const nombreNuevo   = (formData.get('nombre_completo') as string)?.trim();
-
     try {
-      // 1. Actualizar rol (y email si aplica) en usuarios
       const resUsuario = await fetch("/api/admin/usuarios", {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify(payloadUsuario),
       });
       if (!resUsuario.ok) throw new Error('Error actualizando usuario');
-
-      // 2. Actualizar nombre_completo en personal_interno si cambió
-      if (nombreNuevo && nombreNuevo !== nombreActual) {
-        const resPersonal = await fetch("/api/admin/personal", {
-          method:  "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ usuario_id: Number(usuario.id), nombre_completo: nombreNuevo }),
-        });
-        if (!resPersonal.ok) throw new Error('Error actualizando nombre en personal_interno');
-      }
 
       toast.success("Perfil actualizado con éxito");
       onSuccess();
@@ -142,22 +122,6 @@ export default function EditUsuarioDialog({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Nombre completo — viene de personal_interno */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                <User className="w-3.5 h-3.5" /> Nombre Completo
-              </Label>
-              <Input
-                name="nombre_completo"
-                defaultValue={nombreActual}
-                required
-                placeholder="Nombre del colaborador"
-                onChange={handleNombreChange}
-                className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
-              />
-              <p className="text-[9px] text-slate-400 italic">Solo se permiten letras, espacios y acentos</p>
-            </div>
 
             {/* Email */}
             <div className="space-y-2">

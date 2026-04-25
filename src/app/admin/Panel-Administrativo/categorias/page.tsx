@@ -17,7 +17,7 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 const CategoriasTable = dynamic(() => import("@/components/admin/categorias/CategoriasTable"));
 const CreateCategoriaDialog = dynamic(() => import("@/components/admin/categorias/CreateCategoriaDialog"));
 const EditCategoriaDialog = dynamic(() => import("@/components/admin/categorias/EditCategoriaDialog"));
-const DeleteCategoriaDialog = dynamic(() => import("@/components/admin/categorias/DeleteCategoriaDialog"));
+const DeleteCategoriaDialog = dynamic(() => import("@/components/admin/categorias/ArchiveCategoriaDialog"));
 
 export default function CategoriasPage() {
   const { can, isLoading: authLoading } = usePermissions();
@@ -37,7 +37,7 @@ export default function CategoriasPage() {
   const canView = can('view', 'categorias');
   const canCreate = can('create', 'categorias');
   const canEdit = can('edit', 'categorias');
-  const canDelete = can('delete', 'categorias');
+  const canDelete = can('archive', 'categorias');
   const canExport = can('export', 'categorias');
 
   // CARGA DE DATOS DESDE LA API

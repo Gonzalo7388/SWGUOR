@@ -858,3 +858,68 @@ export const exportClientesToPDF = async (data: any[], config?: { filename?: str
   });
 };
  
+// =====================================================
+// EXPORTACIÓN CLIENTES (ClienteListItem) — EXCEL
+// =====================================================
+
+export const exportClientesListToExcel = async (
+  data: any[],
+  config?: { filename?: string }
+) => {
+  if (!data || data.length === 0) return;
+
+  const rows = data.map((c) => ({
+    'RUC':              c.ruc              ?? '—',
+    'RAZÓN SOCIAL':     c.razon_social     ?? '—',
+    'NOMBRE COMERCIAL': c.nombre_comercial ?? '—',
+    'EMAIL':            c.email ?? c.usuarios?.email ?? '—',
+    'TELÉFONO':         c.telefono         ?? '—',
+    'TIPO CLIENTE':     (c.tipo_cliente    ?? '—').toString().toUpperCase(),
+    'DIRECCIÓN FISCAL': c.direccion_fiscal ?? '—',
+    'ESTADO':           (c.activo          ?? '—').toString().toUpperCase(),
+    'ROL SISTEMA':      c.usuarios?.rol    ?? '—',
+    'ÚLTIMO PEDIDO':    c.ultimo_pedido_en
+      ? new Date(c.ultimo_pedido_en).toLocaleDateString('es-PE')
+      : 'Sin pedidos',
+    'ÚLTIMO ACCESO':    c.usuarios?.ultimo_acceso
+      ? new Date(c.usuarios.ultimo_acceso).toLocaleDateString('es-PE')
+      : '—',
+  }));
+
+  await exportToExcel(rows, {
+    filename:  config?.filename ?? `Clientes_GUOR_${new Date().toISOString().split('T')[0]}`,
+    sheetName: 'Clientes',
+  });
+};
+
+// =====================================================
+// EXPORTACIÓN CLIENTES (ClienteListItem) — PDF
+// =====================================================
+
+export const exportClientesListToPDF = async (
+  data: any[],
+  config?: { filename?: string }
+) => {
+  if (!data || data.length === 0) return;
+
+  const headers = [["RUC", "RAZÓN SOCIAL", "EMAIL", "TELÉFONO", "TIPO", "ESTADO", "ÚLTIMO PEDIDO"]];
+
+  const body = data.map((c) => [
+    c.ruc              ?? '—',
+    c.razon_social     ?? '—',
+    c.email ?? c.usuarios?.email ?? '—',
+    c.telefono         ?? '—',
+    (c.tipo_cliente    ?? '—').toString().toUpperCase(),
+    (c.activo          ?? '—').toString().toUpperCase(),
+    c.ultimo_pedido_en
+      ? new Date(c.ultimo_pedido_en).toLocaleDateString('es-PE')
+      : 'Sin pedidos',
+  ]);
+
+  await exportToPDF(headers, body, {
+    title:       'DIRECTORIO DE CLIENTES',
+    subtitle:    'Modas y Estilos GUOR S.A.C.',
+    filename:    config?.filename ?? `Clientes_GUOR_${new Date().toISOString().split('T')[0]}`,
+    orientation: 'landscape',
+  });
+};
