@@ -683,7 +683,7 @@ const CotizacionesDocument = ({ data, config }: any) => {
             <Text style={styles.subtitle}>Generado: {new Date().toLocaleString('es-PE')}</Text>
           </View>
         </View>
-
+        
         <View style={styles.table}>
           <View style={styles.tableRow}>
             {['N° COT.', 'CLIENTE', 'MONTO', 'ESTADO', 'VENCIMIENTO', 'DESCRIPCIÓN'].map((header, i) => (
