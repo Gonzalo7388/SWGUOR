@@ -51,8 +51,8 @@ export interface ProveedorRow {
 const COUNT_INCLUDE = {
   _count: {
     select: {
-      insumos: true, 
-      ordenes: true, 
+      insumo: true,
+      ordenes_compra: true,
     },
   },
 } as const;
@@ -142,18 +142,8 @@ export async function getHistorialOrdenes(
   proveedorId: bigint | number,
   limit = 50
 ) {
-  return prisma.ordenes.findMany({
+  return prisma.ordenes_compra.findMany({
     where: { proveedor_id: BigInt(proveedorId) },
-    include: {
-      clientes: {
-        select: { id: true, razon_social: true },
-      },
-      pagos_orden: {
-        select: { id: true, monto: true, fecha_pago: true, metodo_pago: true },
-        orderBy: { fecha_pago: 'desc' },
-        take: 5,
-      },
-    },
     orderBy: { created_at: 'desc' },
     take: limit,
   });

@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     ] = await Promise.all([
       // 1. RESUMEN GENERAL
       prisma.$transaction([
-        prisma.ordenes.aggregate({
+        prisma.ordenes_compra.aggregate({
           where: { created_at: whereFecha },
           _count: { id: true },
           _sum: { total_orden: true },
@@ -56,13 +56,7 @@ export async function GET(req: Request) {
       // 2. DETALLE DE VENTAS (para tabla exportable)
       prisma.ventas.findMany({
         where: { created_at: whereFecha },
-        include: {
-          ordenes: {
-            include: {
-              clientes: { select: { razon_social: true, ruc: true } },
-            },
-          },
-        },
+        include: { usuarios: { select: { email: true } } },
         orderBy: { created_at: 'desc' },
         take: 200,
       }),
@@ -98,12 +92,12 @@ export async function GET(req: Request) {
       }),
 
       // 5. RANKING DE CLIENTES por volumen de compra
-      prisma.ordenes.groupBy({
+      prisma.pedidos.groupBy({
         by: ['cliente_id'],
         _count: { id: true },
-        _sum: { total_orden: true },
+        _sum: { total_estimado: true },
         where: { created_at: whereFecha, cliente_id: { not: null } },
-        orderBy: { _sum: { total_orden: 'desc' } },
+        orderBy: { _sum: { total_estimado: 'desc' } },
         take: 20,
       }),
 
@@ -135,11 +129,7 @@ export async function GET(req: Request) {
 
     // ── Aplicar filtros adicionales ──
     let ventasFiltradas = ventasDetalle;
-    if (clienteId) {
-      ventasFiltradas = ventasFiltradas.filter(
-        (v) => v.ordenes?.cliente_id?.toString() === clienteId
-      );
-    }
+    
     if (metodoPago) {
       ventasFiltradas = ventasFiltradas.filter((v) => v.metodo_pago === metodoPago);
     }
@@ -175,7 +165,7 @@ export async function GET(req: Request) {
         ? clientesMap.get(c.cliente_id.toString())?.ruc ?? null
         : null,
       total_ordenes: c._count.id,
-      total_comprado: Number(c._sum.total_orden ?? 0),
+      total_comprado: Number(c._sum.total_estimado ?? 0), 
     }));
 
     // ── Procesar: Pareto por categoría ──

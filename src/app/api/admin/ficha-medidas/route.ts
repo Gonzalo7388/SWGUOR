@@ -41,6 +41,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  try {  
     const body = await req.json();
     const { ficha_id, medidas } = body;
 
@@ -85,7 +86,8 @@ export async function DELETE(req: Request) {
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-
+  
+  try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

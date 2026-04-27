@@ -41,6 +41,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  try {
+
     const body = await req.json();
     const { pedido_id, status, notas } = body;
 

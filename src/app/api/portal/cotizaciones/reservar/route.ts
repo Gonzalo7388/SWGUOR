@@ -13,7 +13,7 @@ const creadas: reservas_stock[] = [];
 async function obtenerClienteSesion() {
   const auth = await requireServerAuth();
   if (!auth.success) {
-    return { error: auth.error as const, status: auth.status };
+    return { error: auth.error, status: auth.status };
   }
 
   const clienteDb = await prisma.clientes.findFirst({

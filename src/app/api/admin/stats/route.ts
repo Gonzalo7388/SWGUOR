@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       produccionStats,
     ] = await Promise.all([
       // 1. Totales de órdenes
-      prisma.ordenes.aggregate({
+      prisma.ordenes_compra.aggregate({
         _count: { id: true },
         _sum: { total_orden: true },
         _avg: { total_orden: true },

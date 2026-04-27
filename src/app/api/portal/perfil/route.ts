@@ -7,7 +7,7 @@ import { requireServerAuth } from '@/lib/auth/server';
 async function obtenerClienteSesion() {
   const auth = await requireServerAuth();
   if (!auth.success) {
-    return { error: auth.error as const, status: auth.status };
+    return { error: auth.error, status: auth.status };
   }
 
   const clienteDb = await prisma.clientes.findFirst({
@@ -34,7 +34,7 @@ export async function GET() {
     if ('error' in sesion) {
       return NextResponse.json(
         { success: false, error: sesion.error },
-        { status: sesion.error === 'no_auth' ? 401 : 404 }
+        { status: sesion.error ? 401 : 404 }
       );
     }
 
@@ -43,10 +43,9 @@ export async function GET() {
       orderBy: { es_principal: 'desc' },
     });
 
-    const [cotizacionesCount, pedidosCount, ordenesCount] = await Promise.all([
+    const [cotizacionesCount, pedidosCount] = await Promise.all([
       prisma.cotizaciones.count({ where: { cliente_id: sesion.cliente_id } }),
       prisma.pedidos.count({     where: { cliente_id: sesion.cliente_id } }),
-      prisma.ordenes.count({     where: { cliente_id: sesion.cliente_id } }),
     ]);
 
     return NextResponse.json({
@@ -55,7 +54,7 @@ export async function GET() {
         cliente:     serializeBigInt(sesion.cliente),
         usuario:     serializeBigInt(sesion.usuario),
         direcciones: serializeBigInt(direcciones),
-        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount, ordenes: ordenesCount },
+        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount },
       },
     });
   } catch (error: any) {
@@ -71,7 +70,7 @@ export async function PATCH(req: Request) {
     if ('error' in sesion) {
       return NextResponse.json(
         { success: false, error: sesion.error },
-        { status: sesion.error === 'no_auth' ? 401 : 404 }
+        { status: sesion.error ? 401 : 404 }
       );
     }
 

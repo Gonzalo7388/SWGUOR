@@ -138,8 +138,6 @@ export const InventarioService = {
             tipo_movimiento: tipoMovimiento        as any,
             usuario_id:      input.usuario_id      ? BigInt(input.usuario_id) : null,
             costo_unitario:  input.costo_unitario ?? (insumo.precio_unitario ? insumo.precio_unitario.toNumber() : null),
-            stock_anterior:  stockAnterior,
-            stock_posterior: nuevoStock,
             referencia_tipo: input.referencia_tipo ?? 'AJUSTE' as ReferenciaMovimiento,
             referencia_id:   input.referencia_id   ? BigInt(input.referencia_id) : null,
           },

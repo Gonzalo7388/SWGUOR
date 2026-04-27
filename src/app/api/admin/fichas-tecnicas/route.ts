@@ -2,17 +2,26 @@ export const runtime = 'nodejs';
 import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas-services';
 import { NextResponse } from 'next/server';
 
-// GET /api/admin/fichas-tecnicas?producto_id=xxx
+// GET /api/admin/fichas-tecnicas?producto_id=xxx (obtener una ficha específica)
+// GET /api/admin/fichas-tecnicas?estado=xxx&busqueda=xxx (listar todas con filtros)
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const producto_id = searchParams.get('producto_id');
+    const estado = searchParams.get('estado') as any;
+    const busqueda = searchParams.get('busqueda');
 
-    if (!producto_id) {
-      return NextResponse.json({ error: 'producto_id requerido' }, { status: 400 });
+    // Si se proporciona producto_id, obtener esa ficha específica
+    if (producto_id) {
+      const data = await FichasTecnicasService.obtenerPorProducto(producto_id);
+      return NextResponse.json({ success: true, data });
     }
 
-    const data = await FichasTecnicasService.obtenerPorProducto(producto_id);
+    // Si no, listar todas las fichas con filtros opcionales
+    const data = await FichasTecnicasService.listar({
+      estado: estado || undefined,
+      busqueda: busqueda || undefined,
+    });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error('[GET /fichas-tecnicas]', error);

@@ -9,9 +9,9 @@ import { DashboardSection } from './DashboardSection';
 import { SparkKpiCard, StockCriticoList } from './widgets/DashboardWidgets';
 import DashboardCharts from './DashboardCharts';
 import { ROLE_PALETTES } from './widgets/DashboardUtils';
-import type { insumo, ordenes } from '@prisma/client';
+import type { insumo, ordenes_compra } from '@prisma/client';
 
-type OrdenConCliente = ordenes & { clientes: { razon_social: string; tipo?: string } | null };
+type OrdenConCliente = ordenes_compra & { clientes: { razon_social: string; tipo?: string } | null }; 
 
 interface ApiData {
   kpis: {

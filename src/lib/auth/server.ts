@@ -54,7 +54,6 @@ export async function getServerAuthUser(): Promise<AuthCheckResult> {
       rol: true,
       estado: true,
       email: true,
-      nombre_completo: true,
     },
   });
 
@@ -86,7 +85,6 @@ export async function getServerAuthUser(): Promise<AuthCheckResult> {
       rol,
       estado,
       email: usuario.email,
-      nombre_completo: usuario.nombre_completo,
     },
   };
 }
