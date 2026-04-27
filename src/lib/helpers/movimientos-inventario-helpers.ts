@@ -1,3 +1,5 @@
+'use server';
+
 import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario-services';
 import type { TipoMovimiento, ReferenciaMovimiento } from '@prisma/client';
 
