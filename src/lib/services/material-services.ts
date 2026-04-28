@@ -13,7 +13,7 @@ export const MaterialesService = {
     if (params?.tipo)      where.tipo   = params.tipo;
     if (params?.busqueda)  where.nombre = { contains: params.busqueda, mode: 'insensitive' };
 
-    const materiales = await prisma.material.findMany({
+    const materiales = await prisma.materiales.findMany({
       where,
       include: {
         proveedores: { select: { id: true, razon_social: true } },
@@ -32,7 +32,7 @@ export const MaterialesService = {
   },
 
   async obtenerPorId(id: string) {
-    const material = await prisma.material.findUnique({
+    const material = await prisma.materiales.findUnique({
       where:   { id: BigInt(id) },
       include: { proveedores: { select: { id: true, razon_social: true } } },
     });
@@ -57,7 +57,7 @@ export const MaterialesService = {
     ubicacion_almacen?: string;
     alerta_bajo_stock?: boolean;
   }) {
-    const material = await prisma.material.create({
+    const material = await prisma.materiales.create({
       data: {
         nombre:            data.nombre,
         tipo:              (data.tipo             as any) ?? 'plano',
@@ -98,7 +98,7 @@ export const MaterialesService = {
     alerta_bajo_stock:  boolean;
   }>) {
     const { proveedor_id, ...rest } = data as any;
-    const material = await prisma.material.update({
+    const material = await prisma.materiales.update({
       where: { id: BigInt(id) },
       data:  {
         ...rest,
@@ -118,7 +118,7 @@ export const MaterialesService = {
     precio_unitario?: number;
     motivo?:          string;
   }) {
-    const material = await prisma.material.findUniqueOrThrow({
+    const material = await prisma.materiales.findUniqueOrThrow({
       where: { id: BigInt(id) },
     });
 
@@ -133,7 +133,7 @@ export const MaterialesService = {
       throw new Error(`Stock insuficiente. Actual: ${stockAnterior}`);
     }
 
-    const actualizado = await prisma.material.update({
+    const actualizado = await prisma.materiales.update({
       where: { id: BigInt(id) },
       data:  {
         stock_actual: nuevoStock,
@@ -148,7 +148,7 @@ export const MaterialesService = {
   },
 
   async eliminar(id: string) {
-    await prisma.material.delete({ where: { id: BigInt(id) } });
+    await prisma.materiales.delete({ where: { id: BigInt(id) } });
     return { success: true };
   },
 };

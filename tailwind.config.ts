@@ -5,27 +5,28 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/config/**/*.{js,ts,jsx,tsx,mdx}", 
+    "./src/**/*.{js,ts,jsx,tsx,mdx}"
   ],
   theme: {
     extend: {
-      extend: {
-        animation: {
-          'thread-flow': 'thread 15s ease-in-out infinite',
-          'thread-flow-slow': 'thread 20s ease-in-out infinite reverse',
-        },
-        keyframes: {
-          thread: {
-            '0%, 100%': {
-              strokeDasharray: '0, 1000',
-              strokeDashoffset: '0',
-              transform: 'translateX(-5%)'
-            },
-            '50%': {
-              strokeDasharray: '1000, 0',
-              strokeDashoffset: '-100',
-              transform: 'translateX(5%)'
-            },
-          }
+      // CORRECCIÓN: Eliminamos el segundo 'extend' anidado
+      animation: {
+        'thread-flow': 'thread 15s ease-in-out infinite',
+        'thread-flow-slow': 'thread 20s ease-in-out infinite reverse',
+      },
+      keyframes: {
+        thread: {
+          '0%, 100%': {
+            strokeDasharray: '0, 1000',
+            strokeDashoffset: '0',
+            transform: 'translateX(-5%)'
+          },
+          '50%': {
+            strokeDasharray: '1000, 0',
+            strokeDashoffset: '-100',
+            transform: 'translateX(5%)'
+          },
         }
       },
       colors: {
@@ -46,11 +47,8 @@ const config: Config = {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
-        // -----------------------------------------------------------
-
-        // Tus colores personalizados (Mantenidos)
         primary: {
-          DEFAULT: '#d4945a', // Dorado del logo como default
+          DEFAULT: '#d4945a',
           50: '#fef8f3',
           100: '#fef0e6',
           200: '#fcdec7',
@@ -63,7 +61,7 @@ const config: Config = {
           900: '#624128',
         },
         accent: {
-          DEFAULT: '#fbd9e3', // Rosa suave como default
+          DEFAULT: '#fbd9e3',
           50: '#fef6f8',
           100: '#fdedf1',
           200: '#fbd9e3',

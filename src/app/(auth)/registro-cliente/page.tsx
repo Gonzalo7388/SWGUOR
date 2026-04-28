@@ -1,0 +1,184 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import {
+  Building2, Mail, Lock, User,
+  ArrowRight, Loader2, CheckCircle2, AlertCircle,
+  Phone, MapPin, Eye, EyeOff, Briefcase, Tag
+} from 'lucide-react';
+
+export default function RegisterPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const payload = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      nombre_completo: formData.get('razonSocial') as string,
+      ruc: formData.get('ruc') as string,
+      razon_social: formData.get('razonSocial') as string,
+      nombre_comercial: formData.get('nombreComercial') as string,
+      telefono: formData.get('telefono') as string,
+      direccion: formData.get('direccion') as string,
+      tipo_cliente: formData.get('tipoCliente') as string,
+    };
+
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al procesar el registro');
+
+      setSuccess(true);
+    } catch (err: any) {
+      setError(err.message || 'Error al procesar el registro');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // VISTA DE ÉXITO
+  if (success) {
+    return (
+      <div className="max-w-md w-full mx-auto bg-white/80 backdrop-blur-3xl rounded-[2.5rem] p-10 shadow-2xl border border-white text-center space-y-6 relative z-10 animate-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-100">
+          <CheckCircle2 size={40} />
+        </div>
+        <h2 className="text-2xl font-black text-stone-900 tracking-tight">¡Solicitud Enviada!</h2>
+        <p className="text-stone-500 text-sm leading-relaxed font-medium">
+          Hemos recibido los datos de su empresa. Por favor, revise su correo corporativo para esperar la validación del equipo GUOR.
+        </p>
+        {/* ✅ ENLACE CORREGIDO */}
+        <Link href="/login-cliente" className="flex items-center justify-center gap-3 w-full py-4 bg-[#1A1A1A] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+          Volver al Inicio de Sesión <ArrowRight size={16} className="text-[#D4AF37]" />
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl w-full mx-auto bg-white/70 backdrop-blur-3xl rounded-[3rem] shadow-2xl overflow-hidden border border-white relative z-10 grid grid-cols-1 md:grid-cols-5">
+
+      {/* Lado Decorativo */}
+      <div className="hidden md:flex md:col-span-2 bg-[#1A1A1A] p-10 flex-col justify-between text-white relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center mb-8 shadow-xl">
+            <Image src="/logo.png" alt="Logo Guor" width={40} height={40} className="object-contain" priority />
+          </div>
+          <h2 className="text-3xl font-serif italic leading-tight">
+            Excelencia en <br />
+            <span className="text-[#D4AF37] not-italic font-sans font-black tracking-tighter uppercase text-4xl">Textiles B2B</span>
+          </h2>
+          <p className="mt-8 text-stone-400 text-sm leading-relaxed font-medium border-l-2 border-[#D4AF37] pl-4">
+            Únete a nuestra red mayorista para gestionar pedidos con soporte inteligente.
+          </p>
+        </div>
+        <p className="relative z-10 text-[9px] text-stone-500 font-bold uppercase tracking-widest">© 2026 Modas y Estilos GUOR S.A.C.</p>
+      </div>
+
+      {/* Formulario */}
+      <div className="md:col-span-3 p-8 md:p-12 flex flex-col justify-center bg-white/30">
+        <div className="mb-8">
+          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Registro de Socio</h1>
+          <p className="text-[#D4AF37] text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Optimización del proceso de cotización</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-4 bg-red-50/80 border border-red-100 text-red-600 text-[10px] font-black rounded-xl flex items-center gap-3">
+              <AlertCircle size={16} /> {error.toUpperCase()}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 relative group">
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="razonSocial" required placeholder="RAZÓN SOCIAL / EMPRESA" className="register-input" />
+            </div>
+            <div className="md:col-span-2 relative group">
+              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="nombreComercial" placeholder="NOMBRE COMERCIAL (OPCIONAL)" className="register-input" />
+            </div>
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="ruc" required maxLength={11} placeholder="NÚMERO DE RUC" className="register-input" />
+            </div>
+            <div className="relative group">
+              <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37] z-10" size={18} />
+              <select name="tipoCliente" required className="register-input appearance-none">
+                <option value="" disabled>TIPO DE CLIENTE</option>
+                <option value="corporativo">CORPORATIVO</option>
+                <option value="persona_natural">PERSONA NATURAL</option>
+              </select>
+            </div>
+            <div className="relative group">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="telefono" required type="tel" placeholder="TELÉFONO" className="register-input" />
+            </div>
+            <div className="relative group">
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="direccion" required placeholder="DIRECCIÓN FISCAL" className="register-input" />
+            </div>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="email" type="email" required placeholder="CORREO CORPORATIVO" className="register-input" />
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 group-focus-within:text-[#D4AF37]" size={18} />
+              <input name="password" type={showPassword ? 'text' : 'password'} required placeholder="CONTRASEÑA" className="register-input pr-12" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          <button disabled={loading} className="w-full py-4 mt-4 bg-[#1A1A1A] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 disabled:opacity-70 group">
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Solicitar Acceso B2B <ArrowRight size={16} className="text-[#D4AF37] group-hover:translate-x-1 transition-transform" /></>}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center border-t border-stone-100 pt-6">
+          <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest">
+            ¿Ya tiene una cuenta?{' '}
+            {/* ✅ ENLACE CORREGIDO */}
+            <Link href="/login-cliente" className="text-[#B8860B] hover:text-[#D4AF37] underline underline-offset-4">Iniciar Sesión</Link>
+          </p>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .register-input {
+          width: 100%;
+          padding: 1rem 1rem 1rem 3.5rem;
+          background-color: rgba(255, 255, 255, 0.6);
+          border: 1px solid #f5f5f4;
+          border-radius: 1.25rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #1c1917;
+          outline: none;
+          transition: all 0.3s ease;
+        }
+        .register-input:focus {
+          border-color: #D4AF37;
+          background-color: white;
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.08);
+        }
+      `}</style>
+    </div>
+  );
+}

@@ -21,7 +21,7 @@ export const InventarioService = {
       if (!id) throw new Error('Debe especificar un material o insumo');
 
       // 1. Obtener stock actual antes del movimiento
-      const material = await tx.material.findUnique({
+      const material = await tx.materiales.findUnique({
         where: { id: BigInt(id) },
         select: { stock_actual: true }
       });
@@ -41,8 +41,6 @@ export const InventarioService = {
           tipo_movimiento: data.tipo,
           motivo:          data.motivo,
           costo_unitario:  data.costo_unitario ?? null,
-          stock_anterior:  stockAnterior,
-          stock_posterior: stockPosterior,
           usuario_id:      data.usuario_id ? BigInt(data.usuario_id) : null,
           referencia_tipo: data.referencia_tipo ?? null,
           referencia_id:   data.referencia_id ? BigInt(data.referencia_id) : null,
@@ -60,7 +58,7 @@ export const InventarioService = {
         updateData.precio_unitario = data.costo_unitario;
       }
 
-      await tx.material.update({
+      await tx.materiales.update({
         where: { id: BigInt(id) },
         data:  updateData,
       });

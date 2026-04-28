@@ -49,10 +49,10 @@ export async function GET() {
       orderBy: { es_principal: 'desc' },
     });
 
-    const [cotizacionesCount, pedidosCount, ordenesCount] = await Promise.all([
+    const [cotizacionesCount, pedidosCount, ventasCount] = await Promise.all([
       prisma.cotizaciones.count({ where: { cliente_id: sesion.cliente_id } }),
       prisma.pedidos.count({     where: { cliente_id: sesion.cliente_id } }),
-      prisma.ordenes.count({     where: { cliente_id: sesion.cliente_id } }),
+      prisma.ventas.count({      where: { usuario_id: sesion.usuario_id } }), 
     ]);
 
     return NextResponse.json({
@@ -61,7 +61,7 @@ export async function GET() {
         cliente:     serializeBigInt(sesion.cliente),
         usuario:     serializeBigInt(sesion.usuario),
         direcciones: serializeBigInt(direcciones),
-        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount, ordenes: ordenesCount },
+        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount, ordenes: ventasCount },
       },
     });
   } catch (error: any) {

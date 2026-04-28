@@ -9,9 +9,11 @@ import { DashboardSection } from './DashboardSection';
 import { SparkKpiCard, StockCriticoList } from './widgets/DashboardWidgets';
 import DashboardCharts from './DashboardCharts';
 import { ROLE_PALETTES } from './widgets/DashboardUtils';
-import type { insumo, ordenes } from '@prisma/client';
+import type { insumo, pedidos } from '@prisma/client';
 
-type OrdenConCliente = ordenes & { clientes: { razon_social: string; tipo?: string } | null };
+type OrdenConCliente = pedidos & { 
+  clientes: { razon_social: string; tipo_cliente?: string } | null 
+};
 
 interface ApiData {
   kpis: {
@@ -164,7 +166,7 @@ export default function DashboardAdministrador() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-black text-slate-900">
-                        S/ {Number(o.total_pagado ?? 0).toFixed(2)}
+                        S/ {Number(o.total_estimado ?? 0).toFixed(2)}
                       </p>
                       <p className="text-[9px] font-bold uppercase text-slate-400">
                         {o.estado}

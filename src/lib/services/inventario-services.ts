@@ -134,12 +134,11 @@ export const InventarioService = {
           data: {
             insumo_id:       BigInt(id),
             cantidad:        Math.abs(nuevoStock - stockAnterior),
-            motivo:          input.motivo          ?? 'Ajuste de stock manual',
-            tipo_movimiento: tipoMovimiento        as any,
-            usuario_id:      input.usuario_id      ? BigInt(input.usuario_id) : null,
-            costo_unitario:  input.costo_unitario ?? (insumo.precio_unitario ? insumo.precio_unitario.toNumber() : null),
-            stock_anterior:  stockAnterior,
-            stock_posterior: nuevoStock,
+            motivo:          input.motivo ?? 'Ajuste de stock manual',
+            tipo_movimiento: tipoMovimiento as any,
+            usuario_id:      input.usuario_id ? BigInt(input.usuario_id) : null,
+            costo_unitario:  input.costo_unitario ?? (insumo.precio_unitario ? Number(insumo.precio_unitario) : null),
+            // CORRECCIÓN: Se eliminaron stock_anterior y stock_posterior por no existir en el schema
             referencia_tipo: input.referencia_tipo ?? 'AJUSTE' as ReferenciaMovimiento,
             referencia_id:   input.referencia_id   ? BigInt(input.referencia_id) : null,
           },

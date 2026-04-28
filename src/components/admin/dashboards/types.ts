@@ -1,12 +1,9 @@
-import type { insumo, ordenes } from "@prisma/client";
+import type { insumo, pedidos } from "@prisma/client";
 
-export interface OrdenConCliente extends ordenes {
+export interface OrdenConCliente extends pedidos {
   clientes: {
     razon_social: string;
-    ruc?: string;
-    email?: string;
-    telefono?: string | number | null;
-    direccion?: string;
+    tipo_cliente?: string; // Campo existente en el modelo clientes [cite: 218]
   } | null;
 }
 

@@ -23,15 +23,17 @@ const routePermissions: Record<string, string[]> = {
   '/portal/dashboard': ['cliente'],
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response = NextResponse.next({ request });
 
   // 1. RUTAS PÚBLICAS
-  const publicPaths = ['/auth/login', '/auth/signup', '/admin/acceso-denegado'];
-  if (publicPaths.some(path => pathname.startsWith(path))) {
-    return response;
-  }
+// Agregamos '/' para que la Landing Page sea accesible para todos
+const publicPaths = ['/', '/auth/login', '/auth/signup', '/admin/acceso-denegado'];
+
+if (publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'))) {
+  return response;
+}
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

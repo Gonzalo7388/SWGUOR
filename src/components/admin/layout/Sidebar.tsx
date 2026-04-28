@@ -23,7 +23,7 @@ type SubItem = {
   title: string;
   href: string;
   icon?: LucideIcon;
-  resource: RecursoKey; // ✅ Campo obligatorio para el mapeo correcto
+  resource: RecursoKey; // Campo obligatorio para el mapeo correcto
 };
 
 type NavItem = {
@@ -38,6 +38,7 @@ type NavItem = {
 export default function Sidebar({ }: { usuario: usuarios }) {
   const router = useRouter();
   const pathname = usePathname();
+  const supabase = getSupabaseBrowserClient(); 
   const { can } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
@@ -158,11 +159,18 @@ export default function Sidebar({ }: { usuario: usuarios }) {
         : [...prev, title]
     );
   };
-
+  
   const handleLogout = async () => {
-    const supabase = getSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    router.replace('/auth/login');
+    try {
+      // Usamos el cliente local de tu proyecto
+      await supabase.auth.signOut();
+
+      // Redirección forzada al Landing Page de GUOR Style
+      window.location.href = '/'; 
+      
+    } catch (error) {
+      console.error("Error al salir de GUOR Corp:", error); 
+    }
   };
 
   return (
