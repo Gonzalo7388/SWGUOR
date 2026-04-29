@@ -5,6 +5,7 @@ import {
   useCallback, useMemo, ReactNode,
 } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import type { reglas_descuento } from '@prisma/client';
 
 // ── Tipos ────────────────────────────────────────────────────────
 export interface ClientePortal {
