@@ -42,12 +42,12 @@ export interface ProveedorRow {
   created_at: Date;
   updated_at: Date;
   _count?: {
-    insumos: number;
-    ordenes: number;
+    insumo: number;         //  CORREGIDO: 'insumos' -> 'insumo'
+    ordenes_compra: number; //  CORREGIDO: 'ordenes' -> 'ordenes_compra'
   };
 }
 
-// Reutilizable en todos los métodos
+//CORRECCIÓN ts(2322): Los nombres de relaciones deben coincidir con el schema
 const COUNT_INCLUDE = {
   _count: {
     select: {
@@ -66,7 +66,6 @@ export async function getProveedores(
   const page  = Math.max(filters.page  ?? 1, 1);
   const limit = Math.min(Math.max(filters.limit ?? 20, 1), 100);
   const skip  = (page - 1) * limit;
-
   const where: Prisma.proveedoresWhereInput = {};
 
   if (filters.estado)               where.estado               = filters.estado;
@@ -107,18 +106,15 @@ export async function getProveedores(
 export async function upsertProveedor(
   input: ProveedorUpsert
 ): Promise<ProveedorRow> {
-  const ruc                  = input.ruc.trim();
-  const email                = input.email.trim().toLowerCase();
-  const razon_social         = input.razon_social.trim();
-  const contacto             = input.contacto.trim();
-  const telefono             = input.telefono.trim();
-  const direccion            = input.direccion.trim();
-  const categoria_suministro = input.categoria_suministro.trim();
-  const estado               = input.estado ?? 'activo';
-
   const sharedData = {
-    ruc, razon_social, contacto, telefono,
-    email, direccion, categoria_suministro, estado,
+    ruc: input.ruc.trim(),
+    razon_social: input.razon_social.trim(),
+    contacto: input.contacto.trim(),
+    telefono: input.telefono.trim(),
+    email: input.email.trim().toLowerCase(),
+    direccion: input.direccion.trim(),
+    categoria_suministro: input.categoria_suministro.trim(),
+    estado: input.estado ?? 'activo',
   };
 
   if (input.id) {
@@ -142,8 +138,13 @@ export async function getHistorialOrdenes(
   proveedorId: bigint | number,
   limit = 50
 ) {
+
   return prisma.ordenes_compra.findMany({
     where: { proveedor_id: BigInt(proveedorId) },
+    include: {
+      ordenes_compra_items: true, 
+      proveedores: { select: { razon_social: true } }
+    },
     orderBy: { created_at: 'desc' },
     take: limit,
   });

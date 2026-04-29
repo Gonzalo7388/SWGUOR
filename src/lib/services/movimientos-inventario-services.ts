@@ -74,23 +74,12 @@ export const MovimientosInventarioService = {
           tipo_movimiento: data.tipo_movimiento,
           motivo: data.motivo,
           costo_unitario: data.costo_unitario ?? null,
-          usuario_id: data.usuario_id ? BigInt(data.usuario_id) : null,
           almacen_id: data.almacen_id ? BigInt(data.almacen_id) : null,
-          referencia_tipo: data.referencia_tipo ?? null,
-          referencia_id: data.referencia_id ? BigInt(data.referencia_id) : null,
-        },
-        include: {
-          usuarios: { select: { id: true, email: true } },
-          almacenes: { select: { id: true, nombre: true } },
-          productos: { select: { id: true, nombre: true, sku: true } },
-          materiales: { select: { id: true, nombre: true } },
-          insumo: { select: { id: true, nombre: true } },
+          usuario_id:      data.usuario_id ? BigInt(data.usuario_id) : null,
         },
       });
 
-      // 5. Actualizar stock en tabla maestra
       await this._actualizarStock(tx, itemType, itemId, nuevoStock, data.costo_unitario);
-
       return serializeBigInt(movimiento);
     });
   },
