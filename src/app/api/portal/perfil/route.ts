@@ -43,16 +43,9 @@ export async function GET() {
       orderBy: { es_principal: 'desc' },
     });
 
-<<<<<<< HEAD
     const [cotizacionesCount, pedidosCount] = await Promise.all([
       prisma.cotizaciones.count({ where: { cliente_id: sesion.cliente_id } }),
       prisma.pedidos.count({     where: { cliente_id: sesion.cliente_id } }),
-=======
-    const [cotizacionesCount, pedidosCount, ventasCount] = await Promise.all([
-      prisma.cotizaciones.count({ where: { cliente_id: sesion.cliente_id } }),
-      prisma.pedidos.count({     where: { cliente_id: sesion.cliente_id } }),
-      prisma.ventas.count({      where: { usuario_id: sesion.usuario_id } }), 
->>>>>>> origin/test
     ]);
 
     return NextResponse.json({
@@ -61,17 +54,12 @@ export async function GET() {
         cliente:     serializeBigInt(sesion.cliente),
         usuario:     serializeBigInt(sesion.usuario),
         direcciones: serializeBigInt(direcciones),
-<<<<<<< HEAD
         stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount },
-=======
-        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount, ordenes: ventasCount },
->>>>>>> origin/test
       },
     });
-  } catch (error: any) {
+  } catch (error: any) {  
     console.error('[Portal] Error en GET perfil:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+  }  return NextResponse.json({ success: false, error: 'Error interno del servidor' }, { status: 500 });
 }
 
 // PATCH: Actualizar datos del perfil del cliente

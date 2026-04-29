@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import type { insumo, ordenes_compra } from "@prisma/client";
-
-export interface OrdenConCliente extends ordenes_compra {
-=======
 import type { insumo, pedidos } from "@prisma/client";
 
 export interface OrdenConCliente extends pedidos {
->>>>>>> origin/test
   clientes: {
     razon_social: string;
     tipo_cliente?: string; // Campo existente en el modelo clientes [cite: 218]

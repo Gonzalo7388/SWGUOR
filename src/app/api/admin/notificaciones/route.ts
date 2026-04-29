@@ -35,22 +35,14 @@ export async function GET(req: Request) {
           take: 20,
         }),
 
-<<<<<<< HEAD
-        // 4. Órdenes con saldo pendiente vencido (más de 7 días sin pagar)
-=======
         // Consulta 3: Órdenes con pago vencido (Aquí está el núcleo de tu idea)
->>>>>>> origin/test
         prisma.ordenes_compra.findMany({
           where: {
             saldo_pendiente: { gt: 0 },
             created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
           },
           include: {
-<<<<<<< HEAD
-            proveedores: { select: { razon_social: true } },
-=======
             proveedores: { select: { razon_social: true } }
->>>>>>> origin/test
           },
           take: 20,
         })
@@ -97,15 +89,9 @@ export async function GET(req: Request) {
       ...ordenesVencidas.map((o) => ({
         id: `pago-${o.id.toString()}`,
         tipo: 'pago' as const,
-<<<<<<< HEAD
-        titulo: 'PAGO PENDIENTE',
-        descripcion: `Orden de ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
-        importante: Number(o.saldo_pendiente ?? 0) > 1000,
-=======
         titulo: 'PAGO VENCIDO A PROVEEDOR',
         descripcion: `Compra a ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo de ${Number(o.saldo_pendiente).toFixed(2)}.`,
         importante: Number(o.saldo_pendiente) > 1000,
->>>>>>> origin/test
         fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
       }))
     ];
