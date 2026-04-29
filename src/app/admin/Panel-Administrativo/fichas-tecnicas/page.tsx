@@ -11,14 +11,9 @@ import {
   Search, RefreshCw, ChevronLeft, ChevronRight,
   Layers,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import FichaTecnicasTable from "@/components/admin/fichas-tecnicas/FichaTecnicasTable";
 import FichasTecnicasFilters from "@/components/admin/fichas-tecnicas/FichasTecnicasFilters";
 import { toast } from "sonner";
-
-const CreateFichaDialog = dynamic(() =>
-  import("@/components/admin/fichas-tecnicas/CreateFichaDialog")
-);
 
 interface FichaTecnica {
   id: string;
@@ -29,7 +24,7 @@ interface FichaTecnica {
   costo_estimado: number | null;
   ficha_url: string | null;
   created_at: string;
-  productos_ref: { id: string; nombre: string; sku: string; imagen: string | null } | null;
+  productos: { id: string; nombre: string; sku: string; imagen_url: string | null } | null;
   ficha_medidas: { id: string }[];
 }
 
@@ -52,9 +47,6 @@ export default function FichasTecnicasPage() {
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
-
-  // Dialogs
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────
   const fetchFichas = async () => {
@@ -128,8 +120,6 @@ export default function FichasTecnicasPage() {
   const handleEditFicha = (ficha: FichaTecnica) =>
     router.push(`/admin/Panel-Administrativo/fichas-tecnicas/${ficha.id}`);
 
-  const handleSuccess = () => { setIsCreateOpen(false); fetchFichas(); };
-
   // ── Guards ─────────────────────────────────────────────────
   if (authLoading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -176,7 +166,7 @@ export default function FichasTecnicasPage() {
 
             {can("create", "ficha_tecnica") && (
               <Button
-                onClick={() => setIsCreateOpen(true)}
+                onClick={() => router.push("/admin/Panel-Administrativo/fichas-tecnicas/nueva")}
                 className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95"
               >
                 <Plus className="w-5 h-5" /> Nueva Ficha
@@ -305,12 +295,6 @@ export default function FichasTecnicasPage() {
         )}
       </div>
 
-      {/* ── DIALOGS ───────────────────────────────────────────── */}
-      <CreateFichaDialog
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onSuccess={handleSuccess}
-      />
     </div>
   );
 }

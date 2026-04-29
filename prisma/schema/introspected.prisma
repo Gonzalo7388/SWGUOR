@@ -701,7 +701,6 @@ model cotizacion_items {
 model cotizaciones {
   id                    BigInt             @id @default(autoincrement())
   numero                String             @unique
-  pedido_id             BigInt?
   cliente_id            BigInt?
   estado                EstadoCotizacion?  @default(borrador)
   subtotal              Decimal?           @default(0) @db.Decimal(12, 2)
@@ -723,8 +722,8 @@ model cotizaciones {
   notas_internas        String?
   origen                String?            @default("manual") @db.VarChar(20)
   cotizacion_items      cotizacion_items[]
+  pedidos               pedidos[]
   clientes              clientes?          @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  pedidos               pedidos?           @relation(fields: [pedido_id], references: [id], onUpdate: NoAction)
   reglas_descuento      reglas_descuento?  @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizaciones_id_regla_descuento")
 
   @@schema("public")
@@ -1197,18 +1196,18 @@ model pedido_items {
 model pedidos {
   id                 BigInt               @id @default(autoincrement())
   cliente_id         BigInt?
+  cotizacion_id          BigInt?
   estado             EstadoPedido?        @default(pendiente)
   prioridad          PrioridadPedido?     @default(normal)
   notas_cliente      String?
-  created_by         BigInt?
-  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
   notas_pedido       String?
   total_estimado     Decimal?             @default(0) @db.Decimal(12, 2)
   total_unidades     Int                  @default(0)
   moq_aplicado       Int                  @default(400)
+  created_by         BigInt?
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
   confecciones       confecciones[]
-  cotizaciones       cotizaciones[]
   despachos          despachos[]
   incidencias        incidencias[]
   ordenes_produccion ordenes_produccion[]
@@ -1216,6 +1215,7 @@ model pedidos {
   ventas             ventas[]
   clientes           clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   usuarios           usuarios?            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones       cotizaciones?        @relation(fields: [cotizacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   seguimiento_pedido seguimiento_pedido[]
 
   @@index([cliente_id], map: "idx_pedidos_cliente")

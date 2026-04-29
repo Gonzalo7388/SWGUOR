@@ -80,7 +80,7 @@ export const MovimientosInventarioService = {
           referencia_id: data.referencia_id ? BigInt(data.referencia_id) : null,
         },
         include: {
-          usuarios: { select: { id: true, nombre: true, email: true } },
+          usuarios: { select: { id: true, email: true } },
           almacenes: { select: { id: true, nombre: true } },
           productos: { select: { id: true, nombre: true, sku: true } },
           materiales: { select: { id: true, nombre: true } },
@@ -201,7 +201,7 @@ export const MovimientosInventarioService = {
     const movimientos = await prisma.movimientos_inventario.findMany({
       where,
       include: {
-        usuarios: { select: { id: true, name: true, email: true } },
+        usuarios: { select: { id: true, email: true } },
         almacenes: { select: { id: true, nombre: true } },
         productos: { select: { id: true, nombre: true, sku: true } },
         materiales: { select: { id: true, nombre: true } },

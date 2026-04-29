@@ -152,7 +152,6 @@ export function CotizacionProveedorForm({ proveedores }: { proveedores?: any[] }
           </p>
 
           <PdfUploadExtractor
-            extractType="cotizacion"
             label="Cargar PDF de Cotización"
             description="Arrastra el PDF de la cotización o haz clic para seleccionar"
             onExtract={handlePdfExtracted}

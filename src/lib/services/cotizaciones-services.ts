@@ -274,10 +274,6 @@ export const CotizacionesService = {
         });
 
         pedidoId = Number(pedido.id);
-        await tx.cotizaciones.update({
-          where: { id: BigInt(id) },
-          data:  { pedido_id: pedido.id },
-        });
       }
 
       return { pedidoId };

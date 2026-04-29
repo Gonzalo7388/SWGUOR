@@ -2,14 +2,6 @@ import { model } from '@/lib/gemini';
 import * as fs from 'fs';
 import * as path from 'path';
 
-/**
- * Extrae información estructurada de un PDF usando visión de Gemini
- * Soporta extracción de:
- * - Cotizaciones de proveedor
- * - Fichas técnicas
- * - Medidas y especificaciones
- */
-
 export interface ExtraccionCotizacionProveedor {
   numero_cotizacion?: string;
   fecha_cotizacion?: string;
@@ -30,7 +22,6 @@ export interface ExtraccionCotizacionProveedor {
 }
 
 export interface ExtraccionFichaTecnica {
-  producto_nombre?: string;
   version?: string;
   descripcion?: string;
   sam_total?: number;
@@ -48,17 +39,127 @@ export interface ExtraccionFichaTecnica {
   }>;
 }
 
-/**
- * Convierte un archivo a base64 para enviar a Gemini
- */
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
 function fileToBase64(filePath: string): string {
-  const fileBuffer = fs.readFileSync(filePath);
-  return fileBuffer.toString('base64');
+  return fs.readFileSync(filePath).toString('base64');
 }
 
+function getMimeType(filePath: string): 'image/png' | 'image/jpeg' | 'image/webp' {
+  const ext = path.extname(filePath).toLowerCase();
+  const map: Record<string, 'image/png' | 'image/jpeg' | 'image/webp'> = {
+    '.png':  'image/png',
+    '.jpg':  'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+  };
+  return map[ext] ?? 'image/png';
+}
+
+function parseJSON<T>(raw: string): T {
+  // Intenta múltiples patrones para extraer JSON
+  const patterns = [
+    /```json\n?([\s\S]*?)\n?```/, // JSON dentro de bloque de código
+    /```\n?([\s\S]*?)\n?```/,      // Bloque de código sin lenguaje especificado
+    /\{[\s\S]*\}/,                   // JSON puro
+  ];
+
+  let jsonStr = raw.trim();
+  
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match) {
+      jsonStr = match[1] ?? match[0];
+      break;
+    }
+  }
+
+  // Si aún no parece JSON válido, trata de limpiar
+  jsonStr = jsonStr.trim();
+  
+  if (!jsonStr.startsWith('{')) {
+    // Si comienza con algo que no es {, busca la primera {
+    const firstBrace = jsonStr.indexOf('{');
+    if (firstBrace !== -1) {
+      jsonStr = jsonStr.substring(firstBrace);
+    }
+  }
+
+  try {
+    return JSON.parse(jsonStr) as T;
+  } catch (error) {
+    console.error('❌ Error parseando JSON. Raw response:', raw);
+    console.error('❌ Extracted string:', jsonStr);
+    throw new Error(`JSON inválido de Gemini: ${error instanceof Error ? error.message : 'desconocido'}`);
+  }
+}
+
+// ─── extracción desde imagen geometral ───────────────────────────────────────
+
 /**
- * Extrae información de una cotización de proveedor desde PDF
+ * Extrae medidas, materiales, SAM y costo estimado
+ * a partir de la imagen geometral de la prenda.
+ * Los colores y tallas se obtienen directamente de la tabla productos.
  */
+export async function extraerFichaTecnica(
+  imagePath: string
+): Promise<ExtraccionFichaTecnica> {
+  const base64Data = fileToBase64(imagePath);
+  const mimeType   = getMimeType(imagePath);
+
+  const prompt = `
+Eres un experto en fichas técnicas de confección textil.
+Analiza esta imagen geometral de una prenda y extrae en JSON:
+
+{
+  "medidas": [
+    {
+      "punto_medida": "nombre del punto visible en la imagen (ej: Length HPS to Hem, Chest Width, Neck Drop, Shoulder Width, Armhole Drop)",
+      "talla": "talla si aparece en la imagen, si no coloca 'M' como base",
+      "valor_cm": número estimado en cm según proporciones visibles o 0 si no se puede determinar,
+      "tolerancia": número o null
+    }
+  ],
+  "materiales": [
+    {
+      "nombre": "nombre del material si aparece en la imagen",
+      "composicion": "composición si aparece",
+      "porcentaje": número o null
+    }
+  ],
+  "sam_total": número si aparece en la imagen o null,
+  "costo_estimado": número si aparece en la imagen o null,
+  "descripcion": "descripción breve de la prenda basada en lo que ves en la imagen"
+}
+
+Extrae TODOS los puntos de medida visibles con sus etiquetas.
+Si no hay tabla de medidas explícita, infiere los puntos desde las flechas y etiquetas de la imagen.
+Responde SOLO el JSON sin explicaciones adicionales.
+`;
+
+  try {
+    const response = await model.generateContent([
+      {
+        inlineData: {
+          mimeType,
+          data: base64Data,
+        },
+      },
+      { text: prompt },
+    ]);
+
+    const content = response.response.text();
+    console.log('📤 Respuesta de Gemini (primeros 500 chars):', content.substring(0, 500));
+    
+    return parseJSON<ExtraccionFichaTecnica>(content);
+  } catch (error: any) {
+    console.error('❌ Error al extraer ficha técnica desde imagen:', error.message);
+    throw new Error(`Fallo al extraer información de la imagen geometral: ${error.message}`);
+  }
+}
+
+// ─── extracción de cotización (sin cambios, sigue usando PDF) ─────────────────
+
 export async function extraerCotizacionProveedor(
   pdfPath: string
 ): Promise<ExtraccionCotizacionProveedor> {
@@ -66,155 +167,74 @@ export async function extraerCotizacionProveedor(
 
   const prompt = `
 Analiza este PDF de cotización de proveedor y extrae la siguiente información en formato JSON:
-
 {
-  "numero_cotizacion": "número de la cotización si aparece",
+  "numero_cotizacion": "número si aparece",
   "fecha_cotizacion": "fecha en formato YYYY-MM-DD",
   "fecha_vencimiento": "fecha de vencimiento si aparece",
   "proveedor_nombre": "nombre del proveedor",
-  "proveedor_ruc": "RUC o número de identificación si aparece",
+  "proveedor_ruc": "RUC si aparece",
   "proveedor_email": "correo electrónico",
   "proveedor_telefono": "número de teléfono",
   "moneda": "moneda usada (USD, PEN, EUR, etc)",
   "items": [
     {
-      "descripcion": "descripción del producto/servicio",
+      "descripcion": "descripción",
       "cantidad": número,
       "precio_unitario": número,
       "subtotal": número
     }
   ],
-  "total": número total de la cotización,
+  "total": número,
   "notas": "notas o condiciones especiales"
 }
-
-Sé preciso con los números. Si algo no aparece, omite ese campo. 
 Responde SOLO el JSON sin explicaciones adicionales.
 `;
 
   try {
     const response = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: 'application/pdf',
-          data: base64Data,
-        },
-      },
+      { inlineData: { mimeType: 'application/pdf', data: base64Data } },
       { text: prompt },
     ]);
 
     const content = response.response.text();
-    // Limpiar markdown si viene envuelto en ```json```
-    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-    
-    const parsed = JSON.parse(jsonStr) as ExtraccionCotizacionProveedor;
-    return parsed;
+    return parseJSON<ExtraccionCotizacionProveedor>(content);
   } catch (error: any) {
     console.error('Error al extraer cotización:', error);
     throw new Error(`Fallo al extraer información del PDF: ${error.message}`);
   }
 }
 
-/**
- * Extrae medidas y especificaciones de una ficha técnica en PDF
- */
-export async function extraerFichaTecnica(
-  pdfPath: string
-): Promise<ExtraccionFichaTecnica> {
-  const base64Data = fileToBase64(pdfPath);
+// ─── extracción genérica ──────────────────────────────────────────────────────
 
-  const prompt = `
-Analiza este PDF de ficha técnica y extrae la información en formato JSON:
-
-{
-  "producto_nombre": "nombre del producto",
-  "version": "versión de la ficha técnica si aparece",
-  "descripcion": "descripción general del producto",
-  "sam_total": número de minutos SAM si aparece (o null),
-  "costo_estimado": costo estimado si aparece (o null),
-  "medidas": [
-    {
-      "punto_medida": "nombre del punto (ej: largo, ancho)",
-      "talla": "talla aplicable (XS, S, M, L, 28, 30, etc)",
-      "valor_cm": número en centímetros,
-      "tolerancia": número de tolerancia en cm si aparece
-    }
-  ],
-  "materiales": [
-    {
-      "nombre": "nombre del material",
-      "composicion": "composición (algodón 100%, poliéster, etc)",
-      "porcentaje": número porcentaje si aparece
-    }
-  ]
-}
-
-Extrae todas las medidas que encuentres en tablas.
-Si hay múltiples tallas, crea un registro por talla.
-Responde SOLO el JSON sin explicaciones adicionales.
-`;
-
-  try {
-    const response = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: 'application/pdf',
-          data: base64Data,
-        },
-      },
-      { text: prompt },
-    ]);
-
-    const content = response.response.text();
-    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-    
-    const parsed = JSON.parse(jsonStr) as ExtraccionFichaTecnica;
-    return parsed;
-  } catch (error: any) {
-    console.error('Error al extraer ficha técnica:', error);
-    throw new Error(`Fallo al extraer información de ficha técnica: ${error.message}`);
-  }
-}
-
-/**
- * Método genérico para extraer información con prompt personalizado
- */
 export async function extraerConPromptCustom(
-  pdfPath: string,
-  tipoExtracion: 'cotizacion' | 'ficha_tecnica' | 'medidas' | 'custom',
+  filePath: string,
+  tipoExtraccion: 'cotizacion' | 'ficha_tecnica' | 'medidas' | 'custom',
   promptCustom?: string
 ): Promise<any> {
-  const base64Data = fileToBase64(pdfPath);
+  const base64Data = fileToBase64(filePath);
+  const ext        = path.extname(filePath).toLowerCase();
+  const isImage    = ['.png', '.jpg', '.jpeg', '.webp'].includes(ext);
 
-  let prompt = promptCustom || '';
+  const mimeType = isImage
+    ? getMimeType(filePath)
+    : 'application/pdf';
 
-  if (!promptCustom) {
-    const prompts: Record<string, string> = {
-      cotizacion: `Extrae datos de cotización: número, fecha, proveedor, items con cantidades y precios. Retorna JSON.`,
-      ficha_tecnica: `Extrae datos de ficha técnica: producto, versión, medidas, materiales. Retorna JSON.`,
-      medidas: `Extrae tabla de medidas con puntos, tallas y valores en cm. Retorna JSON.`,
-    };
-    prompt = prompts[tipoExtracion] || 'Extrae toda la información relevante en formato JSON.';
-  }
+  const prompts: Record<string, string> = {
+    cotizacion:    'Extrae datos de cotización: número, fecha, proveedor, items. Retorna JSON.',
+    ficha_tecnica: 'Extrae medidas, materiales, SAM y costo estimado. Retorna JSON.',
+    medidas:       'Extrae tabla de medidas con puntos, tallas y valores en cm. Retorna JSON.',
+  };
+
+  const prompt = promptCustom ?? prompts[tipoExtraccion] ?? 'Extrae toda la información relevante en JSON.';
 
   try {
     const response = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: 'application/pdf',
-          data: base64Data,
-        },
-      },
+      { inlineData: { mimeType, data: base64Data } },
       { text: prompt },
     ]);
 
     const content = response.response.text();
-    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
-    
-    return JSON.parse(jsonStr);
+    return parseJSON<any>(content);
   } catch (error: any) {
     console.error('Error en extracción personalizada:', error);
     throw new Error(`Fallo en extracción: ${error.message}`);

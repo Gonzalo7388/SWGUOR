@@ -2,7 +2,6 @@ export const runtime = 'nodejs';
 import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas-services';
 import { NextResponse } from 'next/server';
 
-// GET /api/admin/fichas-tecnicas?producto_id=xxx (obtener una ficha específica)
 // GET /api/admin/fichas-tecnicas?estado=xxx&busqueda=xxx (listar todas con filtros)
 export async function GET(req: Request) {
   try {
