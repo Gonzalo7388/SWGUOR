@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { getCurrentSeason } from "@/config/seasonalThemes";
 import Navbar from "@/components/landing/Navbar";
 import FAQSection from "@/components/landing/FAQSection";
 import AboutSection from "@/components/landing/AboutSection";
@@ -10,95 +9,98 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function LandingPage() {
-  const season = getCurrentSeason();
-
-return (
-    <div className="relative min-h-screen bg-[#FFFDFB]">
+  return (
+    <div className="min-h-screen" style={{ background: "#fff4e2" }}>
       <Navbar />
+      <main>
+        {/* HERO */}
+        <section className="pt-40 pb-20 px-6">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-      <main className="relative">
-        {/* ✅ ENVOLTORIO PARA LAS DOS PRIMERAS SECCIONES (Hero + Nosotros) */}
-        <div className="relative">
-          {/* FONDO DE CUADRITOS: Ahora dentro del contenedor específico */}
-          <div
-            className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none" 
-            style={{
-              backgroundImage: `url('https://www.transparenttextures.com/patterns/cubes.png')`,
-              backgroundRepeat: 'repeat'
-            }}
-          />
+            {/* IZQUIERDA */}
+            <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }}>
 
-          {/* 3. HERO SECTION */}
-          <section className="relative z-10 pt-40 pb-20 px-6 overflow-hidden">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="z-10"
+              {/* BADGE */}
+              <span
+                className="inline-block px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6"
+                style={{ background: "#fbddd3", color: "#b5854b", border: "1px solid #e4c28a" }}
               >
-                <span className="inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.3em] bg-[#D4AF37]/10 text-[#D4AF37] mb-6">
-                  Corporación Textil Peruana
+                Corporación Textil Peruana
+              </span>
+
+              {/* TITULO */}
+              <h1 className="text-6xl font-black italic leading-tight mb-6" style={{ color: "#231e1d" }}>
+                Excelencia Textil <br />
+                <span className="not-italic" style={{ color: "#e4c28a" }}>
+                  GUOR Style
                 </span>
+              </h1>
 
-                <h1 className="text-7xl font-black text-stone-900 leading-[1.2] tracking-tighter mb-6 italic">
-                  {season.title} <br />
-                  <span className={`
-                    relative inline-block not-italic 
-                    bg-clip-text text-transparent 
-                    bg-gradient-to-r ${season.gradient}
-                    /* ✅ SOLUCIÓN 'e': Aumentamos el padding derecho a pr-12 para compensar la inclinación */
-                    py-4 pr-12 -my-4 -mr-12
-                    filter drop-shadow-[0_2px_12px_rgba(212,175,55,0.25)]
-                  `}>
-                    GUOR Style
-                  </span>
-                </h1>
-
-                <p className="text-lg text-stone-500 mb-10 max-w-md font-medium">
-                Aliado estratégico en <span className="text-black font-black">diseño y confección mayorista</span>, fusionamos excelencia textil y artesanía con una gestión logística inteligente para las marcas más prestigiosas de Gamarra y el país.
-                Únete hoy a nuestro ecosistema y obtén un <span className="text-black font-black">20% de descuento</span> en tu primera orden de producción.
+              {/* TEXTO */}
+              <p className="text-lg mb-10 max-w-md" style={{ color: "rgba(35,30,29,0.75)" }}>
+                Aliado estratégico en{" "}
+                <span className="font-bold" style={{ color: "#231e1d" }}>diseño y confección mayorista</span>
+                , fusionamos excelencia textil y artesanía con logística inteligente.
+                <br /><br />
+                Obtén un{" "}
+                <span className="font-bold" style={{ color: "#b5854b" }}>20% de descuento</span>{" "}
+                en tu primera orden.
               </p>
 
-                <div className="flex flex-wrap gap-4">
-                  <Link href="/registro-cliente" className="px-8 py-4 bg-stone-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-[#D4AF37] transition-all shadow-xl">
-                    Iniciar Alianza B2B <ArrowRight size={18} />
-                  </Link>
-                </div>
-              </motion.div>
-
-              {/* IMAGEN PREVIA */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative h-[550px] bg-white/30 backdrop-blur-md rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white"
+              {/* BOTON */}
+              <Link
+                href="/registro-cliente"
+                className="inline-flex px-6 py-3 rounded-xl font-bold text-sm items-center gap-2"
+                style={{ background: "#231e1d", color: "#fff4e2", border: "2px solid #231e1d", transition: "all 0.3s" }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = "#e4c28a";
+                  el.style.borderColor = "#e4c28a";
+                  el.style.color = "#231e1d";
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = "#231e1d";
+                  el.style.borderColor = "#231e1d";
+                  el.style.color = "#fff4e2";
+                }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${season.gradient} opacity-10`} />
-                <div className="flex items-center justify-center h-full text-stone-300 font-bold uppercase tracking-tighter text-4xl opacity-40 text-center px-12">
-                  Excelencia Operativa
-                </div>
-              </motion.div>
-            </div>
-          </section>
+                Iniciar Alianza B2B <ArrowRight size={16} />
+              </Link>
+            </motion.div>
 
-          {/* 4. SECCIÓN NOSOTROS (Aprovecha el fondo de cuadritos del contenedor padre) */}
-          <AboutSection />
-        </div>
+            {/* DERECHA → TARJETA */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="aspect-square rounded-[3rem] shadow-xl flex flex-col items-center justify-center p-12 text-center"
+              style={{ background: "#fff4e2", border: "2px solid #e4c28a" }}
+            >
+              <h2 className="text-2xl font-black uppercase italic" style={{ color: "#231e1d" }}>
+                Excelencia Operativa
+              </h2>
+              <div className="w-12 mx-auto my-4" style={{ height: "2px", background: "#e4c28a" }} />
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#b5854b" }}>
+                Procesos Eficientes
+              </p>
+            </motion.div>
 
-        {/* 5. SECCIÓN DE CATÁLOGO (Ya no tiene cuadritos) */}
+          </div>
+        </section>
+
+        <AboutSection />
         <FeaturedProducts />
-
-        {/* 6. SECCIÓN DE PREGUNTAS FRECUENTES */}
         <FAQSection />
       </main>
 
-      <footer className="relative z-20 py-16 border-t border-stone-200 text-center bg-stone-100/50 backdrop-blur-md">
+      {/* FOOTER */}
+      <footer className="py-16 text-center" style={{ borderTop: "1px solid #e4c28a", background: "#fff4e2" }}>
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-[10px] font-black text-stone-600 uppercase tracking-[0.4em] leading-relaxed">
-            © 2026 <span className="text-stone-900">Modas y Estilos GUOR S.A.C.</span> —
-            <span className="text-[#D4AF37] ml-2">Referente Textil Nacional</span>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: "rgba(35,30,29,0.6)" }}>
+            © 2026 GUOR S.A.C.
           </p>
-          <div className="w-12 h-[1px] bg-[#D4AF37]/40 mx-auto mt-6" />
-          <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mt-4">
+          <div className="w-10 mx-auto mt-6" style={{ height: "1px", background: "#e4c28a" }} />
+          <p className="text-[10px] mt-4" style={{ color: "rgba(35,30,29,0.4)" }}>
             Lima, Perú — Excelencia en cada puntada
           </p>
         </div>
