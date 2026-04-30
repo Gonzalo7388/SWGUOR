@@ -76,11 +76,11 @@ export default function QuickFormDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[440px] border-none shadow-2xl bg-white p-0 overflow-hidden [&>button]:hidden">
 
-        {/* Franja superior coloreada */}
-        <div className={`h-1.5 ${colors.gradient} w-full`} />
+        {/* Franja superior coloreada - Borde Visual */}
+        <div className={`h-2 ${colors.gradient} w-full`} />
 
         {/* Header (SIN ICONOS) */}
-        <div className="px-6 pt-5 pb-0 flex items-start justify-between">
+        <div className="px-6 pt-6 pb-0 flex items-start justify-between">
           <div>
             <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
               {title}

@@ -60,7 +60,7 @@ export default function SuspenderPersonalDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 border-none shadow-2xl bg-white overflow-hidden">
 
-        <div className={`h-1.5 w-full ${activo ? "bg-amber-500" : "bg-teal-500"}`} />
+        <div className={`h-2 w-full ${activo ? "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600" : "bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500"}`} />
 
         <div className="p-6 space-y-5">
 

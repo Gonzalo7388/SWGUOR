@@ -94,7 +94,7 @@ const desincronizado = personalActivo !== cuentaActiva;
       <DialogContent className="sm:max-w-[480px] border-none shadow-2xl bg-white p-0 overflow-hidden">
 
         {/* Franja teal */}
-        <div className="h-1.5 bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500 w-full" />
+        <div className="h-2 bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500 w-full" />
 
         {/* Hero */}
         <div className="px-6 pt-6 pb-4 border-b border-slate-100">

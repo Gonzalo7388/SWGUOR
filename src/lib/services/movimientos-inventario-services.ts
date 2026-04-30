@@ -1,236 +1,495 @@
-import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils/serialize';
-import type { TipoMovimiento, ReferenciaMovimiento } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
+import { serializeBigInt } from "@/lib/utils/serialize";
+import type {
+  ReferenciaMovimiento,
+  TipoMovimiento,
+} from "@prisma/client";
 
-/**
- * ARQUITECTURA DE MOVIMIENTOS DE INVENTARIO
- * 
- * Este servicio es el punto central para registrar TODOS los cambios de inventario.
- * Se integra automáticamente con:
- * - Compra de materiales/insumos (ordenes_compra)
- * - Venta de productos (ordenes_venta)
- * - Producción (uso de materiales en confecciones)
- * - Devoluciones (cliente/proveedor)
- * - Incidencias (pérdidas, daños)
- * - Ajustes manuales (errores de conteo)
- */
+export interface RegistroMovimientoParams {
+  // Item a mover (uno de estos debe estar presente)
+  insumo_id?: string;
+  material_id?: string;
+  producto_id?: string;
+
+  // Datos del movimiento
+  cantidad: number;
+  tipo_movimiento: TipoMovimiento;
+  referencia_tipo: ReferenciaMovimiento;
+  motivo: string;
+
+  // Opcional
+  usuario_id?: string;
+  almacen_id?: string;
+  costo_unitario?: number;
+  referencia_id?: string;
+}
+
+export interface MovimientosFiltersParams {
+  desde?: string;
+  hasta?: string;
+  tipo?: TipoMovimiento;
+  referencia?: ReferenciaMovimiento;
+  tipoItem?: "producto" | "insumo" | "material";
+  busqueda?: string;
+  limite?: number;
+}
 
 export const MovimientosInventarioService = {
   /**
-   * Registra un movimiento completo con validaciones y trazabilidad
-   * Esta es la función principal que se llama desde todos lados
+   * Registra un movimiento de inventario genérico
    */
-  async registrar(data: {
-    // Identificar qué se mueve (solo uno es requerido)
-    producto_id?: string | number;
-    material_id?: string | number;
-    insumo_id?: string | number;
+  async registrarMovimiento(params: RegistroMovimientoParams) {
+    const {
+      insumo_id,
+      material_id,
+      producto_id,
+      cantidad,
+      tipo_movimiento,
+      referencia_tipo,
+      motivo,
+      usuario_id,
+      almacen_id,
+      costo_unitario,
+      referencia_id,
+    } = params;
 
-    // Datos del movimiento
-    cantidad: number; // Siempre positivo, el tipo_movimiento indica entrada/salida
-    tipo_movimiento: TipoMovimiento;
-    motivo: string; // Descripción clara: "Compra OC-001", "Producción CF-005", etc.
+    if (!insumo_id && !material_id && !producto_id) {
+      throw new Error(
+        "Debe proporcionar ID de insumo, material o producto"
+      );
+    }
 
-    // Costos (para entrada principalmente)
-    costo_unitario?: number; // Para actualizar precio cuando entra material
-    
-    // Trazabilidad
-    usuario_id?: string | number;
-    almacen_id?: string | number;
-    referencia_tipo?: ReferenciaMovimiento; // ORDEN, COMPRA, VENTA, AJUSTE
-    referencia_id?: string | number; // ID de la orden, OC, OV, etc.
-  }) {
+    if (cantidad <= 0) {
+      throw new Error("La cantidad debe ser mayor a 0");
+    }
+
     return prisma.$transaction(async (tx) => {
-      // 1. Validar que al menos un item se especifique
-      const itemId = data.producto_id || data.material_id || data.insumo_id;
-      const itemType = data.producto_id ? 'producto' : data.material_id ? 'material' : 'insumo';
-      
-      if (!itemId) {
-        throw new Error('Debe especificar producto, material o insumo');
+      let stockAnterior = 0;
+      let stockPosterior = 0;
+
+      // Actualizar stock correspondiente
+      if (insumo_id) {
+        const insumo = await tx.insumo.findUniqueOrThrow({
+          where: { id: BigInt(insumo_id) },
+        });
+        stockAnterior = Number(insumo.stock_actual);
+        stockPosterior =
+          tipo_movimiento === "entrada"
+            ? stockAnterior + cantidad
+            : tipo_movimiento === "salida"
+              ? stockAnterior - cantidad
+              : stockAnterior;
+
+        if (stockPosterior < 0) {
+          throw new Error(
+            `Stock insuficiente para insumo. Stock actual: ${stockAnterior}`
+          );
+        }
+
+        await tx.insumo.update({
+          where: { id: BigInt(insumo_id) },
+          data: {
+            stock: stockPosterior,
+            updated_at: new Date(),
+            ...(costo_unitario && { precio_unitario: costo_unitario }),
+          },
+        });
       }
 
-      // 2. Obtener datos actuales según tipo
-      const stockActual = await this._obtenerStockActual(tx, itemType, itemId);
-      
-      // 3. Calcular nuevo stock
-      const cantidad = Math.abs(data.cantidad);
-      const cambio = data.tipo_movimiento === 'salida' ? -cantidad : cantidad;
-      const nuevoStock = stockActual.stock + cambio;
+      if (material_id) {
+        const material = await tx.materiales.findUniqueOrThrow({
+          where: { id: BigInt(material_id) },
+        });
+        stockAnterior = Number(material.stock_actual);
+        stockPosterior =
+          tipo_movimiento === "entrada"
+            ? stockAnterior + cantidad
+            : tipo_movimiento === "salida"
+              ? stockAnterior - cantidad
+              : stockAnterior;
 
-      // Validación: no permitir stock negativo en salidas
-      if (nuevoStock < 0) {
-        throw new Error(
-          `Stock insuficiente. Stock actual: ${stockActual.stock}, solicitado: ${cantidad}`
-        );
+        if (stockPosterior < 0) {
+          throw new Error(
+            `Stock insuficiente para material. Stock actual: ${stockAnterior}`
+          );
+        }
+
+        await tx.materiales.update({
+          where: { id: BigInt(material_id) },
+          data: {
+            stock: stockPosterior,
+            updated_at: new Date(),
+            ...(costo_unitario && { precio_unitario: costo_unitario }),
+          },
+        });
       }
 
-      // 4. Crear registro de movimiento
+      if (producto_id) {
+        const producto = await tx.productos.findUniqueOrThrow({
+          where: { id: BigInt(producto_id) },
+        });
+        stockAnterior = Number(producto.stock);
+        stockPosterior =
+          tipo_movimiento === "entrada"
+            ? stockAnterior + cantidad
+            : tipo_movimiento === "salida"
+              ? stockAnterior - cantidad
+              : stockAnterior;
+
+        if (stockPosterior < 0) {
+          throw new Error(
+            `Stock insuficiente para producto. Stock actual: ${stockAnterior}`
+          );
+        }
+
+        await tx.productos.update({
+          where: { id: BigInt(producto_id) },
+          data: {
+            stock_actual: stockPosterior,
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      // Crear registro de movimiento
       const movimiento = await tx.movimientos_inventario.create({
         data: {
-          producto_id: data.producto_id ? BigInt(data.producto_id) : null,
-          material_id: data.material_id ? BigInt(data.material_id) : null,
-          insumo_id: data.insumo_id ? BigInt(data.insumo_id) : null,
-          cantidad: cantidad,
-          tipo_movimiento: data.tipo_movimiento,
-          motivo: data.motivo,
-          costo_unitario: data.costo_unitario ?? null,
-          almacen_id: data.almacen_id ? BigInt(data.almacen_id) : null,
-          usuario_id:      data.usuario_id ? BigInt(data.usuario_id) : null,
+          insumo_id: insumo_id ? BigInt(insumo_id) : null,
+          material_id: material_id ? BigInt(material_id) : null,
+          producto_id: producto_id ? BigInt(producto_id) : null,
+          cantidad,
+          tipo_movimiento,
+          referencia_tipo,
+          motivo,
+          usuario_id: usuario_id ? BigInt(usuario_id) : null,
+          almacen_id: almacen_id ? BigInt(almacen_id) : null,
+          costo_unitario: costo_unitario ? Number(costo_unitario) : null,
+          referencia_id: referencia_id ? BigInt(referencia_id) : null,
+          stock_anterior: stockAnterior,
+          stock_posterior: stockPosterior,
+          created_at: new Date(),
+        },
+        include: {
+          insumo: true,
+          material: true,
+          producto: true,
+          usuario: {
+            select: { id: true, nombre: true, email: true },
+          },
         },
       });
 
-      await this._actualizarStock(tx, itemType, itemId, nuevoStock, data.costo_unitario);
       return serializeBigInt(movimiento);
     });
   },
 
   /**
-   * Obtiene el stock actual de un item según su tipo
+   * Registra una entrada de compra (proveedor)
    */
-  async _obtenerStockActual(
-    tx: any,
-    tipo: 'producto' | 'material' | 'insumo',
-    id: string | number
-  ) {
-    const bigId = BigInt(id);
-
-    if (tipo === 'producto') {
-      const producto = await tx.productos.findUnique({
-        where: { id: bigId },
-        select: { stock: true },
-      });
-      if (!producto) throw new Error('Producto no encontrado');
-      return { stock: Number(producto.stock) };
-    }
-
-    if (tipo === 'material') {
-      const material = await tx.materiales.findUnique({
-        where: { id: bigId },
-        select: { stock_actual: true },
-      });
-      if (!material) throw new Error('Material no encontrado');
-      return { stock: Number(material.stock_actual) };
-    }
-
-    // insumo
-    const insumo = await tx.insumo.findUnique({
-      where: { id: bigId },
-      select: { stock: true },
-    });
-    if (!insumo) throw new Error('Insumo no encontrado');
-    return { stock: Number(insumo.stock) };
-  },
-
-  /**
-   * Actualiza el stock en la tabla maestra
-   */
-  async _actualizarStock(
-    tx: any,
-    tipo: 'producto' | 'material' | 'insumo',
-    id: string | number,
-    nuevoStock: number,
-    costo_unitario?: number
-  ) {
-    const bigId = BigInt(id);
-    const updateData: any = { updated_at: new Date() };
-
-    if (tipo === 'producto') {
-      updateData.stock = nuevoStock;
-      return tx.productos.update({ where: { id: bigId }, data: updateData });
-    }
-
-    if (tipo === 'material') {
-      updateData.stock_actual = nuevoStock;
-      if (costo_unitario) updateData.precio_unitario = costo_unitario;
-      return tx.materiales.update({ where: { id: bigId }, data: updateData });
-    }
-
-    // insumo
-    updateData.stock = nuevoStock;
-    if (costo_unitario) updateData.precio_unitario = costo_unitario;
-    return tx.insumo.update({ where: { id: bigId }, data: updateData });
-  },
-
-  /**
-   * Listar movimientos con filtros avanzados
-   */
-  async listar(filtros?: {
-    tipo_movimiento?: TipoMovimiento;
-    referencia_tipo?: ReferenciaMovimiento;
-    producto_id?: string;
-    material_id?: string;
+  async registrarCompra(params: {
     insumo_id?: string;
+    material_id?: string;
+    cantidad: number;
+    costo_unitario: number;
     usuario_id?: string;
-    almacen_id?: string;
-    busqueda?: string; // Busca en motivo
-    desde?: Date;
-    hasta?: Date;
-    limite?: number;
+    orden_compra_id?: string;
+    motivo?: string;
   }) {
+    return this.registrarMovimiento({
+      insumo_id: params.insumo_id,
+      material_id: params.material_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "entrada",
+      referencia_tipo: "COMPRA",
+      motivo:
+        params.motivo || `Compra de insumo/material a proveedor`,
+      usuario_id: params.usuario_id,
+      costo_unitario: params.costo_unitario,
+      referencia_id: params.orden_compra_id,
+    });
+  },
+
+  /**
+   * Registra una devolución a proveedor
+   */
+  async registrarDevolucionProveedor(params: {
+    insumo_id?: string;
+    material_id?: string;
+    cantidad: number;
+    costo_unitario: number;
+    usuario_id?: string;
+    devolucion_id?: string;
+    motivo: string;
+  }) {
+    return this.registrarMovimiento({
+      insumo_id: params.insumo_id,
+      material_id: params.material_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "salida",
+      referencia_tipo: "COMPRA",
+      motivo: `Devolución a proveedor: ${params.motivo}`,
+      usuario_id: params.usuario_id,
+      costo_unitario: params.costo_unitario,
+      referencia_id: params.devolucion_id,
+    });
+  },
+
+  /**
+   * Registra una venta de producto
+   */
+  async registrarVenta(params: {
+    producto_id: string;
+    cantidad: number;
+    usuario_id?: string;
+    pedido_id?: string;
+    motivo?: string;
+  }) {
+    return this.registrarMovimiento({
+      producto_id: params.producto_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "salida",
+      referencia_tipo: "VENTA",
+      motivo: params.motivo || "Venta de producto",
+      usuario_id: params.usuario_id,
+      referencia_id: params.pedido_id,
+    });
+  },
+
+  /**
+   * Registra una devolución de cliente
+   */
+  async registrarDevolucionCliente(params: {
+    producto_id: string;
+    cantidad: number;
+    usuario_id?: string;
+    devolucion_id?: string;
+    motivo: string;
+  }) {
+    return this.registrarMovimiento({
+      producto_id: params.producto_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "entrada",
+      referencia_tipo: "VENTA",
+      motivo: `Devolución de cliente: ${params.motivo}`,
+      usuario_id: params.usuario_id,
+      referencia_id: params.devolucion_id,
+    });
+  },
+
+  /**
+   * Registra consumo de insumos/materiales en fabricación
+   */
+  async registrarConsumoFabricacion(params: {
+    insumo_id?: string;
+    material_id?: string;
+    cantidad: number;
+    usuario_id?: string;
+    confeccion_id?: string;
+    motivo?: string;
+  }) {
+    return this.registrarMovimiento({
+      insumo_id: params.insumo_id,
+      material_id: params.material_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "salida",
+      referencia_tipo: "AJUSTE",
+      motivo: params.motivo || "Consumo en fabricación",
+      usuario_id: params.usuario_id,
+      referencia_id: params.confeccion_id,
+    });
+  },
+
+  /**
+   * Registra un ingreso de stock (reposición)
+   */
+  async registrarIngresoStock(params: {
+    insumo_id?: string;
+    material_id?: string;
+    producto_id?: string;
+    cantidad: number;
+    usuario_id?: string;
+    motivo?: string;
+  }) {
+    return this.registrarMovimiento({
+      insumo_id: params.insumo_id,
+      material_id: params.material_id,
+      producto_id: params.producto_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "entrada",
+      referencia_tipo: "AJUSTE",
+      motivo: params.motivo || "Ingreso manual de stock",
+      usuario_id: params.usuario_id,
+    });
+  },
+
+  /**
+   * Registra una incidencia de producto/insumo/material
+   */
+  async registrarIncidencia(params: {
+    insumo_id?: string;
+    material_id?: string;
+    producto_id?: string;
+    cantidad: number;
+    usuario_id?: string;
+    incidencia_id?: string;
+    motivo: string;
+  }) {
+    return this.registrarMovimiento({
+      insumo_id: params.insumo_id,
+      material_id: params.material_id,
+      producto_id: params.producto_id,
+      cantidad: params.cantidad,
+      tipo_movimiento: "salida",
+      referencia_tipo: "AJUSTE",
+      motivo: `Incidencia: ${params.motivo}`,
+      usuario_id: params.usuario_id,
+      referencia_id: params.incidencia_id,
+    });
+  },
+
+  /**
+   * Listar movimientos con filtros
+   */
+  async listarMovimientos(params?: MovimientosFiltersParams) {
     const where: any = {};
 
-    if (filtros?.tipo_movimiento) where.tipo_movimiento = filtros.tipo_movimiento;
-    if (filtros?.referencia_tipo) where.referencia_tipo = filtros.referencia_tipo;
-    if (filtros?.producto_id) where.producto_id = BigInt(filtros.producto_id);
-    if (filtros?.material_id) where.material_id = BigInt(filtros.material_id);
-    if (filtros?.insumo_id) where.insumo_id = BigInt(filtros.insumo_id);
-    if (filtros?.usuario_id) where.usuario_id = BigInt(filtros.usuario_id);
-    if (filtros?.almacen_id) where.almacen_id = BigInt(filtros.almacen_id);
-    
-    if (filtros?.busqueda) {
-      where.motivo = { contains: filtros.busqueda, mode: 'insensitive' };
+    // Filtros de fecha
+    if (params?.desde || params?.hasta) {
+      where.created_at = {
+        ...(params.desde && { gte: new Date(params.desde) }),
+        ...(params.hasta && { lte: new Date(params.hasta) }),
+      };
     }
 
-    if (filtros?.desde || filtros?.hasta) {
-      where.created_at = {};
-      if (filtros.desde) where.created_at.gte = filtros.desde;
-      if (filtros.hasta) where.created_at.lte = filtros.hasta;
+    // Filtro de tipo de movimiento
+    if (params?.tipo) {
+      where.tipo_movimiento = params.tipo;
+    }
+
+    // Filtro de referencia
+    if (params?.referencia) {
+      where.referencia_tipo = params.referencia;
+    }
+
+    // Filtro de tipo de item
+    if (params?.tipoItem) {
+      if (params.tipoItem === "insumo") {
+        where.insumo_id = { not: null };
+      } else if (params.tipoItem === "material") {
+        where.material_id = { not: null };
+      } else if (params.tipoItem === "producto") {
+        where.producto_id = { not: null };
+      }
     }
 
     const movimientos = await prisma.movimientos_inventario.findMany({
       where,
       include: {
-        usuarios: { select: { id: true, email: true } },
-        almacenes: { select: { id: true, nombre: true } },
-        productos: { select: { id: true, nombre: true, sku: true } },
-        materiales: { select: { id: true, nombre: true } },
-        insumo: { select: { id: true, nombre: true } },
+        insumo: {
+          select: { id: true, nombre: true, unidad_medida: true },
+        },
+        material: {
+          select: { id: true, nombre: true },
+        },
+        producto: {
+          select: { id: true, nombre: true },
+        },
+        usuario: {
+          select: { id: true, nombre: true, email: true },
+        },
       },
-      orderBy: { created_at: 'desc' },
-      take: filtros?.limite ?? 100,
+      orderBy: { created_at: "desc" },
+      take: params?.limite ?? 100,
     });
 
-    return serializeBigInt(movimientos);
+    // Filtro de búsqueda (en cliente porque requiere búsqueda en relaciones)
+    let resultado = serializeBigInt(movimientos);
+
+    if (params?.busqueda) {
+      const searchLower = params.busqueda.toLowerCase();
+      resultado = resultado.filter((mov: any) => {
+        const itemName =
+          mov.insumo?.nombre ||
+          mov.material?.nombre ||
+          mov.producto?.nombre ||
+          "";
+        const motivo = mov.motivo || "";
+
+        return (
+          itemName.toLowerCase().includes(searchLower) ||
+          motivo.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    return resultado;
   },
 
   /**
-   * Obtener resumen de movimientos para estadísticas
+   * Obtener estadísticas de movimientos
    */
-  async obtenerResumen(filtros?: {
-    tipo_movimiento?: TipoMovimiento;
-    desde?: Date;
-    hasta?: Date;
+  async obtenerEstadisticas(params?: {
+    desde?: string;
+    hasta?: string;
   }) {
     const where: any = {};
-    if (filtros?.tipo_movimiento) where.tipo_movimiento = filtros.tipo_movimiento;
-    if (filtros?.desde || filtros?.hasta) {
-      where.created_at = {};
-      if (filtros.desde) where.created_at.gte = filtros.desde;
-      if (filtros.hasta) where.created_at.lte = filtros.hasta;
+
+    if (params?.desde || params?.hasta) {
+      where.created_at = {
+        ...(params.desde && { gte: new Date(params.desde) }),
+        ...(params.hasta && { lte: new Date(params.hasta) }),
+      };
     }
 
-    const [entradas, salidas, ajustes] = await Promise.all([
-      prisma.movimientos_inventario.count({
-        where: { ...where, tipo_movimiento: 'entrada' },
-      }),
-      prisma.movimientos_inventario.count({
-        where: { ...where, tipo_movimiento: 'salida' },
-      }),
-      prisma.movimientos_inventario.count({
-        where: { ...where, tipo_movimiento: 'ajuste' },
-      }),
-    ]);
+    const [totalEntradas, totalSalidas, totalAjustes, totalMovimientos] =
+      await Promise.all([
+        prisma.movimientos_inventario.count({
+          where: { ...where, tipo_movimiento: "entrada" },
+        }),
+        prisma.movimientos_inventario.count({
+          where: { ...where, tipo_movimiento: "salida" },
+        }),
+        prisma.movimientos_inventario.count({
+          where: { ...where, tipo_movimiento: "ajuste" },
+        }),
+        prisma.movimientos_inventario.count({
+          where,
+        }),
+      ]);
 
-    return { entradas, salidas, ajustes, total: entradas + salidas + ajustes };
+    // Calcular montos
+    const movimientos = await prisma.movimientos_inventario.findMany({
+      where,
+      select: {
+        tipo_movimiento: true,
+        cantidad: true,
+        costo_unitario: true,
+      },
+    });
+
+    const montoTotalEntradas = movimientos
+      .filter((m) => m.tipo_movimiento === "entrada")
+      .reduce((sum, m) => {
+        const costo = Number(m.costo_unitario || 0);
+        const cant = Number(m.cantidad || 0);
+        return sum + (costo * cant);
+      }, 0);
+
+    const montoTotalSalidas = movimientos
+      .filter((m) => m.tipo_movimiento === "salida")
+      .reduce((sum, m) => {
+        const costo = Number(m.costo_unitario || 0);
+        const cant = Number(m.cantidad || 0);
+        return sum + (costo * cant);
+      }, 0);
+
+    return {
+      totalEntradas,
+      totalSalidas,
+      totalAjustes,
+      totalMovimientos,
+      montoTotalEntradas,
+      montoTotalSalidas,
+    };
   },
 };

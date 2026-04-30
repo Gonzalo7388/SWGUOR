@@ -1,5 +1,15 @@
 /**
  * Constantes de Roles y Permisos — Fuente Única de Verdad
+ * Todos los permisos del sistema se definen aquí.
+ * Esto asegura consistencia en toda la aplicación y facilita la gestión de roles.
+ *
+ * Estructura:
+ * - Tipos base: RolUsuario, EstadoUsuario, PermissionKey, AccionRecurso, RecursoKey, PermisosRecurso
+ * - Mapa de permisos planos por rol (PERMISOS_POR_ROL)
+ * - Derivación automática de permisos por recurso (PERMISOS_RECURSO_POR_ROL)
+ * - Información adicional de roles (ROLES_INFO)
+ * - Helpers para validación y checks de permisos
+ * - Función de validación de integridad para detectar permisos mal nombrados en desarrollo
  */
 
 // ─────────────────────────────────────────────
@@ -25,24 +35,27 @@ export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido';
 export type PermissionKey =
   // Dashboard y Data
   | 'ver_dashboard' | 'exportar_data'
-  // Gestión de Insumos y Materiales
+  // Gestión de Insumos
   | 'ver_insumo' | 'crear_insumo' | 'editar_insumo' | 'descontinuar_insumo' | 'exportar_insumo'
   // Productos y Fichas
   | 'ver_productos' | 'crear_productos' | 'editar_productos' | 'descontinuar_productos' | 'exportar_productos'
+  | 'subir_ficha_tecnica' | 'subir_ficha_medidas'
   | 'ver_fichas_tecnicas' | 'crear_ficha_tecnica' | 'editar_ficha_tecnica' | 'ver_detalle_ficha_tecnica'
   | 'crear_ficha_medidas' | 'editar_ficha_medidas' | 'ver_detalle_ficha_medidas'
-  // Cliente
+  // Clientes
   | 'ver_clientes' | 'editar_clientes' | 'ver_detalle_cliente' | 'suspender_clientes' | 'exportar_clientes'
   // Personal Interno
   | 'ver_personal' | 'crear_personal' | 'editar_personal' | 'suspender_personal' | 'exportar_personal'
   // Inventario y Movimientos
-  | 'ver_inventario' | 'agotar_inventario' | 'ver_movimiento_inventario' | 'ajustar_stock'
+  | 'ver_inventario' | 'agotar_inventario'
+  | 'ver_movimiento_inventario' | 'ajustar_stock'
   // Seguimientos (Tracking)
   | 'ver_seguimiento_pedido'
   | 'ver_seguimiento_confeccion'
   | 'ver_seguimiento_produccion'
   // Órdenes de Producción
-  | 'ver_orden_produccion' | 'crear_orden_produccion' | 'editar_orden_produccion' | 'asignar_orden_produccion' | 'ver_detalle_orden_produccion'
+  | 'ver_orden_produccion' | 'crear_orden_produccion' | 'editar_orden_produccion'
+  | 'asignar_orden_produccion' | 'ver_detalle_orden_produccion'
   // Incidencias de Taller
   | 'ver_incidencias_taller' | 'crear_incidencias_taller' | 'exportar_incidencias_taller'
   // Devoluciones
@@ -52,8 +65,6 @@ export type PermissionKey =
   | 'ver_ordenes' | 'crear_ordenes' | 'editar_ordenes'
   // Pedidos
   | 'ver_pedidos' | 'crear_pedidos' | 'editar_pedidos' | 'cancelar_pedidos' | 'cambiar_estado_pedidos'
-  // Subir archivos
-  | 'subir_ficha_tecnica' | 'subir_ficha_medidas'
   // Variantes
   | 'ver_variantes' | 'crear_variantes' | 'editar_variantes' | 'descontinuar_variantes' | 'exportar_variantes'
   // Categorías
@@ -65,13 +76,15 @@ export type PermissionKey =
   // Despachos
   | 'ver_despachos' | 'crear_despachos' | 'editar_despachos' | 'actualizar_estado_despachos' | 'exportar_despachos'
   // Confecciones
-  | 'ver_confecciones' | 'crear_confecciones' | 'editar_confecciones' | 'actualizar_estado_confecciones' | 'exportar_confecciones' | 'asignar_ordenes_confecciones'
+  | 'ver_confecciones' | 'crear_confecciones' | 'editar_confecciones'
+  | 'actualizar_estado_confecciones' | 'exportar_confecciones' | 'asignar_ordenes_confecciones'
   // Talleres
   | 'ver_talleres' | 'crear_talleres' | 'editar_talleres' | 'suspender_talleres' | 'exportar_talleres'
   // Pagos
   | 'ver_pagos' | 'registrar_pagos' | 'realizar_pago'
   // Cotizaciones
-  | 'ver_cotizaciones' | 'editar_cotizaciones' | 'ver_historial_cotizaciones' | 'crear_cotizacion' | 'descargar_cotizacion' | 'aprobar_cotizaciones' | 'exportar_cotizaciones'
+  | 'ver_cotizaciones' | 'editar_cotizaciones' | 'ver_historial_cotizaciones'
+  | 'crear_cotizacion' | 'descargar_cotizacion' | 'aprobar_cotizaciones' | 'exportar_cotizaciones'
   // Materiales
   | 'ver_materiales' | 'crear_materiales' | 'editar_materiales' | 'descontinuar_materiales' | 'exportar_materiales'
   // Ventas
@@ -97,6 +110,7 @@ export type AccionRecurso =
 type ExtractRecurso<K extends string> =
   K extends `ver_historial_${infer R}`     ? R :
   K extends `ver_seguimiento_${infer R}`   ? R :
+  K extends `ver_detalle_${infer R}`       ? R :
   K extends `ver_${infer R}`               ? R :
   K extends `crear_${infer R}`             ? R :
   K extends `editar_${infer R}`            ? R :
@@ -125,6 +139,7 @@ const ACCION_MAP: Record<string, AccionRecurso> = {
   ver:                'view',
   ver_historial:      'view',
   ver_seguimiento:    'view',
+  ver_detalle:        'detail',
   crear:              'create',
   crear_cotizacion:   'create',
   editar:             'edit',
@@ -154,7 +169,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_dashboard', 'exportar_data',
     'ver_ordenes',
     'ver_pedidos',
-    'ver_inventario',
+    'ver_inventario', 'ver_movimiento_inventario', 'ajustar_stock',
     'ver_productos', 'exportar_productos',
     'ver_variantes', 'exportar_variantes',
     'ver_categorias', 'exportar_categorias',
@@ -167,10 +182,10 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_pagos', 'registrar_pagos',
     'ver_cotizaciones', 'ver_historial_cotizaciones', 'aprobar_cotizaciones', 'exportar_cotizaciones',
     'ver_materiales', 'exportar_materiales',
+    'ver_insumo', 'exportar_insumo',
     'ver_ventas',
     'ver_configuracion', 'editar_configuracion',
     'ver_proveedores', 'exportar_proveedores',
-    'ver_fichas_tecnicas', 'ver_detalle_ficha_tecnica', 'ver_detalle_ficha_medidas',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
 
@@ -178,15 +193,15 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_dashboard', 'exportar_data',
     'ver_ordenes',
     'ver_pedidos',
-    'ver_inventario',
+    'ver_inventario', 'ver_movimiento_inventario', 'ajustar_stock',
     'ver_clientes', 'editar_clientes', 'ver_detalle_cliente', 'exportar_clientes',
-    'ver_insumo', 'crear_insumo', 'descontinuar_insumo',
+    'ver_insumo', 'crear_insumo', 'editar_insumo', 'descontinuar_insumo', 'exportar_insumo',
     'ver_materiales', 'crear_materiales', 'editar_materiales', 'descontinuar_materiales', 'exportar_materiales',
     'ver_productos', 'exportar_productos',
     'ver_variantes', 'exportar_variantes',
     'ver_categorias', 'crear_categorias', 'editar_categorias', 'descontinuar_categorias', 'exportar_categorias',
     'ver_usuarios', 'crear_usuarios', 'editar_usuarios', 'suspender_usuarios', 'exportar_usuarios',
-    'ver_personal', 'crear_personal', 'editar_personal', 'suspender_personal',
+    'ver_personal', 'crear_personal', 'editar_personal', 'suspender_personal', 'exportar_personal',
     'ver_reportes', 'filtrar_reportes', 'exportar_reportes',
     'ver_despachos', 'exportar_despachos',
     'ver_confecciones', 'exportar_confecciones',
@@ -196,9 +211,10 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_ventas', 'editar_ventas', 'anular_ventas',
     'ver_configuracion', 'editar_configuracion',
     'ver_orden_produccion', 'crear_orden_produccion', 'editar_orden_produccion',
-    'ver_devoluciones_proveedor', 'crear_devoluciones_proveedor',
+    'ver_devoluciones_proveedor', 'crear_devoluciones_proveedor', 'exportar_devoluciones_proveedor',
+    'ver_devoluciones_cliente', 'exportar_devoluciones_cliente',
     'ver_proveedores', 'crear_proveedores', 'editar_proveedores', 'descontinuar_proveedores', 'exportar_proveedores',
-    'ver_fichas_tecnicas', 'ver_detalle_ficha_tecnica', 'ver_detalle_ficha_medidas',
+    'ver_incidencias_taller', 'exportar_incidencias_taller',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
 
@@ -210,36 +226,40 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_productos', 'exportar_productos',
     'ver_variantes', 'exportar_variantes',
     'ver_pagos', 'registrar_pagos',
-    'ver_seguimiento_pedido', 'ver_devoluciones_cliente', 'crear_devoluciones_cliente',
-    'ver_cotizaciones', 'editar_cotizaciones', 'ver_historial_cotizaciones', 'crear_cotizacion', 'descargar_cotizacion', 'aprobar_cotizaciones',
+    'ver_seguimiento_pedido',
+    'ver_devoluciones_cliente', 'crear_devoluciones_cliente', 'exportar_devoluciones_cliente',
+    'ver_cotizaciones', 'editar_cotizaciones', 'ver_historial_cotizaciones',
+    'crear_cotizacion', 'descargar_cotizacion', 'aprobar_cotizaciones', 'exportar_cotizaciones',
     'ver_despachos', 'crear_despachos', 'exportar_despachos',
+    'ver_clientes', 'ver_detalle_cliente',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
 
   disenador: [
     'ver_dashboard',
     'ver_pedidos',
-    'ver_inventario',
+    'ver_inventario','ver_movimiento_inventario',
     'ver_insumo',
     'ver_materiales',
     'ver_productos', 'crear_productos', 'editar_productos',
     'ver_orden_produccion', 'ver_detalle_orden_produccion', 'ver_seguimiento_produccion',
-    'ver_fichas_tecnicas', 'ver_detalle_ficha_tecnica', 'crear_ficha_medidas', 'editar_ficha_medidas', 'subir_ficha_medidas',
-    'crear_ficha_tecnica', 'editar_ficha_tecnica', 'subir_ficha_tecnica',
+    'ver_fichas_tecnicas', 'ver_detalle_ficha_tecnica', 'crear_ficha_tecnica', 'editar_ficha_tecnica', 'subir_ficha_tecnica',
+    'ver_detalle_ficha_medidas', 'crear_ficha_medidas', 'editar_ficha_medidas', 'subir_ficha_medidas',
     'ver_variantes', 'crear_variantes', 'editar_variantes',
     'ver_categorias', 'crear_categorias', 'editar_categorias',
-    'ver_reportes', 'ver_notificaciones', 'ver_perfil', 'editar_perfil',
+    'ver_reportes',
+    'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
 
   cortador: [
     'ver_dashboard',
     'ver_pedidos',
-    'ver_inventario',
+    'ver_inventario', 'ver_movimiento_inventario',
     'ver_orden_produccion', 'ver_detalle_orden_produccion',
-    'ver_seguimiento_produccion',
     'ver_fichas_tecnicas', 'ver_detalle_ficha_tecnica',
-    'ver_detalle_ficha_medidas',
-    'ver_insumo', 'ver_movimiento_inventario',
+    'ver_detalle_ficha_medidas', 'subir_ficha_medidas',
+    'ver_insumo',
+    'ver_seguimiento_produccion',
     'ver_materiales', 'editar_materiales',
     'ver_confecciones', 'actualizar_estado_confecciones',
     'ver_productos', 'ver_variantes',
@@ -264,7 +284,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_insumo',
     'ver_materiales',
     'ver_confecciones', 'actualizar_estado_confecciones', 'asignar_ordenes_confecciones',
-    'ver_talleres', 'editar_talleres', 'crear_incidencias_taller', 'ver_incidencias_taller',
+    'ver_talleres', 'editar_talleres',
+    'ver_incidencias_taller', 'crear_incidencias_taller',
     'ver_despachos', 'ver_productos',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
@@ -281,6 +302,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
 
 // ─────────────────────────────────────────────
 // DERIVACIÓN AUTOMÁTICA: PERMISOS POR RECURSO
+// No editar manualmente — se genera desde PERMISOS_POR_ROL.
 // ─────────────────────────────────────────────
 
 function derivarPermisosRecurso(permisos: PermissionKey[]): PermisosRecurso {
@@ -320,6 +342,11 @@ export const PERMISOS_RECURSO_POR_ROL: Record<RolUsuario, PermisosRecurso> =
 
 // ─────────────────────────────────────────────
 // VALIDADOR DE INTEGRIDAD (solo dev / tests)
+// Llama a esta función en tus unit tests para detectar
+// permisos mal nombrados antes de llegar a producción.
+//
+// Uso: import { validatePermissionKeys } from '@/lib/constants/roles'
+//      describe('roles', () => { it('todos los permisos son parseables', validatePermissionKeys) })
 // ─────────────────────────────────────────────
 
 export function validatePermissionKeys(): void {
@@ -356,11 +383,23 @@ export const ROLES_INFO: Record<RolUsuario, {
   label: string;
   descripcion: string;
   color: string;
+  /**
+   * Nivel de acceso jerárquico. Escala:
+   * 0 = externo (cliente)
+   * 1 = operativo básico
+   * 2 = operativo especializado
+   * 3 = operativo con gestión
+   * 4 = administrativo
+   * 5 = dirección / solo lectura global
+   *
+   * puedeGestionarRol(a, b) es verdadero si nivel(a) > nivel(b).
+   * Un administrador (4) puede gestionar a todos excepto al gerente (5).
+   */
   nivel: number;
 }> = {
   gerente:              { label: 'Gerente General',         descripcion: 'Visibilidad total + aprobaciones clave',  color: 'bg-violet-100 text-violet-700',   nivel: 5 },
   administrador:        { label: 'Administrador',           descripcion: 'Acceso operativo total',                  color: 'bg-sky-100 text-sky-700',         nivel: 4 },
-  recepcionista:        { label: 'Recepcionista',           descripcion: 'Maneja órdenes y clientes',               color: 'bg-pink-100 text-pink-700',       nivel: 3 },
+  recepcionista:        { label: 'Recepcionista',           descripcion: 'Maneja órdenes, clientes y cotizaciones', color: 'bg-pink-100 text-pink-700',       nivel: 3 },
   disenador:            { label: 'Diseñador',               descripcion: 'Responsable del diseño de prendas',       color: 'bg-fuchsia-100 text-fuchsia-700', nivel: 2 },
   cortador:             { label: 'Cortador',                descripcion: 'Responsable del corte de prendas',        color: 'bg-orange-100 text-orange-600',   nivel: 2 },
   representante_taller: { label: 'Representante de Taller', descripcion: 'Responsable de taller externo',           color: 'bg-lime-100 text-lime-700',       nivel: 2 },

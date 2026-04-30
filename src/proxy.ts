@@ -10,6 +10,7 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/productos': ['administrador', 'disenador', 'gerente', 'recepcionista', 'representante_taller'],
   '/admin/Panel-Administrativo/fichas-tecnicas': ['administrador', 'gerente', 'disenador', 'cortador'],
   '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador', 'gerente', 'cortador', 'ayudante', 'representante_taller'],
+  '/admin/Panel-Administrativo/movimientos': ['administrador', 'gerente', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
   '/admin/Panel-Administrativo/produccion': ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'],
   '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente', 'cortador'],
   '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista', 'gerente'],
@@ -28,12 +29,10 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   // 1. RUTAS PÚBLICAS
-// Agregamos '/' para que la Landing Page sea accesible para todos
-const publicPaths = ['/', '/auth/login', '/auth/signup', '/admin/acceso-denegado'];
-
-if (publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'))) {
-  return response;
-}
+  const publicPaths = ['/auth/login', '/auth/signup', '/admin/acceso-denegado'];
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

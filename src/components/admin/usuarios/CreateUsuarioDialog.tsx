@@ -76,8 +76,8 @@ export default function CreateUsuarioDialog({ isOpen, onClose, onSuccess }: Crea
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[440px] border-none shadow-2xl bg-white p-0 overflow-hidden [&>button]:hidden">
 
-        {/* Franja superior */}
-        <div className="h-1.5 bg-gradient-to-r from-pink-500 via-pink-600 to-rose-600 w-full" />
+        {/* Franja superior coloreada - Borde Visual */}
+        <div className="h-2 bg-gradient-to-r from-pink-500 via-pink-600 to-rose-600 w-full" />
 
         {/* Header */}
         <div className="px-6 pt-5 pb-0 flex items-start justify-between">

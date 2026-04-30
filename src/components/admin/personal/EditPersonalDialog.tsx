@@ -116,7 +116,7 @@ export default function EditPersonalDialog({ isOpen, onClose, onSuccess, persona
       <DialogContent className="sm:max-w-[460px] border-none shadow-2xl bg-white p-0 overflow-hidden">
 
         {/* Franja superior */}
-        <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 w-full" />
+        <div className="h-2 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 w-full" />
 
         <div className="p-6">
           <DialogHeader className="mb-6">

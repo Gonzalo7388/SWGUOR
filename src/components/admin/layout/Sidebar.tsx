@@ -97,8 +97,8 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: Boxes,
       roles: ['gerente', 'administrador', 'cortador', 'ayudante'],
       subItems: [
-        { title: 'Inventario',         href: '/admin/Panel-Administrativo/inventario',                icon: Boxes,    resource: 'inventario' as RecursoKey },
-        { title: 'Movimientos',        href: '/admin/Panel-Administrativo/movimientos-inventario',    icon: Grid3x3,  resource: 'movimiento_inventario' as RecursoKey },
+        { title: 'Inventario',         href: '/admin/Panel-Administrativo/inventario',               icon: Boxes,    resource: 'inventario' as RecursoKey },
+        { title: 'Movimientos',        href: '/admin/Panel-Administrativo/movimientos',              icon: Grid3x3,  resource: 'movimiento_inventario' as RecursoKey },
         { title: 'Proveedores',        href: '/admin/Panel-Administrativo/proveedores',              icon: Building2,resource: 'proveedores' as RecursoKey },
         { title: 'Devoluciones Prov.', href: '/admin/Panel-Administrativo/devoluciones-proveedor',   icon: Truck,    resource: 'devoluciones_proveedor' as RecursoKey },
       ],

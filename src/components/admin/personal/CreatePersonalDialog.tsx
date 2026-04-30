@@ -151,8 +151,8 @@ export default function CreatePersonalDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[520px] border-none shadow-2xl bg-white p-0 overflow-hidden max-h-[95vh] flex flex-col">
 
-        {/* Franja superior */}
-        <div className="h-1.5 bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500 w-full shrink-0" />
+        {/* Franja superior coloreada - Borde Visual */}
+        <div className="h-2 bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500 w-full shrink-0" />
 
         <div className="p-6 overflow-y-auto">
           <DialogHeader className="mb-6">

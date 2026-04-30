@@ -53,8 +53,8 @@ export default function SuspenderUsuarioDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 border-none shadow-2xl bg-white overflow-hidden">
 
-        {/* Franja superior ámbar — distingue visualmente de una acción destructiva irreversible */}
-        <div className="h-1.5 bg-amber-500 w-full" />
+        {/* Franja superior coloreada - Borde Visual */}
+        <div className="h-2 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 w-full" />
 
         <div className="p-6 space-y-5">
 
