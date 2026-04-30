@@ -10,7 +10,14 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
 export default function EditTallerDialog({ isOpen, onClose, taller, onSuccess }: any) {
   const supabase = getSupabaseBrowserClient();
 
-  const [form, setForm] = useState({
+  type EstadoTaller = "activo" | "inactivo" | "suspendido";
+
+  const [form, setForm] = useState<{
+    nombre: string;
+    ruc: string;
+    contacto: string;
+    estado: EstadoTaller;
+  }>({
     nombre: "",
     ruc: "",
     contacto: "",
