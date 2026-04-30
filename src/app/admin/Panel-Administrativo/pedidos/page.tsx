@@ -38,6 +38,7 @@ export default function PedidosPage() {
   const pageSize = 10;
   const [stats, setStats] = useState({ total: 0, pendientes: 0, completados: 0, cancelados: 0 });
 
+
   useEffect(() => { 
     if (!authLoading && can && can('view', 'pedidos')) {
       obtener();
@@ -223,7 +224,7 @@ export default function PedidosPage() {
               data={paginatedData} 
               onView={(p: any) => { setSelectedPedido(p); setDialogMode("view"); }}
               onCancel={can('delete', 'pedidos') ? (p: any) => { setSelectedPedido(p); setDialogMode("cancel"); } : undefined}
-            />
+              />
 
             {/* Paginación */}
             <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
@@ -259,8 +260,9 @@ export default function PedidosPage() {
           pedido={selectedPedido} 
           onClose={() => { setSelectedPedido(null); setDialogMode(null); }} 
           onSuccess={obtener} 
-        />
+        /> 
       )}
+      
     </div>
   );
 }

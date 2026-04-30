@@ -19,6 +19,7 @@ const TalleresTable = dynamic(() => import("@/components/admin/talleres/Talleres
 const CreateTallerDialog = dynamic(() => import("@/components/admin/talleres/CreateTallerDialog"));
 const DeleteTallerDialog = dynamic(() => import("@/components/admin/talleres/DeleteTallerDialog"));
 const TallerSkeleton = dynamic(() => import("@/components/admin/talleres/TallerSkeleton"));
+const EditTallerDialog = dynamic(() => import("@/components/admin/talleres/EditTallerDialog"));
 
 export default function TalleresPage() {
   const { can, isLoading: authLoading } = usePermissions();
@@ -33,6 +34,8 @@ export default function TalleresPage() {
   
   const [currentPage, setCurrentPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<"todos" | "activo" | "inactivo" | "suspendido">("todos");
+
+    const [editTaller, setEditTaller] = useState<any | null>(null);
   
   const pageSize = 10;
 
@@ -73,6 +76,9 @@ export default function TalleresPage() {
     setSelectedTaller(t); 
     setDialogMode("delete"); 
   }, []);
+  const handleEdit = (t: any) => {
+    setEditTaller(t);
+  };
 
   // Lógica de filtrado (Búsqueda + Estado)
   const filteredTalleres = useMemo(() => {
@@ -114,7 +120,7 @@ export default function TalleresPage() {
           <div className="flex items-center gap-3">
             {can('export', 'talleres') && (
               <div className="hidden sm:flex gap-2">
-                <Button onClick={() => exportToPDF(filteredTalleres, [], { title: "Reporte de Talleres", filename: "Talleres_GUOR" })} variant="outline" className="border-red-200 text-red-700 hover:bg-red-50 gap-2 h-11 transition-all font-bold">
+                <Button onClick={() => exportToPDF(talleres, [], { title: "Reporte de Talleres", filename: "Talleres_GUOR" })} variant="outline" className="border-red-200 text-red-700 hover:bg-red-50 gap-2 h-11 transition-all font-bold">
                   <FileText className="w-5 h-5" /> PDF
                 </Button>
                 <Button onClick={() => exportToExcel(filteredTalleres, { filename: "Talleres" })} variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-2 h-11 transition-all font-bold">
@@ -170,6 +176,7 @@ export default function TalleresPage() {
               canEdit={can('edit', 'talleres')}
               canDelete={can('delete', 'talleres')}
               onDelete={handleDelete}
+              onEdit={handleEdit}
             />
             
             {/* Paginación mejorada */}
@@ -205,6 +212,14 @@ export default function TalleresPage() {
           onSuccess={loadData} 
         />
       )}
+      {editTaller && (
+        <EditTallerDialog
+          isOpen={true}
+          taller={editTaller}
+          onClose={() => setEditTaller(null)}
+          onSuccess={loadData}
+        />
+        )}
     </div>
   );
 }
