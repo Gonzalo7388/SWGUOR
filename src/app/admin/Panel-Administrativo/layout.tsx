@@ -79,7 +79,7 @@ export default async function PanelAdministrativoLayout({
   return (
     <ReactQueryProvider>
       <RealtimeLayoutWrapper initialUsuario={usuario}>
-        <div className="min-h-screen bg-slate-50/50">
+        <div className="admin-card min-h-screen bg-slate-50/50">
           {children}
         </div>
       </RealtimeLayoutWrapper>

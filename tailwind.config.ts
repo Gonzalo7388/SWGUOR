@@ -71,15 +71,27 @@ const config: Config = {
           brown:  "#b5854b",
           dark:   "#231e1d",
         },
+        admin: {
+          cream: "#f7ead8",
+          surface: "#fff8ee",
+          line: "#e7d4bb",
+          ink: "#1f1a16",
+          soft: "#8f7a60",
+          avatar: "#2a221b",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        "admin-soft": "0 8px 24px -16px rgba(69, 48, 24, 0.35)",
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        "admin-wash": "linear-gradient(135deg, #fffaf2 0%, #f7ead8 55%, #f1dfc7 100%)",
       },
     },
   },

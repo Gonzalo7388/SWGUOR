@@ -53,11 +53,11 @@ export default function RealtimeLayoutWrapper({
   }, [initialUsuario.id, supabase]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="admin-shell flex h-screen overflow-hidden bg-slate-50">
       <AdminSidebar usuario={usuario} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader usuario={usuario} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
+        <main className="admin-content flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>
