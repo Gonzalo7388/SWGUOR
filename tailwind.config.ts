@@ -5,12 +5,11 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/config/**/*.{js,ts,jsx,tsx,mdx}", 
+    "./src/config/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,ts,jsx,tsx,mdx}"
   ],
   theme: {
     extend: {
-      // CORRECCIÓN: Eliminamos el segundo 'extend' anidado
       animation: {
         'thread-flow': 'thread 15s ease-in-out infinite',
         'thread-flow-slow': 'thread 20s ease-in-out infinite reverse',
@@ -30,6 +29,7 @@ const config: Config = {
         }
       },
       colors: {
+        // Variables CSS de shadcn
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -48,30 +48,28 @@ const config: Config = {
           foreground: "hsl(var(--muted-foreground))",
         },
         primary: {
-          DEFAULT: '#d4945a',
-          50: '#fef8f3',
-          100: '#fef0e6',
-          200: '#fcdec7',
-          300: '#f9c79d',
-          400: '#f5a869',
-          500: '#d4945a',
-          600: '#b87947',
-          700: '#935f38',
-          800: '#77502f',
-          900: '#624128',
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         accent: {
-          DEFAULT: '#fbd9e3',
-          50: '#fef6f8',
-          100: '#fdedf1',
-          200: '#fbd9e3',
-          300: '#f8b8cc',
-          400: '#f48dae',
-          500: '#eb6591',
-          600: '#d94876',
-          700: '#b8365f',
-          800: '#982d50',
-          900: '#7f2846',
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        // Paleta GUOR directa
+        guor: {
+          cream:  "#fff4e2",
+          peach:  "#fbddd3",
+          gold:   "#e4c28a",
+          brown:  "#b5854b",
+          dark:   "#231e1d",
         },
       },
       borderRadius: {

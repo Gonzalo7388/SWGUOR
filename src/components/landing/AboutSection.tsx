@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Cpu, Users, Zap, Target, Eye, History } from "lucide-react";
+import { Cpu, Users, Zap, History } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const AboutSection = () => {
@@ -11,96 +11,129 @@ const AboutSection = () => {
     setMounted(true);
   }, []);
 
-  // Stats técnicos (Los mantenemos porque validan tu ingeniería)
   const stats = [
-    { label: "Procesos Optimizados", value: "100%", icon: <Zap className="text-[#D4AF37]" size={20} /> },
-    { label: "Enfoque Estratégico", value: "B2B", icon: <Users className="text-[#D4AF37]" size={20} /> },
-    { label: "Soporte", value: "IA", icon: <Cpu className="text-[#D4AF37]" size={20} /> },
+    { label: "Procesos Optimizados", value: "100%", icon: <Zap style={{ color: "#b5854b" }} size={20} /> },
+    { label: "Enfoque Estratégico", value: "B2B", icon: <Users style={{ color: "#b5854b" }} size={20} /> },
+    { label: "Soporte", value: "IA", icon: <Cpu style={{ color: "#b5854b" }} size={20} /> },
   ];
 
   if (!mounted) return null;
 
   return (
-    <section id="nosotros" className="py-24 bg-transparent relative overflow-hidden">
+    <section id="nosotros" className="py-24" style={{ background: "#fff4e2" }}>
       <div className="max-w-7xl mx-auto px-6">
-        
-        {/* PARTE 1: QUIÉNES SOMOS E HISTORIA (Fusión de tu código con la info nueva) */}
+
+        {/* GRID PRINCIPAL */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-24">
-          <motion.div 
+
+          {/* TARJETA IZQUIERDA */}
+          <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="relative"
           >
-            <div className="aspect-square bg-stone-100 rounded-[4rem] overflow-hidden border-8 border-[#FFFDFB] shadow-2xl relative z-10 flex flex-col items-center justify-center p-12 text-center">
-              <History className="text-[#D4AF37] mb-4 opacity-20" size={80} />
-              <h3 className="text-2xl font-black text-stone-900 uppercase tracking-tighter italic">6 Años de Resiliencia</h3>
-              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mt-2">Desde 2020</p>
+            <div
+              className="aspect-square rounded-[3rem] shadow-xl flex flex-col items-center justify-center p-12 text-center"
+              style={{ background: "#fff4e2", border: "2px solid #e4c28a" }}
+            >
+              <History size={70} style={{ color: "rgba(181,133,75,0.35)", marginBottom: "1.5rem" }} />
+
+              <h3 className="text-2xl font-black uppercase italic" style={{ color: "#231e1d" }}>
+                6 Años de Resiliencia
+              </h3>
+
+              <div className="w-12 mx-auto my-4" style={{ height: "2px", background: "#e4c28a" }} />
+
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#b5854b" }}>
+                Desde 2020
+              </p>
             </div>
-            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-[#D4AF37]/5 blur-3xl rounded-full" />
           </motion.div>
 
-          <motion.div 
+          {/* TEXTO DERECHO */}
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#D4AF37] mb-4">¿Quiénes Somos?</h2>
-            <h3 className="text-4xl font-black text-stone-900 tracking-tighter italic mb-6 leading-tight">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] mb-4" style={{ color: "#b5854b" }}>
+              ¿Quiénes Somos?
+            </h2>
+
+            <h3 className="text-4xl font-black italic mb-6 leading-tight" style={{ color: "#231e1d" }}>
               Aliados Estratégicos de la <br />
-              <span className="not-italic text-[#D4AF37]">Moda Mayorista en Perú</span>
+              <span className="not-italic" style={{ color: "#e4c28a" }}>
+                Moda Mayorista en Perú
+              </span>
             </h3>
-            
-            <div className="space-y-6 text-stone-600 font-medium leading-relaxed text-sm">
+
+            <div className="space-y-6 text-sm font-medium leading-relaxed" style={{ color: "rgba(35,30,29,0.75)" }}>
               <p>
-                <span className="text-stone-900 font-bold">Modas y Estilos GUOR S.A.C.</span> es una corporación textil especializada en el diseño y comercialización mayorista femenina. Somos el aliado de grandes marcas en Gamarra y centros comerciales de prestigio.
+                <span className="font-bold" style={{ color: "#231e1d" }}>
+                  Modas y Estilos GUOR S.A.C.
+                </span>{" "}
+                es una corporación textil especializada en el diseño y comercialización mayorista femenina.
               </p>
               <p>
-                Nacimos en 2020, enfrentando desafíos globales con una capacidad de adaptación excepcional. Hoy, tras 6 años de crecimiento, escalamos nuestras operaciones con <span className="text-stone-900 font-bold italic">SWGUOR</span>, garantizando calidad corporativa y gestión logística eficiente.
+                Nacimos en 2020, enfrentando desafíos globales. Hoy escalamos nuestras operaciones con{" "}
+                <span className="font-bold italic" style={{ color: "#231e1d" }}>SWGUOR</span>
+                , garantizando calidad y eficiencia.
               </p>
             </div>
 
+            {/* STATS */}
             <div className="grid grid-cols-3 gap-4 mt-10">
               {stats.map((stat, idx) => (
-                <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 group hover:border-[#D4AF37]/30 transition-colors">
+                <div
+                  key={idx}
+                  className="p-4 rounded-xl transition-all duration-300"
+                  style={{ background: "#fff4e2", border: "1px solid #e4c28a" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = "#b5854b"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = "#e4c28a"}
+                >
                   <div className="mb-2">{stat.icon}</div>
-                  <div className="text-xl font-black text-stone-900 leading-none mb-1">{stat.value}</div>
-                  <div className="text-[8px] font-black uppercase tracking-widest text-stone-400">{stat.label}</div>
+                  <div className="text-xl font-black" style={{ color: "#231e1d" }}>{stat.value}</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(35,30,29,0.5)" }}>
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
           </motion.div>
         </div>
 
-        {/* PARTE 2: MISIÓN Y VISIÓN (Los nuevos pilares) */}
+        {/* MISION Y VISION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <motion.div 
-            whileHover={{ y: -10 }}
-            className="p-12 bg-stone-50 rounded-[3rem] border border-stone-100 relative overflow-hidden group"
+
+          {/* MISION */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            className="p-10 rounded-3xl"
+            style={{ background: "#fff4e2", border: "2px solid #e4c28a" }}
           >
-            <Target className="absolute -right-8 -bottom-8 text-stone-200 opacity-20 group-hover:text-[#D4AF37] transition-colors" size={200} />
-            <h4 className="text-[#D4AF37] font-black text-xs uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+            <h4 className="font-black text-xs uppercase tracking-[0.3em] mb-4" style={{ color: "#b5854b" }}>
               Misión
             </h4>
-            <p className="text-stone-600 font-medium leading-relaxed relative z-10">
-              Brindar soluciones integrales en el sector textil mediante la fabricación de prendas femeninas de alta calidad que superen las expectativas de nuestros clientes, comprometidos con la puntualidad y la innovación constante.
+            <p className="text-sm" style={{ color: "rgba(35,30,29,0.8)" }}>
+              Brindar soluciones integrales en el sector textil mediante prendas de alta calidad, con innovación y puntualidad.
             </p>
           </motion.div>
 
-          <motion.div 
-            whileHover={{ y: -10 }}
-            className="p-12 bg-stone-900 text-white rounded-[3rem] shadow-2xl relative overflow-hidden group"
+          {/* VISION */}
+          <motion.div
+            whileHover={{ y: -6 }}
+            className="p-10 rounded-3xl shadow-xl"
+            style={{ background: "#231e1d" }}
           >
-            <Eye className="absolute -right-8 -bottom-8 text-white/5 opacity-10 group-hover:text-[#D4AF37] transition-colors" size={200} />
-            <h4 className="text-[#D4AF37] font-black text-xs uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+            <h4 className="font-black text-xs uppercase tracking-[0.3em] mb-4" style={{ color: "#e4c28a" }}>
               Visión
             </h4>
-            <p className="text-stone-300 font-medium leading-relaxed relative z-10">
-              Consolidarnos como la empresa referente y líder del sector textil nacional, reconocida por nuestra excelencia operativa y nuestra capacidad de anticiparnos a las tendencias del mercado global.
+            <p className="text-sm" style={{ color: "rgba(255,244,226,0.8)" }}>
+              Ser la empresa líder del sector textil nacional, destacando por excelencia operativa e innovación constante.
             </p>
           </motion.div>
-        </div>
 
+        </div>
       </div>
     </section>
   );
