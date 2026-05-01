@@ -3,25 +3,16 @@
 import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario-services';
 import type { TipoMovimiento, ReferenciaMovimiento } from '@prisma/client';
 
-/**
- * Helpers para registrar movimientos de inventario
- * Estos se llaman desde los servicios operacionales (compra, venta, producción, etc.)
- */
-
-/**
- * Registra la compra de materiales/insumos
- * Se llama desde ordenes_compra cuando se reciben
- */
 export async function registrarEntradaCompra(data: {
   material_id?: string | number;
   insumo_id?: string | number;
   cantidad: number;
   costo_unitario: number;
-  numero_oc: string; // Número de orden de compra
+  numero_oc: string;
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return MovimientosInventarioService.registrar({ 
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     cantidad: data.cantidad,
@@ -35,14 +26,10 @@ export async function registrarEntradaCompra(data: {
   });
 }
 
-/**
- * Registra la venta de productos
- * Se llama desde ordenes_venta cuando se confirman
- */
 export async function registrarSalidaVenta(data: {
   producto_id: string | number;
   cantidad: number;
-  numero_ov: string; // Número de orden de venta
+  numero_ov: string;
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
@@ -58,10 +45,6 @@ export async function registrarSalidaVenta(data: {
   });
 }
 
-/**
- * Registra el uso de materiales en producción
- * Se llama desde confecciones cuando se usa material
- */
 export async function registrarSalidaProduccion(data: {
   material_id: string | number;
   cantidad: number;
@@ -81,10 +64,6 @@ export async function registrarSalidaProduccion(data: {
   });
 }
 
-/**
- * Registra devolución de cliente
- * Se llama desde devoluciones_cliente
- */
 export async function registrarEntradaDevolucionCliente(data: {
   producto_id: string | number;
   cantidad: number;
@@ -92,22 +71,18 @@ export async function registrarEntradaDevolucionCliente(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return MovimientosInventarioService.registrar({ 
     producto_id: data.producto_id,
     cantidad: data.cantidad,
     tipo_movimiento: 'entrada',
     motivo: `Devolución cliente DEV-${data.numero_devolucion}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'VENTA', // Referencia a la venta original
+    referencia_tipo: 'VENTA',
     referencia_id: data.numero_devolucion,
   });
 }
 
-/**
- * Registra devolución a proveedor
- * Se llama desde devoluciones_proveedor
- */
 export async function registrarSalidaDevolucionProveedor(data: {
   material_id?: string | number;
   insumo_id?: string | number;
@@ -116,7 +91,7 @@ export async function registrarSalidaDevolucionProveedor(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return MovimientosInventarioService.registrar({ 
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     cantidad: data.cantidad,
@@ -129,21 +104,17 @@ export async function registrarSalidaDevolucionProveedor(data: {
   });
 }
 
-/**
- * Registra incidencias (pérdidas, daños, etc.)
- * Se llama desde incidencias
- */
 export async function registrarSalidaIncidencia(data: {
   material_id?: string | number;
   insumo_id?: string | number;
   producto_id?: string | number;
   cantidad: number;
-  tipo_incidencia: string; // "pérdida", "daño", "robo", etc.
+  tipo_incidencia: string;
   numero_incidencia: string;
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return MovimientosInventarioService.registrar({ 
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     producto_id: data.producto_id,
@@ -157,22 +128,18 @@ export async function registrarSalidaIncidencia(data: {
   });
 }
 
-/**
- * Registra ajuste manual de stock
- * Se llama desde inventario cuando se hace recuento
- */
 export async function registrarAjusteManual(data: {
   material_id?: string | number;
   insumo_id?: string | number;
   producto_id?: string | number;
-  cantidad: number; // Diferencia (positiva o negativa)
-  razon: string; // "Recuento físico", "Corrección de error", etc.
+  cantidad: number;
+  razon: string;
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
   const tipo = (data.cantidad > 0 ? 'entrada' : 'salida') as TipoMovimiento;
-  
-  return MovimientosInventarioService.registrar({
+
+  return MovimientosInventarioService.registrar({ 
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     producto_id: data.producto_id,
@@ -185,9 +152,6 @@ export async function registrarAjusteManual(data: {
   });
 }
 
-/**
- * Obtener historial de movimientos
- */
 export async function fetchMovimientos(filtros?: {
   tipo_movimiento?: TipoMovimiento;
   referencia_tipo?: ReferenciaMovimiento;
@@ -200,16 +164,13 @@ export async function fetchMovimientos(filtros?: {
   limite?: number;
 }) {
   try {
-    const data = await MovimientosInventarioService.listar(filtros);
+    const data = await MovimientosInventarioService.listar(filtros); 
     return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-/**
- * Obtener estadísticas de movimientos
- */
 export async function fetchResumenMovimientos(filtros?: {
   tipo_movimiento?: TipoMovimiento;
   desde?: Date;
