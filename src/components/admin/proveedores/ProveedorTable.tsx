@@ -1,100 +1,101 @@
+// src/components/admin/proveedores/ProveedorTable.tsx
 'use client';
 
-import { Building2, Eye, Pencil, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { memo } from 'react';
+import { Building2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import ProveedorRow from '@/components/admin/proveedores/ProveedorRow';
 import type { Proveedor } from '@/lib/schemas/proveedor';
 
-interface Props {
-  data:          Proveedor[];
-  canEdit:       boolean;
-  canDelete:     boolean;
-  onEdit:        (p: Proveedor) => void;
-  onDelete:      (p: Proveedor) => void;
-  onViewDetail:  (p: Proveedor) => void;
+interface ProveedorTableProps {
+  data:         Proveedor[];
+  loading?:     boolean;
+  onEdit:       (p: Proveedor) => void;
+  onDelete:     (p: Proveedor) => void;
+  onViewDetail: (p: Proveedor) => void;
+  // canEdit y canDelete se leen desde usePermissions dentro de ProveedorRow
 }
 
-export default function ProveedorTable({
-  data, canEdit, canDelete, onEdit, onDelete, onViewDetail,
-}: Props) {
-  if (data.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border shadow-sm p-12 text-center">
-        <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <p className="text-gray-500 font-semibold">No se encontraron proveedores</p>
-        <p className="text-gray-400 text-sm mt-1">Intenta ajustar los filtros de búsqueda</p>
-      </div>
-    );
-  }
-
+function ProveedorTable({ data, loading, onEdit, onDelete, onViewDetail }: ProveedorTableProps) {
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              {['Razón Social', 'RUC', 'Contacto', 'Categoría', 'Estado', 'Acciones'].map((h, i) => (
-                <th
-                  key={h}
-                  className={`px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wider
-                    ${i === 5 ? 'text-right' : 'text-left'}
-                    ${i === 2 ? 'hidden md:table-cell' : ''}
-                    ${i === 3 ? 'hidden lg:table-cell' : ''}
-                  `}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {data.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => onViewDetail(p)}
-                    className="font-semibold text-gray-900 hover:text-rose-600 transition-colors text-left"
-                  >
-                    {p.razon_social}
-                  </button>
+    <div className="overflow-x-auto pb-4">
+      <table className="w-full border-separate border-spacing-y-3">
+        <thead>
+          <tr className="text-left">
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Proveedor</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase hidden md:table-cell">Contacto</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center hidden lg:table-cell">Categoría</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center hidden lg:table-cell">Actividad</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            // ── Skeleton ──
+            Array.from({ length: 5 }).map((_, i) => (
+              <tr key={`sk-${i}`}>
+                <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-11 w-11 rounded-xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-32" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                  </div>
                 </td>
-                <td className="px-4 py-3 font-mono text-gray-600">{p.ruc}</td>
-                <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{p.contacto}</td>
-                <td className="px-4 py-3 hidden lg:table-cell">
-                  <span className="inline-flex px-2 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700 rounded-full">
-                    {p.categoria_suministro}
-                  </span>
+                <td className="bg-white border-y border-slate-100 py-4 px-6 shadow-sm hidden md:table-cell">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
                 </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                    p.estado === 'activo'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-gray-100 text-gray-500 border-gray-200'
-                  }`}>
-                    {p.estado === 'activo' ? 'Activo' : 'Inactivo'}
-                  </span>
+                <td className="bg-white border-y border-slate-100 py-4 px-6 shadow-sm hidden lg:table-cell">
+                  <Skeleton className="h-6 w-24 mx-auto rounded-lg" />
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600" onClick={() => onViewDetail(p)}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    {canEdit && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-amber-600" onClick={() => onEdit(p)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {canDelete && p.estado === 'activo' && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-600" onClick={() => onDelete(p)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                <td className="bg-white border-y border-slate-100 py-4 px-6 shadow-sm hidden lg:table-cell">
+                  <Skeleton className="h-8 w-28 mx-auto rounded-lg" />
+                </td>
+                <td className="bg-white border-y border-slate-100 py-4 px-6 shadow-sm">
+                  <Skeleton className="h-6 w-20 mx-auto rounded-full" />
+                </td>
+                <td className="bg-white border-y border-r border-slate-100 py-4 px-6 rounded-r-2xl shadow-sm">
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-9 w-9 rounded-xl" />
+                    <Skeleton className="h-9 w-9 rounded-xl" />
                   </div>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            ))
+          ) : data.length === 0 ? (
+            // ── Sin datos ──
+            <tr>
+              <td colSpan={6} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
+                <div className="flex flex-col items-center gap-3">
+                  <Building2 className="w-12 h-12 text-slate-200" />
+                  <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">
+                    No se encontraron proveedores
+                  </p>
+                </div>
+              </td>
+            </tr>
+          ) : (
+            // ── Lista ──
+            data.map((p) => (
+              <ProveedorRow
+                key={String(p.id)}
+                p={p}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onViewDetail={onViewDetail}
+              />
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
+
+export default memo(ProveedorTable);

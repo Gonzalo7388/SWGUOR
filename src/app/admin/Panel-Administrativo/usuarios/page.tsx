@@ -1,279 +1,148 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { useState, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Search, Users, RefreshCw, UserCheck, UserMinus, ChevronLeft, ChevronRight, ShieldCheck, Plus, ShieldAlert } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import dynamic from "next/dynamic";
-import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import type { EstadoUsuario } from "@prisma/client";
 
-const UsuariosTable = dynamic(() => import("@/components/admin/usuarios/UsuarioTable"));
-const EditUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/EditUsuarioDialog"));
+import StatsUsuarios from "@/components/admin/usuarios/StatsUsuarios";
+import UsuariosTable  from "@/components/admin/usuarios/UsuarioTable";
+import UsuarioFilters, { EMPTY_FILTERS, type UsuarioFiltrosState } 
+  from "@/components/admin/usuarios/UsuarioFilter";
+import type {usuarios } from '@prisma/client';
+import UsuariosPageSkeleton from "@/components/admin/usuarios/SkeletonUsuario";
+
 const CreateUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/CreateUsuarioDialog"));
-const DeleteUsuarioDialog = dynamic(() => import("@/components/admin/usuarios/DeleteUsuarioDialog"));
+const EditUsuarioDialog   = dynamic(() => import("@/components/admin/usuarios/EditUsuarioDialog"));
+const SuspenderDialog     = dynamic(() => import("@/components/admin/usuarios/SuspenderUsuarioDialog"));
+
+async function fetchUsuarios(): Promise<usuarios[]> {
+  const res = await fetch("/api/admin/usuarios");
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error);
+  return body.data ?? body;
+}
 
 export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUsuario, setSelectedUsuario] = useState<any | null>(null);
-  const [dialogMode, setDialogMode] = useState<"edit" | "new" | "delete" | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<EstadoUsuario | null>(null);
-  const pageSize = 10;
+  const { can, isLoading: authLoading } = usePermissions();
+  const qc = useQueryClient();
 
-  const [stats, setStats] = useState({ 
-    total: 0, 
-    activo: 0, 
-    inactivo: 0, 
-    administrador: 0, 
-    taller: 0 
+  // 1. Carga de Datos (Solo Usuarios)
+  const { data, isLoading, isRefetching } = useQuery({ 
+    queryKey: ["usuarios"], 
+    queryFn: fetchUsuarios, 
+    refetchOnWindowFocus: false 
   });
 
-  const loadStats = useCallback(async () => {
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const [resTotal, resActivos, resInactivos, resAdmins, resTaller] = await Promise.all([
-        supabase.from("usuarios").select("*", { count: 'exact', head: true }),
-        supabase.from("usuarios").select("*", { count: 'exact', head: true }).eq("estado", "activo"),
-        supabase.from("usuarios").select("*", { count: 'exact', head: true }).eq("estado", "inactivo"),
-        supabase.from("usuarios").select("*", { count: 'exact', head: true }).eq("rol", "administrador"),
-        supabase.from("usuarios").select("*", { count: 'exact', head: true }).eq("rol", "representante_taller"),
-      ]);
+  const [filtros, setFiltros] = useState<UsuarioFiltrosState>(EMPTY_FILTERS);
+  const [statFilter, setStatFilter] = useState<"activo" | "inactivo" | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<usuarios | null>(null);
+  const [dialogMode, setDialogMode] = useState<"edit" | "suspender" | null>(null);
+
+  const canCreate = can("create", "usuarios");
+  const canEdit   = can("edit", "usuarios");
+
+  // 2. Lógica de Filtrado
+  const usuariosFiltrados = useMemo(() => {
+    return (data ?? []).filter(u => {
+      const q = filtros.q.toLowerCase();
       
-      setStats({
-        total: resTotal.count || 0,
-        activo: resActivos.count || 0,
-        inactivo: resInactivos.count || 0,
-        administrador: resAdmins.count || 0,
-        taller: resTaller.count || 0
-      });
-    } catch (err) { console.error(err); }
-  }, []);
-
-  const fetchUsuarios = useCallback(async () => {
-    setLoading(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
+      // Búsqueda por Email
+      const matchBusqueda = !q || u.email.toLowerCase().includes(q);
       
-      let query = supabase
-        .from("usuarios")
-        .select(`
-          *,
-          personal_interno (
-            id,
-            nombre_completo,
-            dni,
-            cargo,
-            fecha_ingreso,
-            estado
-          )
-        `, { count: 'exact' });
+      // Filtro por Estado (Select)
+      const matchEstado = !filtros.estado || u.estado === filtros.estado;
+      
+      // Filtro por Rol (Select)
+      const matchRol = !filtros.rol || u.rol === filtros.rol;
+      
+      // Filtro rápido por Stats (Activo/Inactivo)
+      const matchStat = !statFilter || (statFilter === "activo" ? u.estado === "activo" : u.estado !== "activo");
 
-      if (statusFilter) query = query.eq("estado", statusFilter);
+      return matchBusqueda && matchEstado && matchRol && matchStat;
+    });
+  }, [data, filtros, statFilter]);
 
-      // Ordenamos por email (campo propio de usuarios) — el sort A-Z
-      // por nombre_completo se aplica en el useMemo ya que es campo relacionado
-      const { data, error } = await query.order("email", { ascending: true });
+  const refresh = useCallback(() => qc.invalidateQueries({ queryKey: ["usuarios"] }), [qc]);
 
-      if (error) throw error;
-      setUsuarios(data || []);
-      loadStats();
-    } catch (err) {
-      toast.error("Error al sincronizar personal");
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, loadStats]);
-
-  useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
-
-  const handleToggleStatus = async (usuario: any) => {
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const nuevoEstado = usuario.estado === 'activo' ? 'inactivo' : 'activo';
-      const { error } = await (supabase.from("usuarios") as any)
-        .update({ estado: nuevoEstado })
-        .eq("id", usuario.id);
-
-      if (error) throw error;
-      toast.success(`Estado actualizado a ${nuevoEstado}`);
-      fetchUsuarios();
-    } catch (err) { toast.error("No se pudo cambiar el estado"); }
-  };
-
-  const handleEdit = (usuario: any) => {
-    setSelectedUsuario(usuario);
-    setDialogMode("edit");
-  };
-
-  // ✅ Filtrado + orden A-Z por nombre_completo (con fallback a email)
-  const filteredUsuarios = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return usuarios
-      .filter(u => {
-        const nombre = u.personal_interno?.nombre_completo?.toLowerCase() ?? "";
-        const email = u.email?.toLowerCase() ?? "";
-        const rol = u.rol?.toLowerCase() ?? "";
-        return nombre.includes(term) || email.includes(term) || rol.includes(term);
-      })
-      .sort((a, b) => {
-        const nombreA = a.personal_interno?.nombre_completo ?? a.email ?? "";
-        const nombreB = b.personal_interno?.nombre_completo ?? b.email ?? "";
-        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-      });
-  }, [usuarios, searchTerm]);
-
-  // Paginación sobre la lista filtrada y ordenada
-  const totalPages = Math.ceil(filteredUsuarios.length / pageSize);
-  const paginatedUsuarios = useMemo(() => {
-    const start = currentPage * pageSize;
-    return filteredUsuarios.slice(start, start + pageSize);
-  }, [filteredUsuarios, currentPage]);
-
-  const { can, isLoading: authLoading } = usePermissions();
-
-  if (!authLoading && !can('view', 'usuarios')) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center text-center p-6">
-        <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Acceso Denegado</h2>
-        <p className="text-gray-500 max-w-sm mt-2">No tienes permisos para gestionar el personal.</p>
-      </div>
-    );
-  }
+  if (authLoading) return <UsuariosPageSkeleton />;
 
   return (
-    <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-6 md:p-10 bg-slate-50 min-h-screen">
+      <div className="max-w-6xl mx-auto space-y-8">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Header Simplificado */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Panel de Personal
-            </h1>
-            <p className="text-gray-500 text-sm">Control de accesos y roles GUOR</p>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Gestión de Accesos</h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button onClick={fetchUsuarios} variant="outline" className="cursor-pointer bg-white border-gray-200 text-gray-600 hover:bg-gray-50 font-bold gap-2 h-11 transition-all active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading && 'animate-spin'}`} />
-              <span className="hidden sm:inline">Sincronizar</span>
+          {canCreate && (
+            <Button 
+              onClick={() => setCreateOpen(true)}
+              className="bg-pink-600  hover:bg-pink-700 text-white font-bold rounded-2xl h-12 px-6 shadow-lg shadow-pink-200 transition-all active:scale-95"
+            >
+              <UserPlus className="w-4 h-4 mr-2" /> Nuevo Acceso
             </Button>
-            
-            {can('create', 'usuarios') && (
-              <Button 
-                onClick={() => setDialogMode("new")}
-                className="cursor-pointer bg-pink-600 hover:bg-pink-700 text-white shadow-lg font-bold gap-2 h-11 transition-all active:scale-95 px-6"
-              >
-                <Plus className="w-5 h-5" /> Nuevo Usuario
-              </Button>
-            )}
+          )}
+        </div>
+
+        {/* Estadísticas de Accesos */}
+        <StatsUsuarios 
+          usuarios={data ?? []} 
+          loading={isLoading} 
+          statusFilter={statFilter} 
+          onFilterChange={setStatFilter} 
+        />
+
+        {/* Sección de Tabla */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <UsuarioFilters 
+                filters={filtros} 
+                onChange={setFiltros} 
+                totalCount={usuariosFiltrados.length}
+                onRefresh={refresh}
+                isRefreshing={isRefetching}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <StatCard title="TOTAL" value={stats.total} icon={<Users className="w-5 h-5" />} isActive={statusFilter === null} color="pink" onClick={() => {setStatusFilter(null); setCurrentPage(0);}} />
-          <StatCard title="ACTIVOS" value={stats.activo} icon={<UserCheck className="w-5 h-5" />} isActive={statusFilter === 'activo'} color="emerald" onClick={() => {setStatusFilter('activo'); setCurrentPage(0);}} />
-          <StatCard title="INACTIVOS" value={stats.inactivo} icon={<UserMinus className="w-5 h-5" />} isActive={statusFilter === 'inactivo'} color="orange" onClick={() => {setStatusFilter('inactivo'); setCurrentPage(0);}} />
-          <StatCard title="ADMINS" value={stats.administrador} icon={<ShieldCheck className="w-5 h-5" />} isActive={false} color="blue" onClick={() => {}} />
-          <StatCard title="TALLER" value={stats.taller} icon={<Users className="w-5 h-5" />} isActive={false} color="red" onClick={() => {}} />
-        </div>
-
-        {/* Buscador */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-            <input 
-              placeholder="Buscar por nombre, email o cargo..." 
-              className="w-full pl-10 h-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none transition-all"
-              value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(0);}}
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <UsuariosTable 
+              usuarios={usuariosFiltrados} 
+              loading={isLoading}
+              onEdit={canEdit ? (u) => { setSelectedUser(u); setDialogMode("edit"); } : undefined}
+              onSuspender={canEdit ? (u) => { setSelectedUser(u); setDialogMode("suspender"); } : undefined} 
             />
           </div>
         </div>
-
-        {/* Tabla — ahora recibe paginatedUsuarios */}
-        {!loading && (
-          <UsuariosTable 
-            usuarios={paginatedUsuarios}
-            onEdit={handleEdit}
-            onToggleStatus={handleToggleStatus}
-            onDelete={(u: any) => {
-              setSelectedUsuario(u);
-              setDialogMode("delete");
-            }}
-          />
-        )}
-
-        {/* Paginación */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-          <p className="text-xs text-gray-500">
-            Mostrando <span className="font-bold text-gray-900">{paginatedUsuarios.length}</span> de <span className="font-bold text-gray-900">{filteredUsuarios.length}</span>
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <div className="px-4 py-1.5 text-xs font-bold bg-gray-50 border rounded-lg flex items-center">
-              Página {currentPage + 1} de {totalPages || 1}
-            </div>
-            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage + 1 >= totalPages}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
       </div>
 
-      {/* Diálogos */}
-      <CreateUsuarioDialog 
-        isOpen={dialogMode === "new"} 
-        onClose={() => setDialogMode(null)} 
-        onSuccess={fetchUsuarios} 
-      />
+      {/* Modales */}
+      <CreateUsuarioDialog isOpen={createOpen} onClose={() => setCreateOpen(false)} onSuccess={refresh} />
       
-      {selectedUsuario && dialogMode === "edit" && (
+      {selectedUser && dialogMode === "edit" && (
         <EditUsuarioDialog 
-          isOpen={true} 
-          onClose={() => {setDialogMode(null); setSelectedUsuario(null);}} 
-          onSuccess={fetchUsuarios} 
-          usuario={selectedUsuario} 
+          isOpen 
+          usuario={selectedUser} 
+          onClose={() => { setDialogMode(null); setSelectedUser(null); }} 
+          onSuccess={refresh} 
         />
       )}
 
-      {selectedUsuario && dialogMode === "delete" && (
-        <DeleteUsuarioDialog 
-          isOpen={true}
-          onClose={() => {setDialogMode(null); setSelectedUsuario(null);}}
-          onSuccess={fetchUsuarios}
-          usuario={selectedUsuario}
+      {selectedUser && dialogMode === "suspender" && (
+        <SuspenderDialog 
+          isOpen 
+          usuario={selectedUser} 
+          onClose={() => { setDialogMode(null); setSelectedUser(null); }} 
+          onSuccess={refresh} 
         />
       )}
     </div>
-  );
-}
-
-function StatCard({ title, value, icon, isActive, color, onClick }: any) {
-  const styles: any = {
-    pink: { active: "border-pink-500 ring-pink-50 bg-white", icon: "bg-pink-600 text-white", text: "text-pink-600" },
-    emerald: { active: "border-emerald-500 ring-emerald-50 bg-white", icon: "bg-emerald-600 text-white", text: "text-emerald-600" },
-    orange: { active: "border-orange-500 ring-orange-50 bg-white", icon: "bg-orange-600 text-white", text: "text-orange-600" },
-    red: { active: "border-red-500 ring-red-50 bg-white", icon: "bg-red-600 text-white", text: "text-red-600" },
-    blue: { active: "border-blue-500 ring-blue-50 bg-white", icon: "bg-blue-600 text-white", text: "text-blue-600" }
-  };
-  const currentStyle = styles[color] || styles.pink;
-
-  return (
-    <button onClick={onClick} className={`group p-3 rounded-xl border transition-all duration-300 flex items-center gap-3 cursor-pointer ${isActive ? `ring-4 shadow-md scale-[1.02] ${currentStyle.active}` : 'bg-white border-gray-100 hover:shadow-md active:scale-95'}`}>
-      <div className={`p-2 rounded-lg ${isActive ? currentStyle.icon : 'bg-gray-100 text-gray-600'}`}>{icon}</div>
-      <div className="text-left overflow-hidden"> 
-        <p className="text-[9px] text-gray-400 font-black uppercase tracking-tighter truncate">{title}</p>
-        <p className={`text-xl font-black ${isActive ? currentStyle.text : 'text-gray-800'}`}>{value}</p>
-      </div>
-    </button>
   );
 }

@@ -19,7 +19,7 @@ export interface Producto {
 
 interface ProductoCardProps {
   producto: Producto;
-  onOpenDetails: () => void; // Nueva prop para abrir el modal
+  onOpenDetails: () => void;
 }
 
 export function ProductoCard({ producto, onOpenDetails }: ProductoCardProps) {
@@ -40,7 +40,6 @@ export function ProductoCard({ producto, onOpenDetails }: ProductoCardProps) {
 
   const handleCotizar = async () => {
     setIsAdding(true);
-    // Feedback visual breve
     await new Promise(resolve => setTimeout(resolve, 600));
 
     agregarAlBorrador({
@@ -55,15 +54,20 @@ export function ProductoCard({ producto, onOpenDetails }: ProductoCardProps) {
   };
 
   return (
-    <div className="group bg-white border border-slate-200 rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+    <article 
+      className="group bg-white border border-slate-200 rounded-2xl sm:rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full focus-within:ring-2 focus-within:ring-blue-500"
+      role="article"
+      aria-label={`Producto: ${producto.nombre}`}
+    >
       
-      {/* Área de Imagen y Categoría */}
+      {/* Imagen y Categoría */}
       <div className="aspect-[4/5] bg-slate-100 relative overflow-hidden">
         {imageUrl ? (
           <img 
             src={imageUrl} 
-            alt={producto.nombre}
+            alt={`${producto.nombre} - Producto`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
             onError={(e) => {
               e.currentTarget.src = ""; 
               e.currentTarget.className = "hidden";
@@ -78,15 +82,18 @@ export function ProductoCard({ producto, onOpenDetails }: ProductoCardProps) {
         )}
         
         {/* Badge de Categoría */}
-        <div className="absolute top-4 left-4">
-          <span className="px-3 py-1 bg-white/90 backdrop-blur rounded-full text-[10px] font-black uppercase text-slate-800 shadow-sm">
+        <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
+          <span 
+            className="px-2 py-1 sm:px-3 sm:py-1 bg-white/90 backdrop-blur rounded-full text-[10px] font-black uppercase text-slate-800 shadow-sm"
+            aria-label={`Categoría: ${producto.categoria}`}
+          >
             {producto.categoria}
           </span>
         </div>
       </div>
 
       {/* Contenido del Card */}
-      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+      <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between space-y-3 sm:space-y-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[40px]">
             {producto.nombre}
@@ -96,43 +103,48 @@ export function ProductoCard({ producto, onOpenDetails }: ProductoCardProps) {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {/* Precio y Botón de Cotizar */}
-          <div className="flex items-center justify-between border-t border-slate-50 pt-4">
+          <div className="flex items-center justify-between border-t border-slate-50 pt-3 sm:pt-4 gap-3">
             <div>
               <p className="text-[9px] font-bold text-slate-400 uppercase">Precio Base</p>
-              <p className="text-lg font-black text-slate-900">{formatCurrency(producto.precio)}</p>
+              <p className="text-lg sm:text-xl font-black text-slate-900">{formatCurrency(producto.precio)}</p>
             </div>
             
             <button 
               onClick={handleCotizar}
               disabled={isAdding}
+              aria-busy={isAdding}
+              aria-label={isAdding ? "Agregando al borrador" : `Cotizar ${producto.nombre}`}
               className={cn(
-                "p-3 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-xs font-bold",
-                "bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                "p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-xs font-bold shrink-0",
+                "bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               )}
+              title={isAdding ? "Agregando al borrador" : "Agregar al borrador de cotización"}
             >
               {isAdding ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin sm:size-18" aria-hidden="true" />
               ) : (
                 <>
-                  <ShoppingCart size={18} />
-                  <span className="hidden group-hover:block transition-all duration-300">COTIZAR</span>
+                  <ShoppingCart size={16} className="sm:size-18" aria-hidden="true" />
+                  <span className="hidden sm:group-hover:inline transition-all duration-300">COTIZAR</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* Botón de Ficha Técnica - AHORA FUNCIONAL */}
+          {/* Botón de Detalles Técnicos */}
           <button 
             onClick={onOpenDetails}
-            className="w-full py-2.5 border border-slate-200 text-slate-600 rounded-xl text-[11px] font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+            aria-label={`Ver detalles técnicos de ${producto.nombre}`}
+            className="w-full py-2 sm:py-2.5 border border-slate-200 text-slate-600 rounded-lg sm:rounded-xl text-[11px] font-bold hover:bg-slate-50 active:bg-slate-100 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            title="Ver ficha técnica del producto"
           >
-            <Info size={14} /> DETALLES TÉCNICOS
+            <Info size={14} aria-hidden="true" /> DETALLES TÉCNICOS
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 

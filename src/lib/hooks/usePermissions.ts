@@ -177,16 +177,6 @@ export function usePermissions(): UsePermissionsReturn {
     return () => subscription.unsubscribe();
   }, [fetchUserPermissions]);
 
-  /**
-   * Verifica si el rol actual puede ejecutar `accion` sobre `recurso`.
-   *
-   * CAMBIO: `recurso` ahora es RecursoKey en lugar de string.
-   * TypeScript rechazará any string que no sea un recurso real del sistema,
-   * eliminando errores silenciosos por typos en el callsite.
-   *
-   * Antes: can('edit', 'Productos')  → false sin advertencia
-   * Ahora: can('edit', 'Productos')  → error de compilación ✅
-   */
   const can = useCallback(
     (accion: AccionRecurso, recurso: RecursoKey): boolean =>
       permissions[recurso]?.includes(accion) ?? false,

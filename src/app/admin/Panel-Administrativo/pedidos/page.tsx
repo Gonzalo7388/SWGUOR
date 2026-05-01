@@ -223,8 +223,8 @@ export default function PedidosPage() {
             <PedidosTable 
               data={paginatedData} 
               onView={(p: any) => { setSelectedPedido(p); setDialogMode("view"); }}
-              onCancel={can('delete', 'pedidos') ? (p: any) => { setSelectedPedido(p); setDialogMode("cancel"); } : undefined}
-              />
+              onCancel={can('archive', 'pedidos') ? (p: any) => { setSelectedPedido(p); setDialogMode("cancel"); } : undefined}
+            />
 
             {/* Paginación */}
             <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">

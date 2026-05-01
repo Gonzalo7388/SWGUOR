@@ -15,10 +15,10 @@ export * from './helpers/usuarios-helpers';
 
 // ==================== HOOKS ====================
 export * from './hooks/useAuth';
-export * from './hooks/useInventory';
+export * from './hooks/useInventario';
 export * from './hooks/useOrders';
 export * from './hooks/usePermissions';
-export * from './hooks/useProducts';
+export * from './hooks/useProductos';
 
 // ==================== TIPOS ====================
 export type * from './helpers/format-helpers';

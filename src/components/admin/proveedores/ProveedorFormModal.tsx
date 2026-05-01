@@ -119,7 +119,7 @@ export default function ProveedorFormModal({ proveedor, isSaving, onClose, onSav
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Persona de Contacto *</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">personal de Contacto *</label>
             <Input
               value={form.contacto}
               onChange={(e) => handleChange('contacto', e.target.value)}

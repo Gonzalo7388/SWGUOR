@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -15,56 +14,56 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { aprobarCotizacion, rechazarCotizacion } from '@/app/admin/Panel-Administrativo/cotizaciones/actions';
+import {
+  aprobarCotizacion,
+  rechazarCotizacion,
+} from '@/lib/helpers/cotizaciones-helpers';
 
 interface CotizacionActionsProps {
   cotizacionId: number;
   estado: string;
   validaHasta: string;
+  onSuccess?: () => void;
 }
 
 export function CotizacionActions({
   cotizacionId,
   estado,
   validaHasta,
+  onSuccess,
 }: CotizacionActionsProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [loading, setLoading]                     = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen]   = useState(false);
+  const [rejectReason, setRejectReason]           = useState('');
 
-  // Verificar si está expirada
+  if (!['borrador', 'enviada'].includes(estado)) return null;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const expiracionDate = new Date(validaHasta);
-  expiracionDate.setHours(0, 0, 0, 0);
-  const estaExpirada = estado === 'pendiente' && today > expiracionDate;
+  const expiracion = new Date(validaHasta);
+  expiracion.setHours(0, 0, 0, 0);
+  const estaExpirada = estado === 'enviada' && today > expiracion;
 
   const handleApprove = async () => {
     if (estaExpirada) {
       toast.error('No se puede aprobar una cotización expirada');
       return;
     }
-
     try {
       setLoading(true);
-      const result = await aprobarCotizacion(BigInt(cotizacionId));
-
+      const result = await aprobarCotizacion(cotizacionId.toString());
       if (!result.success) {
         toast.error(result.error ?? 'Error al aprobar la cotización');
         return;
       }
-
       toast.success(
-        result.pedidoId
-          ? `Cotización aprobada. Pedido #${result.pedidoId} creado automáticamente.`
+        result?.pedidoId
+          ? `Cotización aprobada — Pedido #${result.pedidoId} creado`
           : 'Cotización aprobada exitosamente'
       );
-
-      router.refresh();
-    } catch (error) {
-      toast.error('Error inesperado al aprobar la cotización');
-      console.error(error);
+      onSuccess?.();
+    } catch {
+      toast.error('Error inesperado al aprobar');
     } finally {
       setLoading(false);
     }
@@ -73,68 +72,52 @@ export function CotizacionActions({
   const handleReject = async () => {
     try {
       setLoading(true);
-      const result = await rechazarCotizacion(BigInt(cotizacionId), rejectReason);
-
+      const result = await rechazarCotizacion(cotizacionId.toString(), rejectReason || undefined);
       if (!result.success) {
         toast.error(result.error ?? 'Error al rechazar la cotización');
         return;
       }
-
       toast.success('Cotización rechazada');
       setRejectDialogOpen(false);
       setRejectReason('');
-      router.refresh();
-    } catch (error) {
-      toast.error('Error inesperado al rechazar la cotización');
-      console.error(error);
+      onSuccess?.();
+    } catch {
+      toast.error('Error inesperado al rechazar');
     } finally {
       setLoading(false);
     }
   };
 
-  // Solo mostrar acciones si es recepcionista o admin y estado es pendiente/borrador
-  if (!['pendiente', 'borrador'].includes(estado)) {
-    return null;
-  }
-
   return (
     <>
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <Button
+          size="sm"
           onClick={handleApprove}
           disabled={loading || estaExpirada}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase gap-2"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-xs gap-1.5 h-8"
         >
           {loading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Procesando...
-            </>
+            <Loader2 size={13} className="animate-spin" />
           ) : estaExpirada ? (
-            <>
-              <AlertTriangle size={16} />
-              Expirada
-            </>
+            <><AlertTriangle size={13} /> Expirada</>
           ) : (
-            <>
-              <CheckCircle2 size={16} />
-              Aprobar
-            </>
+            <><CheckCircle2 size={13} /> Aprobar</>
           )}
         </Button>
 
         <Button
+          size="sm"
           onClick={() => setRejectDialogOpen(true)}
           disabled={loading}
           variant="outline"
-          className="flex-1 border-red-200 text-red-600 hover:bg-red-50 font-bold uppercase gap-2"
+          className="border-red-200 text-red-600 hover:bg-red-50 font-bold uppercase text-xs gap-1.5 h-8"
         >
-          <XCircle size={16} />
-          Rechazar
+          <XCircle size={13} /> Rechazar
         </Button>
       </div>
 
-      {/* Diálogo de rechazo */}
+      {/* ── Diálogo de rechazo ── */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
@@ -142,17 +125,16 @@ export function CotizacionActions({
               Rechazar Cotización
             </DialogTitle>
             <DialogDescription className="text-slate-500 font-bold text-xs uppercase">
-              Esta acción no se puede deshacer
+              Esta acción no se puede deshacer fácilmente
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
               <p className="text-sm text-red-800 font-medium">
-                ¿Está seguro que desea rechazar esta cotización? Se notificará al cliente.
+                ¿Está seguro que desea rechazar esta cotización?
               </p>
             </div>
-
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-slate-400">
                 Motivo del rechazo (opcional)
@@ -160,7 +142,7 @@ export function CotizacionActions({
               <Textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Ej: Precio no disponible, producto agotado, etc."
+                placeholder="Ej: Precio no disponible, producto agotado..."
                 className="min-h-[100px] border-slate-200 rounded-xl"
               />
             </div>
@@ -168,12 +150,7 @@ export function CotizacionActions({
 
           <DialogFooter className="flex gap-3 sm:justify-end">
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                className="font-bold uppercase"
-              >
+              <Button type="button" variant="outline" disabled={loading} className="font-bold uppercase">
                 Cancelar
               </Button>
             </DialogClose>
@@ -183,17 +160,10 @@ export function CotizacionActions({
               variant="destructive"
               className="font-bold uppercase gap-2"
             >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <XCircle size={16} />
-                  Confirmar Rechazo
-                </>
-              )}
+              {loading
+                ? <><Loader2 size={15} className="animate-spin" /> Procesando...</>
+                : <><XCircle size={15} /> Confirmar Rechazo</>
+              }
             </Button>
           </DialogFooter>
         </DialogContent>

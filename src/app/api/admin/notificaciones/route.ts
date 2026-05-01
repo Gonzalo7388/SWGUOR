@@ -37,18 +37,18 @@ export async function GET(req: Request) {
         }),
 
         // 4. Órdenes con saldo pendiente vencido (más de 7 días sin pagar)
-        prisma.ordenes.findMany({
+        prisma.ordenes_compra.findMany({
           where: {
             saldo_pendiente: { gt: 0 },
             created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
           include: {
-            cliente: { select: { razon_social: true } },
+            proveedores: { select: { razon_social: true } },
           },
           orderBy: { created_at: 'asc' },
           take: 20,
         }),
-      ]);
+      ])
 
     // Filtrar insumos con stock bajo (Prisma no soporta field refs directos en where)
     const insumosAlerta = insumosBajoStock.filter(
@@ -92,7 +92,7 @@ export async function GET(req: Request) {
         id: `pago-${o.id.toString()}`,
         tipo: 'pago' as const,
         titulo: 'PAGO PENDIENTE',
-        descripcion: `Orden de ${o.cliente?.razon_social ?? 'Cliente'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
+        descripcion: `Orden de ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
         importante: Number(o.saldo_pendiente ?? 0) > 1000,
         fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
       })),

@@ -1,9 +1,11 @@
 "use client";
 
 import { memo } from "react";
-import { Loader2, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { ProductoConRelaciones, Categoria } from "@/app/admin/Panel-Administrativo/productos/types";
 import ProductoRow from "@/components/admin/productos/ProductsRow";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 interface ProductosTableProps {
   data: ProductoConRelaciones[];
@@ -11,6 +13,7 @@ interface ProductosTableProps {
   loading?: boolean;
   onDelete: (p: ProductoConRelaciones) => void;
   onFicha: (p: ProductoConRelaciones) => void;
+  onEdit: (p: ProductoConRelaciones) => void;
   onStatusChange?: (p: ProductoConRelaciones) => void;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -22,21 +25,11 @@ function ProductosTable({
   loading,
   onDelete,
   onFicha,
+  onEdit,
   onStatusChange,
   canEdit = false,
   canDelete = false
 }: ProductosTableProps) {
-  
-  if (loading) {
-    return (
-      <div className="bg-white rounded-[32px] border border-slate-100 py-24 text-center shadow-sm">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
-          <p className="text-slate-400 font-black uppercase text-xs tracking-[0.2em]">Sincronizando Inventario...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -52,7 +45,39 @@ function ProductosTable({
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {loading ? (
+              // --- ESTADO DE CARGA (SKELETON) ---
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skeleton-${i}`}>
+                  <td className="bg-white border-y border-l border-slate-100 py-5 px-6 rounded-l-2xl shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-11 w-11 rounded-xl" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-6 w-24 mx-auto rounded-full" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-5 w-12 mx-auto rounded-md" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-6 w-20 mx-auto rounded-full" />
+                  </td>
+                  <td className="bg-white border-y border-r border-slate-100 py-5 px-6 rounded-r-2xl text-right shadow-sm">
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-9 w-9 rounded-xl" />
+                      <Skeleton className="h-9 w-9 rounded-xl" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : data.length === 0 ? (
+              // --- SIN DATOS ---
               <tr>
                 <td colSpan={5} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
                   <div className="flex flex-col items-center gap-3">
@@ -62,6 +87,7 @@ function ProductosTable({
                 </td>
               </tr>
             ) : (
+              // --- LISTA DE PRODUCTOS ---
               data.map((p) => (
                 <ProductoRow
                   key={p.id.toString()}
@@ -69,6 +95,7 @@ function ProductosTable({
                   categorias={categorias}
                   onDelete={onDelete}
                   onFicha={onFicha}
+                  onEdit={onEdit}
                   onStatusChange={onStatusChange}
                   canEdit={canEdit}
                   canDelete={canDelete}

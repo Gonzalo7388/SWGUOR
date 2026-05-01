@@ -1,0 +1,2029 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes", "prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["auth", "public"]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_log_entries {
+  instance_id String?   @db.Uuid
+  id          String    @id @db.Uuid
+  payload     Json?     @db.Json
+  created_at  DateTime? @db.Timestamptz(6)
+  ip_address  String    @default("") @db.VarChar(64)
+
+  @@index([instance_id], map: "audit_logs_instance_id_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model custom_oauth_providers {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type         String
+  identifier            String    @unique
+  name                  String
+  client_id             String
+  client_secret         String
+  acceptable_client_ids String[]  @default([])
+  scopes                String[]  @default([])
+  pkce_enabled          Boolean   @default(true)
+  attribute_mapping     Json      @default("{}")
+  authorization_params  Json      @default("{}")
+  enabled               Boolean   @default(true)
+  email_optional        Boolean   @default(false)
+  issuer                String?
+  discovery_url         String?
+  skip_nonce_check      Boolean   @default(false)
+  cached_discovery      Json?
+  discovery_cached_at   DateTime? @db.Timestamptz(6)
+  authorization_url     String?
+  token_url             String?
+  userinfo_url          String?
+  jwks_uri              String?
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at])
+  @@index([enabled])
+  @@index([identifier])
+  @@index([provider_type])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model flow_state {
+  id                     String                 @id @db.Uuid
+  user_id                String?                @db.Uuid
+  auth_code              String?
+  code_challenge_method  code_challenge_method?
+  code_challenge         String?
+  provider_type          String
+  provider_access_token  String?
+  provider_refresh_token String?
+  created_at             DateTime?              @db.Timestamptz(6)
+  updated_at             DateTime?              @db.Timestamptz(6)
+  authentication_method  String
+  auth_code_issued_at    DateTime?              @db.Timestamptz(6)
+  invite_token           String?
+  referrer               String?
+  oauth_client_state_id  String?                @db.Uuid
+  linking_target_id      String?                @db.Uuid
+  email_optional         Boolean                @default(false)
+  saml_relay_states      saml_relay_states[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([auth_code], map: "idx_auth_code")
+  @@index([user_id, authentication_method], map: "idx_user_id_auth_method")
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model identities {
+  provider_id     String
+  user_id         String    @db.Uuid
+  identity_data   Json
+  provider        String
+  last_sign_in_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+  email           String?   @default(dbgenerated("lower((identity_data ->> 'email'::text))"))
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  users           users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider_id, provider], map: "identities_provider_id_provider_unique")
+  @@index([email])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model instances {
+  id              String    @id @db.Uuid
+  uuid            String?   @db.Uuid
+  raw_base_config String?
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mfa_amr_claims {
+  session_id            String   @db.Uuid
+  created_at            DateTime @db.Timestamptz(6)
+  updated_at            DateTime @db.Timestamptz(6)
+  authentication_method String
+  id                    String   @id(map: "amr_id_pk") @db.Uuid
+  sessions              sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, authentication_method], map: "mfa_amr_claims_session_id_authentication_method_pkey")
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mfa_challenges {
+  id                     String      @id @db.Uuid
+  factor_id              String      @db.Uuid
+  created_at             DateTime    @db.Timestamptz(6)
+  verified_at            DateTime?   @db.Timestamptz(6)
+  ip_address             String      @db.Inet
+  otp_code               String?
+  web_authn_session_data Json?
+  mfa_factors            mfa_factors @relation(fields: [factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "mfa_challenges_auth_factor_id_fkey")
+
+  @@index([created_at(sort: Desc)], map: "mfa_challenge_created_at_idx")
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mfa_factors {
+  id                           String           @id @db.Uuid
+  user_id                      String           @db.Uuid
+  friendly_name                String?
+  factor_type                  factor_type
+  status                       factor_status
+  created_at                   DateTime         @db.Timestamptz(6)
+  updated_at                   DateTime         @db.Timestamptz(6)
+  secret                       String?
+  phone                        String?
+  last_challenged_at           DateTime?        @unique @db.Timestamptz(6)
+  web_authn_credential         Json?
+  web_authn_aaguid             String?          @db.Uuid
+  last_webauthn_challenge_data Json?
+  mfa_challenges               mfa_challenges[]
+  users                        users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([friendly_name, user_id], map: "mfa_factors_user_friendly_name_unique", where: raw("(TRIM(BOTH FROM friendly_name) <> ''::text)"))
+  @@unique([user_id, phone], map: "unique_phone_factor_per_user")
+  @@index([user_id, created_at], map: "factor_id_created_at_idx")
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model oauth_authorizations {
+  id                    String                     @id @db.Uuid
+  authorization_id      String                     @unique
+  client_id             String                     @db.Uuid
+  user_id               String?                    @db.Uuid
+  redirect_uri          String
+  scope                 String
+  state                 String?
+  resource              String?
+  code_challenge        String?
+  code_challenge_method code_challenge_method?
+  response_type         oauth_response_type        @default(code)
+  status                oauth_authorization_status @default(pending)
+  authorization_code    String?                    @unique
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  expires_at            DateTime                   @default(dbgenerated("(now() + '00:03:00'::interval)")) @db.Timestamptz(6)
+  approved_at           DateTime?                  @db.Timestamptz(6)
+  nonce                 String?
+  oauth_clients         oauth_clients              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at], map: "oauth_auth_pending_exp_idx", where: raw("(status = 'pending'::oauth_authorization_status)"))
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model oauth_client_states {
+  id            String   @id @db.Uuid
+  provider_type String
+  code_verifier String?
+  created_at    DateTime @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_oauth_client_states_created_at")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model oauth_clients {
+  id                         String                  @id @db.Uuid
+  client_secret_hash         String?
+  registration_type          oauth_registration_type
+  redirect_uris              String
+  grant_types                String
+  client_name                String?
+  client_uri                 String?
+  logo_uri                   String?
+  created_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at                 DateTime?               @db.Timestamptz(6)
+  client_type                oauth_client_type       @default(confidential)
+  token_endpoint_auth_method String
+  oauth_authorizations       oauth_authorizations[]
+  oauth_consents             oauth_consents[]
+  sessions                   sessions[]
+
+  @@index([deleted_at])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model oauth_consents {
+  id            String        @id @db.Uuid
+  user_id       String        @db.Uuid
+  client_id     String        @db.Uuid
+  scopes        String
+  granted_at    DateTime      @default(now()) @db.Timestamptz(6)
+  revoked_at    DateTime?     @db.Timestamptz(6)
+  oauth_clients oauth_clients @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, client_id], map: "oauth_consents_user_client_unique")
+  @@index([client_id], map: "oauth_consents_active_client_idx", where: raw("(revoked_at IS NULL)"))
+  @@index([user_id, client_id], map: "oauth_consents_active_user_client_idx", where: raw("(revoked_at IS NULL)"))
+  @@index([user_id, granted_at(sort: Desc)], map: "oauth_consents_user_order_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model one_time_tokens {
+  id         String              @id @db.Uuid
+  user_id    String              @db.Uuid
+  token_type one_time_token_type
+  token_hash String
+  relates_to String
+  created_at DateTime            @default(now()) @db.Timestamp(6)
+  updated_at DateTime            @default(now()) @db.Timestamp(6)
+  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, token_type])
+  @@index([relates_to], map: "one_time_tokens_relates_to_hash_idx", type: Hash)
+  @@index([token_hash], map: "one_time_tokens_token_hash_hash_idx", type: Hash)
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model refresh_tokens {
+  instance_id String?   @db.Uuid
+  id          BigInt    @id @default(autoincrement())
+  token       String?   @unique(map: "refresh_tokens_token_unique") @db.VarChar(255)
+  user_id     String?   @db.VarChar(255)
+  revoked     Boolean?
+  created_at  DateTime? @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  parent      String?   @db.VarChar(255)
+  session_id  String?   @db.Uuid
+  sessions    sessions? @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([instance_id])
+  @@index([instance_id, user_id])
+  @@index([parent])
+  @@index([session_id, revoked])
+  @@index([updated_at(sort: Desc)])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saml_providers {
+  id                String        @id @db.Uuid
+  sso_provider_id   String        @db.Uuid
+  entity_id         String        @unique
+  metadata_xml      String
+  metadata_url      String?
+  attribute_mapping Json?
+  created_at        DateTime?     @db.Timestamptz(6)
+  updated_at        DateTime?     @db.Timestamptz(6)
+  name_id_format    String?
+  sso_providers     sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saml_relay_states {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  request_id      String
+  for_email       String?
+  redirect_to     String?
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  flow_state_id   String?       @db.Uuid
+  flow_state      flow_state?   @relation(fields: [flow_state_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)])
+  @@index([for_email])
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model schema_migrations {
+  version String @id @db.VarChar(255)
+
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sessions {
+  id                     String           @id @db.Uuid
+  user_id                String           @db.Uuid
+  created_at             DateTime?        @db.Timestamptz(6)
+  updated_at             DateTime?        @db.Timestamptz(6)
+  factor_id              String?          @db.Uuid
+  aal                    aal_level?
+  not_after              DateTime?        @db.Timestamptz(6)
+  refreshed_at           DateTime?        @db.Timestamp(6)
+  user_agent             String?
+  ip                     String?          @db.Inet
+  tag                    String?
+  oauth_client_id        String?          @db.Uuid
+  refresh_token_hmac_key String?
+  refresh_token_counter  BigInt?
+  scopes                 String?
+  mfa_amr_claims         mfa_amr_claims[]
+  refresh_tokens         refresh_tokens[]
+  oauth_clients          oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([not_after(sort: Desc)])
+  @@index([oauth_client_id])
+  @@index([user_id])
+  @@index([user_id, created_at], map: "user_id_created_at_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sso_domains {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  domain          String
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sso_providers {
+  id                String              @id @db.Uuid
+  resource_id       String?
+  created_at        DateTime?           @db.Timestamptz(6)
+  updated_at        DateTime?           @db.Timestamptz(6)
+  disabled          Boolean?
+  saml_providers    saml_providers[]
+  saml_relay_states saml_relay_states[]
+  sso_domains       sso_domains[]
+
+  @@index([resource_id], map: "sso_providers_resource_id_pattern_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  instance_id                 String?                  @db.Uuid
+  id                          String                   @id @db.Uuid
+  aud                         String?                  @db.VarChar(255)
+  role                        String?                  @db.VarChar(255)
+  email                       String?                  @unique(map: "users_email_partial_key", where: raw("(is_sso_user = false)")) @db.VarChar(255)
+  encrypted_password          String?                  @db.VarChar(255)
+  email_confirmed_at          DateTime?                @db.Timestamptz(6)
+  invited_at                  DateTime?                @db.Timestamptz(6)
+  confirmation_token          String?                  @unique(map: "confirmation_token_idx", where: raw("((confirmation_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  confirmation_sent_at        DateTime?                @db.Timestamptz(6)
+  recovery_token              String?                  @unique(map: "recovery_token_idx", where: raw("((recovery_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  recovery_sent_at            DateTime?                @db.Timestamptz(6)
+  email_change_token_new      String?                  @unique(map: "email_change_token_new_idx", where: raw("((email_change_token_new)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  email_change                String?                  @db.VarChar(255)
+  email_change_sent_at        DateTime?                @db.Timestamptz(6)
+  last_sign_in_at             DateTime?                @db.Timestamptz(6)
+  raw_app_meta_data           Json?
+  raw_user_meta_data          Json?
+  is_super_admin              Boolean?
+  created_at                  DateTime?                @db.Timestamptz(6)
+  updated_at                  DateTime?                @db.Timestamptz(6)
+  phone                       String?                  @unique
+  phone_confirmed_at          DateTime?                @db.Timestamptz(6)
+  phone_change                String?                  @default("")
+  phone_change_token          String?                  @default("") @db.VarChar(255)
+  phone_change_sent_at        DateTime?                @db.Timestamptz(6)
+  confirmed_at                DateTime?                @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current  String?                  @unique(map: "email_change_token_current_idx", where: raw("((email_change_token_current)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
+  email_change_confirm_status Int?                     @default(0) @db.SmallInt
+  banned_until                DateTime?                @db.Timestamptz(6)
+  reauthentication_token      String?                  @unique(map: "reauthentication_token_idx", where: raw("((reauthentication_token)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
+  reauthentication_sent_at    DateTime?                @db.Timestamptz(6)
+  is_sso_user                 Boolean                  @default(false)
+  deleted_at                  DateTime?                @db.Timestamptz(6)
+  is_anonymous                Boolean                  @default(false)
+  identities                  identities[]
+  mfa_factors                 mfa_factors[]
+  oauth_authorizations        oauth_authorizations[]
+  oauth_consents              oauth_consents[]
+  one_time_tokens             one_time_tokens[]
+  sessions                    sessions[]
+  webauthn_challenges         webauthn_challenges[]
+  webauthn_credentials        webauthn_credentials[]
+  cotizaciones_proveedor      cotizaciones_proveedor[]
+  ordenes_compra              ordenes_compra[]
+  usuarios                    usuarios?
+
+  @@index([instance_id])
+  @@index([is_anonymous])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model webauthn_challenges {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?  @db.Uuid
+  challenge_type String
+  session_data   Json
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  expires_at     DateTime @db.Timestamptz(6)
+  users          users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model webauthn_credentials {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  credential_id    Bytes     @unique
+  public_key       Bytes
+  attestation_type String    @default("")
+  aaguid           String?   @db.Uuid
+  sign_count       BigInt    @default(0)
+  transports       Json      @default("[]")
+  backup_eligible  Boolean   @default(false)
+  backed_up        Boolean   @default(false)
+  friendly_name    String    @default("")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  last_used_at     DateTime? @db.Timestamptz(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model almacen_stock {
+  id            BigInt         @id @default(autoincrement())
+  almacen_id    BigInt
+  zona_id       BigInt?
+  producto_id   BigInt?
+  insumo_id     BigInt?
+  material_id   BigInt?
+  cantidad      Decimal        @default(0) @db.Decimal
+  stock_minimo  Decimal?       @default(0) @db.Decimal
+  updated_at    DateTime       @default(now()) @db.Timestamptz(6)
+  almacenes     almacenes      @relation(fields: [almacen_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  insumo        insumo?        @relation(fields: [insumo_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  materiales    materiales?    @relation(fields: [material_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos     productos?     @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  almacen_zonas almacen_zonas? @relation(fields: [zona_id], references: [id], onUpdate: NoAction)
+
+  @@unique([almacen_id, zona_id, insumo_id], map: "uq_almacen_insumo")
+  @@unique([almacen_id, zona_id, material_id], map: "uq_almacen_material")
+  @@unique([almacen_id, zona_id, producto_id], map: "uq_almacen_producto")
+  @@schema("public")
+}
+
+model almacen_zonas {
+  id            BigInt          @id @default(autoincrement())
+  almacen_id    BigInt
+  nombre        String
+  descripcion   String?
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  almacen_stock almacen_stock[]
+  almacenes     almacenes       @relation(fields: [almacen_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model almacenes {
+  id                     BigInt                   @id @default(autoincrement())
+  nombre                 String
+  direccion              String?
+  telefono               String?
+  email                  String?
+  descripcion            String?
+  responsable_id         BigInt?
+  capacidad_total        Decimal?                 @db.Decimal
+  unidad_capacidad       String?                  @default("unidades")
+  estado                 String                   @default("activo")
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  almacen_stock          almacen_stock[]
+  almacen_zonas          almacen_zonas[]
+  usuarios               usuarios?                @relation(fields: [responsable_id], references: [id], onUpdate: NoAction)
+  insumo                 insumo[]
+  materiales             materiales[]
+  movimientos_inventario movimientos_inventario[]
+  productos              productos[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model asientos_contables {
+  id          BigInt         @id @default(autoincrement())
+  fecha       DateTime       @default(now()) @db.Timestamptz(6)
+  tipo        TipoAsiento
+  monto       Decimal        @db.Decimal(12, 2)
+  cuenta      CuentaContable
+  descripcion String?
+  orden_id    BigInt?
+  venta_id    String?        @db.Uuid
+  pago_id     BigInt?
+  usuario_id  BigInt?
+  created_at  DateTime       @default(now()) @db.Timestamptz(6)
+  pagos_orden pagos_orden?   @relation(fields: [pago_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientos_contables_pago_id")
+  ventas      ventas?        @relation(fields: [venta_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_asientos_contables_venta_id")
+
+  @@index([cuenta], map: "idx_asientos_cuenta")
+  @@index([fecha(sort: Desc)], map: "idx_asientos_fecha")
+  @@index([orden_id], map: "idx_asientos_orden")
+  @@index([venta_id], map: "idx_asientos_venta")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model categorias {
+  id               BigInt             @id @default(autoincrement())
+  nombre           String             @unique
+  descripcion      String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  orden            BigInt?
+  activo           Boolean?
+  imagen           String?
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  productos        productos[]
+  reglas_descuento reglas_descuento[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model clientes {
+  id                   BigInt                 @id(map: "Clientes_pkey") @default(autoincrement())
+  ruc                  String                 @unique @db.VarChar(20)
+  razon_social         String?                @db.VarChar(255)
+  telefono             String?                @db.VarChar(50)
+  activo               EstadoCliente?         @default(activo)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  usuario_id           BigInt?                @unique
+  email                String?                @db.VarChar(150)
+  direccion_fiscal     String?                @db.VarChar(255)
+  tipo_cliente         TipoCliente?           @default(corporativo)
+  nombre_comercial     String?
+  usuarios             usuarios?              @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones         cotizaciones[]
+  devoluciones_cliente devoluciones_cliente[]
+  direcciones_cliente  direcciones_cliente[]
+  feedback_cliente     feedback_cliente[]
+  pedidos              pedidos[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model comprobantes {
+  id          BigInt    @id @default(autoincrement())
+  orden_id    BigInt
+  tipo        String
+  serie       String
+  correlativo String
+  pdf_url     String?
+  xml_url     String?
+  emitido_en  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model confecciones {
+  id                     BigInt                   @id @default(autoincrement())
+  pedido_id              BigInt
+  taller_id              BigInt
+  estado                 EstadoConfeccion         @default(pendiente)
+  fecha_inicio           DateTime                 @db.Timestamptz(6)
+  fecha_fin              DateTime?                @db.Timestamptz(6)
+  observaciones          String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  responsable_id         BigInt?
+  prenda                 String                   @default("")
+  cantidad               Int                      @default(1)
+  costo_unitario         Decimal?                 @db.Decimal(10, 2)
+  fecha_entrega          DateTime?                @db.Date
+  prioridad              String                   @default("media")
+  notas                  String?
+  pedidos                pedidos                  @relation(fields: [pedido_id], references: [id])
+  talleres               talleres                 @relation(fields: [taller_id], references: [id])
+  usuarios               usuarios?                @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_confecciones_responsable_id")
+  incidencias            incidencias[]
+  seguimiento_confeccion seguimiento_confeccion[]
+
+  @@index([pedido_id], map: "idx_confecciones_pedido")
+  @@index([responsable_id], map: "idx_confecciones_responsable")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model configuracion_sistema {
+  id          BigInt   @id @default(autoincrement())
+  clave       String   @unique @db.VarChar(100)
+  valor       String
+  categoria   String   @default("general") @db.VarChar(50)
+  descripcion String?  @db.VarChar(255)
+  tipo_dato   String   @default("string") @db.VarChar(20)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_by  String?  @db.Uuid
+
+  @@index([categoria], map: "idx_config_categoria")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model cotizacion_items {
+  id                       BigInt             @id @default(autoincrement())
+  cotizacion_id            BigInt
+  producto_id              BigInt
+  variante_id              BigInt
+  cantidad                 Int
+  precio_unitario_snapshot Decimal            @db.Decimal(12, 2)
+  subtotal                 Decimal            @db.Decimal(12, 2)
+  color_snapshot           String             @db.VarChar(50)
+  modelo_snapshot          String?            @db.VarChar(100)
+  prenda_tipo_snapshot     String?            @db.VarChar(50)
+  talla_snapshot           String             @db.VarChar(10)
+  cotizaciones             cotizaciones       @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotizacion_items_cotizacion_id")
+  productos                productos          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_items_producto_id")
+  variantes_producto       variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizacion_items_variante_id")
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model cotizaciones {
+  id                    BigInt             @id @default(autoincrement())
+  numero                String             @unique
+  cliente_id            BigInt?
+  estado                EstadoCotizacion?  @default(borrador)
+  subtotal              Decimal?           @default(0) @db.Decimal(12, 2)
+  igv                   Decimal?           @default(0) @db.Decimal(12, 2)
+  total                 Decimal?           @default(0) @db.Decimal(12, 2)
+  valida_hasta          DateTime           @db.Date
+  expira_at             DateTime?          @db.Timestamptz(6)
+  aprobado_at           DateTime?          @db.Timestamptz(6)
+  aprobacion_automatica Boolean?           @default(false)
+  created_at            DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?          @default(now()) @db.Timestamptz(6)
+  metodo_pago           MetodoPago?
+  direccion_despacho    String?
+  id_regla_descuento    BigInt?
+  monto_descuento       Decimal?           @default(0) @db.Decimal(12, 2)
+  costo_envio           Decimal?           @default(0) @db.Decimal(12, 2)
+  moneda                String             @default("PEN") @db.VarChar(3)
+  costo_total_estimado  Decimal?           @default(0) @db.Decimal(12, 2)
+  notas_internas        String?
+  origen                String?            @default("manual") @db.VarChar(20)
+  cotizacion_items      cotizacion_items[]
+  pedidos               pedidos[]
+  clientes              clientes?          @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reglas_descuento      reglas_descuento?  @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizaciones_id_regla_descuento")
+
+  @@schema("public")
+}
+
+model cotizaciones_proveedor {
+  id                           BigInt                         @id @default(autoincrement())
+  proveedor_id                 BigInt
+  solicitado_por               String?                        @db.Uuid
+  estado                       String                         @default("borrador")
+  fecha_solicitud              DateTime                       @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fecha_vencimiento            DateTime?                      @db.Date
+  notas                        String?
+  total_estimado               Decimal                        @default(0) @db.Decimal(12, 2)
+  created_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
+  numero_externo               String?
+  moneda                       String?                        @default("PEN")
+  pdf_url                      String?
+  proveedores                  proveedores                    @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                        users?                         @relation(fields: [solicitado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones_proveedor_items cotizaciones_proveedor_items[]
+  ordenes_compra               ordenes_compra[]
+
+  @@index([estado], map: "idx_cot_prov_estado")
+  @@index([proveedor_id], map: "idx_cot_prov_proveedor")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cotizaciones_proveedor_items {
+  id                     BigInt                 @id @default(autoincrement())
+  cotizacion_id          BigInt
+  material_id            BigInt?
+  insumo_id              BigInt?
+  cantidad               Decimal                @db.Decimal(12, 2)
+  precio_unitario        Decimal?               @db.Decimal(12, 2)
+  subtotal               Decimal?               @default(dbgenerated("(cantidad * COALESCE(precio_unitario, (0)::numeric))")) @db.Decimal(12, 2)
+  notas                  String?
+  descripcion            String?
+  unidad                 String?                @default("unidades")
+  tipo_item              String?                @default("insumo")
+  cotizaciones_proveedor cotizaciones_proveedor @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  insumo                 insumo?                @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  materiales             materiales?            @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model despachos {
+  id                BigInt         @id @default(autoincrement())
+  pedido_id         BigInt
+  fecha_despacho    DateTime
+  created_at        DateTime       @default(now())
+  direccion_entrega String
+  fecha_entrega     DateTime?
+  updated_at        DateTime       @default(now())
+  usuario_id        BigInt
+  estado            EstadoDespacho @default(pendiente)
+  pedidos           pedidos        @relation(fields: [pedido_id], references: [id])
+  usuarios          usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pedido_id], map: "idx_despachos_pedido")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model detalle_ficha_insumos {
+  id               BigInt           @id @default(autoincrement())
+  id_ficha         BigInt?
+  id_insumo        BigInt?
+  consumo_unitario Float?           @db.Real
+  merma_permitida  Float?           @db.Real
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  fichas_tecnicas  fichas_tecnicas? @relation(fields: [id_ficha], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_detalle_ficha_insumos_id_ficha")
+  insumo           insumo?          @relation(fields: [id_insumo], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_detalle_ficha_insumos_id_insumo")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model devoluciones_cliente {
+  id                 BigInt             @id @default(autoincrement())
+  venta_id           String             @db.Uuid
+  cliente_id         BigInt
+  producto_id        BigInt
+  variante_id        BigInt
+  motivo             MotivoDevolucion
+  estado_solicitud   EstadoDevolucion   @default(pendiente)
+  condicion_recibido CondicionProducto?
+  cantidad           Int
+  monto_reembolsado  Decimal?           @default(0) @db.Decimal(10, 2)
+  fotos_url          Json?              @default("[]")
+  notas_cliente      String?
+  notas_internas     String?
+  procesado_por      BigInt?
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime           @default(now()) @db.Timestamptz(6)
+  fecha_finalizacion DateTime?          @db.Timestamptz(6)
+  clientes           clientes           @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "devoluciones_cliente_fkey")
+  productos          productos          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "devoluciones_producto_fkey")
+  usuarios           usuarios?          @relation(fields: [procesado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "devoluciones_usuario_fkey")
+  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "devoluciones_variante_fkey")
+  ventas             ventas             @relation(fields: [venta_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "devoluciones_venta_fkey")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model devoluciones_proveedor {
+  id                       BigInt               @id @default(autoincrement())
+  proveedor_id             BigInt
+  insumo_id                BigInt
+  orden_id                 BigInt?
+  cantidad                 Decimal              @db.Decimal
+  motivo                   MotivoDevolucionProv
+  estado                   EstadoDevolucionProv @default(pendiente_envio)
+  accion_requerida         String?
+  monto_estimado_recuperar Decimal?             @db.Decimal(10, 2)
+  fecha_salida             DateTime?            @db.Timestamptz(6)
+  numero_guia_remision     String?
+  usuario_id               BigInt?
+  fotos_evidencia          Json?                @default("[]")
+  observaciones            String?
+  created_at               DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime             @default(now()) @db.Timestamptz(6)
+  insumo                   insumo               @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "dev_prov_insumo_fkey")
+  proveedores              proveedores          @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "dev_prov_proveedor_fkey")
+  usuarios                 usuarios?            @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "dev_prov_usuario_fkey")
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model direcciones_cliente {
+  id           BigInt    @id @default(autoincrement())
+  cliente_id   BigInt
+  alias        String
+  direccion    String
+  ciudad       String?
+  departamento String?
+  es_principal Boolean?  @default(false)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  clientes     clientes  @relation(fields: [cliente_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_direcciones_cliente_cliente_id")
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model feedback_cliente {
+  id                BigInt    @id @default(autoincrement())
+  orden_id          BigInt
+  cliente_id        BigInt
+  puntuacion        Int
+  calidad_producto  Int?
+  tiempo_entrega    Int?
+  atencion_personal Int?
+  comentarios       String?
+  recomendaria      Boolean?
+  enviado_en        DateTime? @db.Timestamptz(6)
+  respondido_en     DateTime? @db.Timestamptz(6)
+  canal             String?   @db.VarChar(50)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  clientes          clientes  @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feedback_cliente_cliente_id")
+
+  @@index([cliente_id], map: "idx_feedback_cliente")
+  @@index([orden_id], map: "idx_feedback_orden")
+  @@index([puntuacion], map: "idx_feedback_puntuacion")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ficha_medidas {
+  id              BigInt           @id @default(autoincrement())
+  id_ficha        BigInt?
+  punto_medida    String?          @db.VarChar
+  talla           String?          @db.VarChar
+  valor_cm        Float?           @db.Real
+  tolerancia      Float?           @db.Real
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  fichas_tecnicas fichas_tecnicas? @relation(fields: [id_ficha], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fichas_tecnicas {
+  id                      BigInt                    @id(map: "fichas-tecnicas_pkey") @default(autoincrement())
+  id_producto             BigInt?
+  version                 String?                   @db.VarChar
+  descripcion_detallada   String?
+  sam_total               Decimal?                  @db.Decimal
+  costo_estimado          Decimal?                  @db.Decimal
+  imagen_geometral        String?                   @db.VarChar
+  estado                  EstadoFicha?              @default(borrador)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  ficha_url               String?
+  detalle_ficha_insumos   detalle_ficha_insumos[]
+  ficha_medidas           ficha_medidas[]
+  fichas_tecnicas_detalle fichas_tecnicas_detalle[]
+  ordenes_produccion      ordenes_produccion[]
+  producto_primario       productos?                @relation("FichaProducto", fields: [id_producto], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_fichas_tecnicas_id_producto")
+  productos_ref           productos[]               @relation("ProductoFichaTecnica")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model fichas_tecnicas_detalle {
+  id                     BigInt          @id(map: "ficha_detalle_pkey") @default(autoincrement())
+  ficha_id               BigInt
+  material_id            BigInt?
+  insumo_id              BigInt?
+  cantidad_consumo       Decimal         @default(0) @db.Decimal(12, 4)
+  porcentaje_desperdicio Decimal?        @default(0) @db.Decimal(5, 2)
+  observaciones          String?
+  fichas_tecnicas        fichas_tecnicas @relation(fields: [ficha_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ficha_cabecera")
+  insumo                 insumo?         @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_insumo_rel")
+  materiales             materiales?     @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_material_rel")
+
+  @@index([ficha_id], map: "idx_detalle_ficha_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model incidencias {
+  id               BigInt              @id(map: "incidencias_taller_pkey") @default(autoincrement())
+  pedido_id        BigInt
+  confeccion_id    BigInt?
+  tipo             TipoIncidencia
+  severidad        SeveridadIncidencia @default(media)
+  descripcion      String
+  reportado_por    BigInt?
+  asignado_a       BigInt?
+  fecha_reporte    DateTime            @default(now()) @db.Timestamptz(6)
+  fecha_resolucion DateTime?           @db.Timestamptz(6)
+  resuelto         Boolean             @default(false)
+  solucion         String?
+  impacto_horas    Float?
+  foto_url         String?             @db.VarChar(500)
+  created_at       DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?           @default(now()) @db.Timestamptz(6)
+  asignado         usuarios?           @relation("IncidenciaAsignado", fields: [asignado_a], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_taller_asignado_a")
+  confecciones     confecciones?       @relation(fields: [confeccion_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_taller_confeccion_id")
+  reportado        usuarios?           @relation("IncidenciaReportado", fields: [reportado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_incidencias_taller_reportado_por")
+  pedidos          pedidos             @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fecha_reporte(sort: Desc)], map: "idx_incidencias_fecha")
+  @@index([pedido_id], map: "idx_incidencias_orden")
+  @@index([resuelto], map: "idx_incidencias_resuelto")
+  @@index([severidad], map: "idx_incidencias_severidad")
+  @@index([tipo], map: "idx_incidencias_tipo")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model insumo {
+  id                           BigInt                         @id @default(autoincrement())
+  nombre                       String
+  tipo                         TipoInsumo
+  categoria_insumo             CategoriaInsumo                @default(otro)
+  unidad_medida                UnidadMedida                   @default(unidades)
+  stock_actual                 Decimal                        @default(0.00) @db.Decimal(12, 2)
+  stock_minimo                 Decimal                        @default(0.00) @db.Decimal(12, 2)
+  stock_maximo                 Decimal?                       @db.Decimal(12, 2)
+  precio_unitario              Decimal?                       @db.Decimal(10, 2)
+  created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
+  proveedor_id                 BigInt?
+  ubicacion_almacen            String?                        @db.VarChar(100)
+  alerta_bajo_stock            Boolean?                       @default(true)
+  almacen_id                   BigInt?
+  almacen_stock                almacen_stock[]
+  cotizaciones_proveedor_items cotizaciones_proveedor_items[]
+  detalle_ficha_insumos        detalle_ficha_insumos[]
+  devoluciones_proveedor       devoluciones_proveedor[]
+  fichas_tecnicas_detalle      fichas_tecnicas_detalle[]
+  almacenes                    almacenes?                     @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
+  proveedores                  proveedores?                   @relation(fields: [proveedor_id], references: [id], onUpdate: NoAction)
+  movimientos_inventario       movimientos_inventario[]
+  ordenes_compra_items         ordenes_compra_items[]
+
+  @@index([categoria_insumo], map: "idx_insumos_categoria")
+  @@index([proveedor_id], map: "idx_insumos_proveedor")
+  @@index([stock_actual], map: "idx_insumos_stock")
+  @@schema("public")
+}
+
+model materiales {
+  id                           BigInt                         @id(map: "material_pkey") @default(autoincrement())
+  nombre                       String
+  descripcion                  String?
+  tipo                         TipoMaterial                   @default(plano)
+  composicion                  String?
+  gramaje                      Int?
+  ancho_total                  Decimal?                       @db.Decimal(5, 2)
+  ancho_util                   Decimal?                       @db.Decimal(5, 2)
+  color                        String?
+  codigo_color                 String?
+  unidad_medida                UnidadMedida                   @default(metros)
+  stock_actual                 Decimal                        @default(0.00) @db.Decimal(12, 2)
+  stock_minimo                 Decimal                        @default(10.00) @db.Decimal(12, 2)
+  precio_unitario              Decimal?                       @db.Decimal(10, 2)
+  proveedor_id                 BigInt?
+  ubicacion_almacen            String?                        @db.VarChar(100)
+  alerta_bajo_stock            Boolean?                       @default(true)
+  created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
+  almacen_id                   BigInt?
+  almacen_stock                almacen_stock[]
+  cotizaciones_proveedor_items cotizaciones_proveedor_items[]
+  fichas_tecnicas_detalle      fichas_tecnicas_detalle[]
+  proveedores                  proveedores?                   @relation(fields: [proveedor_id], references: [id], onUpdate: NoAction, map: "material_proveedor_id_fkey")
+  almacenes                    almacenes?                     @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
+  movimientos_inventario       movimientos_inventario[]
+  ordenes_compra_items         ordenes_compra_items[]
+
+  @@index([nombre], map: "idx_material_nombre")
+  @@index([stock_actual], map: "idx_material_stock")
+  @@index([tipo], map: "idx_material_tipo")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model movimientos_inventario {
+  id              BigInt                @id @default(autoincrement())
+  producto_id     BigInt?
+  insumo_id       BigInt?
+  cantidad        Float?
+  motivo          String?
+  usuario_id      BigInt?
+  tipo_movimiento TipoMovimiento?
+  costo_unitario  Decimal?              @db.Decimal(12, 2)
+  referencia_tipo ReferenciaMovimiento?
+  created_at      DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?             @default(now()) @db.Timestamptz(6)
+  material_id     BigInt?
+  almacen_id      BigInt?
+  referencia_id   BigInt?
+  insumo          insumo?               @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_movimientos_inventario_insumo_id")
+  materiales      materiales?           @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_movimientos_inventario_material_id")
+  productos       productos?            @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_movimientos_inventario_producto_id")
+  usuarios        usuarios?             @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_movimientos_inventario_usuario_id")
+  almacenes       almacenes?            @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_movimientos_fecha")
+  @@index([insumo_id], map: "idx_movimientos_insumo")
+  @@index([material_id], map: "idx_movimientos_material")
+  @@index([referencia_id], map: "idx_movimientos_referencia_id")
+  @@index([referencia_tipo], map: "idx_movimientos_referencia_tipo")
+  @@index([referencia_tipo, referencia_id], map: "idx_movimientos_referencia_tipo_id")
+  @@schema("public")
+}
+
+model ordenes_compra {
+  id                      BigInt                  @id @default(autoincrement())
+  cotizacion_proveedor_id BigInt?
+  proveedor_id            BigInt
+  creado_por              String?                 @db.Uuid
+  estado                  String                  @default("pendiente")
+  estado_pago             String                  @default("pendiente")
+  total_orden             Decimal                 @default(0) @db.Decimal(12, 2)
+  total_pagado            Decimal                 @default(0) @db.Decimal(12, 2)
+  saldo_pendiente         Decimal?                @default(dbgenerated("(total_orden - total_pagado)")) @db.Decimal(12, 2)
+  fecha_prometida         DateTime?               @db.Date
+  fecha_recepcion         DateTime?               @db.Date
+  notas                   String?
+  created_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  cotizaciones_proveedor  cotizaciones_proveedor? @relation(fields: [cotizacion_proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                   users?                  @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proveedores             proveedores             @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes_compra_items    ordenes_compra_items[]
+
+  @@index([estado], map: "idx_ordenes_compra_est")
+  @@index([proveedor_id], map: "idx_ordenes_compra_prov")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model ordenes_compra_items {
+  id                BigInt         @id @default(autoincrement())
+  orden_compra_id   BigInt
+  material_id       BigInt?
+  insumo_id         BigInt?
+  cantidad_pedida   Decimal        @db.Decimal(12, 2)
+  cantidad_recibida Decimal        @default(0) @db.Decimal(12, 2)
+  precio_unitario   Decimal        @db.Decimal(12, 2)
+  subtotal          Decimal?       @default(dbgenerated("(cantidad_pedida * precio_unitario)")) @db.Decimal(12, 2)
+  notas             String?
+  insumo            insumo?        @relation(fields: [insumo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  materiales        materiales?    @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordenes_compra    ordenes_compra @relation(fields: [orden_compra_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ordenes_produccion {
+  id                     BigInt                   @id @default(autoincrement())
+  producto_id            BigInt
+  taller_id              BigInt
+  ficha_id               BigInt
+  estado                 String                   @default("pendiente") @db.VarChar
+  cantidad_solicitada    Int                      @default(0)
+  fecha_entrega          DateTime?                @db.Date
+  notas                  String?
+  creado_por             BigInt?
+  notificado_at          DateTime?                @db.Timestamptz(6)
+  email_enviado_at       DateTime?                @db.Timestamptz(6)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  pedido_id              BigInt?
+  fichas_tecnicas        fichas_tecnicas          @relation(fields: [ficha_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenes_produccion_ficha_id")
+  pedidos                pedidos?                 @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenes_produccion_pedido_id")
+  productos              productos                @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenes_produccion_producto_id")
+  talleres               talleres                 @relation(fields: [taller_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ordenes_produccion_taller_id")
+  seguimiento_produccion seguimiento_produccion[]
+
+  @@index([estado], map: "idx_ordenes_estado")
+  @@index([producto_id], map: "idx_ordenes_producto")
+  @@index([taller_id], map: "idx_ordenes_taller")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pagos_orden {
+  id                 BigInt               @id @default(autoincrement())
+  orden_id           BigInt
+  monto              Decimal              @db.Decimal(12, 2)
+  metodo_pago        MetodoPago
+  fecha_pago         DateTime             @default(now()) @db.Timestamptz(6)
+  comprobante_url    String?
+  notas              String?
+  usuario_id         BigInt?
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  asientos_contables asientos_contables[]
+  usuarios           usuarios?            @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fecha_pago(sort: Desc)], map: "idx_pagos_fecha")
+  @@index([orden_id], map: "idx_pagos_orden_link")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pedido_items {
+  id                 BigInt             @id @default(autoincrement())
+  pedido_id          BigInt
+  producto_id        BigInt
+  variante_id        BigInt
+  cantidad           Int
+  especificaciones   Json?
+  pedidos            pedidos            @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productos          productos          @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([pedido_id], map: "idx_pedido_items_pedido")
+  @@index([producto_id], map: "idx_pedido_items_producto")
+  @@index([variante_id], map: "idx_pedido_items_variante")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pedidos {
+  id                 BigInt               @id @default(autoincrement())
+  cliente_id         BigInt?
+  cotizacion_id          BigInt?
+  estado             EstadoPedido?        @default(pendiente)
+  prioridad          PrioridadPedido?     @default(normal)
+  notas_cliente      String?
+  notas_pedido       String?
+  total_estimado     Decimal?             @default(0) @db.Decimal(12, 2)
+  total_unidades     Int                  @default(0)
+  moq_aplicado       Int                  @default(400)
+  created_by         BigInt?
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  confecciones       confecciones[]
+  despachos          despachos[]
+  incidencias        incidencias[]
+  ordenes_produccion ordenes_produccion[]
+  pedido_items       pedido_items[]
+  ventas             ventas[]
+  clientes           clientes?            @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios           usuarios?            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizaciones       cotizaciones?        @relation(fields: [cotizacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  seguimiento_pedido seguimiento_pedido[]
+
+  @@index([cliente_id], map: "idx_pedidos_cliente")
+  @@index([estado], map: "idx_pedidos_estado")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model personal_interno {
+  id              BigInt         @id @default(autoincrement())
+  usuario_id      BigInt?
+  dni             BigInt?
+  nombre_completo String?
+  fecha_ingreso   DateTime?      @db.Date
+  created_at      DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?      @default(now()) @db.Timestamp(6)
+  cargo           Cargo?
+  telefono        BigInt?
+  estado          EstadoPersonal @default(activo)
+  usuarios        usuarios?      @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personal_interno_usuario_id")
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model precio_historico {
+  id            BigInt    @id @default(autoincrement())
+  producto_id   BigInt
+  precio        Decimal   @db.Decimal(10, 2)
+  motivo        String?
+  vigente_desde DateTime  @default(now()) @db.Timestamptz(6)
+  vigente_hasta DateTime? @db.Timestamptz(6)
+  creado_por    BigInt?
+  usuarios      usuarios? @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_precio_historico_creado_por")
+  productos     productos @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_precio_historico_producto_id")
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model productos {
+  id                   BigInt                   @id @default(autoincrement())
+  nombre               String
+  descripcion          String?
+  created_at           DateTime                 @default(now()) @db.Timestamptz(6)
+  imagen               String?
+  precio               Decimal                  @db.Decimal(12, 2)
+  stock                Int                      @default(0)
+  updated_at           DateTime                 @db.Timestamptz(6)
+  estado               EstadoProducto           @default(activo)
+  sku                  String                   @unique(map: "productos_sku_activo_key", where: raw("(estado = 'activo'::\"EstadoProducto\")"))
+  destacado            Boolean?                 @default(false)
+  categoria_id         BigInt?
+  moq                  Int                      @default(400)
+  colores_disponibles  Json?                    @default("[]")
+  tallas_disponibles   Json?                    @default("[]")
+  fichas_tecnicas_id   BigInt?
+  reglas_descuento     Json?
+  almacen_id           BigInt?
+  almacen_stock        almacen_stock[]
+  cotizacion_items     cotizacion_items[]
+  devoluciones_cliente devoluciones_cliente[]
+  fichas_como_primario fichas_tecnicas[]        @relation("FichaProducto")
+  movimientos_inventario movimientos_inventario[]
+  ordenes_produccion   ordenes_produccion[]
+  pedido_items         pedido_items[]
+  precio_historico     precio_historico[]
+  ficha_tecnica        fichas_tecnicas?         @relation("ProductoFichaTecnica", fields: [fichas_tecnicas_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_productos_fichas_tecnicas_id")
+  almacenes            almacenes?               @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
+  categorias           categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variantes_producto   variantes_producto[]
+
+  @@index([categoria_id, estado], map: "idx_productos_categoria_estado")
+  @@index([estado], map: "idx_productos_estado")
+  @@index([nombre], map: "idx_productos_nombre")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model proveedores {
+  id                     BigInt                   @id @default(autoincrement())
+  ruc                    String                   @unique @db.VarChar(11)
+  razon_social           String                   @db.VarChar(200)
+  contacto               String                   @db.VarChar(150)
+  telefono               String                   @db.VarChar(20)
+  email                  String                   @unique @db.VarChar(150)
+  direccion              String                   @db.VarChar(255)
+  categoria_suministro   String                   @db.VarChar(100)
+  estado                 String                   @default("activo") @db.VarChar(20)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  cotizaciones_proveedor cotizaciones_proveedor[]
+  devoluciones_proveedor devoluciones_proveedor[]
+  insumo                 insumo[]
+  materiales             materiales[]
+  ordenes_compra         ordenes_compra[]
+
+  @@index([categoria_suministro], map: "idx_proveedores_categoria")
+  @@index([estado], map: "idx_proveedores_estado")
+  @@index([razon_social], map: "idx_proveedores_razon")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model reglas_descuento {
+  id               BigInt         @id @default(autoincrement())
+  nombre           String
+  cantidad_min     Int            @default(400)
+  monto_min_compra Decimal?       @db.Decimal(12, 2)
+  tipo_beneficio   TipoBeneficio
+  valor_descuento  Decimal        @db.Decimal(5, 2)
+  fecha_inicio     DateTime       @db.Timestamptz(6)
+  fecha_fin        DateTime       @db.Timestamptz(6)
+  categoria_id     BigInt?
+  activo           Boolean?       @default(true)
+  tipo_conteo      TipoConteo?
+  cotizaciones     cotizaciones[]
+  categorias       categorias?    @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reglas_descuento_categoria_id")
+
+  @@index([activo, fecha_inicio, fecha_fin], map: "idx_reglas_activas_fechas")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model reservas_stock {
+  id                 BigInt             @id @default(autoincrement())
+  variante_id        BigInt
+  cotizacion_id      BigInt?
+  orden_id           BigInt?
+  cantidad           Int
+  expira_en          DateTime           @default(dbgenerated("(now() + '00:30:00'::interval)")) @db.Timestamptz(6)
+  estado             String             @default("activa")
+  variantes_producto variantes_producto @relation(fields: [variante_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reservas_stock_variante_id")
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model seguimiento_confeccion {
+  id              BigInt            @id @default(autoincrement())
+  confeccion_id   BigInt?
+  estado_anterior EstadoConfeccion?
+  estado_nuevo    EstadoConfeccion?
+  notas           String?
+  responsable_id  BigInt?
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  confecciones    confecciones?     @relation(fields: [confeccion_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_seguimiento_confeccion_confeccion_id")
+  usuarios        usuarios?         @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seguimiento_confeccion_responsable_id")
+
+  @@index([confeccion_id], map: "idx_seguimiento_confeccion_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model seguimiento_pedido {
+  id         BigInt       @id @default(autoincrement())
+  pedido_id  BigInt
+  status     EstadoPedido @default(pendiente)
+  notas      String?
+  creado_por String?      @db.Uuid
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at DateTime     @default(now()) @db.Timestamptz(6)
+  pedidos    pedidos      @relation(fields: [pedido_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "seguimiento_pedido_pedido_fk")
+
+  @@index([pedido_id], map: "idx_seguimiento_pedido")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model seguimiento_produccion {
+  id                 BigInt             @id @default(autoincrement())
+  orden_id           BigInt
+  etapa              EtapaProduccion
+  iniciado_en        DateTime           @default(now()) @db.Timestamptz(6)
+  completado_en      DateTime?          @db.Timestamptz(6)
+  duracion_minutos   Int?
+  usuario_id         BigInt?
+  observaciones      String?
+  activo             Boolean            @default(true)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  ordenes_produccion ordenes_produccion @relation(fields: [orden_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_seguimiento_produccion_orden_id")
+  usuarios           usuarios?          @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seguimiento_produccion_usuario_id")
+
+  @@index([orden_id], map: "idx_seguimiento_orden")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model talleres {
+  id                 BigInt               @id @default(autoincrement())
+  nombre             String
+  direccion          String
+  telefono           String
+  email              String?              @unique
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+  ruc                String               @unique
+  contacto           String
+  especialidad       EspecialidadTaller?
+  estado             EstadoTaller         @default(activo)
+  confecciones       confecciones[]
+  ordenes_produccion ordenes_produccion[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios {
+  id                     BigInt                   @id @default(autoincrement())
+  email                  String                   @unique
+  estado                 EstadoUsuario?           @default(activo)
+  rol                    Rol?
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  ultimo_acceso          DateTime?                @db.Timestamptz(6)
+  created_by             String?                  @db.Uuid
+  auth_id                String?                  @unique @db.Uuid
+  almacenes              almacenes[]
+  clientes               clientes?
+  confecciones           confecciones[]
+  despachos              despachos[]
+  devoluciones_cliente   devoluciones_cliente[]
+  devoluciones_proveedor devoluciones_proveedor[]
+  incidencias_asignadas  incidencias[]            @relation("IncidenciaAsignado")
+  incidencias_reportadas incidencias[]            @relation("IncidenciaReportado")
+  movimientos_inventario movimientos_inventario[]
+  pagos_orden            pagos_orden[]
+  pedidos                pedidos[]
+  personal_interno       personal_interno[]
+  precio_historico       precio_historico[]
+  seguimiento_confeccion seguimiento_confeccion[]
+  seguimiento_produccion seguimiento_produccion[]
+  users                  users?                   @relation(fields: [auth_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ventas                 ventas[]
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model variantes_producto {
+  id                   BigInt                 @id @default(autoincrement())
+  producto_id          BigInt
+  nombre               String                 @db.VarChar(100)
+  color                ColorPrenda            @default(azul)
+  talla                TallaProductos
+  estado               EstadoProducto         @default(activo)
+  precio_adicional     Decimal                @default(0.00) @db.Decimal(10, 2)
+  stock                Int                    @default(0)
+  sku                  String                 @unique(map: "unique_variant_sku") @db.VarChar(100)
+  imagen_url           String?
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  cotizacion_items     cotizacion_items[]
+  devoluciones_cliente devoluciones_cliente[]
+  pedido_items         pedido_items[]
+  reservas_stock       reservas_stock[]
+  productos            productos              @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_variantes_producto_producto_id")
+
+  @@unique([producto_id, talla, color], map: "unique_producto_talla_color")
+  @@index([talla, color], map: "idx_variantes_busqueda_cliente", where: raw("(estado = 'activo'::\"EstadoProducto\")"))
+  @@index([producto_id], map: "idx_variantes_producto_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ventas {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pedido_id             BigInt
+  usuario_id           BigInt?
+  subtotal             Decimal                @default(0) @db.Decimal(12, 2)
+  impuestos            Decimal                @default(0) @db.Decimal(12, 2)
+  total                Decimal                @default(0) @db.Decimal(12, 2)
+  metodo_pago          MetodoPago?
+  numero_comprobante   String?
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  tipo_comprobante     TipoComprobante?
+  referencia_pago      String?                @db.VarChar(255)
+  estado_pago          String                 @default("completado")
+  asientos_contables   asientos_contables[]
+  devoluciones_cliente devoluciones_cliente[]
+  pedidos              pedidos?               @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios             usuarios?              @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ventas_anuladas      ventas_anuladas?
+
+  @@index([created_at(sort: Desc)], map: "idx_ventas_fecha_pago")
+  @@index([pedido_id], map: "idx_ventas_pedido_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ventas_anuladas {
+  id              BigInt   @id @default(autoincrement())
+  venta_id        String   @unique @db.Uuid
+  motivo          String
+  fecha_anulacion DateTime @default(now())
+  monto_devuelto  Decimal  @db.Decimal(12, 2)
+  ventas          ventas   @relation(fields: [venta_id], references: [id])
+
+  @@schema("public")
+}
+
+enum aal_level {
+  aal1
+  aal2
+  aal3
+
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+
+  @@schema("auth")
+}
+
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
+
+  @@schema("auth")
+}
+
+enum oauth_client_type {
+  public
+  confidential
+
+  @@schema("auth")
+}
+
+enum oauth_registration_type {
+  dynamic
+  manual
+
+  @@schema("auth")
+}
+
+enum oauth_response_type {
+  code
+
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}
+
+enum Cargo {
+  administrador
+  cortador
+  disenador
+  recepcionista
+  ayudante
+  representante_taller
+  gerente
+
+  @@schema("public")
+}
+
+enum CategoriaInsumo {
+  tela
+  avios
+  empaque
+  hilo
+  etiquetas
+  forro
+  otro
+  accesorios
+
+  @@schema("public")
+}
+
+enum ColorPrenda {
+  animal_print
+  azul
+  azulino
+  beige
+  blanco
+  camel
+  celeste
+  cemento
+  chocolate
+  coral
+  crema
+  fucsia
+  grafito
+  gris
+  guinda
+  lila
+  marron
+  melange
+  melon
+  negro
+  nude
+  palo_rosa
+  perla
+  piton
+  rojo
+  rosa
+  rose
+  verde
+  vino
+
+  @@schema("public")
+}
+
+enum CondicionProducto {
+  perfecto_estado
+  reproceso
+  segunda
+  merma
+  sucio
+
+  @@schema("public")
+}
+
+enum CuentaContable {
+  caja
+  bancos
+  cuentas_por_cobrar
+  inventario
+  ventas
+  costo_ventas
+  cuentas_por_pagar
+  capital
+  igv
+  descuentos
+  gastos_operativos
+
+  @@schema("public")
+}
+
+enum EspecialidadTaller {
+  corte
+  confeccion
+  bordado
+  estampado
+  costura
+  acabados
+  otro
+
+  @@schema("public")
+}
+
+enum EstadoCategoria {
+  activo
+  inactivo
+
+  @@schema("public")
+}
+
+enum EstadoCliente {
+  activo
+  inactivo
+  suspendido
+  potencial
+
+  @@schema("public")
+}
+
+enum EstadoConfeccion {
+  pendiente
+  en_corte
+  en_costura
+  acabados
+  completado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoCotizacion {
+  borrador
+  enviada
+  aprobada
+  rechazada
+  expirada
+  convertida
+
+  @@schema("public")
+}
+
+enum EstadoDespacho {
+  pendiente
+  en_ruta
+  entregado
+  preparando
+  incidencia
+
+  @@schema("public")
+}
+
+enum EstadoDevolucion {
+  pendiente
+  en_revision
+  aprobada
+  rechazada
+  completada
+  anulada
+
+  @@schema("public")
+}
+
+enum EstadoDevolucionProv {
+  pendiente_envio
+  en_transito
+  aceptado_proveedor
+  rechazado_proveedor
+  completado
+
+  @@schema("public")
+}
+
+enum EstadoFicha {
+  borrador
+  en_revision
+  aprobada
+  obsoleta
+
+  @@schema("public")
+}
+
+enum EstadoOrden {
+  solicitado
+  cotizado
+  aprobado
+  pagado
+  en_proceso
+  finalizado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoPago {
+  pendiente
+  pagado_parcial
+  pagado
+  vencido
+
+  @@schema("public")
+}
+
+enum EstadoPedido {
+  pendiente
+  en_produccion
+  listo_para_despacho
+  entregado
+  cancelado
+
+  @@schema("public")
+}
+
+enum EstadoPersonal {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum EstadoProducto {
+  activo
+  inactivo
+  agotado
+  descontinuado
+  en_produccion
+
+  @@schema("public")
+}
+
+enum EstadoTaller {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum EstadoUsuario {
+  activo
+  inactivo
+  suspendido
+
+  @@schema("public")
+}
+
+enum EtapaProduccion {
+  diseno
+  patronaje
+  corte
+  confeccion
+  remallado
+  bordado_estampado
+  control_calidad
+  acabado
+  listo_entrega
+
+  @@schema("public")
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia_bcp
+  yape
+  plin
+  visa
+  mastercard
+
+  @@schema("public")
+}
+
+enum MotivoDevolucion {
+  defecto_fabrica
+  talla_incorrecta
+  error_envio
+  insatisfaccion
+  danado_transporte
+  otros
+
+  @@schema("public")
+}
+
+enum MotivoDevolucionProv {
+  insumo_defectuoso
+  no_cumple_especificaciones
+  exceso_pedido
+  pedido_incompleto_danado
+  vencimiento
+  otros
+
+  @@schema("public")
+}
+
+enum PrioridadPedido {
+  baja
+  normal
+  alta
+  urgente
+
+  @@schema("public")
+}
+
+enum ReferenciaMovimiento {
+  ORDEN
+  COMPRA
+  VENTA
+  AJUSTE
+
+  @@schema("public")
+}
+
+enum Rol {
+  administrador
+  cortador
+  disenador
+  recepcionista
+  ayudante
+  representante_taller
+  cliente
+  gerente
+
+  @@schema("public")
+}
+
+enum SeveridadIncidencia {
+  baja
+  media
+  alta
+  critica
+
+  @@schema("public")
+}
+
+enum TallaProductos {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+
+  // 28 @map("28")
+  // 30 @map("30")
+  // 32 @map("32")
+  // 34 @map("34")
+  @@schema("public")
+}
+
+enum TipoAsiento {
+  debe
+  haber
+
+  @@schema("public")
+}
+
+enum TipoBeneficio {
+  porcentaje_subtotal
+
+  @@schema("public")
+}
+
+enum TipoCategoria {
+  producto
+  insumo
+
+  @@schema("public")
+}
+
+enum TipoCliente {
+  corporativo
+  minorista
+  distribuidor
+
+  @@schema("public")
+}
+
+enum TipoComprobante {
+  boleta
+  factura
+  nota_venta
+
+  @@schema("public")
+}
+
+enum TipoConteo {
+  modelos_distintos
+
+  @@schema("public")
+}
+
+enum TipoIncidencia {
+  averia_maquina
+  falta_material
+  error_diseno
+  defecto_corte
+  defecto_confeccion
+  retraso
+  otro
+
+  @@schema("public")
+}
+
+enum TipoInsumo {
+  tela
+  hilo
+  avio
+  boton
+  cierre
+  empaque
+  otro
+  etiqueta
+  cinta
+  elastico
+
+  @@schema("public")
+}
+
+enum TipoMaterial {
+  punto
+  plano
+  no_tejido
+  especial
+
+  @@schema("public")
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+
+  @@schema("public")
+}
+
+enum UnidadMedida {
+  metros
+  unidades
+  conos
+  docenas
+  kilogramos
+  set
+  millares
+
+  @@schema("public")
+}

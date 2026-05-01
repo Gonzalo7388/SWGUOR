@@ -49,7 +49,7 @@ export async function GET(req: Request) {
       }),
 
       // 4. ÓRDENES POR ESTADO
-      prisma.ordenes.groupBy({
+      prisma.ordenes_produccion.groupBy({
         by: ['estado'],
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
@@ -117,15 +117,20 @@ export async function GET(req: Request) {
 
     // ── Procesar: Stock levels agrupados por categoría ──
     const stockByCategory: Record<string, { alto: number; medio: number; bajo: number }> = {};
+
     for (const item of stockLevels) {
       const cat = item.categoria_insumo ?? 'otro';
       if (!stockByCategory[cat]) stockByCategory[cat] = { alto: 0, medio: 0, bajo: 0 };
-      if (item.stock_actual > item.stock_minimo * 3) {
-        stockByCategory[cat].alto += item.stock_actual;
-      } else if (item.stock_actual > item.stock_minimo) {
-        stockByCategory[cat].medio += item.stock_actual;
+
+      const actual = Number(item.stock_actual);
+      const minimo = Number(item.stock_minimo);
+
+      if (actual > minimo * 3) {
+        stockByCategory[cat].alto += actual;
+      } else if (actual > minimo) {
+        stockByCategory[cat].medio += actual;
       } else {
-        stockByCategory[cat].bajo += item.stock_actual;
+        stockByCategory[cat].bajo += actual;
       }
     }
 

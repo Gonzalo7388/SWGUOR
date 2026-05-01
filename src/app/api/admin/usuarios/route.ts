@@ -1,177 +1,110 @@
 export const runtime = 'nodejs';
-import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils/serialize';
+import { UsuariosService } from '@/lib/services/usuarios-services';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 import { NextResponse } from 'next/server';
 
-const ROLES_VALIDOS = [
-  'administrador', 'cortador', 'disenador', 'recepcionista',
-  'ayudante', 'representante_taller', 'cliente', 'gerente',
-] as const;
+const ADMIN_ROLES: RolUsuario[] = ['administrador', 'gerente'];
 
-const ESTADOS_VALIDOS = ['activo', 'inactivo', 'suspendido'] as const;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// GET /api/admin/usuarios
+export async function GET() {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
-// GET: Obtener todos los usuarios
-export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const rol    = searchParams.get('rol');
-    const estado = searchParams.get('estado');
-
-    const where: Record<string, unknown> = {};
-    if (rol)    where.rol    = rol;
-    if (estado) where.estado = estado;
-
-    const usuarios = await prisma.usuarios.findMany({
-      where,
-      include: {
-        clientes: { select: { id: true, razon_social: true } },
-        // nombre_completo viene de personal_interno
-        personal_interno: { select: { nombre_completo: true, cargo: true } },
-        _count: {
-          select: {
-            movimientos_inventario: true,
-            pagos_orden: true,
-            ventas: true,
-          },
-        },
-      },
-      orderBy: { created_at: 'desc' },
-    });
-
-    return NextResponse.json(serializeBigInt(usuarios));
+    const data = await UsuariosService.listar();
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.error('Error obteniendo usuarios:', error);
+    console.error('[GET /usuarios]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST: Crear nuevo usuario
+// POST /api/admin/usuarios
 export async function POST(req: Request) {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
 
-    if (!body.email) {
-      return NextResponse.json({ error: 'email es requerido' }, { status: 400 });
+    if (!body.email || !body.password || !body.rol) {
+      return NextResponse.json({ error: 'email, password y rol son requeridos' }, { status: 400 });
     }
 
-    if (!EMAIL_REGEX.test(body.email)) {
-      return NextResponse.json({ error: 'Formato de email inválido' }, { status: 400 });
-    }
-
-    const estado = validarEstado(body.estado ?? 'activo');
-    const rol    = validarRol(body.rol ?? 'ayudante');
-
-    const usuario = await prisma.usuarios.create({
-      data: {
-        email:        body.email.trim().toLowerCase(),
-        rol,
-        estado,
-        auth_id:      body.auth_id    ?? null,
-        created_by:   body.created_by ?? null,
-        ultimo_acceso: new Date(),
-        created_at:   new Date(),
-        updated_at:   new Date(),
-      },
-    });
-
-    return NextResponse.json(serializeBigInt(usuario), { status: 201 });
+    const usuario = await UsuariosService.crear(body);
+    return NextResponse.json({ success: true, data: usuario }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creando usuario:', error);
+    console.error('[POST /usuarios]', error);
     if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'Este email ya está registrado' }, { status: 409 });
+      return NextResponse.json({ error: 'Email ya registrado' }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// PATCH: Editar información del usuario
+// PATCH /api/admin/usuarios
 export async function PATCH(req: Request) {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
-    const { id, ...updates } = body;
+    const { id, estado, ...data } = body;
 
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-
-    if (updates.email) {
-      if (!EMAIL_REGEX.test(updates.email)) {
-        return NextResponse.json({ error: 'Formato de email inválido' }, { status: 400 });
-      }
-      updates.email = updates.email.trim().toLowerCase();
+    if (!id) {
+      return NextResponse.json({ error: 'id requerido' }, { status: 400 });
     }
 
-    if (updates.rol)    updates.rol    = validarRol(updates.rol);
-    if (updates.estado) updates.estado = validarEstado(updates.estado);
+    // Toggle rápido de estado sin otros campos
+    if (estado !== undefined && Object.keys(data).length === 0) {
+      const usuario = await UsuariosService.toggleEstado(id, estado);
+      return NextResponse.json({ success: true, data: usuario });
+    }
 
-    // nombre_completo y telefono NO existen en usuarios — ignorarlos silenciosamente
-    delete updates.nombre_completo;
-    delete updates.telefono;
+    // Actualización general — requiere al menos un campo además del id
+    if (estado === undefined && Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 });
+    }
 
-    const usuario = await prisma.usuarios.update({
-      where: { id: BigInt(id) },
-      data:  updates,
-    });
-
-    return NextResponse.json(serializeBigInt(usuario));
+    const usuario = await UsuariosService.actualizar(id, { estado, ...data });
+    return NextResponse.json({ success: true, data: usuario });
   } catch (error: any) {
-    console.error('Error actualizando usuario:', error);
+    console.error('[PATCH /usuarios]', error);
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
-    }
-    if (error.code === 'P2002') {
-      return NextResponse.json({ error: 'Este email ya está registrado' }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// DELETE: Soft delete (cambia estado a inactivo)
+// DELETE /api/admin/usuarios?id=xxx
 export async function DELETE(req: Request) {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    const id = new URL(req.url).searchParams.get('id');
 
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-
-    // Verificar existencia — solo campos que sí existen en usuarios
-    const existing = await prisma.usuarios.findUnique({
-      where: { id: BigInt(id) },
-      select: { id: true, email: true },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    if (!id) {
+      return NextResponse.json({ error: 'id requerido' }, { status: 400 });
     }
 
-    await prisma.usuarios.delete({ where: { id: BigInt(id) } });
-
-    return NextResponse.json({
-      message:     'Usuario eliminado correctamente',
-      deletedUser: serializeBigInt(existing),
-    });
+    const data = await UsuariosService.eliminar(id);
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.error('Error eliminando usuario:', error);
+    console.error('[DELETE /usuarios]', error);
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
-
-// ─── Validadores ────────────────────────────────────────────────────────────
-
-function validarRol(rol: string): (typeof ROLES_VALIDOS)[number] {
-  const normalized = rol.toLowerCase().trim();
-  if (!ROLES_VALIDOS.includes(normalized as any)) {
-    throw new Error(`Rol inválido: "${rol}". Debe ser uno de: ${ROLES_VALIDOS.join(', ')}`);
-  }
-  return normalized as (typeof ROLES_VALIDOS)[number];
-}
-
-function validarEstado(estado: string): (typeof ESTADOS_VALIDOS)[number] {
-  const normalized = estado.toLowerCase().trim();
-  if (!ESTADOS_VALIDOS.includes(normalized as any)) {
-    throw new Error(`Estado inválido: "${estado}". Debe ser uno de: ${ESTADOS_VALIDOS.join(', ')}`);
-  }
-  return normalized as (typeof ESTADOS_VALIDOS)[number];
 }

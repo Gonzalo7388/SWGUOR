@@ -1,153 +1,206 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog, DialogContent, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input }  from "@/components/ui/input";
+import { Label }  from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserPlus, Mail, ShieldCheck, User } from "lucide-react";
+import { UserPlus, Mail, ShieldCheck, Lock, Eye, EyeOff, X } from "lucide-react";
+import type { Rol } from "@prisma/client";
 
-export default function CreateUsuarioDialog({ isOpen, onClose, onSuccess }: any) {
-  const [loading, setLoading] = useState(false);
+// ─── Roles disponibles ────────────────────────────────────────
+const ROLES: { value: Rol; label: string }[] = [
+  { value: "gerente",              label: "Gerente General"         },
+  { value: "administrador",        label: "Administrador"           },
+  { value: "recepcionista",        label: "Recepcionista"           },
+  { value: "disenador",            label: "Diseñador"               },
+  { value: "cortador",             label: "Cortador"                },
+  { value: "ayudante",             label: "Ayudante"                },
+  { value: "representante_taller", label: "Representante de Taller" },
+  { value: "cliente",              label: "Cliente"                 },
+];
 
-  // Función para filtrar caracteres en tiempo real
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Solo permite letras (incluyendo acentos), espacios y la letra ñ
-    const filtered = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-    e.target.value = filtered;
+interface CreateUsuarioDialogProps {
+  isOpen:    boolean;
+  onClose:   () => void;
+  onSuccess: () => void;
+}
+
+interface FormState {
+  email:    string;
+  password: string;
+  rol:      string;
+}
+
+const INITIAL_FORM: FormState = { email: "", password: "", rol: "" };
+
+export default function CreateUsuarioDialog({ isOpen, onClose, onSuccess }: CreateUsuarioDialogProps) {
+  const [loading,      setLoading]      = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [form,         setForm]         = useState<FormState>(INITIAL_FORM);
+
+  const handleClose = () => {
+    setForm(INITIAL_FORM);
+    setShowPassword(false);
+    onClose();
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData);
-
     try {
       const res = await fetch("/api/admin/usuarios", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body:    JSON.stringify({ email: form.email, password: form.password, rol: form.rol }),
       });
-      if (!res.ok) throw new Error();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.message ?? "Error al crear usuario");
       toast.success("Usuario creado correctamente");
+      handleClose();
       onSuccess();
-      onClose();
-    } catch (error) {
-      toast.error("Error al crear usuario");
+    } catch (error: any) {
+      toast.error(error.message ?? "Error inesperado");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] border-none shadow-2xl bg-white p-0 overflow-hidden">
-        {/* Banner decorativo superior */}
-        <div className="h-2 bg-pink-600 w-full" />
-        
-        <div className="p-6">
-          <DialogHeader className="mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-pink-50 rounded-lg">
-                <UserPlus className="w-6 h-6 text-pink-600" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-bold text-slate-800 uppercase tracking-tight">
-                  Nuevo Usuario
-                </DialogTitle>
-                <DialogDescription className="text-slate-500">
-                  Crea una nueva cuenta para un miembro del equipo.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[440px] border-none shadow-2xl bg-white p-0 overflow-hidden [&>button]:hidden">
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Campo: Nombre */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                <User className="w-3.5 h-3.5" /> Nombre Completo
-              </Label>
-              <Input 
-                name="nombre_completo" 
-                placeholder="Ej. Juan Pérez"
-                required 
-                onChange={handleNombreChange}
-                className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
-              />
-              <p className="text-[9px] text-slate-400 italic">Solo se permiten letras, espacios y acentos</p>
-            </div>
+        {/* Franja superior */}
+        <div className="h-1.5 bg-gradient-to-r from-pink-500 via-pink-600 to-rose-600 w-full" />
 
-            {/* Campo: Email */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5" /> Correo Electrónico
-              </Label>
-              <Input 
-                name="email" 
-                type="email"
-                placeholder="correo@modasguor.com"
-                required 
-                className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
-              />
+        {/* Header */}
+        <div className="px-6 pt-5 pb-0 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-pink-50 rounded-xl border border-pink-100 shrink-0">
+              <UserPlus className="w-5 h-5 text-pink-600" />
             </div>
-
-            {/* Campo: Rol */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5" /> Nivel de Acceso (Rol)
-              </Label>
-              <Select name="rol" defaultValue="recepcionista">
-                <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
-                  <SelectValue placeholder="Seleccione un cargo" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  <SelectItem value="gerente_general">Gerente General</SelectItem>
-                  <SelectItem value="administrador">Administrador</SelectItem>
-                  <SelectItem value="recepcionista">Recepcionista</SelectItem>
-                  <SelectItem value="disenador">Diseñador</SelectItem>
-                  <SelectItem value="cortador">Cortador</SelectItem>
-                  <SelectItem value="ayudante">Ayudante</SelectItem>
-                  <SelectItem value="representante_taller">Representante de Taller</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-slate-400 italic">
-                * El rol determina los módulos a los que el usuario puede entrar.
-              </p>
+            <div>
+              <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
+                Nuevo Usuario
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400 mt-0.5">
+                Crea una cuenta de acceso al sistema.
+              </DialogDescription>
             </div>
-
-            {/* Footer con acciones */}
-            <DialogFooter className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={onClose}
-                className="text-slate-500 hover:bg-slate-100"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-200 px-8 transition-all"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creando
-                  </span>
-                ) : (
-                  "Crear Usuario"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+          </div>
+          {/* Botón cerrar custom */}
+          <button
+            onClick={handleClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0 mt-0.5"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
+
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} id="create-usuario-form" className="px-6 pt-5 pb-2 space-y-5">
+
+          <Field icon={<Mail className="w-3.5 h-3.5" />} label="Correo Electrónico">
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              placeholder="maria.lozano@guor.com"
+              required
+              className={inputCls}
+            />
+          </Field>
+
+          <Field icon={<Lock className="w-3.5 h-3.5" />} label="Contraseña">
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                placeholder="Mínimo 8 caracteres"
+                required
+                minLength={8}
+                className={`${inputCls} pr-10`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </Field>
+
+          <Field icon={<ShieldCheck className="w-3.5 h-3.5" />} label="Rol de Acceso">
+            <Select value={form.rol} onValueChange={(v) => setForm((p) => ({ ...p, rol: v }))}>
+              <SelectTrigger className={`${inputCls} cursor-pointer`}>
+                <SelectValue placeholder="Seleccionar rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[9px] text-slate-400 italic mt-1">
+              El rol determina los módulos a los que el usuario puede acceder.
+            </p>
+          </Field>
+
+        </form>
+
+        {/* Footer */}
+        <div className="px-6 py-4 mt-2 border-t border-slate-100 bg-slate-50/60 flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClose}
+            disabled={loading}
+            className="text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            form="create-usuario-form"
+            disabled={loading || !form.rol}
+            className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-100 px-7 transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Creando…
+              </span>
+            ) : "Crear Usuario"}
+          </Button>
+        </div>
+
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+const inputCls = "bg-slate-50 border-slate-200 focus:bg-white focus-visible:ring-pink-400 transition-all h-10 text-sm";
+
+function Field({ icon, label, children }: {
+  icon:     React.ReactNode;
+  label:    string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
+        {icon}{label}
+      </Label>
+      {children}
+    </div>
   );
 }

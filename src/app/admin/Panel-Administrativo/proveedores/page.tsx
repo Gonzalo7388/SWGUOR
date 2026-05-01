@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Building2, Search, Plus, RefreshCw, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Building2, Search, Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import { useProveedores } from '@/lib/hooks/useProveedores';
 import ProveedorTable from '@/components/admin/proveedores/ProveedorTable';
 import ProveedorFormModal from '@/components/admin/proveedores/ProveedorFormModal';
 import { ProveedorDeleteModal, ProveedorDetailModal } from '@/components/admin/proveedores/ProveedorModals';
+import { ProveedorStatCard } from '@/components/admin/proveedores/ProveedorStatCard';
 import type { Proveedor, ProveedorForm, EstadoProveedor } from '@/lib/schemas/proveedor';
 
 const PAGE_SIZE = 15;
@@ -18,14 +19,14 @@ export default function ProveedoresPage() {
   const { can, isLoading: authLoading } = usePermissions();
 
   // ── UI state ───────────────────────────────────────────────
-  const [page,              setPage]             = useState(1);
-  const [busqueda,          setBusqueda]         = useState('');
+  const [page,              setPage]              = useState(1);
+  const [busqueda,          setBusqueda]          = useState('');
   const [debouncedBusqueda, setDebouncedBusqueda] = useState('');
-  const [estadoFilter,      setEstadoFilter]     = useState<EstadoProveedor>('');
-  const [showForm,          setShowForm]         = useState(false);
-  const [editingProveedor,  setEditingProveedor] = useState<Proveedor | null>(null);
-  const [deleteTarget,      setDeleteTarget]     = useState<Proveedor | null>(null);
-  const [detailTarget,      setDetailTarget]     = useState<Proveedor | null>(null);
+  const [estadoFilter,      setEstadoFilter]      = useState<EstadoProveedor>('');
+  const [showForm,          setShowForm]          = useState(false);
+  const [editingProveedor,  setEditingProveedor]  = useState<Proveedor | null>(null);
+  const [deleteTarget,      setDeleteTarget]      = useState<Proveedor | null>(null);
+  const [detailTarget,      setDetailTarget]      = useState<Proveedor | null>(null);
 
   // Debounce búsqueda
   useEffect(() => {
@@ -39,16 +40,15 @@ export default function ProveedoresPage() {
     save, deactivate, isSaving, isDeactivating,
   } = useProveedores({
     page,
-    limit:        PAGE_SIZE,
-    busqueda:     debouncedBusqueda,
+    limit:       PAGE_SIZE,
+    busqueda:    debouncedBusqueda,
     estadoFilter,
-    editingId:    editingProveedor?.id,
+    editingId:   editingProveedor?.id,
   });
 
   // ── Permisos ───────────────────────────────────────────────
   const canView   = can('view',   'proveedores');
   const canCreate = can('create', 'proveedores') || can('edit', 'proveedores');
-  const canDelete = can('delete', 'proveedores');
 
   // ── Handlers ──────────────────────────────────────────────
   const handleNew = () => { setEditingProveedor(null); setShowForm(true); };
@@ -119,9 +119,27 @@ export default function ProveedoresPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          <StatCard label="TOTAL"     value={pagination?.total ?? 0}                                          color="rose"    isActive={!estadoFilter}              onClick={() => { setEstadoFilter('');         setPage(1); }} />
-          <StatCard label="ACTIVOS"   value={proveedores.filter((p) => p.estado === 'activo').length}         color="emerald" isActive={estadoFilter === 'activo'}   onClick={() => { setEstadoFilter('activo');   setPage(1); }} />
-          <StatCard label="INACTIVOS" value={proveedores.filter((p) => p.estado === 'inactivo').length}       color="orange"  isActive={estadoFilter === 'inactivo'} onClick={() => { setEstadoFilter('inactivo'); setPage(1); }} />
+          <ProveedorStatCard
+            label="TOTAL"
+            value={pagination?.total ?? 0}
+            color="rose"
+            isActive={!estadoFilter}
+            onClick={() => { setEstadoFilter(''); setPage(1); }}
+          />
+          <ProveedorStatCard
+            label="ACTIVOS"
+            value={proveedores.filter((p) => p.estado === 'activo').length}
+            color="emerald"
+            isActive={estadoFilter === 'activo'}
+            onClick={() => { setEstadoFilter('activo'); setPage(1); }}
+          />
+          <ProveedorStatCard
+            label="INACTIVOS"
+            value={proveedores.filter((p) => p.estado === 'inactivo').length}
+            color="orange"
+            isActive={estadoFilter === 'inactivo'}
+            onClick={() => { setEstadoFilter('inactivo'); setPage(1); }}
+          />
         </div>
 
         {/* Filtros */}
@@ -136,48 +154,52 @@ export default function ProveedoresPage() {
             />
           </div>
           <Button variant="outline" className="h-11 border-gray-200" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading && 'animate-spin'}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
-        {/* Tabla */}
-        {isLoading ? (
-          <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
-            <Loader2 className="w-10 h-10 text-rose-500 animate-spin mb-4" />
-            <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Cargando proveedores...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <ProveedorTable
-              data={proveedores}
-              canEdit={canCreate}
-              canDelete={canDelete}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onViewDetail={setDetailTarget}
-            />
+        {/* Tabla — el skeleton vive dentro de ProveedorTable */}
+        <div className="space-y-4">
+          <ProveedorTable
+            data={proveedores}
+            loading={isLoading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onViewDetail={setDetailTarget}
+          />
 
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-                <p className="text-xs text-gray-500">
-                  Mostrando <span className="font-bold text-gray-900">{proveedores.length}</span> de{' '}
-                  <span className="font-bold text-gray-900">{pagination.total}</span>
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <div className="px-4 py-1.5 text-xs font-bold bg-gray-50 border rounded-lg flex items-center">
-                    Página {page} de {pagination.totalPages}
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= pagination.totalPages}>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+          {/* Paginación */}
+          {!isLoading && pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
+              <p className="text-xs text-gray-500">
+                Mostrando{' '}
+                <span className="font-bold text-gray-900">{proveedores.length}</span>{' '}
+                de{' '}
+                <span className="font-bold text-gray-900">{pagination.total}</span>
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="px-4 py-1.5 text-xs font-bold bg-gray-50 border rounded-lg flex items-center">
+                  Página {page} de {pagination.totalPages}
                 </div>
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= pagination.totalPages}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Modales */}
@@ -206,39 +228,5 @@ export default function ProveedoresPage() {
         />
       )}
     </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// StatCard
-// ─────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, color, isActive, onClick }: {
-  label: string; value: number; color: string; isActive: boolean; onClick: () => void;
-}) {
-  const colorMap: Record<string, { border: string; ring: string; text: string; bg: string; iconBg: string }> = {
-    rose:    { border: 'border-rose-500',    ring: 'ring-rose-50',    text: 'text-rose-600',    bg: 'bg-rose-50',    iconBg: 'bg-rose-600'    },
-    emerald: { border: 'border-emerald-500', ring: 'ring-emerald-50', text: 'text-emerald-600', bg: 'bg-emerald-50', iconBg: 'bg-emerald-600' },
-    orange:  { border: 'border-orange-500',  ring: 'ring-orange-50',  text: 'text-orange-600',  bg: 'bg-orange-50',  iconBg: 'bg-orange-600'  },
-  };
-  const c = colorMap[color] ?? colorMap.rose;
-
-  return (
-    <button
-      onClick={onClick}
-      className={`p-3 rounded-xl border transition-all duration-300 flex items-center gap-3 cursor-pointer ${
-        isActive
-          ? `${c.border} ring-4 shadow-xl scale-[1.02] z-10 ${c.bg}`
-          : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'
-      }`}
-    >
-      <div className={`p-2 rounded-lg transition-all ${isActive ? `${c.iconBg} text-white rotate-3` : 'bg-gray-100 text-gray-600'}`}>
-        <Building2 className="w-5 h-5" />
-      </div>
-      <div className="text-left overflow-hidden">
-        <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest truncate">{label}</p>
-        <p className={`text-xl font-black tracking-tight ${isActive ? c.text : 'text-gray-800'}`}>{value}</p>
-      </div>
-    </button>
   );
 }

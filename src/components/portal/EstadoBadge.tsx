@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-// Importamos la función de información de estados que centraliza las etiquetas y colores
 import { getEstadoInfo } from '@/lib/constants/estados';
 
 type TipoEstado = 'cotizacion' | 'orden' | 'despacho' | 'cliente' | 'pago';
@@ -11,10 +10,9 @@ interface EstadoBadgeProps {
 }
 
 export function EstadoBadge({ estado, tipo, className }: EstadoBadgeProps) {
-  // Obtenemos la configuración centralizada (etiqueta, color de texto y color de fondo)
   const info = getEstadoInfo(estado, tipo as any);
 
-  // Mapeo manual de colores de bordes basados en el bgColor para dar profundidad
+  // Mapeo manual de colores de bordes basados en el bgColor
   const borderStyles: Record<string, string> = {
     'bg-slate-100': 'border-slate-200',
     'bg-amber-100': 'border-amber-200',
@@ -33,15 +31,25 @@ export function EstadoBadge({ estado, tipo, className }: EstadoBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-bold transition-colors shadow-sm',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all shadow-sm hover:shadow-md',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
         info.bgColor,
         info.color,
         borderColor,
         className
       )}
+      role="status"
+      aria-label={`Estado: ${info.label}`}
+      title={`${tipo.charAt(0).toUpperCase() + tipo.slice(1)}: ${info.label}`}
     >
-      {/* Punto decorativo para mayor realismo de Dashboard */}
-      <span className={cn('w-1.5 h-1.5 rounded-full fill-current', info.color.replace('text-', 'bg-'))} />
+      {/* Punto decorativo con animación sutil */}
+      <span 
+        className={cn(
+          'w-1.5 h-1.5 rounded-full fill-current animate-pulse',
+          info.color.replace('text-', 'bg-')
+        )}
+        aria-hidden="true"
+      />
       {info.label}
     </span>
   );

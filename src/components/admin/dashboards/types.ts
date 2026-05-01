@@ -1,6 +1,6 @@
-import type { insumo, ordenes } from "@prisma/client";
+import type { insumo, ordenes_compra } from "@prisma/client";
 
-export interface OrdenConCliente extends ordenes {
+export interface OrdenConCliente extends ordenes_compra {
   clientes: {
     razon_social: string;
     ruc?: string;

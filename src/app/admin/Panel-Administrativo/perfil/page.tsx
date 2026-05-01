@@ -253,7 +253,7 @@ export default function PerfilPage() {
       }
 
       const { error: piError } = await updatePersonalInterno(
-        fullUsuario.personal_interno_id,
+        String(fullUsuario.personal_interno_id),
         { nombre_completo: state.nombreCompleto.trim() }
       );
 

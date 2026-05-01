@@ -12,7 +12,7 @@ import { formatCurrency, formatDateLong, formatDocumentNumber } from '@/lib/help
 import { toast } from 'sonner';
 
 // Estados actualizados al flujo B2B
-type EstadoFiltro = 'todas' | 'borrador' | 'pendiente' | 'aceptada' | 'rechazada' | 'expirada' | 'convertida';
+type EstadoFiltro = 'todas' | 'borrador' | 'enviada' | 'aprobada' | 'rechazada' | 'expirada' | 'convertida';
 
 interface Cot {
   id: number; 
@@ -26,8 +26,8 @@ interface Cot {
 const FILTROS: { value: EstadoFiltro; label: string }[] = [
   { value: 'todas',      label: 'Todas' },
   { value: 'borrador',   label: 'Borradores' },
-  { value: 'pendiente',  label: 'En Revisión' },
-  { value: 'aceptada',   label: 'Aceptadas' },
+  { value: 'enviada',  label: 'En Revisión' },
+  { value: 'aprobada', label: 'Aceptadas'   },
   { value: 'convertida', label: 'En Orden' },
 ];
 

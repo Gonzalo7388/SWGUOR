@@ -1,164 +1,232 @@
 "use client";
 
-import { Edit2, Trash2, Mail, Phone, User, ShieldCheck, ShieldAlert, Hash, Ban, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { memo } from "react";
+import { Edit, ShieldOff, Eye, Building2, Mail, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table, TableBody, TableCell,
+  TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { useRouter } from "next/navigation";
+import type { ClienteListItem } from "@/lib/services/clientes-services";
 
-interface ClientesTableProps {
-  data: any[];
-  onEdit?: (c: any) => void;
-  onDelete?: (c: any) => void;
-  onToggleStatus?: (c: any) => void;
+// ─── Props ────────────────────────────────────────────────────
+interface Props {
+  clientes:     ClienteListItem[];
+  loading?:     boolean;
+  onEdit?:      (user: ClienteListItem) => void;
+  onSuspender?: (user: ClienteListItem) => void;
 }
 
-export default function ClientesTable({ 
-  data, 
-  onEdit, 
-  onDelete, 
-  onToggleStatus 
-}: ClientesTableProps) {
-
-  const showActions = !!onEdit || !!onDelete || !!onToggleStatus;
-
-  // Función auxiliar para determinar el estilo del Badge según el Enum de tu DB
-  const getStatusStyles = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'activo':
-        return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      case 'inactivo':
-        return "bg-orange-50 text-orange-600 border-orange-100";
-      case 'suspendido':
-        return "bg-red-50 text-red-600 border-red-100";
-      case 'potencial':
-        return "bg-blue-50 text-blue-600 border-blue-100";
-      default:
-        return "bg-slate-50 text-slate-500 border-slate-100";
-    }
-  };
-
+// ─── Helpers ─────────────────────────────────────────────────
+function EstadoBadge({ estado }: { estado: string }) {
+  const activo = estado.toLowerCase() === "activo";
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto pb-4">
-        <table className="w-full border-separate border-spacing-y-3">
-          <thead>
-            <tr className="text-left">
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Cliente / Empresa</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Contacto</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Documento</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
-              {showActions && (
-                <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {data.length === 0 ? (
-              <tr>
-                <td colSpan={showActions ? 5 : 4} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
-                  <div className="flex flex-col items-center gap-3">
-                    <User className="w-12 h-12 text-slate-200" />
-                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hay clientes registrados</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              data.map((c) => (
-                <tr key={c.id} className="group transition-all duration-200">
-                  {/* Cliente / Empresa */}
-                  <td className="bg-white border-y border-l border-slate-100 py-5 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className={`h-11 w-11 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 
-                        ${c.activo === 'activo' ? 'bg-pink-50 text-pink-600 border-pink-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                        <User className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none truncate max-w-50">
-                          {c.razon_social}
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-1 font-medium truncate max-w-45">
-                          {c.direccion || 'Sin dirección'}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Contacto */}
-                  <td className="bg-white border-y border-slate-100 py-5 px-6 shadow-sm group-hover:shadow-md transition-all">
-                    <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-2 text-[13px] font-bold text-slate-600">
-                        <Mail className="w-3.5 h-3.5 text-slate-300"/> {c.email || '---'}
-                      </span>
-                      <span className="flex items-center gap-2 text-[12px] font-medium text-slate-400">
-                        <Phone className="w-3.5 h-3.5 text-slate-300"/> {c.telefono || '---'}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Documento (RUC) */}
-                  <td className="bg-white border-y border-slate-100 py-5 px-6 shadow-sm group-hover:shadow-md transition-all">
-                    <div className="inline-flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                      <Hash size={14} className="text-slate-400" />
-                      <span className="font-mono text-[13px] font-bold text-slate-700">{c.ruc || "---"}</span>
-                    </div>
-                  </td>
-
-                  {/* Estado (Badge Dinámico) */}
-                  <td className={`bg-white border-y border-slate-100 text-center shadow-sm group-hover:shadow-md transition-all ${!showActions ? 'rounded-r-2xl border-r' : ''}`}>
-                    <Badge className={`rounded-full px-4 py-1 text-[10px] font-black border-2 uppercase transition-colors ${getStatusStyles(c.activo)}`} variant="outline">
-                      {c.activo || "S/E"}
-                    </Badge>
-                  </td>
-
-                  {/* Acciones */}
-                  {showActions && (
-                    <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm group-hover:shadow-md transition-all">
-                      <div className="flex justify-end items-center gap-2">
-                        {onToggleStatus && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => onToggleStatus(c)}
-                            className={`h-9 w-9 rounded-xl border-slate-200 transition-all ${
-                              c.activo === 'activo' 
-                                ? 'text-slate-400 hover:text-orange-600 hover:bg-orange-50 hover:border-orange-200' 
-                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'
-                            }`}
-                            title={c.activo === 'activo' ? "Desactivar" : "Activar"}
-                          >
-                            {c.activo === 'activo' ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
-                          </Button>
-                        )}
-                        
-                        {onEdit && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => onEdit(c)}
-                            className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
-                          >
-                            <Edit2 size={16} />
-                          </Button>
-                        )}
-
-                        {onDelete && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => onDelete(c)}
-                            className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Badge
+      variant="outline"
+      className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase border ${
+        activo
+          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+          : "bg-orange-50 text-orange-600 border-orange-200"
+      }`}
+    >
+      {estado}
+    </Badge>
   );
 }
+
+// ─── Componente ───────────────────────────────────────────────
+function ClientesTable({ clientes, loading, onEdit, onSuspender }: Props) {
+  const router      = useRouter();
+  const showActions = !!onEdit || !!onSuspender;
+  const colSpan     = 4 + (showActions ? 1 : 0);
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="hover:bg-transparent border-none">
+          <TableHead className={thCls}>Empresa</TableHead>
+          <TableHead className={`${thCls} text-center`}>RUC</TableHead>
+          <TableHead className={`${thCls} text-center`}>Email</TableHead>
+          <TableHead className={`${thCls} text-center`}>Estado</TableHead>
+          {showActions && (
+            <TableHead className={`${thCls} text-right pr-6`}>Acciones</TableHead>
+          )}
+        </TableRow>
+      </TableHeader>
+
+      <TableBody>
+
+        {/* ── Skeleton ── */}
+        {loading && Array.from({ length: 5 }).map((_, i) => (
+          <TableRow key={`sk-${i}`} className={rowCls}>
+            <TableCell className="py-4 px-6 rounded-l-xl">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="text-center"><Skeleton className="h-4 w-28 mx-auto" /></TableCell>
+            <TableCell className="text-center"><Skeleton className="h-4 w-36 mx-auto" /></TableCell>
+            <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto rounded-full" /></TableCell>
+            {showActions && (
+              <TableCell className="text-right px-6 rounded-r-xl">
+                <div className="flex justify-end gap-1.5">
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+
+        {/* ── Sin datos ── */}
+        {!loading && clientes.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={colSpan} className="py-16 text-center">
+              <div className="flex flex-col items-center gap-2">
+                <Building2 className="w-10 h-10 text-slate-200" />
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">
+                  No hay clientes registrados
+                </p>
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+
+        {/* ── Filas ── */}
+        {!loading && clientes.map((c) => {
+          const activo = c.activo;
+          const iniciales = (c.razon_social ?? c.usuarios?.email ?? "??")
+            .substring(0, 2).toUpperCase();
+
+          return (
+            <TableRow key={c.id} className={`${rowCls} group`}>
+
+              {/* Empresa */}
+              <TableCell className="py-4 px-6 rounded-l-xl">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center font-black text-xs uppercase shrink-0 group-hover:scale-105 transition-transform">
+                    {iniciales}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-bold text-slate-800 truncate">
+                      {c.razon_social ?? (
+                        <span className="text-slate-400 font-medium text-xs">Sin razón social</span>
+                      )}
+                    </span>
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                      <Building2 size={9} className="text-slate-300 shrink-0" />
+                      Cliente
+                    </span>
+                  </div>
+                </div>
+              </TableCell>
+
+              {/* RUC */}
+              <TableCell className="text-center">
+                <span className="text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md tracking-wider">
+                  {c.ruc ?? <span className="text-slate-300">—</span>}
+                </span>
+              </TableCell>
+
+              {/* Email */}
+              <TableCell className="text-center">
+                <span className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
+                  <Mail size={11} className="text-slate-300 shrink-0" />
+                  {c.email}
+                </span>
+              </TableCell>
+
+              {/* Direccion Fiscal */}
+              <TableCell className="text-center">
+                <span className="text-xs text-slate-600 flex items-center justify-center gap-1.5">
+                  <MapPin size={11} className="text-slate-300 shrink-0"/>
+                  {c.direccion_fiscal || <span className="text-slate-300">No registrada</span>}
+                </span>
+              </TableCell>
+
+              {/* Estado */}
+              <TableCell className="text-center">
+                <EstadoBadge estado={c.activo} />
+              </TableCell>
+
+              {/* Acciones */}
+              {showActions && (
+                <TableCell className="text-right px-6 rounded-r-xl">
+                  <div className="flex justify-end items-center gap-1.5">
+                    <ActionBtn
+                      title="Ver detalle"
+                      color="pink"
+                      onClick={() => router.push(`/admin/Panel-Administrativo/usuarios/clientes/${c.id}`)}
+                    >
+                      <Eye size={15} />
+                    </ActionBtn>
+
+                    {onEdit && (
+                      <ActionBtn title="Editar" color="emerald" onClick={() => onEdit(c)}>
+                        <Edit size={15} />
+                      </ActionBtn>
+                    )}
+
+                    {onSuspender && (
+                      <ActionBtn
+                        title={activo ? "Suspender" : "Reactivar"}
+                        color={activo ? "amber" : "blue"}
+                        onClick={() => onSuspender(c)}
+                      >
+                        <ShieldOff size={15} />
+                      </ActionBtn>
+                    )}
+                  </div>
+                </TableCell>
+              )}
+
+            </TableRow>
+          );
+        })}
+
+      </TableBody>
+    </Table>
+  );
+}
+
+// ─── Micro-componente botón de acción ─────────────────────────
+type ColorKey = "pink" | "emerald" | "amber" | "blue";
+
+const COLOR_MAP: Record<ColorKey, string> = {
+  pink:    "hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50",
+  emerald: "hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50",
+  amber:   "hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50",
+  blue:    "hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50",
+};
+
+function ActionBtn({ children, onClick, title, color }: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title: string;
+  color: ColorKey;
+}) {
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={onClick}
+      title={title}
+      className={`h-8 w-8 rounded-lg border-slate-200 text-slate-400 transition-all ${COLOR_MAP[color]}`}
+    >
+      {children}
+    </Button>
+  );
+}
+
+const thCls  = "font-bold text-[10px] tracking-widest text-slate-400 uppercase py-3 px-4";
+const rowCls = "bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-150";
+
+export default memo(ClientesTable);

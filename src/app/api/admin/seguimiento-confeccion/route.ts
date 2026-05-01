@@ -3,28 +3,18 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-async function getUsuario() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('usuarios')
-    .select('id, rol, auth_id')
-    .eq('auth_id', user.id)
-    .single();
-  return data ? { ...data, auth_id: user.id } : null;
-}
+const SEGUIMIENTO_CONFECCION_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'];
 
 // ── GET: Seguimientos por confección ─────────────────────────────────────
 export async function GET(req: Request) {
+  const auth = await requireServerRole(SEGUIMIENTO_CONFECCION_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const confeccion_id = searchParams.get('confeccion_id');
@@ -46,12 +36,12 @@ export async function GET(req: Request) {
 
 // ── POST: Registrar cambio de estado ─────────────────────────────────────
 export async function POST(req: Request) {
-  try {
-    const usuario = await getUsuario();
-    if (!usuario) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(SEGUIMIENTO_CONFECCION_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const body = await req.json();
     const { confeccion_id, estado_anterior, estado_nuevo, notas } = body;
 
@@ -67,7 +57,7 @@ export async function POST(req: Request) {
           estado_anterior: estado_anterior ?? null,
           estado_nuevo,
           notas:           notas ?? null,
-          responsable_id:  usuario.id ? BigInt(usuario.id) : null,
+          responsable_id: auth.user.id,
         },
       });
 

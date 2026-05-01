@@ -3,28 +3,18 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-async function getUsuario() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('usuarios')
-    .select('id, rol, auth_id')
-    .eq('auth_id', user.id)
-    .single();
-  return data ? { ...data, auth_id: user.id } : null;
-}
+const SEGUIMIENTO_PRODUCCION_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'];
 
 // ── GET: Seguimientos por orden ───────────────────────────────────────────
 export async function GET(req: Request) {
+  const auth = await requireServerRole(SEGUIMIENTO_PRODUCCION_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const orden_id = searchParams.get('orden_id');
@@ -46,12 +36,12 @@ export async function GET(req: Request) {
 
 // ── POST: Registrar nueva etapa ───────────────────────────────────────────
 export async function POST(req: Request) {
-  try {
-    const usuario = await getUsuario();
-    if (!usuario) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(SEGUIMIENTO_PRODUCCION_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const body = await req.json();
     const { orden_id, etapa, observaciones } = body;
 
@@ -59,7 +49,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'orden_id y etapa requeridos' }, { status: 400 });
     }
 
-    // Cerrar etapa activa anterior
     await prisma.seguimiento_produccion.updateMany({
       where: { orden_id: BigInt(orden_id), activo: true },
       data:  { activo: false, completado_en: new Date() },
@@ -70,7 +59,7 @@ export async function POST(req: Request) {
         orden_id:      BigInt(orden_id),
         etapa,
         observaciones: observaciones ?? null,
-        usuario_id:    usuario.id ? BigInt(usuario.id) : null,
+        usuario_id:    BigInt(auth.user.id),
         activo:        true,
       },
     });

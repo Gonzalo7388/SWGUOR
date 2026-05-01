@@ -1,33 +1,27 @@
 export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
+import { requireServerAuth } from '@/lib/auth/server';
 
 async function obtenerClienteSesion() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'no_auth' as const };
-
-  // usuarios ya NO tiene nombre_completo — solo campos que existen
-  const usuarioDb = await prisma.usuarios.findFirst({
-    where: { auth_id: user.id },
-    select: { id: true, estado: true, rol: true, email: true },
-  });
-
-  if (!usuarioDb) return { error: 'usuario_no_encontrado' as const };
+  const auth = await requireServerAuth();
+  if (!auth.success) {
+    return { error: auth.error, status: auth.status };
+  }
 
   const clienteDb = await prisma.clientes.findFirst({
-    where: { usuario_id: usuarioDb.id },
+    where: { usuario_id: auth.user.id },
   });
 
-  if (!clienteDb) return { error: 'cliente_no_encontrado' as const };
+  if (!clienteDb) {
+    return { error: 'cliente_no_encontrado' as const, status: 404 };
+  }
 
   return {
-    auth_user_id: user.id,
-    usuario_id:   usuarioDb.id,
-    usuario:      usuarioDb,
+    auth_user_id: auth.user.authId,
+    usuario_id:   auth.user.id,
+    usuario:      auth.user,
     cliente_id:   clienteDb.id,
     cliente:      clienteDb,
   };
@@ -40,7 +34,7 @@ export async function GET() {
     if ('error' in sesion) {
       return NextResponse.json(
         { success: false, error: sesion.error },
-        { status: sesion.error === 'no_auth' ? 401 : 404 }
+        { status: sesion.error ? 401 : 404 }
       );
     }
 
@@ -49,10 +43,9 @@ export async function GET() {
       orderBy: { es_principal: 'desc' },
     });
 
-    const [cotizacionesCount, pedidosCount, ordenesCount] = await Promise.all([
+    const [cotizacionesCount, pedidosCount] = await Promise.all([
       prisma.cotizaciones.count({ where: { cliente_id: sesion.cliente_id } }),
       prisma.pedidos.count({     where: { cliente_id: sesion.cliente_id } }),
-      prisma.ordenes.count({     where: { cliente_id: sesion.cliente_id } }),
     ]);
 
     return NextResponse.json({
@@ -61,7 +54,7 @@ export async function GET() {
         cliente:     serializeBigInt(sesion.cliente),
         usuario:     serializeBigInt(sesion.usuario),
         direcciones: serializeBigInt(direcciones),
-        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount, ordenes: ordenesCount },
+        stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount },
       },
     });
   } catch (error: any) {
@@ -77,7 +70,7 @@ export async function PATCH(req: Request) {
     if ('error' in sesion) {
       return NextResponse.json(
         { success: false, error: sesion.error },
-        { status: sesion.error === 'no_auth' ? 401 : 404 }
+        { status: sesion.error ? 401 : 404 }
       );
     }
 

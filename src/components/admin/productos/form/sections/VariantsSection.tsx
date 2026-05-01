@@ -1,145 +1,116 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Box, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { VarianteStockResumen } from '@/lib/hooks/useStockResumen';
+import { generateVariantSKU } from "@/lib/utils/producto-utils";
 
-interface VariantsSectionProps {
-  stockResumen?: VarianteStockResumen[];
-  mode?: "create" | "edit";  // ← nuevo
-}
-
-const CELL_INPUT =
-  "h-10 bg-transparent border-none text-sm font-medium text-gray-700 focus-visible:ring-1 focus-visible:ring-pink-200 placeholder:text-gray-300 rounded-lg";
-
-export function VariantsSection({ stockResumen = [], mode = "create" }: VariantsSectionProps) {
-  const { control, register, watch } = useFormContext();
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "variantes",
-  });
+export function VariantsSection({ stockResumen = [] }: any) {
+  const { control, register, watch, setValue } = useFormContext();
+  const { fields, append, remove } = useFieldArray({ control, name: "variantes" });
 
   const skuMaestro = watch("sku") || "SKU";
-  const isEdit = mode === "edit";
+
+  // Sincronización forzada usando solo la propiedad 'stock'
+  useEffect(() => {
+    if (stockResumen && stockResumen.length > 0) {
+      stockResumen.forEach((item: any) => {
+        const index = fields.findIndex((f: any) => {
+          const fieldValues = watch(`variantes`);
+          const currentField = fieldValues[fields.indexOf(f)];
+          return currentField?.sku === item.sku || 
+                 (currentField?.color === item.color && currentField?.talla === item.talla);
+        });
+
+        if (index !== -1) {
+          // Usamos 'stock' directamente como viene de tu CSV/DB
+          setValue(`variantes.${index}.stock`, item.stock ?? 0);
+        }
+      });
+    }
+  }, [stockResumen, fields, setValue, watch]);
 
   return (
-    <section className="space-y-5">
-      {/* Encabezado */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-5 bg-pink-500 rounded-full" />
-          <div>
-            <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest">
-              Variantes de Inventario
-            </h3>
-            <p className="text-[11px] text-gray-400 font-medium mt-0.5">
-              {isEdit ? "Tallas, colores y existencias por variante" : "Tallas y colores del producto"}
-            </p>
-          </div>
+    <div className="max-w-4xl mx-auto w-full space-y-6">
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-6 bg-pink-500 rounded-full" />
+          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Variantes de Inventario</h3>
         </div>
-        {/* Solo mostrar "Agregar" en edit */}
-        {isEdit && (
-          <Button
-            type="button"
-            onClick={() => append({ color: "", talla: "", stock_adicional: 0, sku: "" })}
-            className="bg-gray-900 hover:bg-gray-700 text-white h-9 px-4 rounded-lg font-bold text-xs gap-1.5 transition-all active:scale-95"
-          >
-            <Plus size={14} /> Agregar
-          </Button>
-        )}
+        <Button
+          type="button"
+          onClick={() => append({ color: "", talla: "", stock: 0, sku: "" })}
+          className="bg-gray-900 hover:bg-gray-800 text-white rounded-xl px-4 h-9 text-xs font-bold gap-2"
+        >
+          <Plus size={14} /> Agregar variante
+        </Button>
       </div>
 
-      {/* Tabla */}
-      <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="w-full border-collapse text-sm">
+      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-100">
-              <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-left">
-                Color
-              </th>
-              <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-left">
-                Talla
-              </th>
-              <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-left">
-                SKU Variante
-              </th>
-              {/* Stock solo en edit */}
-              {isEdit && (
-                <th className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-3 text-center">
-                  Stock
-                </th>
-              )}
-              <th className="px-4 py-3" />
+            <tr className="bg-gray-50/50 border-b border-gray-100">
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Color</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Talla</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU Variante</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Stock</th>
+              <th className="px-6 py-4 w-16"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {fields.map((field, index) => (
-              <tr key={field.id} className="group hover:bg-gray-50 transition-colors">
-                <td className="px-3 py-2">
-                  <Input
-                    {...register(`variantes.${index}.color` as const, { required: true })}
-                    placeholder="Ej. Negro"
-                    className={CELL_INPUT}
-                  />
-                </td>
-                <td className="px-3 py-2 w-28">
-                  <Input
-                    {...register(`variantes.${index}.talla` as const, { required: true })}
-                    placeholder="M"
-                    className={`${CELL_INPUT} text-center`}
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <Input
-                    {...register(`variantes.${index}.sku` as const)}
-                    placeholder={`${skuMaestro}-VAR`}
-                    className={`${CELL_INPUT} font-mono text-[11px] text-gray-400 uppercase`}
-                  />
-                </td>
-                {/* Stock solo en edit */}
-                {isEdit && (
-                  <td className="px-3 py-2 w-28">
-                    <Input
-                      type="number"
-                      {...register(`variantes.${index}.stock_adicional` as const, {
-                        valueAsNumber: true,
-                        min: 0,
-                      })}
-                      className="h-10 bg-gray-100 border-none rounded-lg font-bold text-gray-700 text-center focus-visible:ring-1 focus-visible:ring-pink-200"
+            {fields.map((field, index) => {
+              const color = watch(`variantes.${index}.color`) || "";
+              const talla = watch(`variantes.${index}.talla`) || "";
+              const currentStock = watch(`variantes.${index}.stock`);
+              
+              const generatedSKU = (color && talla && skuMaestro !== "SKU") 
+                ? generateVariantSKU(skuMaestro, color, talla) 
+                : watch(`variantes.${index}.sku`) || "---";
+
+              return (
+                <tr key={field.id} className="hover:bg-gray-50/30 transition-colors">
+                  <td className="px-4 py-3 text-center">
+                     <Input 
+                      {...register(`variantes.${index}.color`)} 
+                      className="h-11 bg-gray-50/50 border-gray-100 rounded-xl font-semibold text-gray-700" 
                     />
                   </td>
-                )}
-                <td className="px-3 py-2 text-right w-12">
-                  {fields.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-50"
-                    >
-                      <Trash2 size={15} />
+                  <td className="px-4 py-3 w-28 text-center">
+                    <Input 
+                      {...register(`variantes.${index}.talla`)} 
+                      className="h-11 bg-gray-50/50 border-gray-100 rounded-xl text-center font-bold uppercase" 
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-2 px-3 h-11 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-[11px] font-mono text-gray-400">
+                      <Fingerprint size={12} />
+                      <span>{generatedSKU}</span>
+                      <input type="hidden" {...register(`variantes.${index}.sku`)} value={generatedSKU} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 w-36">
+                    <div className={`flex items-center justify-center gap-2 h-11 border rounded-xl font-black text-sm ${
+                      Number(currentStock) > 0 ? "bg-orange-50 border-orange-100 text-orange-600" : "bg-red-50 border-red-100 text-red-500"
+                    }`}>
+                      <Box size={14} />
+                      {currentStock ?? 0}
+                    </div>
+                    {/* REGISTRO ÚNICO COMO 'stock' */}
+                    <input type="hidden" {...register(`variantes.${index}.stock`)} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button type="button" onClick={() => remove(index)} className="p-2 text-gray-300 hover:text-red-500">
+                      <Trash2 size={16} />
                     </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-
-      {fields.length === 0 && (
-        <p className="text-center text-xs text-gray-400 font-bold uppercase tracking-widest py-8">
-          Agrega al menos una variante para controlar el stock
-        </p>
-      )}
-
-      <div className="flex justify-end pt-1">
-        <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
-          Total variantes: <span className="text-pink-600 font-black">{fields.length}</span>
-        </span>
-      </div>
-    </section>
+    </div>
   );
 }

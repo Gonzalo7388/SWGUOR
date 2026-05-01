@@ -2,9 +2,17 @@ export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
+
+const CATEGORIAS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador'];
 
 // GET: Obtener todas las categorías
 export async function GET() {
+  const auth = await requireServerRole(CATEGORIAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
   try {
     const categorias = await prisma.categorias.findMany({
       orderBy: { nombre: 'asc' },
@@ -19,6 +27,11 @@ export async function GET() {
 
 // POST: Crear una nueva categoría
 export async function POST(req: Request) {
+  const auth = await requireServerRole(CATEGORIAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
 
@@ -48,6 +61,11 @@ export async function POST(req: Request) {
 
 // PUT: Actualizar una categoría existente
 export async function PUT(req: Request) {
+  const auth = await requireServerRole(CATEGORIAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
     const { id, ...updates } = body;
@@ -84,6 +102,11 @@ export async function PUT(req: Request) {
 
 // DELETE: Eliminar una categoría por ID
 export async function DELETE(req: Request) {
+  const auth = await requireServerRole(CATEGORIAS_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

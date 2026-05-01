@@ -9,22 +9,33 @@ import {
   LogOut, Boxes, Scissors, Building,
   Bell, BarChart3, LucideIcon, ChevronDown,
   Settings, Truck, Package, Grid3x3, DollarSign, FileText,
-  Building2
+  Building2,
+  ShieldCheck,
+  UserSquare,
+  Briefcase
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { usuarios } from '@prisma/client';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import type { RecursoKey } from '@/lib/constants/roles';
 
+type SubItem = {
+  title: string;
+  href: string;
+  icon?: LucideIcon;
+  resource: RecursoKey; // ✅ Campo obligatorio para el mapeo correcto
+};
+
 type NavItem = {
   title: string;
   href?: string;
   icon: LucideIcon;
   roles: string[];
-  subItems?: { title: string; href: string; icon?: LucideIcon }[];
+  resource?: RecursoKey;
+  subItems?: SubItem[];
 };
 
-export default function Sidebar({ usuario }: { usuario: usuarios }) {
+export default function Sidebar({ }: { usuario: usuarios }) {
   const router = useRouter();
   const pathname = usePathname();
   const { can } = usePermissions();
@@ -37,21 +48,24 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       title: 'Dashboard',
       href: '/admin/Panel-Administrativo/dashboard',
       icon: LayoutDashboard,
+      resource: 'dashboard' as RecursoKey,
       roles: ['gerente', 'administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
     },
     {
       title: 'Reportes',
       href: '/admin/Panel-Administrativo/reportes',
       icon: BarChart3,
+      resource: 'reportes' as RecursoKey,
       roles: ['gerente', 'administrador'],
     },
     {
       title: 'Catálogo',
       icon: Package,
-      roles: ['gerente', 'administrador', 'disenador'],
+      roles: ['gerente', 'administrador', 'disenador', 'cortador'],
       subItems: [
-        { title: 'Productos', href: '/admin/Panel-Administrativo/productos', icon: Package },
-        { title: 'Categorías', href: '/admin/Panel-Administrativo/categorias', icon: Grid3x3 },
+        { title: 'Productos',       href: '/admin/Panel-Administrativo/productos',      icon: Package,   resource: 'productos' as RecursoKey },
+        { title: 'Categorías',      href: '/admin/Panel-Administrativo/categorias',     icon: Grid3x3,   resource: 'categorias' as RecursoKey },
+        { title: 'Fichas Técnicas', href: '/admin/Panel-Administrativo/fichas-tecnicas',icon: FileText,  resource: 'fichas_tecnicas' as RecursoKey },
       ],
     },
     {
@@ -59,55 +73,58 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       icon: ShoppingCart,
       roles: ['gerente', 'administrador', 'recepcionista', 'disenador'],
       subItems: [
-        { title: 'Ventas', href: '/admin/Panel-Administrativo/ventas', icon: DollarSign },
-        { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart },
-        { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones', icon: FileText },
-        { title: 'Pagos', href: '/admin/Panel-Administrativo/pagos', icon: DollarSign },
+        { title: 'Ventas',        href: '/admin/Panel-Administrativo/ventas',                  icon: DollarSign, resource: 'ventas' as RecursoKey },
+        { title: 'Pedidos',       href: '/admin/Panel-Administrativo/pedidos',                 icon: ShoppingCart, resource: 'pedidos' as RecursoKey },
+        { title: 'Cotizaciones',  href: '/admin/Panel-Administrativo/cotizaciones',            icon: FileText,   resource: 'cotizaciones' as RecursoKey },
+        { title: 'Devoluciones',  href: '/admin/Panel-Administrativo/devoluciones-cliente',    icon: Truck,      resource: 'devoluciones_clientes' as RecursoKey },
+        { title: 'Pagos',         href: '/admin/Panel-Administrativo/pagos',                   icon: DollarSign, resource: 'pagos' as RecursoKey },
       ],
     },
     {
-      title: 'Producción',
+      title: 'Manufactura',
       icon: Scissors,
-      roles: ['gerente', 'administrador', 'cortador', 'representante_taller'],
+      roles: ['gerente', 'administrador', 'cortador', 'representante_taller', 'disenador'],
       subItems: [
-        { title: 'Inventario', href: '/admin/Panel-Administrativo/inventario', icon: Boxes },
-        { title: 'Confecciones', href: '/admin/Panel-Administrativo/confecciones', icon: Scissors },
-        { title: 'Talleres', href: '/admin/Panel-Administrativo/talleres', icon: Building },
+        { title: 'Órdenes Producción', href: '/admin/Panel-Administrativo/produccion',    icon: Package,  resource: 'produccion' as RecursoKey },
+        { title: 'Confecciones',       href: '/admin/Panel-Administrativo/confecciones',  icon: Scissors, resource: 'confecciones' as RecursoKey },
+        { title: 'Talleres',           href: '/admin/Panel-Administrativo/talleres',      icon: Building, resource: 'talleres' as RecursoKey },
+        { title: 'Incidencias',        href: '/admin/Panel-Administrativo/incidencias',   icon: Bell,     resource: 'incidencias' as RecursoKey },
+      ],
+    },
+    {
+      title: 'Inventario',
+      icon: Boxes,
+      roles: ['gerente', 'administrador', 'cortador', 'ayudante'],
+      subItems: [
+        { title: 'Inventario',         href: '/admin/Panel-Administrativo/inventario',                icon: Boxes,    resource: 'inventario' as RecursoKey },
+        { title: 'Movimientos',        href: '/admin/Panel-Administrativo/movimientos-inventario',    icon: Grid3x3,  resource: 'movimiento_inventario' as RecursoKey },
+        { title: 'Proveedores',        href: '/admin/Panel-Administrativo/proveedores',              icon: Building2,resource: 'proveedores' as RecursoKey },
+        { title: 'Devoluciones Prov.', href: '/admin/Panel-Administrativo/devoluciones-proveedor',   icon: Truck,    resource: 'devoluciones_proveedor' as RecursoKey },
       ],
     },
     {
       title: 'Logística',
       icon: Truck,
-      roles: ['gerente', 'administrador', 'ayudante'],
+      roles: ['gerente', 'administrador', 'ayudante', 'recepcionista'],
       subItems: [
-        { title: 'Despachos', href: '/admin/Panel-Administrativo/despachos', icon: Truck },
+        { title: 'Despachos', href: '/admin/Panel-Administrativo/despachos', icon: Truck, resource: 'despachos' as RecursoKey },
       ],
     },
     {
-      title: 'Proveedores',
-      href: '/admin/Panel-Administrativo/proveedores',
-      icon: Building2,
-      roles: ['gerente', 'administrador'],
-    },
-    {
-      title: 'Personas',
+      title: 'Directorio',
       icon: Users,
-      roles: ['gerente', 'administrador'],
+      roles: ['gerente', 'administrador', 'recepcionista'],
       subItems: [
-        { title: 'Clientes', href: '/admin/Panel-Administrativo/clientes', icon: Users },
-        { title: 'Usuarios', href: '/admin/Panel-Administrativo/usuarios', icon: Users },
+        { title: 'Usuarios',         href: '/admin/Panel-Administrativo/usuarios',  icon: ShieldCheck, resource: 'usuarios' as RecursoKey },
+        { title: 'Personal Interno', href: '/admin/Panel-Administrativo/personal',  icon: UserSquare,  resource: 'personal' as RecursoKey },
+        { title: 'Clientes',         href: '/admin/Panel-Administrativo/clientes',  icon: Briefcase,   resource: 'clientes' as RecursoKey },
       ],
-    },
-    {
-      title: 'Notificaciones',
-      href: '/admin/Panel-Administrativo/notificaciones',
-      icon: Bell,
-      roles: ['gerente', 'administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
     },
     {
       title: 'Configuración',
       href: '/admin/Panel-Administrativo/configuracion',
       icon: Settings,
+      resource: 'configuracion' as RecursoKey,
       roles: ['gerente', 'administrador'],
     },
   ];
@@ -116,17 +133,18 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
     return navItems
       .map(item => {
         if (item.subItems) {
-          const allowedSubItems = item.subItems.filter(sub => {
-            const resourceKey = sub.title.toLowerCase().trim()
-              .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return can('view', resourceKey as RecursoKey);
-          });
+          const allowedSubItems = item.subItems.filter(sub =>
+            can('view', sub.resource)
+          );
+
+          // Si no hay subitems permitidos y el item no tiene href propio, se oculta
           if (allowedSubItems.length === 0 && !item.href) return null;
           return { ...item, subItems: allowedSubItems };
         }
-        const resourceName = item.title.toLowerCase()
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (resourceName === 'dashboard' || can('view', resourceName as RecursoKey)) return item;
+
+        // Items simples (sin subitems)
+        if (item.resource === 'dashboard' as RecursoKey) return item;
+        if (item.resource && can('view', item.resource)) return item;
         return null;
       })
       .filter((item): item is NavItem => item !== null);
@@ -152,33 +170,44 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
       {/* Botón móvil */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-3 left-4 z-50 p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-all"
+        className={cn(
+          "lg:hidden fixed top-4 left-4 z-50 p-3 bg-slate-900 text-white rounded-2xl shadow-xl transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-90",
+          "hover:bg-slate-800"
+        )}
+        aria-label={isMobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+        aria-expanded={isMobileOpen}
+        aria-controls="admin-sidebar"
       >
-        {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+        {isMobileOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
       </button>
 
       {/* Overlay móvil */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/40 z-30 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 bg-black/40 z-30 backdrop-blur-sm transition-opacity"
           onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <aside
+        id="admin-sidebar"
         className={cn(
           "flex flex-col h-screen w-72 border-r border-slate-100",
-          "fixed lg:sticky top-0 z-40 bg-[#fffdf7] overflow-hidden",
+          "fixed lg:sticky top-0 z-40 bg-[#fffdf7] overflow-hidden transition-transform",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
+        role="complementary"
+        aria-label="Menú de navegación del panel administrativo"
       >
 
         {/* Header - Logo */}
-        <div className="h-24 flex items-center border-b border-slate-100/50 px-6">
+        <header className="h-24 flex items-center border-b border-slate-100/50 px-6">
           <div className="flex items-center gap-3 w-full">
             <div className="relative w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+              <img src="/logo.png" alt="Logo de GUOR" className="w-7 h-7 object-contain" />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-extrabold text-slate-950 text-xl leading-tight truncate tracking-tighter">GUOR</h1>
@@ -187,10 +216,10 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
               </p>
             </div>
           </div>
-        </div>
+        </header>
 
-              {/* Navegación - Contenedor Principal */}
-        <nav className="flex-1 px-3 mt-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+        {/* Navegación */}
+        <nav className="flex-1 px-3 mt-4 space-y-1.5 overflow-y-auto custom-scrollbar" role="navigation" aria-label="Menú de navegación principal">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isOpen = openMenus.includes(item.title);
@@ -202,19 +231,26 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
                 {item.subItems ? (
                   <button
                     onClick={() => toggleMenu(item.title)}
+                    aria-expanded={isOpen}
+                    aria-label={isOpen ? `Ocultar ${item.title}` : `Mostrar ${item.title}`}
                     className={cn(
                       "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-semibold text-sm",
+                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#fffdf7]",
                       isActive
                         ? "bg-rose-50 text-rose-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200",
                       isCollapsed && "justify-center"
                     )}
                   >
-                    <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                    <Icon size={22} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
                     {!isCollapsed && (
                       <>
                         <span className="flex-1 text-left">{item.title}</span>
-                        <ChevronDown size={16} className={cn("transition-transform text-slate-400", isOpen && "rotate-180")} />
+                        <ChevronDown
+                          size={16}
+                          className={cn("transition-transform text-slate-400", isOpen && "rotate-180")}
+                          aria-hidden="true"
+                        />
                       </>
                     )}
                   </button>
@@ -222,32 +258,43 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
                   <Link
                     href={item.href!}
                     onClick={() => setIsMobileOpen(false)}
+                    aria-current={pathname === item.href ? "page" : undefined}
                     className={cn(
                       "flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-semibold text-sm",
+                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#fffdf7]",
                       pathname === item.href
                         ? "bg-rose-50 text-rose-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200",
                       isCollapsed && "justify-center"
                     )}
+                    title={item.title}
                   >
-                    <Icon size={22} strokeWidth={pathname === item.href ? 2.5 : 2} />
+                    <Icon size={22} strokeWidth={pathname === item.href ? 2.5 : 2} aria-hidden="true" />
                     {!isCollapsed && <span>{item.title}</span>}
                   </Link>
                 )}
 
                 {/* Submenu animado */}
                 {!isCollapsed && isOpen && item.subItems && (
-                  <div className="ml-10 mt-1 space-y-1 animate-in slide-in-from-top-1 duration-200">
+                  <div 
+                    className="ml-10 mt-1 space-y-1 animate-in slide-in-from-top-1 duration-200"
+                    role="group"
+                    aria-label={`Subopciones de ${item.title}`}
+                  >
                     {item.subItems.map(sub => (
                       <Link
                         key={sub.href}
                         href={sub.href}
+                        onClick={() => setIsMobileOpen(false)}
+                        aria-current={pathname === sub.href ? "page" : undefined}
                         className={cn(
                           "flex items-center gap-2.5 py-2.5 px-3 text-xs font-semibold rounded-lg transition-all",
+                          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#fffdf7]",
                           pathname === sub.href
                             ? "text-rose-700 bg-rose-100/50"
-                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200"
                         )}
+                        title={sub.title}
                       >
                         {sub.title}
                       </Link>
@@ -263,9 +310,14 @@ export default function Sidebar({ usuario }: { usuario: usuarios }) {
         <div className="p-4 border-t border-slate-100/50">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full p-3.5 rounded-2xl text-slate-500 hover:text-white hover:bg-slate-950 transition-all"
+            className={cn(
+              "flex items-center gap-3 w-full p-3.5 rounded-2xl text-slate-500 hover:text-white hover:bg-slate-950 transition-all",
+              "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#fffdf7] active:scale-95"
+            )}
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión (Ctrl+Shift+Q)"
           >
-            <LogOut size={22} />
+            <LogOut size={22} aria-hidden="true" />
             <span className="text-sm font-bold">Cerrar Sesión</span>
           </button>
         </div>

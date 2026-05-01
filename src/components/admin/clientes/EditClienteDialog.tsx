@@ -1,207 +1,350 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogTitle, 
-  DialogDescription 
+import { useEffect, useState } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { Button }  from "@/components/ui/button";
+import { Input }   from "@/components/ui/input";
+import { Label }   from "@/components/ui/label";
+import { Badge }   from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { 
-  Edit3, 
-  Building2, 
-  Fingerprint, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  ShieldCheck, 
-  Loader2, 
-  Save 
+import { toast }  from "sonner";
+import {
+  Building2, Phone, MapPin, FileText, Trash2, Plus,
+  Star, Loader2, PencilLine,
 } from "lucide-react";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import type { TipoCliente } from "@prisma/client";
+import type { ClienteEditable, DireccionCliente } from "@/lib/services/clientes-services";
 
-// Estilos constantes para coherencia visual del ERP
-const ERP_LABEL = "text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2 mb-1.5";
-const ERP_INPUT = "bg-[#f1f5f9] border-none h-12 rounded-xl font-medium text-[#334155] focus-visible:ring-1 focus-visible:ring-pink-200 transition-all placeholder:text-slate-400";
+const TIPOS_CLIENTE: { value: TipoCliente; label: string }[] = [
+  { value: "corporativo", label: "Corporativo" },
+  { value: "minorista",   label: "Minorista"   },
+];
 
-export default function EditClienteDialog({ isOpen, onClose, cliente, onSuccess }: any) {
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(cliente?.activo || "activo");
+interface Props {
+  isOpen:    boolean;
+  onClose:   () => void;
+  onSuccess: () => void;
+  cliente:   ClienteEditable | null;
+}
+
+const EMPTY_DIR = { alias: "", direccion: "", ciudad: "", departamento: "", es_principal: false };
+
+export default function EditClienteDialog({ isOpen, onClose, onSuccess, cliente }: Props) {
+  const [loading,    setLoading]    = useState(false);
+  const [dirLoading, setDirLoading] = useState<string | null>(null);
+  const [form,       setForm]       = useState<Partial<ClienteEditable>>({});
+  const [addingDir,  setAddingDir]  = useState(false);
+  const [newDir,     setNewDir]     = useState(EMPTY_DIR);
+  const [direcciones, setDirecciones] = useState<DireccionCliente[]>([]);
 
   useEffect(() => {
-    if (cliente?.activo) setStatus(cliente.activo);
-  }, [cliente, isOpen]);
+    if (cliente) {
+      setForm({
+        ruc:              cliente.ruc,
+        razon_social:     cliente.razon_social     ?? "",
+        nombre_comercial: cliente.nombre_comercial ?? "",
+        telefono:         cliente.telefono          ?? "",
+        direccion_fiscal: cliente.direccion_fiscal  ?? "",
+        tipo_cliente:     cliente.tipo_cliente      ?? "corporativo",
+      });
+      setDirecciones(cliente.direcciones_cliente ?? []);
+    }
+  }, [cliente]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleClose = () => { setAddingDir(false); setNewDir(EMPTY_DIR); onClose(); };
+
+  // ── Guardar datos generales ──────────────────────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cliente) return;
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    const supabase = getSupabaseBrowserClient();
-    
-    const updatedData = {
-      razon_social: formData.get("razon_social"),
-      ruc: formData.get("ruc"),
-      telefono: formData.get("telefono"),
-      email: formData.get("email"),
-      direccion: formData.get("direccion"),
-      activo: status,
-    };
-
     try {
-      const { error } = await (supabase.from("clientes") as any)
-        .update(updatedData)
-        .eq("id", cliente.id);
-
-      if (error) throw error;
-      toast.success("Información de cliente actualizada");
+      const res = await fetch("/api/admin/clientes", {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ id: cliente.id, ...form }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? "Error al actualizar");
+      toast.success("Cliente actualizado");
       onSuccess();
-      onClose();
+      handleClose();
     } catch (err: any) {
-      toast.error("Error al actualizar cliente");
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Agregar dirección ────────────────────────────────────────
+  const handleAddDir = async () => {
+    if (!cliente || !newDir.alias || !newDir.direccion) return;
+    setDirLoading("new");
+    try {
+      const res = await fetch(`/api/admin/clientes/${cliente.id}/direcciones`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(newDir),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? "Error al agregar dirección");
+      toast.success("Dirección agregada");
+      setDirecciones(prev => [...prev, body.data]);
+      setNewDir(EMPTY_DIR);
+      setAddingDir(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDirLoading(null);
+    }
+  };
+
+  // ── Marcar como principal ────────────────────────────────────
+  const handleSetPrincipal = async (dir: DireccionCliente) => {
+    if (!cliente || dir.es_principal) return;
+    setDirLoading(dir.id);
+    try {
+      const res = await fetch(`/api/admin/clientes/${cliente.id}/direcciones`, {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ dir_id: dir.id, es_principal: true }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar dirección");
+      setDirecciones(prev =>
+        prev.map(d => ({ ...d, es_principal: d.id === dir.id }))
+      );
+      toast.success("Dirección principal actualizada");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDirLoading(null);
+    }
+  };
+
+  // ── Eliminar dirección ───────────────────────────────────────
+  const handleDeleteDir = async (dirId: string) => {
+    if (!cliente) return;
+    setDirLoading(dirId);
+    try {
+      const res = await fetch(
+        `/api/admin/clientes/${cliente.id}/direcciones?dir_id=${dirId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Error al eliminar");
+      setDirecciones(prev => prev.filter(d => d.id !== dirId));
+      toast.success("Dirección eliminada");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDirLoading(null);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl bg-white rounded-[32px] overflow-hidden p-0 border-none shadow-2xl">
-        
-        {/* CABECERA */}
-        <div className="p-8 flex items-center gap-4">
-          <div className="p-3 bg-[#fff0f6] rounded-2xl">
-            <Edit3 className="w-7 h-7 text-[#e32d6f]" />
-          </div>
-          <div>
-            <DialogTitle className="text-xl font-extrabold text-[#1a2b4b] uppercase tracking-tight">
-              Perfil del Cliente
-            </DialogTitle>
-            <DialogDescription className="text-slate-400 text-[13px] font-medium">
-              Modifica los datos comerciales y de contacto.
-            </DialogDescription>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[560px] border-none shadow-2xl bg-white p-0 overflow-hidden max-h-[95vh] flex flex-col">
+        <div className="h-1.5 bg-gradient-to-r from-blue-500 to-blue-600 w-full shrink-0" />
+
+        <div className="p-6 overflow-y-auto space-y-6">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-100">
+                <PencilLine className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold text-slate-800">Editar Cliente</DialogTitle>
+                <DialogDescription className="text-xs text-slate-400">
+                  Actualiza los datos de la empresa y gestiona sus direcciones.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* ── Datos generales ── */}
+          <form id="edit-cliente-form" onSubmit={handleSubmit} className="space-y-4">
+            <SectionLabel label="Datos de la Empresa" />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field icon={<FileText className="w-3.5 h-3.5" />} label="RUC">
+                <Input value={form.ruc ?? ""} onChange={e => setForm(p => ({ ...p, ruc: e.target.value }))}
+                  maxLength={11} inputMode="numeric" className={inputCls} />
+              </Field>
+              <Field icon={<Building2 className="w-3.5 h-3.5" />} label="Tipo">
+                <Select value={form.tipo_cliente ?? "corporativo"}
+                  onValueChange={v => setForm(p => ({ ...p, tipo_cliente: v as TipoCliente }))}>
+                  <SelectTrigger className={`${inputCls} cursor-pointer`}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_CLIENTE.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <Field icon={<Building2 className="w-3.5 h-3.5" />} label="Razón Social">
+              <Input value={form.razon_social ?? ""} onChange={e => setForm(p => ({ ...p, razon_social: e.target.value }))}
+                className={inputCls} />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field icon={<Building2 className="w-3.5 h-3.5" />} label="Nombre Comercial">
+                <Input value={form.nombre_comercial ?? ""}
+                  onChange={e => setForm(p => ({ ...p, nombre_comercial: e.target.value }))}
+                  className={inputCls} />
+              </Field>
+              <Field icon={<Phone className="w-3.5 h-3.5" />} label="Teléfono">
+                <Input value={form.telefono ?? ""}
+                  onChange={e => setForm(p => ({ ...p, telefono: e.target.value.replace(/\D/g, "") }))}
+                  inputMode="numeric" className={inputCls} />
+              </Field>
+            </div>
+
+            <Field icon={<MapPin className="w-3.5 h-3.5" />} label="Dirección Fiscal">
+              <Input value={form.direccion_fiscal ?? ""}
+                onChange={e => setForm(p => ({ ...p, direccion_fiscal: e.target.value }))}
+                className={inputCls} />
+            </Field>
+          </form>
+
+          {/* ── Direcciones de envío ── */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <SectionLabel label="Direcciones de Envío" />
+              <Button variant="ghost" size="sm" onClick={() => setAddingDir(v => !v)}
+                className="h-7 text-xs text-blue-600 hover:bg-blue-50 gap-1">
+                <Plus className="w-3.5 h-3.5" /> Agregar
+              </Button>
+            </div>
+
+            {/* Formulario nueva dirección */}
+            {addingDir && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Alias (ej. Almacén Central)" value={newDir.alias}
+                    onChange={e => setNewDir(p => ({ ...p, alias: e.target.value }))}
+                    className={inputCls} />
+                  <Input placeholder="Dirección completa" value={newDir.direccion}
+                    onChange={e => setNewDir(p => ({ ...p, direccion: e.target.value }))}
+                    className={inputCls} />
+                  <Input placeholder="Ciudad" value={newDir.ciudad}
+                    onChange={e => setNewDir(p => ({ ...p, ciudad: e.target.value }))}
+                    className={inputCls} />
+                  <Input placeholder="Departamento" value={newDir.departamento}
+                    onChange={e => setNewDir(p => ({ ...p, departamento: e.target.value }))}
+                    className={inputCls} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="principal" checked={newDir.es_principal}
+                    onChange={e => setNewDir(p => ({ ...p, es_principal: e.target.checked }))}
+                    className="rounded border-slate-300 text-blue-600" />
+                  <label htmlFor="principal" className="text-xs text-slate-500">Marcar como principal</label>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => { setAddingDir(false); setNewDir(EMPTY_DIR); }}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={handleAddDir}
+                    disabled={!newDir.alias || !newDir.direccion || dirLoading === "new"}
+                    className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {dirLoading === "new" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Guardar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de direcciones */}
+            {direcciones.length === 0 && !addingDir && (
+              <p className="text-xs text-slate-400 text-center py-4">Sin direcciones registradas</p>
+            )}
+            {direcciones.map(dir => (
+              <div key={dir.id}
+                className="flex items-start justify-between bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 text-slate-300 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-700">{dir.alias}</span>
+                      {dir.es_principal && (
+                        <Badge className="text-[9px] bg-blue-50 text-blue-600 border-blue-200 px-1.5 py-0">
+                          Principal
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">{dir.direccion}</p>
+                    {(dir.ciudad || dir.departamento) && (
+                      <p className="text-[11px] text-slate-300">
+                        {[dir.ciudad, dir.departamento].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!dir.es_principal && (
+                    <Button variant="ghost" size="icon"
+                      onClick={() => handleSetPrincipal(dir)}
+                      disabled={dirLoading === dir.id}
+                      title="Marcar como principal"
+                      className="h-7 w-7 text-slate-300 hover:text-blue-500 hover:bg-blue-50">
+                      {dirLoading === dir.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Star className="w-3.5 h-3.5" />}
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon"
+                    onClick={() => handleDeleteDir(dir.id)}
+                    disabled={dirLoading === dir.id}
+                    title="Eliminar dirección"
+                    className="h-7 w-7 text-slate-300 hover:text-red-500 hover:bg-red-50">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-6">
-          
-          {/* RAZÓN SOCIAL */}
-          <div className="space-y-1">
-            <Label className={ERP_LABEL}>
-              <Building2 className="w-3.5 h-3.5" /> Razón Social / Nombre Comercial
-            </Label>
-            <Input 
-              name="razon_social" 
-              defaultValue={cliente?.razon_social}
-              className={ERP_INPUT}
-              placeholder="Ej. Corporación Textil S.A.C."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* RUC / DNI */}
-            <div className="space-y-1">
-              <Label className={ERP_LABEL}>
-                <Fingerprint className="w-3.5 h-3.5" /> Identificación (RUC/DNI)
-              </Label>
-              <Input
-                name="ruc"
-                defaultValue={cliente?.ruc}
-                className={ERP_INPUT}
-              />
-            </div>
-            {/* TELÉFONO */}
-            <div className="space-y-1">
-              <Label className={ERP_LABEL}>
-                <Phone className="w-3.5 h-3.5" /> Teléfono de Contacto
-              </Label>
-              <Input
-                name="telefono"
-                defaultValue={cliente?.telefono}
-                className={ERP_INPUT}
-              />
-            </div>
-          </div>
-
-          {/* ESTADO Y EMAIL */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label className={ERP_LABEL}>
-                <ShieldCheck className="w-3.5 h-3.5" /> Estado Comercial
-              </Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className={ERP_INPUT}>
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-none shadow-2xl">
-                  <SelectItem value="activo" className="font-bold py-2 text-green-600">Activo</SelectItem>
-                  <SelectItem value="inactivo" className="font-bold py-2 text-slate-400">Inactivo</SelectItem>
-                  <SelectItem value="suspendido" className="font-bold py-2 text-red-600">Suspendido</SelectItem>
-                  <SelectItem value="potencial" className="font-bold py-2 text-blue-600">Potencial</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className={ERP_LABEL}>
-                <Mail className="w-3.5 h-3.5" /> Email
-              </Label>
-              <Input
-                name="email"
-                type="email"
-                defaultValue={cliente?.email}
-                className={ERP_INPUT}
-              />
-            </div>
-          </div>
-
-          {/* DIRECCIÓN */}
-          <div className="space-y-1">
-            <Label className={ERP_LABEL}>
-              <MapPin className="w-3.5 h-3.5" /> Dirección Fiscal / Entrega
-            </Label>
-            <Input
-              name="direccion"
-              defaultValue={cliente?.direccion}
-              className={ERP_INPUT}
-            />
-          </div>
-
-          {/* ACCIONES FOOTER */}
-          <div className="flex items-center justify-end gap-6 pt-6 border-t border-slate-50">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="text-[#64748b] font-bold text-sm hover:text-slate-800 transition-colors"
-            >
-              Descartar
-            </button>
-            <Button 
-              type="submit" 
-              disabled={loading} 
-              className="bg-[#e32d6f] hover:bg-[#c4235d] h-12 px-10 rounded-xl font-bold text-white shadow-lg shadow-pink-100 transition-all active:scale-95"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Save className="w-4 h-4" />
-                  <span>Actualizar Cliente</span>
-                </div>
-              )}
-            </Button>
-          </div>
-        </form>
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 shrink-0 flex gap-2">
+          <Button variant="ghost" onClick={handleClose} disabled={loading}
+            className="text-slate-500 hover:bg-slate-100">Cancelar</Button>
+          <Button type="submit" form="edit-cliente-form" disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-md px-7">
+            {loading
+              ? <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Guardando…
+                </span>
+              : "Guardar Cambios"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── UI helpers ────────────────────────────────────────────────
+const inputCls = "bg-slate-50 border-slate-200 focus:bg-white focus-visible:ring-blue-400 transition-all h-10 text-sm";
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-px flex-1 bg-slate-100" />
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-2">{label}</span>
+      <div className="h-px flex-1 bg-slate-100" />
+    </div>
+  );
+}
+
+function Field({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
+        {icon}{label}
+      </Label>
+      {children}
+    </div>
   );
 }

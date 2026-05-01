@@ -45,7 +45,7 @@ export async function GET(
             color: true,
             talla: true,
             estado: true,
-            stock_adicional: true,
+            stock: true,
             precio_adicional: true,
             sku: true,
             imagen_url: true,
@@ -72,7 +72,7 @@ export async function GET(
 
     // ── 2. Variantes con stock > 0 (para selectores del frontend) ──
     const variantesConStock = producto.variantes_producto.filter(
-      (v) => v.stock_adicional > 0
+      (v) => v.stock > 0
     );
 
     const coloresDisponibles = [
@@ -106,7 +106,7 @@ export async function GET(
 
     // ── 5. Stock total disponible ──
     const stockTotal = variantesConStock.reduce(
-      (sum, v) => sum + v.stock_adicional,
+      (sum, v) => sum + v.stock,
       0
     );
 
@@ -134,7 +134,7 @@ export async function GET(
         color: v.color,
         talla: v.talla,
         estado: v.estado,
-        stock: v.stock_adicional,
+        stock: v.stock,
         precio_adicional: Number(v.precio_adicional),
         precio_final: Number(producto.precio) + Number(v.precio_adicional),
         sku: v.sku,

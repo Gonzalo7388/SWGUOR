@@ -1,134 +1,72 @@
 export const runtime = 'nodejs';
-
+import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas-services';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils/serialize';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
-async function getRolUsuario() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('usuarios')
-    .select('rol')
-    .eq('auth_id', user.id)
-    .single();
-  return data?.rol ?? null;
-}
-
-const ROLES_PERMITIDOS = ['disenador', 'cortador', 'administrador', 'gerente'];
-
-// ── GET: Obtener ficha por producto ───────────────────────────────────────
+// GET /api/admin/fichas-tecnicas?estado=xxx&busqueda=xxx (listar todas con filtros)
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const producto_id = searchParams.get('producto_id');
+    const estado = searchParams.get('estado') as any;
+    const busqueda = searchParams.get('busqueda');
 
-    if (!producto_id) {
-      return NextResponse.json({ error: 'producto_id requerido' }, { status: 400 });
+    // Si se proporciona producto_id, obtener esa ficha específica
+    if (producto_id) {
+      const data = await FichasTecnicasService.obtenerPorProducto(producto_id);
+      return NextResponse.json({ success: true, data });
     }
 
-    const ficha = await prisma.fichas_tecnicas.findFirst({
-      where: { id_producto: BigInt(producto_id) },
-      include: { medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
+    // Si no, listar todas las fichas con filtros opcionales
+    const data = await FichasTecnicasService.listar({
+      estado: estado || undefined,
+      busqueda: busqueda || undefined,
     });
-
-    return NextResponse.json({ success: true, data: serializeBigInt(ficha) });
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
+    console.error('[GET /fichas-tecnicas]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// ── POST: Crear ficha técnica ─────────────────────────────────────────────
+// POST /api/admin/fichas-tecnicas
 export async function POST(req: Request) {
   try {
-    const rol = await getRolUsuario();
-    if (!rol || !ROLES_PERMITIDOS.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
-
     const body = await req.json();
-    const { producto_id, version, descripcion_detallada, sam_total, costo_estimado, ficha_url, imagen_geometral } = body;
 
-    if (!producto_id) {
+    if (!body.producto_id) {
       return NextResponse.json({ error: 'producto_id requerido' }, { status: 400 });
     }
 
-    // Verificar si ya existe
-    const existe = await prisma.fichas_tecnicas.findFirst({
-      where: { id_producto: BigInt(producto_id) },
-    });
-
-    if (existe) {
-      return NextResponse.json({ error: 'Ya existe una ficha para este producto. Use PUT para actualizar.' }, { status: 409 });
-    }
-
-    const ficha = await prisma.$transaction(async (tx) => {
-      const nuevaFicha = await tx.fichas_tecnicas.create({
-        data: {
-          id_producto:          BigInt(producto_id),
-          version:              version              ?? '1.0',
-          descripcion_detallada: descripcion_detallada ?? null,
-          sam_total:            sam_total            ?? null,
-          costo_estimado:       costo_estimado       ?? null,
-          ficha_url:            ficha_url            ?? null,
-          imagen_geometral:     imagen_geometral     ?? null,
-          estado:               'borrador',
-        },
-      });
-
-      // Vincular ficha al producto
-      await tx.productos.update({
-        where: { id: BigInt(producto_id) },
-        data:  { fichas_tecnicas_id: nuevaFicha.id },
-      });
-
-      return nuevaFicha;
-    });
-
-    return NextResponse.json({ success: true, data: serializeBigInt(ficha) }, { status: 201 });
+    const ficha = await FichasTecnicasService.crear(body);
+    return NextResponse.json({ success: true, data: ficha }, { status: 201 });
   } catch (error: any) {
+    console.error('[POST /fichas-tecnicas]', error);
+    if (error.message?.includes('Ya existe')) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// ── PUT: Actualizar ficha técnica ─────────────────────────────────────────
+// PUT /api/admin/fichas-tecnicas
 export async function PUT(req: Request) {
   try {
-    const rol = await getRolUsuario();
-    if (!rol || !ROLES_PERMITIDOS.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
-
     const body = await req.json();
-    const { id, version, descripcion_detallada, sam_total, costo_estimado, ficha_url, imagen_geometral, estado } = body;
+    const { id, ...data } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'id requerido' }, { status: 400 });
     }
 
-    const ficha = await prisma.fichas_tecnicas.update({
-      where: { id: BigInt(id) },
-      data: {
-        ...(version              !== undefined && { version }),
-        ...(descripcion_detallada !== undefined && { descripcion_detallada }),
-        ...(sam_total            !== undefined && { sam_total }),
-        ...(costo_estimado       !== undefined && { costo_estimado }),
-        ...(ficha_url            !== undefined && { ficha_url }),
-        ...(imagen_geometral     !== undefined && { imagen_geometral }),
-        ...(estado               !== undefined && { estado }),
-      },
-    });
+    // Evitar actualización sin campos
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 });
+    }
 
-    return NextResponse.json({ success: true, data: serializeBigInt(ficha) });
+    const ficha = await FichasTecnicasService.actualizar(id, data);
+    return NextResponse.json({ success: true, data: ficha });
   } catch (error: any) {
+    console.error('[PUT /fichas-tecnicas]', error);
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Ficha no encontrada' }, { status: 404 });
     }

@@ -1,99 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Package, Ruler, FileText } from "lucide-react";
+import { ArrowLeft, Package, Layers, Info, Tag, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import ProductForm from "@/components/admin/productos/form/ProductForm";
-import { FichaTecnicaTab } from "./FichaTecnicaTab";
-import { FichaMedidasTab } from "./FichaMedidasTab";
+
+// Componentes de visualización (Solo lectura)
+import ProductInfoDisplay from "@/components/admin/productos/detalle/ProductInfoDisplay";
+import VariantsTable from "@/components/admin/productos/detalle/VariantsTable";
 
 interface ProductoDetalleProps {
-  producto: any;
+  producto: any; 
   categorias: any[];
 }
 
 const TABS = [
-  { id: "general",  label: "General",       icon: Package  },
-  { id: "ficha",    label: "Ficha técnica",  icon: FileText },
-  { id: "medidas",  label: "Medidas",        icon: Ruler    },
-] as const;
-
-type TabId = typeof TABS[number]["id"];
+  { id: "general", label: "Información General", icon: Info },
+  { id: "variantes", label: "Variantes y Existencias", icon: Layers },
+];
 
 export default function ProductoDetalle({ producto, categorias }: ProductoDetalleProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [activeTab, setActiveTab] = useState("general");
   const { can } = usePermissions();
 
-  const puedeEditarFicha = can("upload", "ficha_tecnica") || can("upload", "ficha_medidas");
+  const categoriaNombre = categorias.find(c => c.id === producto.categoriaId)?.nombre || "Sin categoría";
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+      <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
 
-        {/* Header */}
-        <div>
-          <Link
-            href="/admin/Panel-Administrativo/productos"
-            className="inline-flex items-center gap-1.5 text-pink-600 hover:text-pink-700 text-xs font-bold uppercase tracking-widest mb-3 transition-colors"
-          >
-            <ArrowLeft size={13} />
-            Volver al Inventario
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-pink-600 rounded-xl">
-              <Package className="text-white w-5 h-5" />
+        {/* Header de Navegación */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <Link
+              href="/admin/Panel-Administrativo/productos"
+              className="inline-flex items-center gap-1.5 text-pink-600 hover:text-pink-700 text-xs font-bold uppercase tracking-widest transition-colors mb-2"
+            >
+              <ArrowLeft size={13} />
+              Volver al Inventario
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-pink-600 rounded-xl shadow-md">
+                <Package className="text-white w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+                  {producto.nombre}
+                </h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="flex items-center gap-1 text-gray-500 text-xs font-medium uppercase tracking-wider">
+                    <Tag size={12} className="text-pink-500" />
+                    {categoriaNombre}
+                  </span>
+                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-400 text-xs font-mono">
+                    SKU: {producto.sku}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{producto.nombre}</h1>
-              <p className="text-gray-400 text-xs font-mono mt-0.5">{producto.sku}</p>
-            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {/* Acceso rápido a la Ficha Técnica (Módulo Externo) */}
+            <Link 
+              href={`/admin/Panel-Administrativo/fichas-tecnicas/${producto.id}`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-sm"
+            >
+              <BarChart3 size={14} />
+              Ver Ficha Técnica
+            </Link>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1 shadow-sm w-fit">
+        {/* Selector de Pestañas */}
+        <div className="flex gap-1 bg-white border border-gray-200 rounded-2xl p-1.5 shadow-sm w-fit">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
                 activeTab === id
-                  ? "bg-pink-600 text-white shadow-sm"
-                  : "text-gray-400 hover:text-gray-700 hover:bg-gray-50"
+                  ? "bg-pink-600 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
             >
-              <Icon size={13} />
+              <Icon size={14} />
               {label}
             </button>
           ))}
         </div>
 
-        {/* Contenido */}
-        <div>
-          {activeTab === "general" && (
-            <ProductForm
-              mode="edit"
-              initialData={producto}
-              categorias={categorias}
-            />
-          )}
+        {/* Panel de Contenido */}
+        <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
+          <div className="p-8">
+            {activeTab === "general" && (
+              <div className="animate-in fade-in duration-500">
+                <ProductInfoDisplay 
+                  producto={producto} 
+                  categoria={categoriaNombre} 
+                />
+              </div>
+            )}
 
-          {activeTab === "ficha" && (
-            <FichaTecnicaTab
-              producto={producto}
-              fichaInicial={producto.ficha_tecnica ?? null}
-              canEdit={puedeEditarFicha}
-            />
-          )}
-
-          {activeTab === "medidas" && (
-            <FichaMedidasTab
-              fichaId={producto.ficha_tecnica?.id ?? null}
-              medidasIniciales={producto.ficha_tecnica?.medidas ?? []}
-              canEdit={puedeEditarFicha}
-            />
-          )}
+            {activeTab === "variantes" && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col border-b border-gray-100 pb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Matriz de Variantes</h3>
+                  <p className="text-sm text-gray-500">Stock disponible por combinación de atributos.</p>
+                </div>
+                <VariantsTable variantes={producto.variantes || []} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -32,8 +32,7 @@ export async function GET(req: Request) {
 
     if (colorFiltro || tallaFiltro) {
       const whereVariantes: Record<string, unknown> = {
-        estado: 'activo',
-        stock_adicional: { gt: 0 },
+        estado: 'activo'
       };
       if (colorFiltro) whereVariantes.color = colorFiltro;
       if (tallaFiltro) whereVariantes.talla = tallaFiltro;
@@ -81,13 +80,13 @@ export async function GET(req: Request) {
       include: {
         categorias: { select: { id: true, nombre: true, imagen: true } },
         variantes_producto: {
-          where: { estado: 'activo', stock_adicional: { gt: 0 } },
+          where: { estado: 'activo', stock: { gt: 0 } },
           select: {
             id: true,
             color: true,
             talla: true,
             estado: true,
-            stock_adicional: true,
+            stock: true,
             precio_adicional: true,
             sku: true,
             imagen_url: true,
@@ -172,7 +171,7 @@ export async function GET(req: Request) {
           id: v.id,
           color: v.color,
           talla: v.talla,
-          stock: v.stock_adicional,
+          stock: v.stock,
           precio_adicional: Number(v.precio_adicional),
           sku: v.sku,
           imagen_url: v.imagen_url ? normalizarImagen(v.imagen_url) : null,

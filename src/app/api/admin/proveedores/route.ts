@@ -1,41 +1,14 @@
 export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import {
   getProveedores,
   upsertProveedor,
   getHistorialOrdenes,
   getProveedorById,
-} from '@/lib/services/proveedor-service';
+} from '@/lib/services/proveedor-services';
+import { requireAdmin } from '@/lib/auth/server';
 import { NextResponse } from 'next/server';
-
-// ─────────────────────────────────────────────────────────────
-// Helper: validar rol de administrador
-// ─────────────────────────────────────────────────────────────
-async function validarAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'no_auth' as const, status: 401 };
-
-  const usuarioDb = await prisma.usuarios.findFirst({
-    where: { auth_id: user.id },
-    select: { id: true, rol: true, estado: true },
-  });
-
-  if (!usuarioDb) return { error: 'usuario_no_encontrado' as const, status: 404 };
-  if (usuarioDb.estado !== 'activo') return { error: 'usuario_inactivo' as const, status: 403 };
-
-  const rolesAdmin = ['administrador', 'gerente'];
-  if (!usuarioDb.rol || !rolesAdmin.includes(usuarioDb.rol)) {
-    return { error: 'sin_permisos' as const, status: 403 };
-  }
-
-  return { usuario_id: usuarioDb.id, rol: usuarioDb.rol };
-}
 
 // ─────────────────────────────────────────────────────────────
 // GET: Listado de proveedores con filtros y paginación
@@ -45,8 +18,8 @@ async function validarAdmin() {
 // ─────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   try {
-    const auth = await validarAdmin();
-    if ('error' in auth) {
+    const auth = await requireAdmin();
+    if (!auth.success) {
       return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
@@ -113,8 +86,8 @@ export async function GET(req: Request) {
 // ─────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   try {
-    const auth = await validarAdmin();
-    if ('error' in auth) {
+    const auth = await requireAdmin();
+    if (!auth.success) {
       return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
@@ -213,8 +186,8 @@ export async function POST(req: Request) {
 // ─────────────────────────────────────────────────────────────
 export async function DELETE(req: Request) {
   try {
-    const auth = await validarAdmin();
-    if ('error' in auth) {
+    const auth = await requireAdmin();
+    if (!auth.success) {
       return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 

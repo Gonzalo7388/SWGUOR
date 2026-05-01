@@ -1,9 +1,12 @@
-import 'dotenv/config'; // <-- Esto fuerza la lectura de tu archivo .env
+import 'dotenv/config';
 import { defineConfig } from '@prisma/config';
+
+// Decidimos qué URL usar: si existe DIRECT_URL, la usamos para el CLI
+const dbUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: './prisma/schema',
   datasource: {
-    url: process.env.DATABASE_URL as string, // Usamos process.env en lugar de env()
+    url: dbUrl as string, 
   },
 });

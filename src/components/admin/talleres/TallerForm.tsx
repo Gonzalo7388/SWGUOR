@@ -33,7 +33,7 @@ const tallerSchema = z.object({
   telefono: z.string().min(9, "Teléfono inválido"),
   direccion: z.string().min(5, "Dirección requerida"),
   email: z.string().email("Email inválido").or(z.literal("")),
-  especialidad: z.enum(["corte", "confección", "bordado", "estampado", "acabados", "costura", "otro"]),
+  especialidad: z.enum(["corte", "confeccion", "bordado", "estampado", "acabados", "costura", "otro"]),
   estado: z.enum(["activo", "inactivo", "suspendido"]),
 });
 
@@ -153,7 +153,7 @@ export default function TallerForm({ initialData, onSubmit, isLoading }: TallerF
             name="contacto"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-bold">Persona de Contacto</FormLabel>
+                <FormLabel className="font-bold">personal de Contacto</FormLabel>
                 <FormControl><Input placeholder="Nombre del responsable" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>

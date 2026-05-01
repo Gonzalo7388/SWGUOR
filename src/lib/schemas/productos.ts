@@ -1,5 +1,5 @@
 import { z } from "zod";
-import {ColorPrenda, EstadoProducto, TallaProductos, TipoBeneficio, TipoConteo, estado_ficha} from '@prisma/client';
+import {ColorPrenda, EstadoProducto, TallaProductos, TipoBeneficio, TipoConteo, EstadoFicha} from '@prisma/client';
 
 // ── 3. SUB-SCHEMAS (Componentes del Formulario) ──────────────────────────────
 
@@ -8,7 +8,7 @@ export const varianteSchema = z.object({
   color: z.enum(ColorPrenda),
   talla: z.enum(TallaProductos),
   precio_adicional: z.number().min(0).default(0),
-  stock_adicional: z.number().min(0).default(0),
+  stock: z.number().min(0).default(0),
   sku: z.string().min(2, "SKU requerido").toUpperCase(),
   imagen_url: z.string().url("URL inválida").optional().or(z.literal("")),
   estado: z.enum(EstadoProducto).default("activo"),
@@ -59,7 +59,7 @@ export const productoSchema = z.object({
     sam_total: z.number().optional(),
     costo_estimado: z.number().optional(),
     imagen_geometral: z.string().optional().or(z.literal("")),
-    estado: z.enum(estado_ficha).default("borrador"),
+    estado: z.enum(EstadoFicha).default("borrador"),
   }).optional(),
 
   reglas: z.array(reglaDescuentoSchema).default([]),
@@ -113,10 +113,17 @@ export const productoOutputSchema = productoSchema.transform((d) => ({
     talla: v.talla,
     sku: v.sku.toUpperCase(),
     precio_adicional: v.precio_adicional,
-    stock_adicional: v.stock_adicional,
+    stock: v.stock,
     imagen_url: v.imagen_url || null,
     estado: v.estado,
   })),
 }));
+
+export interface ApiResponse<T = any> {
+  success:  boolean;
+  data?:    T;
+  error?:   string;
+  message?: string;
+}
 
 export type ProductoOutput = z.infer<typeof productoOutputSchema>;
