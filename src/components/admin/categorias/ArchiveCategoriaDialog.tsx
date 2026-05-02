@@ -59,8 +59,8 @@ export default function DescontinuarCategoriaDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[28px] shadow-2xl bg-white">
-        {/* Banner superior */}
-        <div className="h-2 bg-amber-500 w-full" />
+        {/* Franja superior coloreada - Borde Visual */}
+        <div className="h-2 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 w-full" />
 
         <div className="p-8 space-y-6">
           {/* Header */}

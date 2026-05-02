@@ -7,7 +7,7 @@ export const FichasTecnicasDetalleService = {
     const detalles = await prisma.fichas_tecnicas_detalle.findMany({
       where: { ficha_id: BigInt(ficha_id) },
       include: {
-        material: {
+        materiales: {
           select: {
             id: true, nombre: true, tipo: true,
             composicion: true, color: true,
@@ -55,7 +55,7 @@ export const FichasTecnicasDetalleService = {
       return serializeBigInt(
         await tx.fichas_tecnicas_detalle.findMany({
           where: { ficha_id: BigInt(ficha_id) },
-          include: { material: true, insumo: true },
+          include: { materiales: true, insumo: true },
         })
       );
     });
@@ -69,15 +69,15 @@ export const FichasTecnicasDetalleService = {
   // Calcular costo estimado total de la ficha
   async calcularCosto(ficha_id: string) {
     const detalles = await prisma.fichas_tecnicas_detalle.findMany({
-      where:   { ficha_id: BigInt(ficha_id) },
+      where: { ficha_id: BigInt(ficha_id) },
       include: {
-        material: { select: { precio_unitario: true } },
-        insumo:   { select: { precio_unitario: true } },
+        materiales: { select: { precio_unitario: true } },  // ← nombre correcto
+        insumo:     { select: { precio_unitario: true } },
       },
     });
 
     const costo = detalles.reduce((total, d) => {
-      const precio = Number(d.material?.precio_unitario ?? d.insumo?.precio_unitario ?? 0);
+      const precio = Number(d.materiales?.precio_unitario ?? d.insumo?.precio_unitario ?? 0);
       const cantidad = Number(d.cantidad_consumo);
       const desperdicio = Number(d.porcentaje_desperdicio ?? 0) / 100;
       return total + precio * cantidad * (1 + desperdicio);

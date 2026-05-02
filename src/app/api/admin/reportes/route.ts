@@ -6,138 +6,132 @@ import { NextResponse } from 'next/server';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    
-    // ── Filtros avanzados ──
-    const days = parseInt(searchParams.get('days') || '30');
+
+    // ── Filtros ──────────────────────────────────────────────
+    const days       = parseInt(searchParams.get('days') || '30');
     const fechaDesde = searchParams.get('fecha_desde')
       ? new Date(searchParams.get('fecha_desde')!)
       : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const fechaHasta = searchParams.get('fecha_hasta')
       ? new Date(searchParams.get('fecha_hasta')!)
       : new Date();
-    
-    const clienteId = searchParams.get('cliente_id');
-    const categoriaId = searchParams.get('categoria_id');
+
     const estadoOrden = searchParams.get('estado_orden');
-    const metodoPago = searchParams.get('metodo_pago');
-    const grupo = searchParams.get('grupo') || 'dia';
+    const metodoPago  = searchParams.get('metodo_pago');
+    const grupo       = searchParams.get('grupo') || 'dia';
 
     const whereFecha = { gte: fechaDesde, lte: fechaHasta };
 
-    // ── Consultas en paralelo (Alineación corregida) ──
+    // ── Consultas en paralelo ────────────────────────────────
     const [
-      resumenGeneral,       // 0
-      ventasDetalle,        // 1
-      pedidosProduction,    // 2
-      inventarioSnapshot,   // 3
-      clientesRanking,      // 4
-      categoriasPareto,     // 5
-      ventasTimeline,       // 6
-      pagosDetalle,         // 7
+      resumenGeneral,
+      ventasDetalle,
+      pedidosProduccion,
+      inventarioSnapshot,
+      clientesRanking,
+      categoriasPareto,
+      ventasTimeline,
+      pagosDetalle,
     ] = await Promise.all([
+
       // 0. RESUMEN GENERAL
       prisma.$transaction([
         prisma.ordenes_compra.aggregate({
           where: { created_at: whereFecha },
           _count: { id: true },
-          _sum: { total_orden: true },
+          _sum:   { total_orden: true },
         }),
         prisma.ventas.aggregate({
           where: { created_at: whereFecha },
           _count: { id: true },
-          _sum: { total: true },
+          _sum:   { total: true },
         }),
         prisma.clientes.count({ where: { created_at: whereFecha } }),
-        prisma.pedidos.count({ where: { created_at: whereFecha } }),
+        prisma.pedidos.count({ where:  { created_at: whereFecha } }),
       ]),
 
       // 1. DETALLE DE VENTAS
       prisma.ventas.findMany({
-        where: { created_at: whereFecha },
-        include: {
-          pedidos: { 
-            include: { clientes: { select: { razon_social: true, ruc: true } } }
-          },
-        } as any,
+        where:   { created_at: whereFecha },
+        include: { usuarios: { select: { email: true } } },
         orderBy: { created_at: 'desc' },
-        take: 100,
+        take:    200,
       }),
 
-      // 2. PEDIDOS EN PRODUCCIÓN
+      // 2. PEDIDOS EN PRODUCCIÓN (sin duplicado)
       prisma.pedidos.findMany({
         where: { created_at: whereFecha },
         include: {
-          clientes: { select: { razon_social: true } },
+          clientes:     { select: { razon_social: true } },
           pedido_items: { include: { productos: { select: { nombre: true } } } },
         },
         orderBy: { created_at: 'desc' },
+        take:    100,
       }),
 
-      // 3. SNAPSHOT DE INVENTARIO (Se eliminó el duplicado que causaba el error)
+      // 3. SNAPSHOT DE INVENTARIO
       prisma.insumo.findMany({
-        select: { id: true, nombre: true, stock_actual: true, stock_minimo: true },
+        select:  { id: true, nombre: true, stock_actual: true, stock_minimo: true },
         orderBy: { stock_actual: 'asc' },
       }),
 
       // 4. RANKING DE CLIENTES
+      // ✅ total_estimado pertenece a pedidos, no a ordenes_compra
       prisma.pedidos.groupBy({
-        by: ['cliente_id'],
-        _count: { id: true },
-        _sum: { total_estimado: true },
-        where: { created_at: whereFecha, cliente_id: { not: null } },
+        by:      ['cliente_id'],
+        _count:  { id: true },
+        _sum:    { total_estimado: true },
+        where:   { created_at: whereFecha, cliente_id: { not: null } },
         orderBy: { _sum: { total_estimado: 'desc' } },
-        take: 10,
+        take:    10,
       }),
 
-      // 5. PARETO POR CATEGORÍA
+      // 5. PARETO POR PRODUCTO
       prisma.pedido_items.groupBy({
-        by: ['producto_id'],
-        _sum: { cantidad: true },
-        _count: { id: true },
+        by:      ['producto_id'],
+        _sum:    { cantidad: true },
+        _count:  { id: true },
         orderBy: { _sum: { cantidad: 'desc' } },
-        take: 15,
+        take:    15,
       }),
 
       // 6. VENTAS AGRUPADAS POR TIEMPO
       prisma.ventas.findMany({
-        where: { created_at: whereFecha },
-        select: { total: true, created_at: true },
+        where:   { created_at: whereFecha },
+        select:  { total: true, created_at: true },
         orderBy: { created_at: 'asc' },
       }),
 
       // 7. DETALLE DE PAGOS
       prisma.pagos_orden.groupBy({
-        by: ['metodo_pago'],
-        _sum: { monto: true },
-        _count: { id: true },
-        where: { fecha_pago: whereFecha },
+        by:      ['metodo_pago'],
+        _sum:    { monto: true },
+        _count:  { id: true },
+        where:   { fecha_pago: whereFecha },
         orderBy: { _sum: { monto: 'desc' } },
       }),
     ]);
 
-    // ── Aplicar filtros adicionales ──
-    let ventasFiltradas = ventasDetalle;
-    if (clienteId) {
-      ventasFiltradas = ventasFiltradas.filter(
-        (v: any) => v.pedidos?.cliente_id?.toString() === clienteId
-      );
-    }
+    // ── Filtros adicionales en memoria ───────────────────────
+    const ventasFiltradas = metodoPago
+      ? ventasDetalle.filter((v) => v.metodo_pago === metodoPago)
+      : ventasDetalle;
 
-    let pedidosFiltrados = pedidosProduction;
-    if (estadoOrden) {
-      pedidosFiltrados = pedidosFiltrados.filter((p) => p.estado === estadoOrden);
-    }
+    const pedidosFiltrados = estadoOrden
+      ? pedidosProduccion.filter((p) => p.estado === estadoOrden)
+      : pedidosProduccion;
 
-    // ── Procesamiento de Rankings y Timelines ──
+    // ── Timeline ─────────────────────────────────────────────
     const ventasTimelineProcesado = agruparTimeline(ventasTimeline, grupo);
 
+    // ── Enriquecer ranking de clientes ───────────────────────
     const clienteIds = clientesRanking
       .map((c) => c.cliente_id)
       .filter((id): id is bigint => id !== null);
 
     const clientesDetalle = clienteIds.length > 0
       ? await prisma.clientes.findMany({
-          where: { id: { in: clienteIds } },
+          where:  { id: { in: clienteIds } },
           select: { id: true, razon_social: true, ruc: true },
         })
       : [];
@@ -145,24 +139,21 @@ export async function GET(req: Request) {
     const clientesMap = new Map(clientesDetalle.map((c) => [c.id.toString(), c]));
 
     const clientesRankingFinal = clientesRanking.map((c) => ({
-      cliente_id: c.cliente_id?.toString() ?? null,
-      razon_social: c.cliente_id
-        ? clientesMap.get(c.cliente_id.toString())?.razon_social ?? 'N/A'
-        : 'N/A',
-      ruc: c.cliente_id
-        ? clientesMap.get(c.cliente_id.toString())?.ruc ?? null
-        : null,
-      total_ordenes: c._count?.id ?? 0,
-      total_comprado: Number(c._sum?.total_estimado ?? 0),
+      cliente_id:      c.cliente_id?.toString() ?? null,
+      razon_social:    c.cliente_id ? clientesMap.get(c.cliente_id.toString())?.razon_social ?? 'N/A' : 'N/A',
+      ruc:             c.cliente_id ? clientesMap.get(c.cliente_id.toString())?.ruc ?? null : null,
+      total_ordenes:   c._count.id,
+      total_comprado:  Number(c._sum.total_estimado ?? 0),
     }));
 
+    // ── Enriquecer pareto por categoría ──────────────────────
     const productoIds = categoriasPareto
       .map((p) => p.producto_id)
       .filter((id): id is bigint => id !== null);
 
     const productosDetalle = productoIds.length > 0
       ? await prisma.productos.findMany({
-          where: { id: { in: productoIds } },
+          where:   { id: { in: productoIds } },
           include: { categorias: { select: { nombre: true } } },
         })
       : [];
@@ -172,44 +163,50 @@ export async function GET(req: Request) {
     const categoriasParetoFinal = categoriasPareto.map((p) => {
       const prod = p.producto_id ? productosMap.get(p.producto_id.toString()) : null;
       return {
-        producto_id: p.producto_id?.toString() ?? null,
-        nombre: prod?.nombre ?? 'N/A',
-        categoria: prod?.categorias?.nombre ?? 'Sin categoría',
-        cantidad_total: Number(p._sum?.cantidad ?? 0),
-        pedidos_count: p._count?.id ?? 0,
+        producto_id:    p.producto_id?.toString() ?? null,
+        nombre:         prod?.nombre              ?? 'N/A',
+        categoria:      prod?.categorias?.nombre  ?? 'Sin categoría',
+        cantidad_total: Number(p._sum?.cantidad   ?? 0),
+        pedidos_count:  p._count?.id              ?? 0,
       };
     });
 
-    const [ordenesAgg, ventasAgg] = resumenGeneral;
-    const nuevosClientes = resumenGeneral[2];
-    const nuevosPedidos = resumenGeneral[3];
+    // ── Métricas finales ─────────────────────────────────────
+    const [ordenesAgg, ventasAgg, nuevosClientes, nuevosPedidos] = resumenGeneral;
 
-    const totalVentas = Number(ventasAgg._sum?.total ?? 0);
+    const totalVentas      = Number(ventasAgg._sum?.total      ?? 0);
     const totalOrdenesComp = Number(ordenesAgg._sum?.total_orden ?? 0);
-    const crecimiento = calculoCrecimiento(ventasTimeline, fechaDesde, fechaHasta);
+    const crecimiento      = calculoCrecimiento(ventasTimeline, fechaDesde, fechaHasta);
+
+    // ── Inventario crítico (stock_actual <= stock_minimo) ────
+    const inventarioCritico = inventarioSnapshot.filter(
+      (i) => Number(i.stock_actual) <= Number(i.stock_minimo)
+    );
 
     return NextResponse.json(
       serializeBigInt({
         metrics: {
-          total_ventas: totalVentas,
+          total_ventas:        totalVentas,
           total_ordenes_compra: totalOrdenesComp,
-          ventas_count: ventasAgg._count?.id ?? 0,
-          nuevos_clientes: nuevosClientes,
-          nuevos_pedidos: nuevosPedidos,
-          crecimiento_pct: Math.round(crecimiento),
+          ventas_count:        ventasAgg._count?.id   ?? 0,
+          nuevos_clientes:     nuevosClientes,
+          nuevos_pedidos:      nuevosPedidos,
+          crecimiento_pct:     Math.round(crecimiento),
           produccion_en_curso: pedidosFiltrados.filter(
             (p) => p.estado !== 'entregado'
           ).length,
+          stock_alerta: inventarioCritico.length,
         },
-        ventasDetalle: stringifyBigInts(ventasFiltradas),
+        ventasDetalle:    stringifyBigInts(ventasFiltradas),
         pedidosProduccion: stringifyBigInts(pedidosFiltrados),
-        clientesRanking: clientesRankingFinal,
-        categoriasPareto: categoriasParetoFinal,
-        ventasTimeline: ventasTimelineProcesado,
-        pagosPorMetodo: pagosDetalle.map((p) => ({
-          metodo: p.metodo_pago,
-          monto_total: Number(p._sum?.monto ?? 0),
-          count: p._count?.id ?? 0,
+        inventarioCritico: stringifyBigInts(inventarioCritico),
+        clientesRanking:   clientesRankingFinal,
+        categoriasPareto:  categoriasParetoFinal,
+        ventasTimeline:    ventasTimelineProcesado,
+        pagosPorMetodo:    pagosDetalle.map((p) => ({
+          metodo:       p.metodo_pago,
+          monto_total:  Number(p._sum?.monto ?? 0),
+          count:        p._count?.id         ?? 0,
         })),
       })
     );
@@ -219,7 +216,7 @@ export async function GET(req: Request) {
   }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function agruparTimeline(ventas: any[], grupo: string) {
   const map = new Map<string, number>();
@@ -241,9 +238,9 @@ function agruparTimeline(ventas: any[], grupo: string) {
 
 function calculoCrecimiento(ventas: any[], fechaDesde: Date, fechaHasta: Date): number {
   const duracion = fechaHasta.getTime() - fechaDesde.getTime();
-  const mitad = new Date(fechaDesde.getTime() + duracion / 2);
-  let primeraMitad = 0;
-  let segundaMitad = 0;
+  const mitad    = new Date(fechaDesde.getTime() + duracion / 2);
+  let primeraMitad  = 0;
+  let segundaMitad  = 0;
   for (const v of ventas) {
     if (!v.created_at) continue;
     const monto = Number(v.total);

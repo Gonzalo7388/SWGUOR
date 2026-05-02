@@ -28,9 +28,9 @@ export const InventarioService = {
         : { nombre: 'asc' },
     });
 
-    // Prisma no permite comparar dos columnas → filtramos en JS
+    // ✅ Convertir Decimal a number antes de comparar
     const resultado = params?.bajo_stock
-      ? insumos.filter(i => i.stock_actual <= i.stock_minimo)
+      ? insumos.filter(i => Number(i.stock_actual) <= Number(i.stock_minimo))
       : insumos;
 
     return serializeBigInt(resultado);
@@ -60,13 +60,14 @@ export const InventarioService = {
     const insumo = await prisma.insumo.create({
       data: {
         nombre:            data.nombre,
-        tipo:              data.tipo              as any,
-        categoria_insumo:  (data.categoria_insumo  as any) ?? 'otro',
-        unidad_medida:     (data.unidad_medida      as any) ?? 'unidades',
-        stock_actual:      data.stock_actual       ?? 0,
-        stock_minimo:      data.stock_minimo       ?? 10,
-        stock_maximo:      data.stock_maximo       ?? null,
-        precio_unitario:   data.precio_unitario    ?? null,
+        tipo:              data.tipo as any,
+        categoria_insumo:  (data.categoria_insumo ?? 'otro') as any,
+        unidad_medida:     (data.unidad_medida ?? 'unidades') as any,
+        // ✅ Convertir numbers a string para campos Decimal
+        stock_actual:      (data.stock_actual    ?? 0).toString(),
+        stock_minimo:      (data.stock_minimo    ?? 10).toString(),
+        stock_maximo:      data.stock_maximo     != null ? data.stock_maximo.toString()    : null,
+        precio_unitario:   data.precio_unitario  != null ? data.precio_unitario.toString() : null,
         proveedor_id:      data.proveedor_id ? BigInt(data.proveedor_id) : null,
         ubicacion_almacen: data.ubicacion_almacen  ?? null,
         alerta_bajo_stock: data.alerta_bajo_stock  ?? true,
@@ -87,9 +88,17 @@ export const InventarioService = {
     ubicacion_almacen:  string;
     alerta_bajo_stock:  boolean;
   }>) {
+    // ✅ Convertir campos Decimal a string antes de enviar a Prisma
+    const dataTransformada: any = { ...data, updated_at: new Date() };
+
+    if (data.stock_minimo    != null) dataTransformada.stock_minimo    = data.stock_minimo.toString();
+    if (data.stock_maximo    != null) dataTransformada.stock_maximo    = data.stock_maximo.toString();
+    if (data.precio_unitario != null) dataTransformada.precio_unitario = data.precio_unitario.toString();
+    if (data.proveedor_id    != null) dataTransformada.proveedor_id    = BigInt(data.proveedor_id);
+
     const insumo = await prisma.insumo.update({
       where: { id: BigInt(id) },
-      data:  { ...data as any, updated_at: new Date() },
+      data:  dataTransformada,
     });
     return serializeBigInt(insumo);
   },
@@ -108,6 +117,7 @@ export const InventarioService = {
     return prisma.$transaction(async (tx) => {
       const insumo = await tx.insumo.findUniqueOrThrow({ where: { id: BigInt(id) } });
 
+      // ✅ Convertir Decimal a number para operar
       const stockAnterior = Number(insumo.stock_actual);
       const nuevoStock = input.stock_delta !== undefined
         ? stockAnterior + input.stock_delta
@@ -121,24 +131,30 @@ export const InventarioService = {
         nuevoStock > stockAnterior ? 'entrada' :
         nuevoStock < stockAnterior ? 'salida'  : 'ajuste';
 
+      const costoUnitario = input.costo_unitario
+        ?? (insumo.precio_unitario ? Number(insumo.precio_unitario) : null);
+
       const [actualizado] = await Promise.all([
         tx.insumo.update({
           where: { id: BigInt(id) },
           data: {
-            stock_actual: nuevoStock,
+            // ✅ Convertir number a string para Decimal
+            stock_actual: nuevoStock.toString(),
             updated_at:   new Date(),
-            ...(input.precio_unitario !== undefined && { precio_unitario: input.precio_unitario }),
+            ...(input.precio_unitario !== undefined && {
+              precio_unitario: input.precio_unitario.toString(),
+            }),
           },
         }),
         tx.movimientos_inventario.create({
           data: {
             insumo_id:       BigInt(id),
             cantidad:        Math.abs(nuevoStock - stockAnterior),
-            motivo:          input.motivo ?? 'Ajuste de stock manual',
+            motivo:          input.motivo          ?? 'Ajuste de stock manual',
             tipo_movimiento: tipoMovimiento as any,
-            usuario_id:      input.usuario_id ? BigInt(input.usuario_id) : null,
-            costo_unitario:  input.costo_unitario ?? (insumo.precio_unitario ? Number(insumo.precio_unitario) : null),
-            // CORRECCIÓN: Se eliminaron stock_anterior y stock_posterior por no existir en el schema
+            usuario_id:      input.usuario_id      ? BigInt(input.usuario_id) : null,
+            // ✅ Convertir costo a string para Decimal
+            costo_unitario:  costoUnitario != null ? costoUnitario.toString() : null,
             referencia_tipo: input.referencia_tipo ?? 'AJUSTE' as ReferenciaMovimiento,
             referencia_id:   input.referencia_id   ? BigInt(input.referencia_id) : null,
           },

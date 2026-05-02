@@ -1,9 +1,18 @@
 export const runtime = 'nodejs';
 import { UsuariosService } from '@/lib/services/usuarios-services';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 import { NextResponse } from 'next/server';
+
+const ADMIN_ROLES: RolUsuario[] = ['administrador', 'gerente'];
 
 // GET /api/admin/usuarios
 export async function GET() {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const data = await UsuariosService.listar();
     return NextResponse.json({ success: true, data });
@@ -15,6 +24,11 @@ export async function GET() {
 
 // POST /api/admin/usuarios
 export async function POST(req: Request) {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
 
@@ -35,6 +49,11 @@ export async function POST(req: Request) {
 
 // PATCH /api/admin/usuarios
 export async function PATCH(req: Request) {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
     const { id, estado, ...data } = body;
@@ -67,6 +86,11 @@ export async function PATCH(req: Request) {
 
 // DELETE /api/admin/usuarios?id=xxx
 export async function DELETE(req: Request) {
+  const auth = await requireServerRole(ADMIN_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const id = new URL(req.url).searchParams.get('id');
 

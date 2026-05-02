@@ -1,27 +1,18 @@
 export const runtime = 'nodejs';
 
-import { NextResponse }                    from 'next/server';
-import { FichasTecnicasDetalleService }   from '@/lib/services/fichas-tecnicas-detalle-services';
-import { createServerClient }             from '@supabase/ssr';
-import { cookies }                        from 'next/headers';
+import { NextResponse } from 'next/server';
+import { FichasTecnicasDetalleService } from '@/lib/services/fichas-tecnicas-detalle-services';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-async function getRol() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('usuarios').select('rol').eq('auth_id', user.id).single();
-  return data?.rol ?? null;
-}
-
-const ROLES_PERMITIDOS = ['disenador', 'cortador', 'administrador', 'gerente'];
+const FICHAS_TECNICAS_DETALLE_ROLES: RolUsuario[] = ['disenador', 'cortador', 'administrador', 'gerente'];
 
 export async function GET(req: Request) {
+  const auth = await requireServerRole(FICHAS_TECNICAS_DETALLE_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const ficha_id = searchParams.get('ficha_id');
@@ -37,12 +28,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  try {
-    const rol = await getRol();
-    if (!rol || !ROLES_PERMITIDOS.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(FICHAS_TECNICAS_DETALLE_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const body = await req.json();
     const { ficha_id, items } = body;
 
@@ -61,12 +52,12 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  try {
-    const rol = await getRol();
-    if (!rol || !ROLES_PERMITIDOS.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(FICHAS_TECNICAS_DETALLE_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });

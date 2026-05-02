@@ -1,34 +1,20 @@
 export const runtime = 'nodejs';
 
-import { NextResponse }       from 'next/server';
-import { MaterialesService }  from '@/lib/services/material-services';
-import { createServerClient } from '@supabase/ssr';
-import { cookies }            from 'next/headers';
+import { NextResponse } from 'next/server';
+import { MaterialesService } from '@/lib/services/material-services';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-async function getRol() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('usuarios').select('rol').eq('auth_id', user.id).single();
-  return data?.rol ?? null;
-}
-
-const ROLES_LECTURA  = ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller'];
-const ROLES_ESCRITURA = ['administrador', 'gerente', 'disenador', 'cortador'];
+const MATERIALES_LECTURA_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller'];
+const MATERIALES_ESCRITURA_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador'];
 
 export async function GET(req: Request) {
-  try {
-    const rol = await getRol();
-    if (!rol || !ROLES_LECTURA.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(MATERIALES_LECTURA_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const { searchParams } = new URL(req.url);
     const data = await MaterialesService.listar({
       tipo:      searchParams.get('tipo')      ?? undefined,
@@ -43,12 +29,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  try {
-    const rol = await getRol();
-    if (!rol || !ROLES_ESCRITURA.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(MATERIALES_ESCRITURA_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const body = await req.json();
     if (!body.nombre) {
       return NextResponse.json({ error: 'nombre requerido' }, { status: 400 });
@@ -62,12 +48,12 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  try {
-    const rol = await getRol();
-    if (!rol || !ROLES_ESCRITURA.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(MATERIALES_ESCRITURA_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const body = await req.json();
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
@@ -83,12 +69,12 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  try {
-    const rol = await getRol();
-    if (!rol || !ROLES_ESCRITURA.includes(rol)) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-    }
+  const auth = await requireServerRole(MATERIALES_ESCRITURA_ROLES);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
+  try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });

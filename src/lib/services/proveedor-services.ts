@@ -51,8 +51,8 @@ export interface ProveedorRow {
 const COUNT_INCLUDE = {
   _count: {
     select: {
-      insumo: true,         //  Coincide con 'insumo' en priisma
-      ordenes_compra: true, //  Coincide con 'ordenes_compra' en priisma
+      insumo: true,
+      ordenes_compra: true,
     },
   },
 } as const;

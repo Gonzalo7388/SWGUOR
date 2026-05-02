@@ -1,38 +1,31 @@
 export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
+import { requireServerAuth } from '@/lib/auth/server';
 
 // ─────────────────────────────────────────────────────────────
 // Helper: obtener el cliente_id del usuario autenticado
 // ─────────────────────────────────────────────────────────────
 async function obtenerClienteSesion() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'no_auth' as const };
-
-  const usuarioDb = await prisma.usuarios.findFirst({
-    where: { auth_id: user.id },
-    select: { id: true, estado: true, rol: true },
-  });
-
-  if (!usuarioDb) return { error: 'usuario_no_encontrado' as const };
+  const auth = await requireServerAuth();
+  if (!auth.success) {
+    return { error: auth.error, status: auth.status };
+  }
 
   const clienteDb = await prisma.clientes.findFirst({
-    where: { usuario_id: usuarioDb.id },
+    where: { usuario_id: auth.user.id },
     select: { id: true, razon_social: true, ruc: true, activo: true },
   });
 
-  if (!clienteDb) return { error: 'cliente_no_encontrado' as const };
+  if (!clienteDb) {
+    return { error: 'cliente_no_encontrado' as const, status: 404 };
+  }
 
   return {
-    auth_user_id: user.id,
-    usuario_id: usuarioDb.id,
+    auth_user_id: auth.user.authId,
+    usuario_id: auth.user.id,
     cliente_id: clienteDb.id,
     cliente: clienteDb,
   };
@@ -45,7 +38,7 @@ export async function GET(req: Request) {
   try {
     const sesion = await obtenerClienteSesion();
     if ('error' in sesion) {
-      return NextResponse.json({ success: false, error: sesion.error }, { status: 401 });
+      return NextResponse.json({ success: false, error: sesion.error }, { status: sesion.status });
     }
 
     const { searchParams } = new URL(req.url);
@@ -86,7 +79,7 @@ export async function POST(req: Request) {
   try {
     const sesion = await obtenerClienteSesion();
     if ('error' in sesion) {
-      return NextResponse.json({ success: false, error: sesion.error }, { status: 401 });
+      return NextResponse.json({ success: false, error: sesion.error }, { status: sesion.status });
     }
 
     const body = await req.json();

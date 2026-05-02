@@ -5,8 +5,8 @@ export const fetchCache = 'force-no-store';
 import { NextResponse } from 'next/server';
 import { SchemaType, Tool } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
 import { serializeBigInt } from '@/lib/utils/serialize';
+import { requireServerAuth } from '@/lib/auth/server';
 import { model } from '@/lib/gemini';
 
 const tools: Tool[] = [
@@ -51,28 +51,21 @@ const tools: Tool[] = [
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return NextResponse.json({ error: 'no_auth' }, { status: 401 });
+    const auth = await requireServerAuth();
+    if (!auth.success) {
+      return NextResponse.json({ error: 'no_auth' }, { status: auth.status });
+    }
 
     // usuarios ya NO tiene nombre_completo — lo obtenemos desde clientes o personal_interno
-    const usuarioDb = await prisma.usuarios.findFirst({
-      where: { auth_id: user.id },
-      select: { id: true },
+    const clienteDb = await prisma.clientes.findFirst({
+      where: { usuario_id: auth.user.id },
+      select: { id: true, razon_social: true },
     });
 
-    const clienteDb = usuarioDb
-      ? await prisma.clientes.findFirst({
-          where: { usuario_id: usuarioDb.id },
-          select: { id: true, razon_social: true },
-        })
-      : null;
-
     // Para personal interno, obtener nombre desde personal_interno
-    const personalDb = usuarioDb && !clienteDb
+    const personalDb = !clienteDb
       ? await prisma.personal_interno.findFirst({
-          where: { usuario_id: usuarioDb.id },
+          where: { usuario_id: auth.user.id },
           select: { nombre_completo: true },
         })
       : null;
