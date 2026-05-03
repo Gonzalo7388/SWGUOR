@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useVarianteStockResumen } from '@/lib/hooks/useStockResumen';
 import { GeneralInfoSection } from "./sections/GeneralInfoSection";
 import { VariantsSection } from "./sections/VariantsSection";
+import { ImageUploadSection } from "./sections/ImageUploadSection";
 import { generateSKU, generateVariantSKU } from "@/lib/utils/producto-utils";
 
 interface ProductFormProps {
@@ -28,7 +29,6 @@ export default function ProductForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
-  // Hook para obtener stocks actualizados si es necesario
   const { data: variantesDB } = useVarianteStockResumen(
     initialData?.id ? Number(initialData.id) : undefined
   );
@@ -37,6 +37,7 @@ export default function ProductForm({
     defaultValues: initialData
       ? {
           ...initialData,
+          imagen: initialData.imagen ?? null,       // ← nuevo campo
           variantes: initialData.variantes_producto?.map((v: any) => ({
             id: v.id,
             color: v.color,
@@ -51,6 +52,7 @@ export default function ProductForm({
           categoria_id: "",
           sku: "",
           estado: "activo",
+          imagen: null,                             // ← nuevo campo
           variantes: [{ color: "", talla: "", stock: 0, sku: "" }],
         },
   });
@@ -76,11 +78,12 @@ export default function ProductForm({
           categoria_id: parseInt(data.categoria_id),
           sku: skuProducto,
           estado: data.estado || "activo",
+          imagen: data.imagen || null,              // ← nuevo campo
           reglas_descuento: data.reglas_descuento || null,
           fichas_tecnicas_id: data.fichas_tecnicas_id || null,
         },
         variantes: (data.variantes || []).map((v: any) => ({
-          id: v.id, // Importante enviar el ID para actualizar en lugar de duplicar
+          id: v.id,
           color: v.color,
           talla: v.talla,
           sku: generateVariantSKU(skuProducto, v.color, v.talla),
@@ -121,16 +124,16 @@ export default function ProductForm({
       <form onSubmit={methods.handleSubmit(onSubmit)} className="max-w-5xl mx-auto space-y-8 pb-20">
         
         {/* Barra de acciones superior */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-guor-peach/50">
           <div>
             <Link
               href="/admin/Panel-Administrativo/productos"
-              className="inline-flex items-center gap-1.5 text-pink-600 hover:text-pink-700 text-xs font-bold uppercase tracking-widest mb-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-guor-brown hover:text-guor-brown/90 text-xs font-bold uppercase tracking-widest mb-2 transition-colors"
             >
               <ArrowLeft size={13} />
               Volver al Inventario
             </Link>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-guor-dark">
               {mode === "create" ? "Nuevo Producto" : "Editar Producto"}
             </h2>
           </div>
@@ -140,14 +143,14 @@ export default function ProductForm({
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="h-10 px-5 font-semibold border-gray-200 text-gray-600"
+              className="h-10 px-5 font-semibold border-guor-peach text-guor-brown/70"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-pink-600 hover:bg-pink-700 text-white h-10 px-6 font-bold gap-2"
+              className="bg-guor-brown hover:bg-guor-brown/90 text-white h-10 px-6 font-bold gap-2"
             >
               {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save size={16} />}
               {mode === "create" ? "Guardar Producto" : "Guardar Cambios"}
@@ -155,8 +158,15 @@ export default function ProductForm({
           </div>
         </div>
 
-        {/* Layout Centralizado de una sola columna para mejor lectura */}
-        <div className="space-y-6">
+        {/* Layout de dos columnas: imagen a la izquierda, info general a la derecha */}
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+
+          {/* Columna izquierda: imagen */}
+          <SectionCard title="Imagen del Producto">
+            <ImageUploadSection />
+          </SectionCard>
+
+          {/* Columna derecha: info general */}
           <SectionCard title="Información General">
             <GeneralInfoSection
               categorias={categorias}
@@ -164,11 +174,12 @@ export default function ProductForm({
               nextId={nextId}
             />
           </SectionCard>
-
-          <SectionCard title="Gestión de Variantes y Stock">
-            <VariantsSection stockResumen={variantesDB || initialData?.variantes_producto} mode={mode} />
-          </SectionCard>
         </div>
+
+        {/* Variantes en toda la fila */}
+        <SectionCard title="Gestión de Variantes y Stock">
+          <VariantsSection stockResumen={variantesDB || initialData?.variantes_producto} mode={mode} />
+        </SectionCard>
       </form>
     </FormProvider>
   );
@@ -176,9 +187,9 @@ export default function ProductForm({
 
 function SectionCard({ children, title }: { children: React.ReactNode, title: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">{title}</h3>
+    <div className="bg-guor-cream rounded-2xl border border-guor-peach/50 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-guor-peach/30 bg-guor-cream/60">
+        <h3 className="text-xs font-black text-guor-gold/70 uppercase tracking-widest">{title}</h3>
       </div>
       <div className="p-6">{children}</div>
     </div>

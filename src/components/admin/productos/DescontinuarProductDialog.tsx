@@ -61,7 +61,7 @@ export default function DescontinuarProductoDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[28px] shadow-2xl bg-white">
+      <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[28px] shadow-2xl bg-guor-cream">
         <div className="h-2 bg-amber-500 w-full" /> 
 
         <div className="p-8 space-y-6">
@@ -70,10 +70,10 @@ export default function DescontinuarProductoDialog({
               <ShieldOff className="w-7 h-7 text-amber-600" />
             </div>
             <div className="space-y-1">
-              <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">
+              <DialogTitle className="text-xl font-black text-guor-dark tracking-tight">
                 Descontinuar Producto
               </DialogTitle>
-              <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+              <DialogDescription className="text-[10px] font-bold text-guor-gold/70 uppercase tracking-[0.2em]">
                 El producto quedará inactivo
               </DialogDescription>
             </div>
@@ -81,14 +81,14 @@ export default function DescontinuarProductoDialog({
 
           <div className="bg-amber-50 border border-amber-100 rounded-[20px] p-5">
             <div className="flex gap-4 items-start">
-              <div className="bg-white p-2 rounded-xl shadow-sm border border-amber-100 shrink-0">
+              <div className="bg-guor-cream p-2 rounded-xl shadow-sm border border-amber-100 shrink-0">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest">
                   Confirmación Requerida
                 </p>
-                <p className="text-sm text-slate-700 leading-relaxed">
+                <p className="text-sm text-guor-dark/80 leading-relaxed">
                   ¿Estás seguro de descontinuar{" "}
                   <span className="font-black text-amber-600 underline decoration-2">
                     {producto?.nombre || "este producto"}
@@ -107,7 +107,7 @@ export default function DescontinuarProductoDialog({
               variant="ghost"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+              className="flex-1 h-12 rounded-xl font-bold text-guor-gold hover:bg-guor-cream/60 transition-all"
             >
               Cancelar
             </Button>

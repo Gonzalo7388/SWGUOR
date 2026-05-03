@@ -93,22 +93,22 @@ export default function ProductFilters({
   const coloresRestantes = colors.filter(c => !DESTACADOS.includes(c));
 
   return (
-    <div className="space-y-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+    <div className="space-y-5 bg-guor-cream p-5 rounded-2xl border border-guor-peach shadow-sm">
       
       {/* FILA 1 */}
       <div className="flex flex-col lg:flex-row gap-4">
 
         {/* BUSCADOR */}
         <div className="relative flex-1 group">
-          <Search className="absolute left-3 top-3 text-slate-400 group-focus-within:text-pink-500 w-4 h-4 transition-colors" />
+          <Search className="absolute left-3 top-3 text-guor-gold/70 group-focus-within:text-guor-brown/70 w-4 h-4 transition-colors" />
           <Input 
             placeholder="Buscar por nombre o SKU..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-11 border-slate-200 bg-slate-50/50 focus:bg-white rounded-xl"
+            className="pl-10 h-11 border-guor-peach bg-guor-cream/60 focus:bg-guor-cream rounded-xl"
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm("")} className="absolute right-3 top-3 text-slate-400">
+            <button onClick={() => setSearchTerm("")} className="absolute right-3 top-3 text-guor-gold/70">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -117,7 +117,7 @@ export default function ProductFilters({
         {/* CATEGORIAS */}
         <div className="w-full lg:w-64">
           <Select value={selectedCategoria} onValueChange={setSelectedCategoria}>
-            <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-slate-50/50">
+            <SelectTrigger className="h-11 rounded-xl border-guor-peach bg-guor-cream/60">
               <SelectValue placeholder="Todas las categorías" />
             </SelectTrigger>
 
@@ -142,7 +142,7 @@ export default function ProductFilters({
             else setSortOrder('none');
           }}
           className={`h-11 px-6 rounded-xl font-bold ${
-            sortOrder !== 'none' ? 'bg-pink-50 border-pink-200 text-pink-700' : ''
+            sortOrder !== 'none' ? 'bg-guor-peach/50 border-guor-gold/50 text-guor-brown/90' : ''
           }`}
         >
           <ArrowUpDown className={`w-4 h-4 mr-2 ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
@@ -154,8 +154,8 @@ export default function ProductFilters({
 
       {/* COLORES */}
       <div>
-        <Label className="text-xs font-black uppercase text-slate-400 flex items-center gap-2">
-          <Filter className="w-3 h-3 text-pink-500" /> Colores
+        <Label className="text-xs font-black uppercase text-guor-gold/70 flex items-center gap-2">
+          <Filter className="w-3 h-3 text-guor-brown/70" /> Colores
         </Label>
 
         <div className="flex flex-wrap gap-2 mt-2">
@@ -163,7 +163,7 @@ export default function ProductFilters({
           <button
             onClick={() => setColorFilter("")}
             className={`w-9 h-9 rounded-full ${
-              colorFilter === "" ? "bg-pink-600" : "bg-slate-100"
+              colorFilter === "" ? "bg-guor-brown" : "bg-guor-peach/40"
             }`}
           />
 
@@ -174,7 +174,7 @@ export default function ProductFilters({
                 key={color}
                 onClick={() => setColorFilter(c)}
                 className={`w-9 h-9 rounded-full ${
-                  colorFilter === c ? "ring-2 ring-pink-500" : ""
+                  colorFilter === c ? "ring-2 ring-guor-brown" : ""
                 }`}
                 style={{ backgroundColor: COLOR_MAP[c] || "#ccc" }}
               >
@@ -196,7 +196,7 @@ export default function ProductFilters({
                 <button
                   key={color}
                   onClick={() => setColorFilter(color)}
-                  className="block w-full text-left px-2 py-1 text-sm hover:bg-slate-50"
+                  className="block w-full text-left px-2 py-1 text-sm hover:bg-guor-cream/60"
                 >
                   {color}
                 </button>
@@ -209,15 +209,15 @@ export default function ProductFilters({
 
       {/* TALLAS */}
       <div>
-        <Label className="text-xs font-black uppercase text-slate-400 flex items-center gap-2">
-          <Maximize2 className="w-3 h-3 text-pink-500" /> Tallas
+        <Label className="text-xs font-black uppercase text-guor-gold/70 flex items-center gap-2">
+          <Maximize2 className="w-3 h-3 text-guor-brown/70" /> Tallas
         </Label>
 
         <div className="flex flex-wrap gap-2 mt-2">
           <button
             onClick={() => setSizeFilter("")}
             className={`px-3 h-9 rounded-xl ${
-              sizeFilter === "" ? "bg-pink-600 text-white" : "bg-slate-100"
+              sizeFilter === "" ? "bg-guor-brown text-white" : "bg-guor-peach/40"
             }`}
           >
             TODAS
@@ -228,7 +228,7 @@ export default function ProductFilters({
               key={talla}
               onClick={() => setSizeFilter(talla)}
               className={`px-3 h-9 rounded-xl ${
-                sizeFilter === talla ? "bg-pink-600 text-white" : "bg-slate-100"
+                sizeFilter === talla ? "bg-guor-brown text-white" : "bg-guor-peach/40"
               }`}
             >
               {talla}

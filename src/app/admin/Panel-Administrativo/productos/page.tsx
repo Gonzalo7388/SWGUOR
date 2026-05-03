@@ -209,8 +209,7 @@ export default function ProductosPage() {
               categorias={categorias}
               loading={isLoading}
               onEdit={(p) => { setSelectedProducto(p); setIsEditOpen(true); }}
-              onDelete={(p) => { setSelectedProducto(p); setIsDeleteOpen(true); }}
-              onFicha={(p) => { setSelectedProducto(p); setIsTechOpen(true); }}
+              onArchive={(p) => { setSelectedProducto(p); setIsDeleteOpen(true); }}
               onStatusChange={(p) => toggleEstado(p.id.toString(), p.estado === 'activo' ? 'inactivo' : 'activo' )}
             />
 

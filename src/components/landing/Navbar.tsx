@@ -24,13 +24,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
 
         {/* LOGO */}
-        {/* LOGO */}
-<Link href="/" className="flex items-center gap-3">
-  <Image src="/logo.png" alt="GUOR Logo" width={40} height={40} className="object-contain" />
-  <span className="text-xl font-black tracking-tight uppercase italic" style={{ color: "#231e1d" }}>
-    Guor<span className="not-italic" style={{ color: "#e4c28a" }}>Style</span>
-  </span>
-</Link>
+        <Link href="/" className="flex items-center gap-3">
+          <Image src="/logo.png" alt="GUOR Logo" width={40} height={40} className="object-contain" />
+          <span className="text-xl font-black tracking-tight uppercase italic" style={{ color: "#231e1d" }}>
+            Guor<span className="not-italic" style={{ color: "#e4c28a" }}>Style</span>
+          </span>
+        </Link>
 
         {/* LINKS */}
         <div className="hidden md:flex items-center gap-8">

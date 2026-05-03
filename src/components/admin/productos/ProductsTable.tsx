@@ -11,24 +11,22 @@ interface ProductosTableProps {
   data: ProductoConRelaciones[];
   categorias: Categoria[];
   loading?: boolean;
-  onDelete: (p: ProductoConRelaciones) => void;
-  onFicha: (p: ProductoConRelaciones) => void;
+  onArchive: (p: ProductoConRelaciones) => void;
   onEdit: (p: ProductoConRelaciones) => void;
   onStatusChange?: (p: ProductoConRelaciones) => void;
   canEdit?: boolean;
-  canDelete?: boolean;
+  canArchive?: boolean;
 }
 
 function ProductosTable({
   data,
   categorias,
   loading,
-  onDelete,
-  onFicha,
+  onArchive,
   onEdit,
   onStatusChange,
   canEdit = false,
-  canDelete = false
+  canArchive = false
 }: ProductosTableProps) {
 
   return (
@@ -37,11 +35,11 @@ function ProductosTable({
         <table className="w-full border-separate border-spacing-y-3">
           <thead>
             <tr className="text-left">
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Detalle Producto</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Categoría</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Stock</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
-              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-guor-gold/70 uppercase">Detalle Producto</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-guor-gold/70 uppercase text-center">Categoría</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-guor-gold/70 uppercase text-center">Stock</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-guor-gold/70 uppercase text-center">Estado</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-guor-gold/70 uppercase text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -49,7 +47,7 @@ function ProductosTable({
               // --- ESTADO DE CARGA (SKELETON) ---
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skeleton-${i}`}>
-                  <td className="bg-white border-y border-l border-slate-100 py-5 px-6 rounded-l-2xl shadow-sm">
+                  <td className="bg-guor-cream border-y border-l border-guor-peach/50 py-5 px-6 rounded-l-2xl shadow-sm">
                     <div className="flex items-center gap-4">
                       <Skeleton className="h-11 w-11 rounded-xl" />
                       <div className="space-y-2">
@@ -59,16 +57,16 @@ function ProductosTable({
                       </div>
                     </div>
                   </td>
-                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                  <td className="bg-guor-cream border-y border-guor-peach/50 py-5 px-6 text-center shadow-sm">
                     <Skeleton className="h-6 w-24 mx-auto rounded-full" />
                   </td>
-                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                  <td className="bg-guor-cream border-y border-guor-peach/50 py-5 px-6 text-center shadow-sm">
                     <Skeleton className="h-5 w-12 mx-auto rounded-md" />
                   </td>
-                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                  <td className="bg-guor-cream border-y border-guor-peach/50 py-5 px-6 text-center shadow-sm">
                     <Skeleton className="h-6 w-20 mx-auto rounded-full" />
                   </td>
-                  <td className="bg-white border-y border-r border-slate-100 py-5 px-6 rounded-r-2xl text-right shadow-sm">
+                  <td className="bg-guor-cream border-y border-r border-guor-peach/50 py-5 px-6 rounded-r-2xl text-right shadow-sm">
                     <div className="flex justify-end gap-2">
                       <Skeleton className="h-9 w-9 rounded-xl" />
                       <Skeleton className="h-9 w-9 rounded-xl" />
@@ -79,10 +77,10 @@ function ProductosTable({
             ) : data.length === 0 ? (
               // --- SIN DATOS ---
               <tr>
-                <td colSpan={5} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
+                <td colSpan={5} className="bg-guor-cream rounded-2xl border border-guor-peach/50 py-16 text-center shadow-sm">
                   <div className="flex flex-col items-center gap-3">
                     <Package className="w-12 h-12 text-slate-200" />
-                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hay productos</p>
+                    <p className="text-guor-gold/70 font-bold uppercase text-xs tracking-widest">No hay productos</p>
                   </div>
                 </td>
               </tr>
@@ -93,12 +91,11 @@ function ProductosTable({
                   key={p.id.toString()}
                   p={p}
                   categorias={categorias}
-                  onDelete={onDelete}
-                  onFicha={onFicha}
+                  onArchive={onArchive}
                   onEdit={onEdit}
                   onStatusChange={onStatusChange}
                   canEdit={canEdit}
-                  canDelete={canDelete}
+                  canArchive={canArchive}
                 />
               ))
             )}

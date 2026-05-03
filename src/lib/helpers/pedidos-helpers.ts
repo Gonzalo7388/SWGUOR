@@ -1,12 +1,14 @@
 import type { ApiResponse } from '@/lib/schemas/pedidos';
 
-const API    = '/api/admin/pedidos';
+const API     = '/api/admin/pedidos';
 const SEG_API = '/api/admin/seguimiento-pedido';
 
 export async function fetchPedidos(): Promise<any[]> {
   const res = await fetch(API, { cache: 'no-store' });
   if (!res.ok) throw new Error('Error al cargar pedidos');
-  return res.json();
+  const json = await res.json();
+  // El route responde { success: true, data: [...] }
+  return json.data ?? [];
 }
 
 export async function fetchPedidoById(id: string): Promise<any> {
