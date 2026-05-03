@@ -159,8 +159,8 @@ export default function MisPedidosPage() {
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
-                      pedido.estado_pago === 'pagado' ? 'bg-emerald-500' : 
-                      pedido.estado_pago === 'pagado_parcial' ? 'bg-blue-500' : 'bg-amber-500'
+                      pedido.estado_pago === 'verificado' ? 'bg-emerald-500' : 
+                      pedido.estado_pago === 'pendiente' ? 'bg-blue-500' : 'bg-amber-500'
                     )} />
                     <span className="text-xs font-bold text-slate-700 capitalize">
                       {pedido.estado_pago.replace('_', ' ')}

@@ -85,19 +85,25 @@ export type PermissionKey =
   // Cotizaciones
   | 'ver_cotizaciones' | 'editar_cotizaciones' | 'ver_historial_cotizaciones'
   | 'crear_cotizacion' | 'descargar_cotizacion' | 'aprobar_cotizaciones' | 'exportar_cotizaciones'
+  // Precio histórico y contabilidad
+  | 'ver_precio_historico' | 'crear_precio_historico' | 'editar_precio_historico'
+  | 'ver_asientos_contables' | 'crear_asientos_contables' | 'editar_asientos_contables' | 'exportar_asientos_contables'
   // Materiales
   | 'ver_materiales' | 'crear_materiales' | 'editar_materiales' | 'descontinuar_materiales' | 'exportar_materiales'
-  // Ventas
-  | 'ver_ventas' | 'editar_ventas' | 'anular_ventas'
   // Configuración
   | 'ver_configuracion' | 'editar_configuracion'
   // Proveedores
   | 'ver_proveedores' | 'crear_proveedores' | 'editar_proveedores' | 'descontinuar_proveedores' | 'exportar_proveedores'
   // Notificaciones
   | 'ver_notificaciones'
+  // Feedback Cliente
+  | 'ver_feedback_cliente' | 'crear_feedback_cliente' | 'editar_feedback_cliente' | 'exportar_feedback_cliente'
+  // Notificaciones
+  | 'ver_notificaciones' | 'crear_notificaciones' | 'editar_notificaciones' | 'exportar_notificaciones'
+  // Almacenes
+  | 'ver_almacenes' | 'crear_almacenes' | 'editar_almacenes' | 'exportar_almacenes'
   // Perfil
   | 'ver_perfil' | 'editar_perfil';
-
 // ─────────────────────────────────────────────
 // TIPOS DE ACCIONES Y RECURSOS
 // ─────────────────────────────────────────────
@@ -181,12 +187,13 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_talleres', 'exportar_talleres',
     'ver_pagos', 'registrar_pagos',
     'ver_cotizaciones', 'ver_historial_cotizaciones', 'aprobar_cotizaciones', 'exportar_cotizaciones',
+    'ver_precio_historico', 'crear_precio_historico', 'editar_precio_historico',
+    'ver_asientos_contables', 'crear_asientos_contables', 'editar_asientos_contables', 'exportar_asientos_contables',
     'ver_materiales', 'exportar_materiales',
-    'ver_insumo', 'exportar_insumo',
-    'ver_ventas',
     'ver_configuracion', 'editar_configuracion',
     'ver_proveedores', 'exportar_proveedores',
-    'ver_notificaciones', 'ver_perfil', 'editar_perfil',
+    'ver_feedback_cliente',
+    'ver_notificaciones', 'ver_perfil', 'editar_perfil', 'ver_feedback_cliente', 'exportar_feedback_cliente',
   ],
 
   administrador: [
@@ -208,14 +215,18 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_talleres', 'crear_talleres', 'editar_talleres', 'suspender_talleres', 'exportar_talleres',
     'ver_pagos', 'registrar_pagos',
     'ver_cotizaciones', 'editar_cotizaciones', 'ver_historial_cotizaciones', 'aprobar_cotizaciones', 'exportar_cotizaciones',
-    'ver_ventas', 'editar_ventas', 'anular_ventas',
+    'ver_precio_historico', 'crear_precio_historico', 'editar_precio_historico',
+    'ver_asientos_contables', 'crear_asientos_contables', 'editar_asientos_contables', 'exportar_asientos_contables',
     'ver_configuracion', 'editar_configuracion',
     'ver_orden_produccion', 'crear_orden_produccion', 'editar_orden_produccion',
     'ver_devoluciones_proveedor', 'crear_devoluciones_proveedor', 'exportar_devoluciones_proveedor',
     'ver_devoluciones_cliente', 'exportar_devoluciones_cliente',
     'ver_proveedores', 'crear_proveedores', 'editar_proveedores', 'descontinuar_proveedores', 'exportar_proveedores',
     'ver_incidencias_taller', 'exportar_incidencias_taller',
-    'ver_notificaciones', 'ver_perfil', 'editar_perfil',
+    'ver_feedback_cliente', 'exportar_feedback_cliente',
+    'ver_notificaciones', 'crear_notificaciones', 'exportar_notificaciones',
+    'ver_almacenes', 'crear_almacenes', 'editar_almacenes', 'exportar_almacenes',
+    'ver_perfil', 'editar_perfil', 'ver_feedback_cliente', 'exportar_feedback_cliente',
   ],
 
   recepcionista: [
@@ -296,7 +307,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_pedidos', 'crear_pedidos', 'ver_seguimiento_pedido',
     'ver_historial_cotizaciones', 'crear_cotizacion', 'descargar_cotizacion',
     'realizar_pago',
-    'ver_notificaciones', 'ver_perfil', 'editar_perfil',
+    'ver_notificaciones', 'ver_perfil', 'editar_perfil', 'crear_feedback_cliente', 'editar_feedback_cliente',
   ],
 };
 

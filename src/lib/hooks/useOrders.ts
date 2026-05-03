@@ -5,7 +5,16 @@ import {
   cambiarEstadoOrden,
   verificarStock,
 } from '@/lib/helpers/ordenes-helpers';
-import type { EstadoOrden, MetodoPago } from '@prisma/client';
+import type { MetodoPago } from '@prisma/client';
+
+type EstadoOrden =
+  | 'solicitado'
+  | 'cotizado'
+  | 'aprobado'
+  | 'pagado'
+  | 'en_proceso'
+  | 'finalizado'
+  | 'cancelado';
 
 interface OrdenCompleta {
   id: number;
@@ -32,7 +41,7 @@ interface OrdenCompleta {
 interface OrdenInsert {
   cliente_id?: number | null;
   cotizacion_id?: number | null;
-  estado?: string | null;
+  estado?: EstadoOrden | null;
   total_orden: number;
   total_pagado?: number | null;
   saldo_pendiente?: number | null;

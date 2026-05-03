@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { items, notas_internas, direccion_despacho, metodo_pago, moneda } = body;
+    const { items, notas_internas, direccion_despacho, moneda } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, error: 'Items requeridos' }, { status: 400 });
@@ -115,18 +115,17 @@ export async function POST(req: Request) {
     const cotizacion = await prisma.cotizaciones.create({
       data: {
         numero,
-        cliente_id: sesion.cliente_id,
-        estado: 'borrador',
-        subtotal: new Prisma.Decimal(totales.subtotalBruto),
-        igv: new Prisma.Decimal(totales.igv),
-        total: new Prisma.Decimal(totales.total),
-        valida_hasta: validaHasta,
-        expira_at: validaHasta,
-        metodo_pago: metodo_pago ?? null,
+        cliente_id:         sesion.cliente_id,
+        estado:             'borrador',
+        subtotal:           new Prisma.Decimal(totales.subtotalBruto),
+        igv:                new Prisma.Decimal(totales.igv),
+        total:              new Prisma.Decimal(totales.total),
+        valida_hasta:       validaHasta,
+        expira_at:          validaHasta,
         direccion_despacho: direccion_despacho ?? null,
-        monto_descuento: new Prisma.Decimal(totales.montoDescuento),
-        moneda: moneda ?? 'PEN',
-        notas_internas: notas_internas ?? null,
+        monto_descuento:    new Prisma.Decimal(totales.montoDescuento),
+        moneda:             moneda ?? 'PEN',
+        notas_internas:     notas_internas ?? null,
         cotizacion_items: {
           create: items.map((item: any) => ({
             producto_id:              BigInt(item.producto_id),

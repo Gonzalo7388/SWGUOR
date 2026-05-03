@@ -41,8 +41,8 @@ export async function GET(req: Request) {
           _count: { id: true },
           _sum:   { total_orden: true },
         }),
-        prisma.ventas.aggregate({
-          where: { created_at: whereFecha },
+        prisma.pedidos.aggregate({
+          where: { created_at: whereFecha, estado: 'entregado' },
           _count: { id: true },
           _sum:   { total: true },
         }),
@@ -51,8 +51,8 @@ export async function GET(req: Request) {
       ]),
 
       // 1. DETALLE DE VENTAS
-      prisma.ventas.findMany({
-        where:   { created_at: whereFecha },
+      prisma.pedidos.findMany({
+          where:   { created_at: whereFecha, estado: 'entregado' },
         include: { usuarios: { select: { email: true } } },
         orderBy: { created_at: 'desc' },
         take:    200,
@@ -96,14 +96,14 @@ export async function GET(req: Request) {
       }),
 
       // 6. VENTAS AGRUPADAS POR TIEMPO
-      prisma.ventas.findMany({
-        where:   { created_at: whereFecha },
+      prisma.pedidos.findMany({
+        where:   { created_at: whereFecha, estado: 'entregado' },
         select:  { total: true, created_at: true },
         orderBy: { created_at: 'asc' },
       }),
 
       // 7. DETALLE DE PAGOS
-      prisma.pagos_orden.groupBy({
+      prisma.pagos.groupBy({
         by:      ['metodo_pago'],
         _sum:    { monto: true },
         _count:  { id: true },
