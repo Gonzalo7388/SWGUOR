@@ -28,7 +28,8 @@ export async function GET(req: Request) {
       }),
 
       // 2. Totales de ventas
-      prisma.ventas.aggregate({
+      prisma.pedidos.aggregate({
+        where: { estado: 'entregado' },
         _count: { id: true },
         _sum: { total: true },
         _avg: { total: true },
@@ -43,12 +44,9 @@ export async function GET(req: Request) {
       }),
 
       // 4. Ventas mensuales del año en curso
-      prisma.ventas.groupBy({
-        by: ['created_at'],
-        _sum: { total: true },
-        _count: { id: true },
-        where: { created_at: { gte: inicioAno } },
-        orderBy: { created_at: 'asc' },
+      prisma.pedidos.findMany({
+        where:  { created_at: { gte: inicioAno } },
+        select: { total: true, created_at: true },
       }),
 
       // 5. Stock crítico de productos
@@ -102,9 +100,9 @@ export async function GET(req: Request) {
 
     for (const v of ventasMensuales) {
       if (v.created_at) {
-        const mesIdx = v.created_at.getMonth();
-        ventasPorMes[mesIdx].ventas += Number(v._sum.total ?? 0);
-        ventasPorMes[mesIdx].count += v._count.id;
+        const mesIdx = new Date(v.created_at).getMonth();
+        ventasPorMes[mesIdx].ventas += Number(v.total ?? 0);
+        ventasPorMes[mesIdx].count  += 1;
       }
     }
 

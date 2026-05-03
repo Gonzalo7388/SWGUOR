@@ -2,8 +2,17 @@
  * Constantes de Estados para el Sistema GUOR v2 - Edición ERP B2B
  * Centrado en el ciclo de vida comercial y logístico
  */
-import type { EstadoOrden, EstadoDespacho } from '@prisma/client';
+import type { EstadoDespacho } from '@prisma/client';
 
+type EstadoOrden =
+  | 'solicitado'
+  | 'cotizado'
+  | 'aprobado'
+  | 'pagado'
+  | 'en_proceso'
+  | 'finalizado'
+  | 'cancelado';
+  
 // ─── COTIZACIONES B2B ────────────────────────────────────────────────────────
 // Estados específicos para el flujo de negociación e IA
 export const ESTADOS_COTIZACION: Record<string, { label: string; color: string; bgColor: string }> = {

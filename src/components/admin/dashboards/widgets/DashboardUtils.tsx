@@ -1,8 +1,14 @@
 import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
-import type { EstadoOrden } from '@prisma/client';
-import { Role } from '@/types/auth';
+type EstadoOrden =
+  | 'solicitado'
+  | 'cotizado'
+  | 'aprobado'
+  | 'pagado'
+  | 'en_proceso'
+  | 'finalizado'
+  | 'cancelado';
 
 export interface PaletaColors {
   accent: string;

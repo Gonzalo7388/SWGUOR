@@ -42,7 +42,7 @@ export const OrdenesProduccionService = {
           fecha_entrega:       data.fecha_entrega ? new Date(data.fecha_entrega) : null,
           notas:               data.notas      ?? null,
           creado_por:          data.creado_por ? BigInt(data.creado_por) : null,
-          estado:              'pendiente',
+          estado:              'borrador',
         },
         include: {
           productos: { select: { id: true, nombre: true, sku: true } },

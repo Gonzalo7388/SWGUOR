@@ -21,8 +21,8 @@ export async function GET(req: Request) {
       pagosMetodo,
     ] = await Promise.all([
       // 1. FLUJO DE VENTAS (agrupado por fecha)
-      prisma.ventas.findMany({
-        where: { created_at: { gte: startDate } },
+      prisma.pedidos.findMany({
+        where: { created_at: { gte: startDate }, estado: 'entregado' },
         select: { total: true, created_at: true },
         orderBy: { created_at: 'asc' },
       }),
@@ -56,10 +56,10 @@ export async function GET(req: Request) {
       }),
 
       // 5. INGRESOS DEL PERIODO
-      prisma.ventas.aggregate({
-        where: { created_at: { gte: startDate } },
-        _sum: { total: true, impuestos: true },
-        _count: { id: true },
+      prisma.pedidos.aggregate({
+        where: { created_at: { gte: startDate }, estado: 'entregado' },
+        _sum: { total: true },
+        _count: true,
       }),
 
       // 6. STOCK BAJO
@@ -78,7 +78,7 @@ export async function GET(req: Request) {
       }),
 
       // 8. PAGOS POR MÉTODO
-      prisma.pagos_orden.groupBy({
+      prisma.pagos.groupBy({
         by: ['metodo_pago'],
         _sum: { monto: true },
         _count: { id: true },
@@ -157,8 +157,8 @@ export async function GET(req: Request) {
     }));
 
     // ── Procesar: Comparativa Ingresos vs Gastos ──
-    const totalIngresos = Number(ingresosVsGastos._sum.total ?? 0);
-    const totalImpuestos = Number(ingresosVsGastos._sum.impuestos ?? 0);
+    const totalIngresos = Number(ingresosVsGastos._sum?.total ?? 0);
+    const totalImpuestos = 0; // IGV calculado en el total
     const margenEstimado = 0.35; // 35% costo estimado
 
     const comparativaData = [
@@ -193,7 +193,7 @@ export async function GET(req: Request) {
       totalOrdenes: ordenesPorEstado.reduce((sum, o) => sum + o._count.id, 0),
       totalCotizaciones: cotizacionesTrend.reduce((sum, c) => sum + c._count.id, 0),
       stockBajo: stockBajoFiltrado.length,
-      ventasCount: ingresosVsGastos._count.id,
+      ventasCount: typeof ingresosVsGastos._count === 'number' ? ingresosVsGastos._count : 0,
     };
 
     return NextResponse.json(
