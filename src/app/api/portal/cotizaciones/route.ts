@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { items, notas_internas, direccion_despacho, metodo_pago, moneda } = body;
+    const { items, notas_internas, direccion_despacho, metodo_pago, moneda, estado } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, error: 'Items requeridos' }, { status: 400 });
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
       data: {
         numero,
         cliente_id: sesion.cliente_id,
-        estado: 'borrador',
+        estado: estado ?? 'borrador',
         subtotal: new Prisma.Decimal(totales.subtotalBruto),
         igv: new Prisma.Decimal(totales.igv),
         total: new Prisma.Decimal(totales.total),

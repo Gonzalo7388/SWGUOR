@@ -8,8 +8,17 @@ import { useProductosPortal }    from '@/lib/hooks/useProductosPortal';
 import { CotizadorPanel }        from '@/components/portal/CotizacionPanel';
 import { cn }                    from '@/lib/utils';
 import { toast }                 from 'sonner';
+import { Producto } from '../../../../components/portal/ProductoCard';
+
 
 const TALLAS_ORDEN = ['XS','S','M','L','XL','XXL','28','30','32','34'];
+
+type Variante = {
+  id: number;
+  color: string;
+  talla: string;
+  stock: number;
+};
 
 export default function NuevaCotizacionPage() {
   const router  = useRouter();
@@ -40,34 +49,69 @@ export default function NuevaCotizacionPage() {
     }));
   };
 
-  const handleAgregar = (producto: any) => {
-    const sel = getSeleccion(producto.id);
-    if (!sel.talla || !sel.color) {
-      toast.error('Selecciona talla y color antes de agregar');
-      return;
-    }
-    if (sel.cantidad < MOQ_MINIMO) {
-      toast.error(`Mínimo ${MOQ_MINIMO} unidades por modelo`);
-      return;
-    }
-    const variante = producto.variantes?.find(
-      (v: any) => v.talla === sel.talla && v.color === sel.color
-    );
-    agregarAlBorrador({
-      producto_id:     producto.id,
-      variante_id:     variante?.id ?? sel.variante_id,
-      nombre:          producto.nombre,
-      sku:             producto.sku,
-      imagen:          producto.imagen ?? null,
-      precio_unitario: producto.precio,
-      cantidad:        sel.cantidad,
-      talla:           sel.talla,
-      color:           sel.color,
-      stock_disponible: variante?.stock ?? 9999,
-    });
-    toast.success(`${producto.nombre} agregado a la cotización`);
+  // Modal
+  const [itemDetalle, setItemDetalle] = useState<any>(null);
+  const [colorSeleccionado, setColorSeleccionado] = useState('');
+  const [tallaSeleccionada, setTallaSeleccionada] = useState('');
+
+  // ── ABRIR MODAL ─────────────────────────────────────────
+  const handleVerDetalles = (item: any) => {
+    setItemDetalle(item);
+
+    const variantes: Variante[] = item.variantes ?? [];
+
+    const colores = [...new Set(variantes.map(v => v.color))];
+    const colorInicial = colores[0] ?? '';
+
+    const tallas = variantes
+      .filter(v => v.color === colorInicial)
+      .map(v => v.talla);
+
+    setColorSeleccionado(colorInicial);
+    setTallaSeleccionada(tallas[0] ?? '');
   };
 
+  // ── DERIVADOS ───────────────────────────────────────────
+  const variantes: Variante[] = itemDetalle?.variantes ?? [];
+
+  const coloresDisponibles: string[] = [
+    ...new Set(variantes.map(v => v.color))
+  ];
+
+  const tallasDisponibles: string[] = variantes
+    .filter(v => v.color === colorSeleccionado)
+    .map(v => v.talla)
+    .filter((t, i, arr) => arr.indexOf(t) === i);
+
+    // ── AGREGAR DESDE MODAL ────────────────────────────────
+  const handleAgregarDesdeModal = () => {
+    if (!itemDetalle) return;
+
+    if (!colorSeleccionado || !tallaSeleccionada) {
+      toast.error('Selecciona color y talla');
+      return;
+    }
+
+    const variante = variantes.find(
+      v => v.color === colorSeleccionado && v.talla === tallaSeleccionada
+    );
+
+    agregarAlBorrador({
+      id: itemDetalle.producto_id,
+      nombre: itemDetalle.nombre,
+      sku: itemDetalle.sku,
+      imagen: itemDetalle.imagen,
+      precio: itemDetalle.precio_unitario,
+      cantidad: itemDetalle.cantidad,
+      talla: tallaSeleccionada,
+      color: colorSeleccionado,
+      variante_id: variante?.id,
+      variantes: variantes
+    });
+
+    toast.success('Producto actualizado');
+    setItemDetalle(null);
+  };
   // ── Enviar cotización ─────────────────────────────────────────────
   const handleEnviar = async (accion: 'borrador' | 'enviar') => {
     if (!items.length) return;
@@ -94,21 +138,29 @@ export default function NuevaCotizacionPage() {
 
         if (!res.ok) {
           const err = await res.json();
-          // Errores de MOQ o stock insuficiente vienen estructurados del backend
+
           if (err.error === 'moq_insuficiente') {
             toast.error(`MOQ incumplido: ${err.detalle.join(', ')}`);
             return;
           }
+
           if (err.error === 'stock_insuficiente') {
             toast.error('Stock insuficiente para alguno de los productos');
             return;
           }
+
           throw new Error(err.error);
         }
 
         const { id } = await res.json();
         limpiarBorrador();
-        toast.success(accion === 'borrador' ? 'Borrador guardado' : 'Cotización enviada a GUOR');
+
+        toast.success(
+          accion === 'borrador'
+            ? 'Borrador guardado'
+            : 'Cotización enviada a GUOR'
+        );
+
         router.push(`/portal/cotizaciones/${id}`);
       } catch (e: any) {
         toast.error(e.message ?? 'Error al guardar la cotización');
@@ -137,6 +189,7 @@ export default function NuevaCotizacionPage() {
           >
             Guardar borrador
           </button>
+
           <button
             onClick={() => handleEnviar('enviar')}
             disabled={!items.length || isPending}
@@ -145,154 +198,199 @@ export default function NuevaCotizacionPage() {
             {isPending && <Loader2 size={12} className="animate-spin" />}
             Enviar cotización
           </button>
+
         </div>
       </div>
 
-      {/* Layout de dos columnas */}
+      {/*Layout de dos columnas*/}
       <div className="flex flex-1 overflow-hidden">
+
         {/* Panel izquierdo — búsqueda y resultados */}
         <div className="flex-1 overflow-auto p-5">
-          {/* Controles de búsqueda */}
-          <div className="flex gap-3 mb-4">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                placeholder="Buscar por nombre, SKU o descripción…"
-                className="w-full pl-9 pr-4 h-9 border border-slate-200 rounded-md text-sm bg-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
-              />
-            </div>
-            <select
-              value={tallaFiltro}
-              onChange={e => setTallaFiltro(e.target.value)}
-              className="h-9 border border-slate-200 rounded-md text-sm px-3 bg-white text-slate-700 focus:outline-none focus:border-blue-400"
-            >
-              <option value="">Todas las tallas</option>
-              {TALLAS_ORDEN.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
 
-          {/* Resultados */}
-          {buscando ? (
-            <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm">Buscando productos…</span>
-            </div>
-          ) : productos.length === 0 && busqueda ? (
-            <p className="text-sm text-slate-400 text-center py-16">
-              Sin resultados para &ldquo;{busqueda}&rdquo;
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {/* Encabezado de tabla */}
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide border-b border-slate-100">
-                <span>Producto</span>
-                <span>Precio unit.</span>
-                <span>Talla</span>
-                <span>Color</span>
-                <span>Cantidad</span>
-                <span></span>
+    {/* Controles de búsqueda */}
+    <div className="flex gap-3 mb-4">
+      <div className="relative flex-1">
+        <Search
+          size={14}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre"
+          className="w-full pl-9 pr-4 h-9 border border-slate-200 rounded-md text-sm bg-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+        />
+      </div>
+
+      <select
+        value={tallaFiltro}
+        onChange={e => setTallaFiltro(e.target.value)}
+        className="h-9 border border-slate-200 rounded-md text-sm px-3 bg-white text-slate-700 focus:outline-none focus:border-blue-400"
+      >
+        <option value="">Todas las tallas</option>
+        {TALLAS_ORDEN.map(t => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {items.length === 0 ? (
+      <p className="text-sm text-slate-400 text-center py-16">
+        Aún no hay productos en la cotización
+      </p>
+    ) : (
+      <div className="space-y-2">
+
+        {/* Listado de productos agregados a la cotización */}
+        {items.map((item: any) => (
+          <div
+            key={`${item.producto_id}-${item.talla}-${item.color}`}
+            className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-4 py-3 bg-white border rounded-md items-center text-sm"
+          >
+            {/* Producto */}
+            {/* Imagen */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-slate-100 rounded overflow-hidden">
+                {item.imagen && (
+                  <img src={item.imagen} className="w-full h-full object-cover" />
+                )}
               </div>
 
-              {productos.map((producto: any) => {
-                const sel     = getSeleccion(producto.id);
-                const enLista = items.some(i => i.producto_id === producto.id && i.talla === sel.talla && i.color === sel.color);
-                const tallasDisp = [...new Set<string>((producto.variantes ?? []).map((v: any) => v.talla))];
-                const coloresDisp = sel.talla
-                  ? [...new Set<string>((producto.variantes ?? []).filter((v: any) => v.talla === sel.talla).map((v: any) => v.color))]
-                  : [...new Set<string>((producto.variantes ?? []).map((v: any) => v.color))];
-
-                return (
-                  <div
-                    key={producto.id}
-                    className={cn(
-                      'grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-4 py-3 bg-white border rounded-md items-center text-sm',
-                      enLista ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200',
-                    )}
-                  >
-                    {/* Producto */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-slate-100 rounded shrink-0 overflow-hidden">
-                        {producto.imagen && (
-                          <img src={producto.imagen} alt={producto.nombre}
-                            className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-900 truncate">{producto.nombre}</p>
-                        <p className="text-xs text-slate-400">{producto.sku}</p>
-                      </div>
-                    </div>
-
-                    {/* Precio */}
-                    <p className="font-medium text-slate-900">
-                      S/ {producto.precio.toFixed(2)}
-                    </p>
-
-                    {/* Talla */}
-                    <select
-                      value={sel.talla}
-                      onChange={e => updateSeleccion(producto.id, { talla: e.target.value, color: '' })}
-                      className="h-8 text-xs border border-slate-200 rounded px-2 bg-white focus:outline-none focus:border-blue-400"
-                    >
-                      <option value="">Talla</option>
-                      {tallasDisp.sort((a, b) => TALLAS_ORDEN.indexOf(a) - TALLAS_ORDEN.indexOf(b))
-                        .map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-
-                    {/* Color */}
-                    <select
-                      value={sel.color}
-                      onChange={e => updateSeleccion(producto.id, { color: e.target.value })}
-                      disabled={!sel.talla}
-                      className="h-8 text-xs border border-slate-200 rounded px-2 bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50"
-                    >
-                      <option value="">Color</option>
-                      {coloresDisp.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-
-                    {/* Cantidad */}
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        value={sel.cantidad}
-                        min={MOQ_MINIMO}
-                        step={100}
-                        onChange={e => updateSeleccion(producto.id, { cantidad: parseInt(e.target.value) || MOQ_MINIMO })}
-                        className={cn(
-                          'w-20 h-8 text-xs border rounded px-2 text-center focus:outline-none',
-                          sel.cantidad < MOQ_MINIMO
-                            ? 'border-amber-300 bg-amber-50 focus:border-amber-400'
-                            : 'border-slate-200 focus:border-blue-400',
-                        )}
-                      />
-                    </div>
-
-                    {/* Botón agregar */}
-                    <button
-                      onClick={() => handleAgregar(producto)}
-                      className={cn(
-                        'px-3 py-1.5 rounded text-xs font-medium transition-colors',
-                        enLista
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                          : 'bg-blue-600 text-white hover:bg-blue-700',
-                      )}
-                    >
-                      {enLista ? '✓ Agregado' : 'Agregar'}
-                    </button>
-                  </div>
-                );
-              })}
+              <div className="min-w-0">
+                <p className="font-medium text-slate-900 truncate">{item.nombre}</p>
+                <p className="text-xs text-slate-400">{item.sku}</p>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Panel derecho — cotizador */}
-        <div className="w-72 shrink-0 border-l border-slate-200 bg-white overflow-auto">
-          <CotizadorPanel onEnviar={handleEnviar} isSending={isPending} />
+            <p className="font-medium text-slate-900">
+              S/ {Number(item.precio_unitario).toFixed(2)}
+            </p>
+
+
+          {/* boton detalles producto*/}  
+        <button
+               onClick={() => handleVerDetalles(item)}
+                className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+               Ver detalles
+        </button>
+
+
+           </div>
+        ))}
+
+      </div>
+     )}
+
+      </div>
+      {itemDetalle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-md p-6 max-w-md w-full">
+
+            {/* Titulo */}
+            <div className="px-5 py-3 border-b bg-slate-50">
+              <h2 className="text-sm font-semibold text-slate-700">
+                Detalles de la Prenda
+              </h2>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-4 space-y-4">
+              {/* Información del producto */}
+              <table className="w-full text-xs border border-slate-200 rounded-md overflow-hidden">
+                <thead className="bg-slate-100 text-slate-600">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">Característica</th>
+                    <th className="text-left px-3 py-2 font-medium">Especificación</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-700">
+                  <tr className="border-t">
+                    <td className="px-3 py-2">Nombre</td>
+                    <td className="px-3 py-2">{itemDetalle.nombre}</td>
+                  </tr>
+                  <tr className="border-t">
+                    <td className="px-3 py-2">Precio Unitario</td>
+                    <td className="px-3 py-2">
+                      S/ {Number(itemDetalle.precio_unitario).toFixed(2)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Selección de talla */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Talla
+                </label>
+                <select
+                  value={tallaSeleccionada}
+                  onChange={e => setTallaSeleccionada(e.target.value)}
+                >
+                  {tallasDisponibles.map(t => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>  
+
+              {/* Selección de color */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Color
+                </label>
+                <select
+                  value={colorSeleccionado}
+                  onChange={e => {
+                    const color = e.target.value;
+                    setColorSeleccionado(color);
+
+                    const tallas = variantes
+                      .filter(v => v.color === color)
+                      .map(v => v.talla);
+
+                    setTallaSeleccionada(tallas[0] ?? '');
+                  }}
+                >
+                  {coloresDisponibles.map(color => (
+                    <option key={color} value={color}>
+                      {color}
+                    </option>
+                  ))}
+                </select>
+              </div>                   
+
+              {/* Botones */}
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={handleAgregarDesdeModal}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors text-sm font-medium">
+                  Guardar
+                </button>
+
+                <button
+                  onClick={() => setItemDetalle(null)}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors text-sm font-medium"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Panel derecho — cotizador */}
+      <div className="w-72 shrink-0 border-l border-slate-200 bg-white overflow-auto">
+        <CotizadorPanel onEnviar={handleEnviar} isSending={isPending} />
+      </div>
+
       </div>
     </div>
   );

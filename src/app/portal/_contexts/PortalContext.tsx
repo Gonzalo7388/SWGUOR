@@ -5,7 +5,7 @@ import {
   useCallback, useMemo, ReactNode,
 } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { reglas_descuento } from '@prisma/client';
+//import type { reglas_descuento } from '@prisma/client';
 
 // ── Tipos ────────────────────────────────────────────────────────
 export interface ClientePortal {
@@ -30,6 +30,14 @@ export interface ItemCotizacion {
   color: string;
   subtotal: number;
   stock_disponible: number;
+  colores_disponibles?: string[];
+  tallas_disponibles?: string[];
+  variantes?: Array<{
+    id: number;
+    color: string;
+    talla: string;
+    stock: number;
+  }>;
 }
 
 export interface ResumenCotizacion {
@@ -179,8 +187,9 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   const resumen = useMemo(() => calcularResumen(items), [items]);
 
   const agregarAlBorrador = useCallback((nuevoItem: any) => {
+    console.log('nuevoItem ', nuevoItem);
     setItems((prev: ItemCotizacion[]) => { 
-      const idx = prev.findIndex(i => i.producto_id === nuevoItem.id);
+      const idx = prev.findIndex(i => i.producto_id === nuevoItem.producto_id);
       
       if (idx >= 0) {
         return prev.map((i, n) => n === idx
@@ -204,8 +213,13 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         talla: 'M',
         color: 'Estándar',
         subtotal: (nuevoItem.cantidad || 1) * (nuevoItem.precio || nuevoItem.precio_base),
-        stock_disponible: 1000
+        stock_disponible: 1000,
+        colores_disponibles: nuevoItem.colores_disponibles || [],
+        tallas_disponibles: nuevoItem.tallas_disponibles || [],
+        variantes: nuevoItem.variantes || []
       };
+
+      console.log('Agregando al borrador:', itemFormateado);
 
       return [...prev, itemFormateado];
     });
