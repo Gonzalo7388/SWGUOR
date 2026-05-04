@@ -35,11 +35,11 @@ const QuestionsAccordion = () => {
   const [active, setActive] = useState<number | null>(0);
 
   return (
-    <section className="px-6 py-20">
+    <section className="px-6 py-24">
       <div className="max-w-5xl mx-auto">
 
         {/* TITULO */}
-        <div className="text-center mb-28">
+        <div className="text-center mb-40">
 
           <p
             className="text-[11px] uppercase tracking-[0.35em] font-black mb-6"

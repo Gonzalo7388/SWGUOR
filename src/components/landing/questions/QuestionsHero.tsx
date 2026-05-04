@@ -51,7 +51,7 @@ const QuestionsHero = () => {
             style={{
               minHeight: "650px",
               border: "2px solid #e4c28a",
-              backgroundImage: "url('/fotoPregunta.jpg')",
+              backgroundImage: "url('/fotoPreguntas.jpg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}

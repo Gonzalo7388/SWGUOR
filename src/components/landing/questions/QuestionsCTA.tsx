@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -27,7 +29,6 @@ const QuestionsCTA = () => {
           >
             ¿Necesitas ayuda
             <br />
-
             estratégica?
           </h2>
 
@@ -40,7 +41,7 @@ const QuestionsCTA = () => {
           </p>
 
           <Link
-            href="https://wa.me/51908801912"
+            href = "https://wa.me/51908801912"
             target="_blank"
             className="inline-flex items-center gap-3 px-9 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.15em] transition-all duration-300 hover:-translate-y-1"
             style={{
@@ -57,7 +58,6 @@ const QuestionsCTA = () => {
             }}
           >
             Hablar con asesor
-
             <ArrowRight size={18} />
           </Link>
 
