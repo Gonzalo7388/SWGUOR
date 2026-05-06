@@ -15,6 +15,8 @@ export interface Producto {
   sku: string;
   descripcion?: string;
   variantes_producto?: any[];
+  colores_disponibles?: string[];
+  tallas_disponibles?: string[];
 }
 
 interface ProductoCardProps {
@@ -48,6 +50,9 @@ export function ProductoCard({ producto, onOpenDetails }: ProductoCardProps) {
       precio: producto.precio,
       imagen: producto.imagen,
       cantidad: 1,
+      variantes: producto.variantes_producto || [],
+      colores_disponibles: producto.colores_disponibles || [],
+      tallas_disponibles: producto.tallas_disponibles || [],
     });
     
     setIsAdding(false);
