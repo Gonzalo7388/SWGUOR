@@ -239,65 +239,65 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
-{/* 🔥 PRENDAS DESTACADAS */}
-<section className="px-6 py-24" style={{ background: "#fff" }}>
-  <div className="max-w-7xl mx-auto">
+      {/* PRENDAS DESTACADAS */}
+      <section className="px-6 py-24" style={{ background: "#fff" }}>
+        <div className="max-w-7xl mx-auto">
 
-    {/* TITULO */}
-    <div className="text-center mb-16">
-      <h2
-        className="text-5xl font-black italic"
-        style={{ color: "#231e1d" }}
-      >
-        Prendas destacadas
-      </h2>
-
-      <p
-        className="mt-4 text-lg"
-        style={{ color: "rgba(35,30,29,0.6)" }}
-      >
-        Selección exclusiva basada en la preferencia de nuestros clientes
-      </p>
-    </div>
-
-    {/* GRID */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-
-      {[1,2,3,4,5].map((item) => (
-        <div
-          key={item}
-          className="group rounded-3xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl"
-          style={{
-            background: "#fff4e2",
-            border: "1px solid #e4c28a",
-          }}
-        >
-
-          {/* IMAGEN */}
-          <div className="relative h-64 overflow-hidden">
-            <img
-              src={`/conjunto${item}.png`}
-              alt={`Producto ${item}`}
-              className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-            />
-          </div>
-
-          {/* NOMBRE */}
-          <div className="p-5 text-center">
-            <h3
-              className="font-bold text-lg"
+          {/* TITULO */}
+          <div className="text-center mb-16">
+            <h2
+              className="text-5xl font-black italic"
               style={{ color: "#231e1d" }}
             >
-              Prenda {item}
-            </h3>
+              Prendas destacadas
+            </h2>
+
+            <p
+              className="mt-4 text-lg"
+              style={{ color: "rgba(35,30,29,0.6)" }}
+            >
+              Selección exclusiva basada en la preferencia de nuestros clientes
+            </p>
           </div>
 
-        </div>
-      ))}
+          {/* GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
 
-    </div>
-  </div>
-</section>
+            {[1,2,3,4,5].map((item) => (
+              <div
+                key={item}
+                className="group rounded-3xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl"
+                style={{
+                  background: "#fff4e2",
+                  border: "1px solid #e4c28a",
+                }}
+              >
+
+                {/* IMAGEN */}
+                <div className="relative h-64 overflow-hidden">
+                  <img
+                    src={`/conjunto${item}.png`}
+                    alt={`Producto ${item}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                  />
+                </div>
+
+                {/* NOMBRE */}
+                <div className="p-5 text-center">
+                  <h3
+                    className="font-bold text-lg"
+                    style={{ color: "#231e1d" }}
+                  >
+                    Prenda {item}
+                  </h3>
+                </div>
+
+              </div>
+            ))}
+
+          </div>
+        </div>
+      </section>
       <Footer />
     </div>
   );
