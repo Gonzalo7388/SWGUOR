@@ -5,6 +5,7 @@ import Navbar from "@/components/landing/Navbar";
 import FAQSection from "@/components/landing/FAQSection";
 import AboutSection from "@/components/landing/AboutSection";
 import FeaturedProducts from "@/components/landing/FeaturedProducts";
+import { TestimoniosCarrusel } from "@/components/landing/TestimoniosCarrusel";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -90,6 +91,7 @@ export default function LandingPage() {
 
         <AboutSection />
         <FeaturedProducts />
+        <TestimoniosCarrusel /> 
         <FAQSection />
       </main>
 

@@ -13,13 +13,13 @@ export const FichasTecnicasService = {
           OR: [
             { version: { contains: filtros.busqueda, mode: 'insensitive' } },
             { descripcion_detallada: { contains: filtros.busqueda, mode: 'insensitive' } },
-            { producto_primario: { nombre: { contains: filtros.busqueda, mode: 'insensitive' } } },
-            { producto_primario: { sku:    { contains: filtros.busqueda, mode: 'insensitive' } } },
+            { producto: { nombre: { contains: filtros.busqueda, mode: 'insensitive' } } },
+            { producto: { sku:    { contains: filtros.busqueda, mode: 'insensitive' } } },
           ],
         }),
       },
       include: {
-        productos_ref: { select: { id: true, nombre: true, sku: true, imagen: true } },
+        producto: { select: { id: true, nombre: true, sku: true, imagen: true } },
         ficha_medidas: { select: { id: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -32,7 +32,7 @@ export const FichasTecnicasService = {
     const ficha = await prisma.fichas_tecnicas.findUnique({
       where:   { id: BigInt(id) },
       include: {
-        productos_ref:   { select: { id: true, nombre: true, sku: true, imagen: true } },
+        producto: { select: { id: true, nombre: true, sku: true, imagen: true } },
         ficha_medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] },
         fichas_tecnicas_detalle: {
           include: {

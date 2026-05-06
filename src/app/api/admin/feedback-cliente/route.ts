@@ -23,9 +23,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const validated = feedbackClienteSchema.parse(body);
-  
+
   const feedback = await prisma.feedback_cliente.create({
-    data: validated,
+    data: {
+      cliente_id:  BigInt(validated.cliente_id),
+      pedido_id:   BigInt(validated.pedido_id),
+      puntuacion:  validated.puntuacion,
+      comentarios: validated.comentario ?? null,
+    },
     include: { clientes: true, pedidos: true },
   });
 

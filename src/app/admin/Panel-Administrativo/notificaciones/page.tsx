@@ -4,42 +4,40 @@ import { useState, useEffect } from 'react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { toast } from 'sonner';
 import NotificacionesTable from '@/components/admin/notificaciones/NotificacionesTable';
+import NotificacionDialog from '@/components/admin/notificaciones/NotificacionDialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import NotificacionDialog from '@/components/admin/notificaciones/NotificacionDialog';
-
-interface Notificacion {
-  id: number;
-  usuario_id: number;
-  titulo: string;
-  mensaje: string;
-  tipo: 'info' | 'warning' | 'error' | 'success';
-  leida: boolean;
-  created_at: string;
-  usuarios: { nombre: string };
-}
+import type { Notificacion } from '@/lib/schemas/notificacionesSchema';
 
 export default function NotificacionesPage() {
   const { can } = usePermissions();
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [loading, setLoading]               = useState(true);
+  const [dialogOpen, setDialogOpen]         = useState(false);
 
   const loadNotificaciones = async () => {
     try {
       const res = await fetch('/api/admin/notificaciones');
       if (!res.ok) throw new Error('Error al cargar');
-      
+
       const response = await res.json();
+      const raw: any[] = Array.isArray(response.data) ? response.data : [];
 
-      // IMPORTANTE: Extraemos 'data' del objeto de la respuesta
-      // La respuesta de tu API es { data: [...], kpis: {}, count: 0 }
-      if (response && Array.isArray(response.data)) {
-        setNotificaciones(response.data);
-      } else {
-        setNotificaciones([]);
-      }
+      const normalized: Notificacion[] = raw.map((n) => ({
+        id:              String(n.id),       // bigint → string
+        usuario_id:      Number(n.usuario_id),
+        tipo:            n.tipo,
+        titulo:          n.titulo,
+        mensaje:         n.mensaje,
+        leido:           n.leido ?? false,
+        leido_at:        n.leido_at ?? null,
+        referencia_tipo: n.referencia_tipo ?? null,
+        referencia_id:   n.referencia_id != null ? Number(n.referencia_id) : null,
+        url_destino:     n.url_destino ?? null,
+        created_at:      n.created_at,
+      }));
 
+      setNotificaciones(normalized);
     } catch (error) {
       toast.error('Error al cargar notificaciones');
       console.error(error);
@@ -57,18 +55,13 @@ export default function NotificacionesPage() {
     }
   }, [can]);
 
-  const handleCreate = () => {
-    setDialogOpen(true);
-  };
-
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: unknown) => {
     try {
       const res = await fetch('/api/admin/notificaciones', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body:    JSON.stringify(data),
       });
-
       if (!res.ok) throw new Error('Error al guardar');
 
       toast.success('Notificación enviada');
@@ -92,7 +85,7 @@ export default function NotificacionesPage() {
           <p className="text-muted-foreground">Gestiona las notificaciones del sistema</p>
         </div>
         {can('create', 'notificaciones') && (
-          <Button onClick={handleCreate}>
+          <Button onClick={() => setDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Nueva Notificación
           </Button>
@@ -100,7 +93,7 @@ export default function NotificacionesPage() {
       </div>
 
       {loading ? (
-        <div>Cargando...</div>
+        <div className="text-slate-400 text-sm p-4">Cargando...</div>
       ) : (
         <NotificacionesTable data={notificaciones} />
       )}

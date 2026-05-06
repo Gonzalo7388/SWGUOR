@@ -7,7 +7,7 @@ import {
   createPrecioHistorico,
   updatePrecioHistorico,
   deletePrecioHistorico,
-} from '@/lib/helpers/precio-historico-helpers';
+} from '@/lib/helpers/precioHistoricoHelpers';
 
 export const PRECIO_HISTORICO_KEY = 'precio-historico';
 

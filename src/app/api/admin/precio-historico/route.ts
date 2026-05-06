@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { precioHistoricoSchema } from '@/lib/schemas/precio-historico';
+import { precioHistoricoBaseSchema as precioHistoricoSchema } from '@/lib/schemas/precioHistoricoSchema';
 import { PrecioHistoricoService } from '@/lib/services/precio-historico-services';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';

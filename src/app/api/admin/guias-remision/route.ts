@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { guiaRemisionSchema } from '@/lib/schemas/guias-remision';
+import { guiaRemisionBaseSchema as guiaRemisionSchema } from '@/lib/schemas/guiasRemisionSchema';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 

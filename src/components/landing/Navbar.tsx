@@ -33,7 +33,7 @@ const Navbar = () => {
 
         {/* LINKS */}
         <div className="hidden md:flex items-center gap-8">
-          {["nosotros", "catalogo", "preguntas"].map((item) => (
+          {["nosotros", "catalogo", "testimonios", "preguntas"].map((item) => (
             <Link
               key={item}
               href={`#${item}`}
