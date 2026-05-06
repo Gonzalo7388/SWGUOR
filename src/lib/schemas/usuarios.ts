@@ -3,6 +3,7 @@ import { z } from "zod";
 export const ROL_USUARIO = [
   "gerente",
   "administrador",
+  "almacenero",
   "recepcionista",
   "disenador",
   "cortador",
@@ -41,6 +42,7 @@ export type UsuarioCompletoValues   = z.infer<typeof usuarioCompletoSchema>;
 export const ROL_LABELS: Record<typeof ROL_USUARIO[number], string> = {
   gerente:              "Gerente General",
   administrador:        "Administrador",
+  almacenero:           "Almacenero",
   recepcionista:        "Recepcionista",
   disenador:            "Diseñador",
   cortador:             "Cortador",

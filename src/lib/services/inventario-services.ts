@@ -154,8 +154,6 @@ export const InventarioService = {
             motivo:          input.motivo          ?? 'Ajuste de stock manual',
             tipo_movimiento: tipoMovimiento as any,
             usuario_id:      input.usuario_id      ? BigInt(input.usuario_id) : null,
-            // ✅ Convertir costo a string para Decimal
-            costo_unitario:  costoUnitario != null ? costoUnitario.toString() : null,
             referencia_tipo: input.referencia_tipo ?? 'AJUSTE' as ReferenciaMovimiento,
             referencia_id:   input.referencia_id   ? BigInt(input.referencia_id) : null,
           },

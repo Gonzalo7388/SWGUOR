@@ -2,52 +2,54 @@ import { OrdenCompra } from '@/lib/schemas/ordenesCompraSchema';
 
 export const ordenesCompraHelpers = {
   estaPendiente: (orden: OrdenCompra): boolean =>
-    orden.estatus === 'BORRADOR' || orden.estatus === 'EMITIDA',
+    orden.estado === 'pendiente',
 
   estaAprobada: (orden: OrdenCompra): boolean =>
-    orden.estatus === 'ACEPTADA',
+    orden.estado === 'confirmada',
 
   estaRecibida: (orden: OrdenCompra): boolean =>
-    orden.estatus === 'RECIBIDA',
+    orden.estado === 'completada',
 
   estaCancelada: (orden: OrdenCompra): boolean =>
-    orden.estatus === 'CANCELADA' || orden.estatus === 'RECHAZADA',
+    orden.estado === 'cancelada',
 
   estaVencida: (orden: OrdenCompra): boolean =>
-    new Date() > orden.fechaVencimiento && orden.estatus !== 'RECIBIDA',
+    orden.fecha_prometida && new Date() > orden.fecha_prometida && orden.estado !== 'completada',
 
   agruparPorEstatus: (ordenes: OrdenCompra[]) =>
     ordenes.reduce((acc, curr) => {
-      if (!acc[curr.estatus]) acc[curr.estatus] = [];
-      acc[curr.estatus].push(curr);
+      if (!acc[curr.estado]) acc[curr.estado] = [];
+      acc[curr.estado].push(curr);
       return acc;
     }, {} as Record<string, OrdenCompra[]>),
 
   obtenerMontoTotalPendiente: (ordenes: OrdenCompra[]): number =>
     ordenes
       .filter(o => !ordenesCompraHelpers.estaRecibida(o))
-      .reduce((sum, o) => sum + o.montoTotal, 0),
+      .reduce((sum, o) => sum + Number(o.total_orden), 0),
 
   obtenerMontoTotalRecibido: (ordenes: OrdenCompra[]): number =>
     ordenes
       .filter(o => ordenesCompraHelpers.estaRecibida(o))
-      .reduce((sum, o) => sum + o.montoTotal, 0),
+      .reduce((sum, o) => sum + Number(o.total_orden), 0),
 
   filtrarVencidas: (ordenes: OrdenCompra[]) =>
     ordenes.filter(o => ordenesCompraHelpers.estaVencida(o)),
 
   obtenerDiasRestantes: (orden: OrdenCompra): number => {
+    if (!orden.fecha_prometida) return 0;
     const hoy = new Date();
-    const msRestantes = orden.fechaVencimiento.getTime() - hoy.getTime();
+    const msRestantes = orden.fecha_prometida.getTime() - hoy.getTime();
     return Math.ceil(msRestantes / (1000 * 60 * 60 * 24));
   },
 
-  obtenerProveedor: (orden: OrdenCompra): string => orden.proveedorId,
+  obtenerProveedor: (orden: OrdenCompra): string => orden.proveedor_id.toString(),
 
   agruparPorProveedor: (ordenes: OrdenCompra[]) =>
     ordenes.reduce((acc, curr) => {
-      if (!acc[curr.proveedorId]) acc[curr.proveedorId] = [];
-      acc[curr.proveedorId].push(curr);
+      const key = curr.proveedor_id.toString();
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(curr);
       return acc;
     }, {} as Record<string, OrdenCompra[]>),
 };

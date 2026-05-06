@@ -1,26 +1,26 @@
 import { Comprobante } from '@/lib/schemas/comprobantesSchema';
 
 export const comprobantesHelpers = {
-  estaPagada: (comprobante: Comprobante): boolean =>
-    comprobante.estado === 'PAGADA',
+  estaAceptada: (comprobante: Comprobante): boolean =>
+    comprobante.estado_sunat === 'aceptado',
 
-  estaVencida: (comprobante: Comprobante): boolean =>
-    comprobante.estado === 'VENCIDA' || new Date() > comprobante.fechaVencimiento,
+  estaRechazada: (comprobante: Comprobante): boolean =>
+    comprobante.estado_sunat === 'rechazado',
 
   estaPendiente: (comprobante: Comprobante): boolean =>
-    comprobante.estado === 'EMITIDA' || comprobante.estado === 'ENVIADA',
+    comprobante.estado_sunat === 'pendiente',
 
-  estaAnulada: (comprobante: Comprobante): boolean =>
-    comprobante.estado === 'ANULADA',
+  estaEnviada: (comprobante: Comprobante): boolean =>
+    comprobante.estado_sunat === 'enviado',
 
   esFactura: (comprobante: Comprobante): boolean =>
-    comprobante.tipo === 'FACTURA',
+    comprobante.tipo === 'factura',
 
   esBoleta: (comprobante: Comprobante): boolean =>
-    comprobante.tipo === 'BOLETA',
+    comprobante.tipo === 'boleta',
 
   tieneValidacionSUNAT: (comprobante: Comprobante): boolean =>
-    !!comprobante.sunatRespuesta && !!comprobante.cdrUrl,
+    !!comprobante.respuesta_sunat && !!comprobante.cdr_url,
 
   agruparPorTipo: (comprobantes: Comprobante[]) =>
     comprobantes.reduce((acc, curr) => {
@@ -29,30 +29,27 @@ export const comprobantesHelpers = {
       return acc;
     }, {} as Record<string, Comprobante[]>),
 
-  agruparPorEstado: (comprobantes: Comprobante[]) =>
+  agruparPorEstadoSUNAT: (comprobantes: Comprobante[]) =>
     comprobantes.reduce((acc, curr) => {
-      if (!acc[curr.estado]) acc[curr.estado] = [];
-      acc[curr.estado].push(curr);
+      if (!acc[curr.estado_sunat]) acc[curr.estado_sunat] = [];
+      acc[curr.estado_sunat].push(curr);
       return acc;
     }, {} as Record<string, Comprobante[]>),
 
   obtenerMontoTotalPendiente: (comprobantes: Comprobante[]): number =>
     comprobantes
       .filter(c => comprobantesHelpers.estaPendiente(c))
-      .reduce((sum, c) => sum + c.montoTotal, 0),
-
-  calcularDiasAlVencimiento: (comprobante: Comprobante): number => {
-    const hoy = new Date();
-    const msRestantes = comprobante.fechaVencimiento.getTime() - hoy.getTime();
-    return Math.ceil(msRestantes / (1000 * 60 * 60 * 24));
-  },
+      .reduce((sum, c) => sum + c.total, 0),
 
   generarNumeroSecuencial: (serie: string, numero: number): string =>
     `${serie}-${numero.toString().padStart(8, '0')}`,
 
-  filtrarVencidas: (comprobantes: Comprobante[]) =>
-    comprobantes.filter(c => comprobantesHelpers.estaVencida(c)),
+  filtrarRechazadas: (comprobantes: Comprobante[]) =>
+    comprobantes.filter(c => comprobantesHelpers.estaRechazada(c)),
 
   obtenerMontoAcumulado: (comprobantes: Comprobante[]): number =>
-    comprobantes.reduce((sum, c) => sum + c.montoTotal, 0),
+    comprobantes.reduce((sum, c) => sum + c.total, 0),
+
+  obtenerTotal: (comprobantes: Comprobante[]): number =>
+    comprobantes.reduce((sum, c) => sum + c.total, 0),
 };

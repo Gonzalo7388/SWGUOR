@@ -2,26 +2,26 @@ import { Incidencia } from '@/lib/schemas/incidenciasSchema';
 
 export const incidenciasHelpers = {
   estaAbierta: (incidencia: Incidencia): boolean =>
-    incidencia.estatus === 'ABIERTA',
+    !incidencia.resuelto,
 
   estaResuelta: (incidencia: Incidencia): boolean =>
-    incidencia.estatus === 'RESUELTA' || incidencia.estatus === 'CERRADA',
+    incidencia.resuelto,
 
   estaCancelada: (incidencia: Incidencia): boolean =>
-    incidencia.estatus === 'CANCELADA',
+    false, // No hay estado cancelada en el schema
 
   esUrgente: (incidencia: Incidencia): boolean =>
-    incidencia.prioridad === 'ALTA' || incidencia.prioridad === 'CRITICA',
+    incidencia.severidad === 'alta' || incidencia.severidad === 'critica',
 
   estaAtrasada: (incidencia: Incidencia): boolean => {
-    if (!incidencia.fechaVencimiento) return false;
-    return new Date() > incidencia.fechaVencimiento && !incidenciasHelpers.estaResuelta(incidencia);
+    // Una incidencia está atrasada si su impacto_horas excede un umbral
+    return incidencia.impacto_horas ? incidencia.impacto_horas > 24 : false;
   },
 
-  agruparPorPrioridad: (incidencias: Incidencia[]) =>
+  agruparPorSeveridad: (incidencias: Incidencia[]) =>
     incidencias.reduce((acc, curr) => {
-      if (!acc[curr.prioridad]) acc[curr.prioridad] = [];
-      acc[curr.prioridad].push(curr);
+      if (!acc[curr.severidad]) acc[curr.severidad] = [];
+      acc[curr.severidad].push(curr);
       return acc;
     }, {} as Record<string, Incidencia[]>),
 
@@ -41,13 +41,13 @@ export const incidenciasHelpers = {
   filtrarAtrasadas: (incidencias: Incidencia[]) =>
     incidencias.filter(i => incidenciasHelpers.estaAtrasada(i)),
 
-  obtenerMontoTotalAfectado: (incidencias: Incidencia[]): number =>
-    incidencias.reduce((sum, i) => sum + (i.montoAfectado || 0), 0),
+  obtenerTotalImpactoHoras: (incidencias: Incidencia[]): number =>
+    incidencias.reduce((sum, i) => sum + (i.impacto_horas || 0), 0),
 
   calcularTiempoResolucion: (incidencia: Incidencia): string | null => {
-    if (!incidencia.fechaResolucion) return null;
-    const inicio = new Date(incidencia.fechaReporte);
-    const fin = new Date(incidencia.fechaResolucion);
+    if (!incidencia.fecha_resolucion) return null;
+    const inicio = new Date(incidencia.fecha_reporte);
+    const fin = new Date(incidencia.fecha_resolucion);
     const dias = Math.ceil((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
     return `${dias} días`;
   },

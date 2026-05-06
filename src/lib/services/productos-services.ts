@@ -34,7 +34,7 @@ export const ProductosService = {
           variantes_producto: { 
             orderBy: { created_at: 'asc' } 
           },
-          ficha_tecnica: { select: { id: true, version: true, estado: true } },
+          fichas_tecnicas: { select: { id: true, version: true, estado: true } },
         },
         orderBy: { nombre: 'asc' },
       }),
@@ -56,7 +56,7 @@ export const ProductosService = {
         variantes_producto: {
           orderBy: { created_at: 'asc' }
         },
-        ficha_tecnica: {
+        fichas_tecnicas: {
           include: { ficha_medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] } },
         },
       },

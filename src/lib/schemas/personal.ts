@@ -45,7 +45,7 @@ export const personalSchema = z.object({
     message: "Fecha de ingreso inválida",
   }).nullable().optional(),
 
-  estado: z.boolean().default(true),
+  estado: z.enum(['activo', 'inactivo', 'suspendido']).default('activo'),
 });
 
 export type PersonalFormValues = z.infer<typeof personalSchema>;

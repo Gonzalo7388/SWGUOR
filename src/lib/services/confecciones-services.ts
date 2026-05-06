@@ -41,8 +41,8 @@ export const ConfeccionesService = {
   async actualizarEstado(id: string, estado: string, usuario_id?: string) {
     return prisma.$transaction(async (tx) => {
       const extra: any = {};
-      if (estado === 'completado') extra.fecha_fin   = new Date();
-      if (estado === 'en_corte')   extra.fecha_inicio = new Date();
+      if (estado === 'completada') extra.fecha_fin   = new Date();
+      if (estado === 'en_proceso')   extra.fecha_inicio = new Date();
 
       const confeccion = await tx.confecciones.update({
         where: { id: BigInt(id) },

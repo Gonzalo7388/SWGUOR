@@ -2,36 +2,29 @@ import { z } from 'zod';
 
 export const reservaStockBaseSchema = z.object({
   id: z.string().uuid(),
-  productoId: z.string().uuid(),
-  almacenId: z.string().uuid(),
-  cantidadReservada: z.number().int().positive(),
-  cantidadDisponible: z.number().int().nonnegative(),
-  pedidoId: z.string().uuid().nullable().optional(),
-  ordenCompraId: z.string().uuid().nullable().optional(),
-  motivo: z.enum(['VENTA', 'PRODUCCION', 'MANTENIMIENTO', 'MUESTRA']),
-  estatus: z.enum(['ACTIVA', 'PARCIAL_UTILIZADA', 'UTILIZADA', 'CANCELADA']),
-  fechaExpiracion: z.date().nullable().optional(),
-  fechaUso: z.date().nullable().optional(),
-  notas: z.string().max(500).optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  variante_id: z.number().int().positive(),
+  cotizacion_id: z.number().int().positive().nullable().optional(),
+  pedido_id: z.number().int().positive().nullable().optional(),
+  cantidad: z.number().int().positive(),
+  expira_en: z.date().nullable().optional(),
+  estado: z.enum(['activa', 'utilizada', 'cancelada']).default('activa'),
+  created_at: z.date(),
+  updated_at: z.date(),
 });
 
 export const crearReservaSchema = reservaStockBaseSchema.omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
-  estatus: true,
+  created_at: true,
+  updated_at: true,
+  estado: true,
 });
 
 export const actualizarReservaSchema = crearReservaSchema.partial();
 
 export const obtenerReservasSchema = z.object({
   filtro: z.object({
-    almacenId: z.string().uuid().optional(),
-    productoId: z.string().uuid().optional(),
-    estatus: z.enum(['ACTIVA', 'PARCIAL_UTILIZADA', 'UTILIZADA', 'CANCELADA']).optional(),
-    motivo: z.enum(['VENTA', 'PRODUCCION', 'MANTENIMIENTO', 'MUESTRA']).optional(),
+    variante_id: z.number().int().positive().optional(),
+    estado: z.enum(['activa', 'utilizada', 'cancelada']).optional(),
   }).optional(),
   paginacion: z.object({
     pagina: z.number().int().positive().default(1),

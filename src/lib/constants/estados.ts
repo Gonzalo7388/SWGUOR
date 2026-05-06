@@ -116,12 +116,11 @@ export function getEstadoInfo(
 }
 
 // Listas de exportación para Selects y Filtros
-export const LISTA_ESTADOS_COTIZACION = Object.keys(ESTADOS_COTIZACION);
-export const LISTA_ESTADOS_ORDEN = Object.keys(ESTADOS_ORDEN) as EstadoOrden[];
-export const LISTA_ESTADOS_DESPACHO = Object.keys(ESTADOS_DESPACHO) as EstadoDespacho[];
+export const LISTA_ESTADOS_CONFECCION = Object.keys(ESTADOS_CONFECCION);
 export const ESTADOS_CONFECCION: Record<string, { label: string; color: string; bgColor: string }> = {
-  corte:          { label: 'En Corte',      color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  confeccionando: { label: 'Confeccionando', color: 'text-blue-700',   bgColor: 'bg-blue-100' },
-  remallado:      { label: 'Remallado',     color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  terminado:      { label: 'Terminado',     color: 'text-green-700',  bgColor: 'bg-green-100' },
+  pendiente:   { label: 'Pendiente',    color: 'text-slate-700',  bgColor: 'bg-slate-100' },
+  en_proceso:  { label: 'En Proceso',   color: 'text-blue-700',   bgColor: 'bg-blue-100' },
+  completada:  { label: 'Completada',   color: 'text-green-700',  bgColor: 'bg-green-100' },
+  rechazada:   { label: 'Rechazada',    color: 'text-amber-700',  bgColor: 'bg-amber-100' },
+  cancelada:   { label: 'Cancelada',    color: 'text-red-700',    bgColor: 'bg-red-100' },
 };

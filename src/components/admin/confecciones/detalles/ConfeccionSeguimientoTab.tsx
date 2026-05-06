@@ -5,19 +5,18 @@ import { Plus, Loader2, CheckCircle2 } from "lucide-react";
 import { ESTADO_LABELS } from "@/lib/schemas/confecciones";
 
 const ESTADO_COLORS: Record<string, string> = {
-  pendiente:  "bg-slate-100  text-slate-700",
-  en_corte:   "bg-blue-100   text-blue-700",
-  en_costura: "bg-violet-100 text-violet-700",
-  acabados:   "bg-amber-100  text-amber-700",
-  completado: "bg-green-100  text-green-700",
-  cancelado:  "bg-red-100    text-red-700",
+  pendiente:   "bg-slate-100  text-slate-700",
+  en_proceso:  "bg-blue-100   text-blue-700",
+  completada:  "bg-green-100  text-green-700",
+  rechazada:   "bg-amber-100  text-amber-700",
+  cancelado:   "bg-red-100    text-red-700",
 };
 
 const SIGUIENTE_ESTADO: Record<string, string[]> = {
-  pendiente:  ["en_corte",   "cancelado"],
-  en_corte:   ["en_costura", "cancelado"],
-  en_costura: ["acabados",   "cancelado"],
-  acabados:   ["completado", "cancelado"],
+  pendiente:  ["en_proceso", "rechazada", "cancelado"],
+  en_proceso: ["completada", "rechazada", "cancelado"],
+  completada: ["cancelado"],
+  rechazada:  ["pendiente", "cancelado"],
 };
 
 interface Props {

@@ -14,7 +14,7 @@ export interface CrearUsuarioInput {
   dni?: number;
   cargo: string;
   telefono?: number;
-  estado; string;
+  estado: string;
   fecha_ingreso?: string; // 'YYYY-MM-DD'
 }
 
