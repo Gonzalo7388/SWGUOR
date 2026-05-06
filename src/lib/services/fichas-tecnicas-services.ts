@@ -1,6 +1,7 @@
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { EstadoFicha } from '@prisma/client';
+import { calcularCostoFicha, insertarMovimiento, obtenerAuditoriaRegistro } from '@/lib/helpers/rpc-helpers';
 
 export const FichasTecnicasService = {
 
@@ -140,5 +141,89 @@ export const FichasTecnicasService = {
   async eliminarMedida(id: string) {
     await prisma.ficha_medidas.delete({ where: { id: BigInt(id) } });
     return { success: true };
+  },
+
+  // ── FUNCIONES CON RPC ──────────────────────────────
+  
+  /**
+   * Obtiene costo de ficha usando RPC calcularCostoFicha
+   */
+  async obtenerCostoFicha(fichaId: string | number): Promise<number> {
+    const id = typeof fichaId === 'string' ? parseInt(fichaId) : fichaId;
+    const costo = await calcularCostoFicha({ fichaId: id });
+    return costo;
+  },
+
+  /**
+   * Obtiene ficha con costo calculado vía RPC
+   */
+  async obtenerPorIdConCosto(id: string) {
+    const ficha = await this.obtenerPorId(id);
+    if (!ficha) return null;
+
+    try {
+      const costo = await this.obtenerCostoFicha(id);
+      return { ...ficha, costo_calculado: costo };
+    } catch (error) {
+      console.warn(`No se pudo calcular costo para ficha ${id}:`, error);
+      return ficha;
+    }
+  },
+
+  /**
+   * Aprueba una ficha técnica
+   * - Cambia estado a "aprobada"
+   * - Registra en auditoría vía RPC
+   */
+  async aprobarFicha(fichaId: string, usuarioId: string | number) {
+    const id = BigInt(fichaId);
+    const usId = typeof usuarioId === 'string' ? BigInt(usuarioId) : usuarioId;
+
+    return prisma.$transaction(async (tx) => {
+      const ficha = await tx.fichas_tecnicas.update({
+        where: { id },
+        data:  { estado: 'aprobada' as EstadoFicha },
+      });
+
+      // Registrar en auditoría
+      await insertarMovimiento({
+        tipo_movimiento: 'ajuste',
+        referencia_tipo: 'AJUSTE',
+        referencia_id:   Number(id),
+        cantidad:        0,
+        descripcion:     `Ficha técnica aprobada por usuario ${usId}`,
+        usuario_id:      Number(usId),
+      });
+
+      return serializeBigInt(ficha);
+    });
+  },
+
+  /**
+   * Marca ficha como obsoleta
+   */
+  async marcarFichaObsoleta(fichaId: string) {
+    const id = BigInt(fichaId);
+    
+    const ficha = await prisma.fichas_tecnicas.update({
+      where: { id },
+      data:  { estado: 'obsoleta' as EstadoFicha },
+    });
+
+    return serializeBigInt(ficha);
+  },
+
+  /**
+   * Obtiene histórico de cambios en ficha usando RPC
+   */
+  async obtenerHistorico(fichaId: string) {
+    const id = parseInt(fichaId);
+    try {
+      const auditoria = await obtenerAuditoriaRegistro('fichas_tecnicas', id);
+      return auditoria;
+    } catch (error) {
+      console.warn(`No se pudo obtener auditoría para ficha ${id}:`, error);
+      return [];
+    }
   },
 };

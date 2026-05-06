@@ -1,6 +1,7 @@
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import type { ReferenciaMovimiento } from '@prisma/client';
+import { insertarMovimiento, obtenerStockDisponible, validarStockSuficiente } from '@/lib/helpers/rpc-helpers';
 
 export const InventarioService = {
 
@@ -193,5 +194,96 @@ export const InventarioService = {
       take:    params?.limite ?? 50,
     });
     return serializeBigInt(movimientos);
+  },
+
+  // ── FUNCIONES CON RPC ──────────────────────────────
+
+  /**
+   * Obtiene items (insumos) con stock bajo usando RPC
+   */
+  async obtenerStockBajo(almacenId?: number) {
+    try {
+      const insumosBajo = await prisma.insumo.findMany({
+        where: {
+          alerta_bajo_stock: true,
+        },
+        orderBy: { stock_actual: 'asc' },
+      });
+
+      // Filtrar aquellos cuyo stock actual <= stock mínimo
+      return serializeBigInt(
+        insumosBajo.filter(i => Number(i.stock_actual) <= Number(i.stock_minimo))
+      );
+    } catch (error) {
+      console.error('Error obteniendo stock bajo:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene stock disponible considerando reservas (RPC)
+   */
+  async obtenerStockDisponibleProducto(productoId: number, almacenId: number) {
+    try {
+      const stock = await obtenerStockDisponible(productoId, almacenId);
+      return stock;
+    } catch (error) {
+      console.error('Error obteniendo stock disponible:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Valida si hay suficiente stock usando RPC
+   */
+  async validarStock(productoId: number, cantidad: number): Promise<boolean> {
+    try {
+      const valido = await validarStockSuficiente(productoId, cantidad);
+      return valido;
+    } catch (error) {
+      console.error('Error validando stock:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Registra movimiento en BD y RPC
+   */
+  async registrarMovimientoRPC(data: {
+    tipo_movimiento: 'entrada' | 'salida' | 'ajuste';
+    cantidad: number;
+    referencia_tipo: string;
+    referencia_id?: number;
+    descripcion?: string;
+    usuario_id: number;
+  }) {
+    try {
+      // Registrar en BD
+      const movimiento = await prisma.movimientos_inventario.create({
+        data: {
+          cantidad: data.cantidad,
+          motivo: data.descripcion ?? 'Movimiento registrado',
+          tipo_movimiento: data.tipo_movimiento as any,
+          usuario_id: BigInt(data.usuario_id),
+          referencia_tipo: data.referencia_tipo as ReferenciaMovimiento,
+          referencia_id: data.referencia_id ? BigInt(data.referencia_id) : null,
+        },
+      });
+
+      // Registrar en RPC
+      await insertarMovimiento({
+        tipo_movimiento: data.tipo_movimiento,
+        referencia_tipo: data.referencia_tipo,
+        referencia_id: data.referencia_id,
+        cantidad: data.cantidad,
+        descripcion: data.descripcion,
+        usuario_id: data.usuario_id,
+      });
+
+      return serializeBigInt(movimiento);
+    } catch (error) {
+      console.error('Error registrando movimiento:', error);
+      throw error;
+    }
   },
 };

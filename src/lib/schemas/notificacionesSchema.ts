@@ -8,7 +8,7 @@ export const TipoNotificacionEnum = z.enum([
   'orden_produccion',
   'confeccion_completada',
   'devolucion_solicitada',
-  'sistema',
+  'sistema',  
 ]);
 
 export const notificacionBaseSchema = z.object({

@@ -242,6 +242,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "asientos_contables_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_asientos_contables_pago_id"
             columns: ["pago_id"]
             isOneToOne: false
@@ -400,6 +407,7 @@ export type Database = {
           fecha_emision: string
           hash_cpe: string | null
           id: number
+          id_uuid: string | null
           igv: number
           moneda: string
           numero_completo: string | null
@@ -424,6 +432,7 @@ export type Database = {
           fecha_emision?: string
           hash_cpe?: string | null
           id?: number
+          id_uuid?: string | null
           igv?: number
           moneda?: string
           numero_completo?: string | null
@@ -448,6 +457,7 @@ export type Database = {
           fecha_emision?: string
           hash_cpe?: string | null
           id?: number
+          id_uuid?: string | null
           igv?: number
           moneda?: string
           numero_completo?: string | null
@@ -678,6 +688,7 @@ export type Database = {
           aprobacion_automatica: boolean | null
           aprobado_at: string | null
           cliente_id: number | null
+          cliente_id_uuid: string | null
           costo_envio: number | null
           costo_total_estimado: number | null
           created_at: string | null
@@ -686,6 +697,7 @@ export type Database = {
           expira_at: string | null
           id: number
           id_regla_descuento: number | null
+          id_uuid: string
           igv: number | null
           moneda: string
           monto_descuento: number | null
@@ -701,6 +713,7 @@ export type Database = {
           aprobacion_automatica?: boolean | null
           aprobado_at?: string | null
           cliente_id?: number | null
+          cliente_id_uuid?: string | null
           costo_envio?: number | null
           costo_total_estimado?: number | null
           created_at?: string | null
@@ -709,6 +722,7 @@ export type Database = {
           expira_at?: string | null
           id?: number
           id_regla_descuento?: number | null
+          id_uuid: string
           igv?: number | null
           moneda?: string
           monto_descuento?: number | null
@@ -724,6 +738,7 @@ export type Database = {
           aprobacion_automatica?: boolean | null
           aprobado_at?: string | null
           cliente_id?: number | null
+          cliente_id_uuid?: string | null
           costo_envio?: number | null
           costo_total_estimado?: number | null
           created_at?: string | null
@@ -732,6 +747,7 @@ export type Database = {
           expira_at?: string | null
           id?: number
           id_regla_descuento?: number | null
+          id_uuid?: string
           igv?: number | null
           moneda?: string
           monto_descuento?: number | null
@@ -820,10 +836,12 @@ export type Database = {
         Row: {
           cantidad: number
           cotizacion_id: number
+          cotizacion_proveedor_id_uuid: string | null
           descripcion: string | null
           id: number
           insumo_id: number | null
           material_id: number | null
+          material_id_uuid: string | null
           notas: string | null
           precio_unitario: number | null
           subtotal: number | null
@@ -833,10 +851,12 @@ export type Database = {
         Insert: {
           cantidad: number
           cotizacion_id: number
+          cotizacion_proveedor_id_uuid?: string | null
           descripcion?: string | null
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           notas?: string | null
           precio_unitario?: number | null
           subtotal?: number | null
@@ -846,10 +866,12 @@ export type Database = {
         Update: {
           cantidad?: number
           cotizacion_id?: number
+          cotizacion_proveedor_id_uuid?: string | null
           descripcion?: string | null
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           notas?: string | null
           precio_unitario?: number | null
           subtotal?: number | null
@@ -889,8 +911,8 @@ export type Database = {
           fecha_entrega: string | null
           id: number
           pedido_id: number
+          pedido_id_uuid: string
           updated_at: string
-          usuario_id: number
         }
         Insert: {
           created_at?: string
@@ -900,8 +922,8 @@ export type Database = {
           fecha_entrega?: string | null
           id?: number
           pedido_id: number
+          pedido_id_uuid: string
           updated_at?: string
-          usuario_id: number
         }
         Update: {
           created_at?: string
@@ -911,8 +933,8 @@ export type Database = {
           fecha_entrega?: string | null
           id?: number
           pedido_id?: number
+          pedido_id_uuid?: string
           updated_at?: string
-          usuario_id?: number
         }
         Relationships: [
           {
@@ -920,13 +942,6 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "despachos_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -1173,6 +1188,7 @@ export type Database = {
           alias: string
           ciudad: string | null
           cliente_id: number
+          cliente_id_uuid: string
           created_at: string | null
           departamento: string | null
           direccion: string
@@ -1183,6 +1199,7 @@ export type Database = {
           alias: string
           ciudad?: string | null
           cliente_id: number
+          cliente_id_uuid: string
           created_at?: string | null
           departamento?: string | null
           direccion: string
@@ -1193,6 +1210,7 @@ export type Database = {
           alias?: string
           ciudad?: string | null
           cliente_id?: number
+          cliente_id_uuid?: string
           created_at?: string | null
           departamento?: string | null
           direccion?: string
@@ -1215,11 +1233,15 @@ export type Database = {
           calidad_producto: number | null
           canal: string | null
           cliente_id: number
+          cliente_id_uuid: string
           comentarios: string | null
           created_at: string
           enviado_en: string | null
+          estado: Database["public"]["Enums"]["EstadoFeedback"] | null
           id: number
+          nota_interna: string | null
           pedido_id: number
+          pedido_id_uuid: string
           puntuacion: number
           recomendaria: boolean | null
           respondido_en: string | null
@@ -1231,11 +1253,15 @@ export type Database = {
           calidad_producto?: number | null
           canal?: string | null
           cliente_id: number
+          cliente_id_uuid: string
           comentarios?: string | null
           created_at?: string
           enviado_en?: string | null
+          estado?: Database["public"]["Enums"]["EstadoFeedback"] | null
           id?: number
+          nota_interna?: string | null
           pedido_id: number
+          pedido_id_uuid: string
           puntuacion: number
           recomendaria?: boolean | null
           respondido_en?: string | null
@@ -1247,11 +1273,15 @@ export type Database = {
           calidad_producto?: number | null
           canal?: string | null
           cliente_id?: number
+          cliente_id_uuid?: string
           comentarios?: string | null
           created_at?: string
           enviado_en?: string | null
+          estado?: Database["public"]["Enums"]["EstadoFeedback"] | null
           id?: number
+          nota_interna?: string | null
           pedido_id?: number
+          pedido_id_uuid?: string
           puntuacion?: number
           recomendaria?: boolean | null
           respondido_en?: string | null
@@ -1537,9 +1567,11 @@ export type Database = {
           cantidad: number
           descripcion: string
           guia_id: number
+          guia_id_uuid: string | null
           id: number
           insumo_id: number | null
           material_id: number | null
+          material_id_uuid: string | null
           observaciones: string | null
           peso_kg: number | null
           producto_id: number | null
@@ -1549,9 +1581,11 @@ export type Database = {
           cantidad: number
           descripcion: string
           guia_id: number
+          guia_id_uuid?: string | null
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           observaciones?: string | null
           peso_kg?: number | null
           producto_id?: number | null
@@ -1561,9 +1595,11 @@ export type Database = {
           cantidad?: number
           descripcion?: string
           guia_id?: number
+          guia_id_uuid?: string | null
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           observaciones?: string | null
           peso_kg?: number | null
           producto_id?: number | null
@@ -1849,12 +1885,13 @@ export type Database = {
       movimientos_inventario: {
         Row: {
           almacen_id: number | null
+          almacen_id_uuid: string | null
           cantidad: number | null
-          costo_unitario: number | null
           created_at: string
           id: number
           insumo_id: number | null
           material_id: number | null
+          material_id_uuid: string | null
           motivo: string | null
           producto_id: number | null
           referencia_id: number | null
@@ -1864,15 +1901,17 @@ export type Database = {
           tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at: string | null
           usuario_id: number | null
+          usuario_id_uuid: string | null
         }
         Insert: {
           almacen_id?: number | null
+          almacen_id_uuid?: string | null
           cantidad?: number | null
-          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           motivo?: string | null
           producto_id?: number | null
           referencia_id?: number | null
@@ -1882,15 +1921,17 @@ export type Database = {
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at?: string | null
           usuario_id?: number | null
+          usuario_id_uuid?: string | null
         }
         Update: {
           almacen_id?: number | null
+          almacen_id_uuid?: string | null
           cantidad?: number | null
-          costo_unitario?: number | null
           created_at?: string
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           motivo?: string | null
           producto_id?: number | null
           referencia_id?: number | null
@@ -1900,6 +1941,7 @@ export type Database = {
           tipo_movimiento?: Database["public"]["Enums"]["TipoMovimiento"] | null
           updated_at?: string | null
           usuario_id?: number | null
+          usuario_id_uuid?: string | null
         }
         Relationships: [
           {
@@ -2069,8 +2111,10 @@ export type Database = {
           id: number
           insumo_id: number | null
           material_id: number | null
+          material_id_uuid: string | null
           notas: string | null
           orden_compra_id: number
+          orden_compra_id_uuid: string | null
           precio_unitario: number
           subtotal: number | null
         }
@@ -2080,8 +2124,10 @@ export type Database = {
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           notas?: string | null
           orden_compra_id: number
+          orden_compra_id_uuid?: string | null
           precio_unitario: number
           subtotal?: number | null
         }
@@ -2091,8 +2137,10 @@ export type Database = {
           id?: number
           insumo_id?: number | null
           material_id?: number | null
+          material_id_uuid?: string | null
           notas?: string | null
           orden_compra_id?: number
+          orden_compra_id_uuid?: string | null
           precio_unitario?: number
           subtotal?: number | null
         }
@@ -2133,6 +2181,7 @@ export type Database = {
           notas: string | null
           notificado_at: string | null
           pedido_id: number | null
+          pedido_id_uuid: string
           producto_id: number
           taller_id: number
           updated_at: string | null
@@ -2149,6 +2198,7 @@ export type Database = {
           notas?: string | null
           notificado_at?: string | null
           pedido_id?: number | null
+          pedido_id_uuid: string
           producto_id: number
           taller_id: number
           updated_at?: string | null
@@ -2165,6 +2215,7 @@ export type Database = {
           notas?: string | null
           notificado_at?: string | null
           pedido_id?: number | null
+          pedido_id_uuid?: string
           producto_id?: number
           taller_id?: number
           updated_at?: string | null
@@ -2207,6 +2258,60 @@ export type Database = {
           },
         ]
       }
+      ordenes_produccion_items: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: number
+          orden_produccion_id: number
+          orden_produccion_id_uuid: string
+          pedido_id_uuid: string
+          pedido_item_id: number
+          producto_id: number
+          updated_at: string
+          variante_id: number | null
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          id?: number
+          orden_produccion_id: number
+          orden_produccion_id_uuid: string
+          pedido_id_uuid: string
+          pedido_item_id: number
+          producto_id: number
+          updated_at?: string
+          variante_id?: number | null
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: number
+          orden_produccion_id?: number
+          orden_produccion_id_uuid?: string
+          pedido_id_uuid?: string
+          pedido_item_id?: number
+          producto_id?: number
+          updated_at?: string
+          variante_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordenes_produccion_items_orden_produccion_id_fkey"
+            columns: ["orden_produccion_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_produccion_items_pedido_item_id_fkey"
+            columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos: {
         Row: {
           comprobante_url: string | null
@@ -2214,6 +2319,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["EstadoPago"]
           fecha_pago: string
           id: number
+          id_uuid: string | null
           metodo_pago: Database["public"]["Enums"]["MetodoPago"]
           monto: number
           notas: string | null
@@ -2230,6 +2336,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["EstadoPago"]
           fecha_pago?: string
           id?: number
+          id_uuid?: string | null
           metodo_pago: Database["public"]["Enums"]["MetodoPago"]
           monto: number
           notas?: string | null
@@ -2246,6 +2353,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["EstadoPago"]
           fecha_pago?: string
           id?: number
+          id_uuid?: string | null
           metodo_pago?: Database["public"]["Enums"]["MetodoPago"]
           monto?: number
           notas?: string | null
@@ -2369,6 +2477,7 @@ export type Database = {
           especificaciones: Json | null
           id: number
           pedido_id: number
+          pedido_id_uuid: string
           producto_id: number
           variante_id: number
         }
@@ -2377,6 +2486,7 @@ export type Database = {
           especificaciones?: Json | null
           id?: number
           pedido_id: number
+          pedido_id_uuid: string
           producto_id: number
           variante_id: number
         }
@@ -2385,6 +2495,7 @@ export type Database = {
           especificaciones?: Json | null
           id?: number
           pedido_id?: number
+          pedido_id_uuid?: string
           producto_id?: number
           variante_id?: number
         }
@@ -2429,10 +2540,13 @@ export type Database = {
       pedidos: {
         Row: {
           cliente_id: number | null
+          cliente_id_uuid: string
           costo_envio: number
           cotizacion_id: number | null
+          cotizacion_id_uuid: string | null
           created_at: string | null
           created_by: number | null
+          created_by_uuid: string | null
           direccion_despacho: string | null
           estado: Database["public"]["Enums"]["EstadoPedido"] | null
           id: number
@@ -2454,10 +2568,13 @@ export type Database = {
         }
         Insert: {
           cliente_id?: number | null
+          cliente_id_uuid: string
           costo_envio?: number
           cotizacion_id?: number | null
+          cotizacion_id_uuid?: string | null
           created_at?: string | null
           created_by?: number | null
+          created_by_uuid?: string | null
           direccion_despacho?: string | null
           estado?: Database["public"]["Enums"]["EstadoPedido"] | null
           id?: number
@@ -2479,10 +2596,13 @@ export type Database = {
         }
         Update: {
           cliente_id?: number | null
+          cliente_id_uuid?: string
           costo_envio?: number
           cotizacion_id?: number | null
+          cotizacion_id_uuid?: string | null
           created_at?: string | null
           created_by?: number | null
+          created_by_uuid?: string | null
           direccion_despacho?: string | null
           estado?: Database["public"]["Enums"]["EstadoPedido"] | null
           id?: number
@@ -2573,58 +2693,6 @@ export type Database = {
           },
         ]
       }
-      precio_historico: {
-        Row: {
-          creado_por: number | null
-          id: number
-          motivo: string | null
-          precio: number
-          producto_id: number
-          vigente_desde: string
-          vigente_hasta: string | null
-        }
-        Insert: {
-          creado_por?: number | null
-          id?: number
-          motivo?: string | null
-          precio: number
-          producto_id: number
-          vigente_desde?: string
-          vigente_hasta?: string | null
-        }
-        Update: {
-          creado_por?: number | null
-          id?: number
-          motivo?: string | null
-          precio?: number
-          producto_id?: number
-          vigente_desde?: string
-          vigente_hasta?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_precio_historico_creado_por"
-            columns: ["creado_por"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_precio_historico_producto_id"
-            columns: ["producto_id"]
-            isOneToOne: false
-            referencedRelation: "productos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_precio_historico_producto_id"
-            columns: ["producto_id"]
-            isOneToOne: false
-            referencedRelation: "v_producto_stock_resumen"
-            referencedColumns: ["producto_id"]
-          },
-        ]
-      }
       productos: {
         Row: {
           almacen_id: number | null
@@ -2634,7 +2702,6 @@ export type Database = {
           descripcion: string | null
           destacado: boolean | null
           estado: Database["public"]["Enums"]["EstadoProducto"]
-          fichas_tecnicas_id: number | null
           id: number
           imagen: string | null
           moq: number
@@ -2654,7 +2721,6 @@ export type Database = {
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
-          fichas_tecnicas_id?: number | null
           id?: number
           imagen?: string | null
           moq?: number
@@ -2674,7 +2740,6 @@ export type Database = {
           descripcion?: string | null
           destacado?: boolean | null
           estado?: Database["public"]["Enums"]["EstadoProducto"]
-          fichas_tecnicas_id?: number | null
           id?: number
           imagen?: string | null
           moq?: number
@@ -2687,13 +2752,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_productos_fichas_tecnicas_id"
-            columns: ["fichas_tecnicas_id"]
-            isOneToOne: false
-            referencedRelation: "fichas_tecnicas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "productos_almacen_id_fkey"
             columns: ["almacen_id"]
@@ -3249,6 +3307,27 @@ export type Database = {
     }
     Functions: {
       calcular_costo_ficha: { Args: { p_ficha_id: number }; Returns: number }
+      fn_actualizar_precio_con_historico: {
+        Args: {
+          p_moneda: Database["public"]["Enums"]["Moneda"]
+          p_precio_nuevo: number
+          p_producto_id: string
+          p_razon_cambio: string
+          p_tipo_producto: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
+      fn_crear_reserva_stock: {
+        Args: {
+          p_almacen_id: string
+          p_cantidad_a_reservar: number
+          p_motivo: string
+          p_pedido_id?: string
+          p_producto_id: string
+        }
+        Returns: Json
+      }
       fn_insertar_movimiento: {
         Args: {
           p_cantidad: number
@@ -3265,6 +3344,824 @@ export type Database = {
         Returns: undefined
       }
       random_9_digit_phone: { Args: never; Returns: number }
+      rpc_crud_categorias_create: {
+        Args: {
+          p_activo?: boolean
+          p_descripcion?: string
+          p_imagen?: string
+          p_nombre: string
+          p_orden?: number
+        }
+        Returns: number
+      }
+      rpc_crud_categorias_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_categorias_get: {
+        Args: { p_id: number }
+        Returns: {
+          activo: boolean | null
+          created_at: string
+          descripcion: string | null
+          id: number
+          imagen: string | null
+          nombre: string
+          orden: number | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "categorias"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_categorias_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          activo: boolean
+          created_at: string
+          descripcion: string
+          id: number
+          imagen: string
+          nombre: string
+          orden: number
+          updated_at: string
+        }[]
+      }
+      rpc_crud_categorias_update: {
+        Args: {
+          p_activo?: boolean
+          p_descripcion?: string
+          p_id: number
+          p_imagen?: string
+          p_nombre?: string
+          p_orden?: number
+        }
+        Returns: number
+      }
+      rpc_crud_clientes_create: {
+        Args: {
+          p_activo?: Database["public"]["Enums"]["EstadoCliente"]
+          p_direccion_fiscal?: string
+          p_email?: string
+          p_nombre_comercial?: string
+          p_razon_social?: string
+          p_ruc?: string
+          p_telefono?: string
+          p_tipo_cliente?: Database["public"]["Enums"]["TipoCliente"]
+          p_usuario_id?: number
+        }
+        Returns: number
+      }
+      rpc_crud_clientes_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_clientes_get: {
+        Args: { p_id: number }
+        Returns: {
+          activo: Database["public"]["Enums"]["EstadoCliente"] | null
+          created_at: string
+          direccion_fiscal: string | null
+          email: string | null
+          id: number
+          nombre_comercial: string | null
+          razon_social: string | null
+          ruc: string
+          telefono: string | null
+          tipo_cliente: Database["public"]["Enums"]["TipoCliente"] | null
+          updated_at: string
+          usuario_id: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "clientes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_clientes_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          email: string
+          estado: Database["public"]["Enums"]["EstadoCliente"]
+          id: number
+          razon_social: string
+          ruc: string
+          telefono: string
+          tipo_cliente: Database["public"]["Enums"]["TipoCliente"]
+          updated_at: string
+          usuario_id: number
+        }[]
+      }
+      rpc_crud_clientes_update: {
+        Args: {
+          p_activo?: Database["public"]["Enums"]["EstadoCliente"]
+          p_direccion_fiscal?: string
+          p_email?: string
+          p_id: number
+          p_nombre_comercial?: string
+          p_razon_social?: string
+          p_ruc?: string
+          p_telefono?: string
+          p_tipo_cliente?: Database["public"]["Enums"]["TipoCliente"]
+          p_usuario_id?: number
+        }
+        Returns: number
+      }
+      rpc_crud_ficha_medidas_create: {
+        Args: {
+          p_id_ficha: number
+          p_punto_medida?: string
+          p_talla?: string
+          p_tolerancia?: number
+          p_valor_cm?: number
+        }
+        Returns: number
+      }
+      rpc_crud_ficha_medidas_delete: {
+        Args: { p_id: number }
+        Returns: boolean
+      }
+      rpc_crud_ficha_medidas_get: {
+        Args: { p_id: number }
+        Returns: {
+          created_at: string
+          id: number
+          id_ficha: number | null
+          punto_medida: string | null
+          talla: string | null
+          tolerancia: number | null
+          valor_cm: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ficha_medidas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_ficha_medidas_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          id: number
+          id_ficha: number
+          punto_medida: string
+          talla: string
+          tolerancia: number
+          valor_cm: number
+        }[]
+      }
+      rpc_crud_ficha_medidas_update: {
+        Args: {
+          p_id: number
+          p_id_ficha?: number
+          p_punto_medida?: string
+          p_talla?: string
+          p_tolerancia?: number
+          p_valor_cm?: number
+        }
+        Returns: number
+      }
+      rpc_crud_fichas_tecnicas_create: {
+        Args: {
+          p_costo_estimado?: number
+          p_created_by?: number
+          p_descripcion_detallada?: string
+          p_estado?: Database["public"]["Enums"]["EstadoFicha"]
+          p_ficha_url?: string
+          p_id_producto?: number
+          p_imagen_geometral?: string
+          p_sam_total?: number
+          p_version?: string
+        }
+        Returns: number
+      }
+      rpc_crud_fichas_tecnicas_delete: {
+        Args: { p_id: number }
+        Returns: boolean
+      }
+      rpc_crud_fichas_tecnicas_get: {
+        Args: { p_id: number }
+        Returns: {
+          costo_estimado: number | null
+          created_at: string
+          created_by: number | null
+          descripcion_detallada: string | null
+          estado: Database["public"]["Enums"]["EstadoFicha"] | null
+          ficha_url: string | null
+          id: number
+          id_producto: number | null
+          imagen_geometral: string | null
+          sam_total: number | null
+          version: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fichas_tecnicas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_fichas_tecnicas_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          costo_estimado: number
+          created_at: string
+          estado: Database["public"]["Enums"]["EstadoFicha"]
+          id: number
+          id_producto: number
+          sam_total: number
+          version: string
+        }[]
+      }
+      rpc_crud_fichas_tecnicas_update: {
+        Args: {
+          p_costo_estimado?: number
+          p_created_by?: number
+          p_descripcion_detallada?: string
+          p_estado?: Database["public"]["Enums"]["EstadoFicha"]
+          p_ficha_url?: string
+          p_id: number
+          p_id_producto?: number
+          p_imagen_geometral?: string
+          p_sam_total?: number
+          p_version?: string
+        }
+        Returns: number
+      }
+      rpc_crud_insumo_create: {
+        Args: {
+          p_alerta_bajo_stock?: boolean
+          p_almacen_id?: number
+          p_categoria_insumo?: Database["public"]["Enums"]["CategoriaInsumo"]
+          p_nombre: string
+          p_precio_unitario?: number
+          p_proveedor_id?: number
+          p_stock_actual?: number
+          p_stock_maximo?: number
+          p_stock_minimo?: number
+          p_tipo?: Database["public"]["Enums"]["TipoInsumo"]
+          p_ubicacion_almacen?: string
+          p_unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Returns: number
+      }
+      rpc_crud_insumo_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_insumo_get: {
+        Args: { p_id: number }
+        Returns: {
+          alerta_bajo_stock: boolean | null
+          almacen_id: number | null
+          categoria_insumo: Database["public"]["Enums"]["CategoriaInsumo"]
+          created_at: string
+          id: number
+          nombre: string
+          precio_unitario: number | null
+          proveedor_id: number | null
+          stock_actual: number
+          stock_maximo: number | null
+          stock_minimo: number
+          tipo: Database["public"]["Enums"]["TipoInsumo"]
+          ubicacion_almacen: string | null
+          unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "insumo"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_insumo_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          almacen_id: number
+          categoria_insumo: Database["public"]["Enums"]["CategoriaInsumo"]
+          id: number
+          nombre: string
+          precio_unitario: number
+          proveedor_id: number
+          stock_actual: number
+          stock_minimo: number
+          tipo: Database["public"]["Enums"]["TipoInsumo"]
+          unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at: string
+        }[]
+      }
+      rpc_crud_insumo_update: {
+        Args: {
+          p_alerta_bajo_stock?: boolean
+          p_almacen_id?: number
+          p_categoria_insumo?: Database["public"]["Enums"]["CategoriaInsumo"]
+          p_id: number
+          p_nombre?: string
+          p_precio_unitario?: number
+          p_proveedor_id?: number
+          p_stock_actual?: number
+          p_stock_maximo?: number
+          p_stock_minimo?: number
+          p_tipo?: Database["public"]["Enums"]["TipoInsumo"]
+          p_ubicacion_almacen?: string
+          p_unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Returns: number
+      }
+      rpc_crud_materiales_create: {
+        Args: {
+          p_alerta_bajo_stock?: boolean
+          p_almacen_id?: number
+          p_ancho_total?: number
+          p_ancho_util?: number
+          p_codigo_color?: string
+          p_color?: string
+          p_composicion?: string
+          p_descripcion?: string
+          p_gramaje?: number
+          p_nombre: string
+          p_precio_unitario?: number
+          p_proveedor_id?: number
+          p_stock_actual?: number
+          p_stock_minimo?: number
+          p_tipo?: Database["public"]["Enums"]["TipoMaterial"]
+          p_ubicacion_almacen?: string
+          p_unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Returns: number
+      }
+      rpc_crud_materiales_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_materiales_get: {
+        Args: { p_id: number }
+        Returns: {
+          alerta_bajo_stock: boolean | null
+          almacen_id: number | null
+          ancho_total: number | null
+          ancho_util: number | null
+          codigo_color: string | null
+          color: string | null
+          composicion: string | null
+          created_at: string
+          descripcion: string | null
+          gramaje: number | null
+          id: number
+          nombre: string
+          precio_unitario: number | null
+          proveedor_id: number | null
+          stock_actual: number
+          stock_minimo: number
+          tipo: Database["public"]["Enums"]["TipoMaterial"]
+          ubicacion_almacen: string | null
+          unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "materiales"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_materiales_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          almacen_id: number
+          id: number
+          nombre: string
+          precio_unitario: number
+          proveedor_id: number
+          stock_actual: number
+          stock_minimo: number
+          tipo: Database["public"]["Enums"]["TipoMaterial"]
+          unidad_medida: Database["public"]["Enums"]["UnidadMedida"]
+          updated_at: string
+        }[]
+      }
+      rpc_crud_materiales_update: {
+        Args: {
+          p_alerta_bajo_stock?: boolean
+          p_almacen_id?: number
+          p_ancho_total?: number
+          p_ancho_util?: number
+          p_codigo_color?: string
+          p_color?: string
+          p_composicion?: string
+          p_descripcion?: string
+          p_gramaje?: number
+          p_id: number
+          p_nombre?: string
+          p_precio_unitario?: number
+          p_proveedor_id?: number
+          p_stock_actual?: number
+          p_stock_minimo?: number
+          p_tipo?: Database["public"]["Enums"]["TipoMaterial"]
+          p_ubicacion_almacen?: string
+          p_unidad_medida?: Database["public"]["Enums"]["UnidadMedida"]
+        }
+        Returns: number
+      }
+      rpc_crud_personal_interno_create: {
+        Args: {
+          p_cargo?: Database["public"]["Enums"]["Cargo"]
+          p_dni?: number
+          p_estado?: Database["public"]["Enums"]["EstadoPersonal"]
+          p_fecha_ingreso?: string
+          p_nombre_completo?: string
+          p_telefono?: number
+          p_usuario_id?: number
+        }
+        Returns: number
+      }
+      rpc_crud_personal_interno_delete: {
+        Args: { p_id: number }
+        Returns: boolean
+      }
+      rpc_crud_personal_interno_get: {
+        Args: { p_id: number }
+        Returns: {
+          cargo: Database["public"]["Enums"]["Cargo"] | null
+          created_at: string | null
+          dni: number | null
+          estado: Database["public"]["Enums"]["EstadoPersonal"]
+          fecha_ingreso: string | null
+          id: number
+          nombre_completo: string | null
+          telefono: number | null
+          updated_at: string | null
+          usuario_id: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "personal_interno"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_personal_interno_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          cargo: Database["public"]["Enums"]["Cargo"]
+          dni: number
+          estado: Database["public"]["Enums"]["EstadoPersonal"]
+          fecha_ingreso: string
+          id: number
+          nombre_completo: string
+          telefono: number
+        }[]
+      }
+      rpc_crud_personal_interno_update: {
+        Args: {
+          p_cargo?: Database["public"]["Enums"]["Cargo"]
+          p_dni?: number
+          p_estado?: Database["public"]["Enums"]["EstadoPersonal"]
+          p_fecha_ingreso?: string
+          p_id: number
+          p_nombre_completo?: string
+          p_telefono?: number
+          p_usuario_id?: number
+        }
+        Returns: number
+      }
+      rpc_crud_productos_create: {
+        Args: {
+          p_almacen_id?: number
+          p_categoria_id?: number
+          p_colores_disponibles?: Json
+          p_descripcion?: string
+          p_destacado?: boolean
+          p_estado?: Database["public"]["Enums"]["EstadoProducto"]
+          p_imagen?: string
+          p_moq?: number
+          p_nombre: string
+          p_precio?: number
+          p_reglas_descuento?: Json
+          p_sku?: string
+          p_stock?: number
+          p_tallas_disponibles?: Json
+        }
+        Returns: number
+      }
+      rpc_crud_productos_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_productos_get: {
+        Args: { p_id: number }
+        Returns: {
+          almacen_id: number | null
+          categoria_id: number | null
+          colores_disponibles: Json | null
+          created_at: string
+          descripcion: string | null
+          destacado: boolean | null
+          estado: Database["public"]["Enums"]["EstadoProducto"]
+          id: number
+          imagen: string | null
+          moq: number
+          nombre: string
+          precio: number
+          reglas_descuento: Json | null
+          sku: string
+          stock: number
+          tallas_disponibles: Json | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "productos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_productos_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          categoria_id: number
+          descripcion: string
+          estado: Database["public"]["Enums"]["EstadoProducto"]
+          id: number
+          imagen: string
+          nombre: string
+          precio: number
+          sku: string
+          stock: number
+          updated_at: string
+        }[]
+      }
+      rpc_crud_productos_update: {
+        Args: {
+          p_almacen_id?: number
+          p_categoria_id?: number
+          p_colores_disponibles?: Json
+          p_descripcion?: string
+          p_destacado?: boolean
+          p_estado?: Database["public"]["Enums"]["EstadoProducto"]
+          p_id: number
+          p_imagen?: string
+          p_moq?: number
+          p_nombre: string
+          p_precio?: number
+          p_reglas_descuento?: Json
+          p_sku?: string
+          p_stock?: number
+          p_tallas_disponibles?: Json
+        }
+        Returns: number
+      }
+      rpc_crud_talleres_create: {
+        Args: {
+          p_contacto?: string
+          p_direccion?: string
+          p_email?: string
+          p_especialidad?: Database["public"]["Enums"]["EspecialidadTaller"]
+          p_estado?: Database["public"]["Enums"]["EstadoTaller"]
+          p_nombre: string
+          p_ruc?: string
+          p_telefono?: string
+        }
+        Returns: number
+      }
+      rpc_crud_talleres_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_talleres_get: {
+        Args: { p_id: number }
+        Returns: {
+          contacto: string
+          created_at: string
+          direccion: string
+          email: string | null
+          especialidad: Database["public"]["Enums"]["EspecialidadTaller"] | null
+          estado: Database["public"]["Enums"]["EstadoTaller"]
+          id: number
+          nombre: string
+          ruc: string
+          telefono: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "talleres"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_talleres_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          direccion: string
+          email: string
+          especialidad: Database["public"]["Enums"]["EspecialidadTaller"]
+          estado: Database["public"]["Enums"]["EstadoTaller"]
+          id: number
+          nombre: string
+          ruc: string
+          telefono: string
+          updated_at: string
+        }[]
+      }
+      rpc_crud_talleres_update: {
+        Args: {
+          p_contacto?: string
+          p_direccion?: string
+          p_email?: string
+          p_especialidad?: Database["public"]["Enums"]["EspecialidadTaller"]
+          p_estado?: Database["public"]["Enums"]["EstadoTaller"]
+          p_id: number
+          p_nombre?: string
+          p_ruc?: string
+          p_telefono?: string
+        }
+        Returns: number
+      }
+      rpc_crud_usuarios_create: {
+        Args: {
+          p_auth_id?: string
+          p_created_by?: string
+          p_email: string
+          p_estado?: Database["public"]["Enums"]["EstadoUsuario"]
+          p_rol?: Database["public"]["Enums"]["Rol"]
+        }
+        Returns: number
+      }
+      rpc_crud_usuarios_delete: { Args: { p_id: number }; Returns: boolean }
+      rpc_crud_usuarios_get: {
+        Args: { p_id: number }
+        Returns: {
+          auth_id: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string
+          estado: Database["public"]["Enums"]["EstadoUsuario"] | null
+          id: number
+          rol: Database["public"]["Enums"]["Rol"] | null
+          ultimo_acceso: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "usuarios"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rpc_crud_usuarios_list: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          email: string
+          estado: Database["public"]["Enums"]["EstadoUsuario"]
+          id: number
+          rol: Database["public"]["Enums"]["Rol"]
+          ultimo_acceso: string
+          updated_at: string
+        }[]
+      }
+      rpc_crud_usuarios_update: {
+        Args: {
+          p_auth_id?: string
+          p_created_by?: string
+          p_email?: string
+          p_estado?: Database["public"]["Enums"]["EstadoUsuario"]
+          p_id: number
+          p_rol?: Database["public"]["Enums"]["Rol"]
+          p_ultimo_acceso?: string
+        }
+        Returns: number
+      }
+      rpc_get_cliente_by_uuid: {
+        Args: { p_cliente_id: number }
+        Returns: {
+          created_at: string
+          direccion_fiscal: string
+          email: string
+          estado: string
+          id: number
+          nombre_comercial: string
+          razon_social: string
+          ruc: string
+          telefono: string
+          tipo_cliente: string
+          updated_at: string
+        }[]
+      }
+      rpc_get_despachos_by_pedido_uuid: {
+        Args: { p_pedido_id: number }
+        Returns: {
+          created_at: string
+          estado: string
+          id: number
+          pedido_id: number
+          updated_at: string
+        }[]
+      }
+      rpc_get_feedback_cliente_by_pedido_uuid: {
+        Args: { p_pedido_id: number }
+        Returns: {
+          cliente_id: number
+          created_at: string
+          id: number
+          mensaje: string
+          pedido_id: number
+          tipo: string
+          updated_at: string
+        }[]
+      }
+      rpc_get_ordenes_produccion_by_pedido_uuid: {
+        Args: { p_pedido_id: number }
+        Returns: {
+          cantidad_solicitada: number
+          created_at: string
+          estado: string
+          fecha_entrega: string
+          ficha_id: number
+          id: number
+          notas: string
+          pedido_id: number
+          producto_id: number
+          taller_id: number
+          updated_at: string
+        }[]
+      }
+      rpc_get_ordenes_produccion_items: {
+        Args: { p_orden_id?: number; p_pedido_id?: string }
+        Returns: {
+          cantidad: number
+          created_at: string
+          id: number
+          orden_produccion_id: number
+          pedido_id: string
+          pedido_item_id: number
+          producto_id: number
+          updated_at: string
+          variante_id: number
+        }[]
+      }
+      rpc_get_pedido_by_uuid: {
+        Args: { p_pedido_id: number }
+        Returns: {
+          cliente_id: number
+          costo_envio: number
+          cotizacion_id: number
+          created_at: string
+          created_by: number
+          direccion_despacho: string
+          estado: string
+          id: number
+          igv: number
+          metodo_pago: string
+          moneda: string
+          monto_descuento: number
+          monto_pagado: number
+          moq_aplicado: number
+          notas_cliente: string
+          prioridad: string
+          saldo_pendiente: number
+          subtotal: number
+          total: number
+          total_estimado: number
+          total_unidades: number
+          updated_at: string
+        }[]
+      }
+      rpc_get_pedido_items_by_pedido_uuid: {
+        Args: { p_pedido_id: number }
+        Returns: {
+          cantidad: number
+          especificaciones: Json
+          id: number
+          pedido_id: number
+          producto_id: number
+          variante_id: number
+        }[]
+      }
+      rpc_registrar_movimiento_inventario: {
+        Args: {
+          p_almacen_id: number
+          p_cantidad: number
+          p_insumo_id: number
+          p_material_id: number
+          p_motivo: string
+          p_producto_id: number
+          p_referencia_id: number
+          p_referencia_tipo: Database["public"]["Enums"]["ReferenciaMovimiento"]
+          p_tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"]
+          p_usuario_id: number
+        }
+        Returns: {
+          movimiento_id: number
+          stock_insumo_actual: number
+          stock_material_actual: number
+          tipo_movimiento: Database["public"]["Enums"]["TipoMovimiento"]
+        }[]
+      }
+      rpc_registrar_producto_con_bom: {
+        Args: {
+          p_almacen_id: number
+          p_cantidad: number
+          p_motivo: string
+          p_producto_id: number
+          p_referencia_id: number
+          p_referencia_tipo: Database["public"]["Enums"]["ReferenciaMovimiento"]
+          p_tipo_producto_mov: Database["public"]["Enums"]["TipoMovimiento"]
+          p_usuario_id: number
+        }
+        Returns: {
+          movimiento_id: number
+        }[]
+      }
     }
     Enums: {
       AccionAuditoria:
@@ -3382,6 +4279,7 @@ export type Database = {
         | "aceptado_proveedor"
         | "rechazado_proveedor"
         | "completado"
+      EstadoFeedback: "pendiente" | "revisado"
       EstadoFicha: "borrador" | "en_revision" | "aprobada" | "obsoleta"
       EstadoGuiaRemision:
         | "borrador"
@@ -3437,6 +4335,7 @@ export type Database = {
         | "plin"
         | "visa"
         | "mastercard"
+      Moneda: "PEN" | "USD"
       MotivoDevolucion:
         | "defecto_fabrica"
         | "talla_incorrecta"
@@ -3508,7 +4407,19 @@ export type Database = {
         | "forro"
         | "accesorio"
       TipoMaterial: "punto" | "plano" | "no_tejido" | "especial"
-      TipoMovimiento: "entrada" | "salida" | "ajuste"
+      TipoMovimiento:
+        | "entrada"
+        | "salida"
+        | "ajuste"
+        | "consumo_orden_produccion"
+        | "consumo_orden_produccion_item"
+        | "produccion_entrada"
+        | "devolucion_consumo"
+        | "devolucion_a_proveedor"
+        | "recepcion_devolucion_proveedor"
+        | "incidencia_taller"
+        | "devolucion_a_cliente"
+        | "recepcion_devolucion_cliente"
       TipoNotificacion:
         | "stock_bajo"
         | "pedido_vencido"
@@ -3784,6 +4695,7 @@ export const Constants = {
         "rechazado_proveedor",
         "completado",
       ],
+      EstadoFeedback: ["pendiente", "revisado"],
       EstadoFicha: ["borrador", "en_revision", "aprobada", "obsoleta"],
       EstadoGuiaRemision: [
         "borrador",
@@ -3846,6 +4758,7 @@ export const Constants = {
         "visa",
         "mastercard",
       ],
+      Moneda: ["PEN", "USD"],
       MotivoDevolucion: [
         "defecto_fabrica",
         "talla_incorrecta",
@@ -3924,7 +4837,20 @@ export const Constants = {
         "accesorio",
       ],
       TipoMaterial: ["punto", "plano", "no_tejido", "especial"],
-      TipoMovimiento: ["entrada", "salida", "ajuste"],
+      TipoMovimiento: [
+        "entrada",
+        "salida",
+        "ajuste",
+        "consumo_orden_produccion",
+        "consumo_orden_produccion_item",
+        "produccion_entrada",
+        "devolucion_consumo",
+        "devolucion_a_proveedor",
+        "recepcion_devolucion_proveedor",
+        "incidencia_taller",
+        "devolucion_a_cliente",
+        "recepcion_devolucion_cliente",
+      ],
       TipoNotificacion: [
         "stock_bajo",
         "pedido_vencido",

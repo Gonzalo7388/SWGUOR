@@ -89,3 +89,23 @@ export {
   type Pago,
   type CrearPago,
 } from './pagosSchema';
+
+// ── RPC Schemas (Validación para funciones PostgreSQL RPC)
+export {
+  CalcularCostoFichaSchema,
+  CrearReservaStockSchema,
+  ActualizarPrecioSchema,
+  InsertarMovimientoSchema,
+  CrearNotificacionSchema,
+  CambiarEstadoConfeccionSchema,
+  OperacionStockSchema,
+  FiltrosAuditoriaSchema,
+  BuscarMovimientosSchema,
+  BuscarNotificacionesSchema,
+  PaginacionSchema,
+  TipoMovimientoEnum,
+  ReferenciaMovimientoEnum,
+  TipoNotificacionEnum,
+  EstadoConfeccionEnum,
+  EstadoPedidoEnum,
+} from './rpc-schemas';
