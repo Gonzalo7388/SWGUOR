@@ -768,6 +768,7 @@ model cotizaciones {
   reglas_descuento      reglas_descuento? @relation(fields: [id_regla_descuento], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cotizaciones_id_regla_descuento")
   cotizacion_items      cotizacion_items[]
   reservas_stock        reservas_stock[]
+  pedidos               pedidos[]          @relation("CotizacionPedidos")
 
   @@index([cliente_id], map: "idx_cotizaciones_cliente")
   @@index([estado], map: "idx_cotizaciones_estado")
@@ -1393,29 +1394,30 @@ model pedido_items {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model pedidos {
-  id                   BigInt                 @id @default(autoincrement())
-  cliente_id           BigInt?
-  estado               EstadoPedido?          @default(pendiente)
-  prioridad            PrioridadPedido?       @default(normal)
-  notas_cliente        String?
-  created_by           BigInt?
-  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
-  notas_pedido         String?
-  total_estimado       Decimal?               @default(0) @db.Decimal(12, 2)
-  total_unidades       Int                    @default(0)
-  moq_aplicado         Int                    @default(400)
-  cotizacion_id        BigInt?
-  subtotal             Decimal                @default(0) @db.Decimal(12, 2)
-  igv                  Decimal                @default(0) @db.Decimal(12, 2)
-  total                Decimal                @default(0) @db.Decimal(12, 2)
-  monto_descuento      Decimal                @default(0) @db.Decimal(12, 2)
-  costo_envio          Decimal                @default(0) @db.Decimal(12, 2)
-  moneda               String                 @default("PEN") @db.VarChar(3)
-  metodo_pago          MetodoPago?
-  direccion_despacho   String?
-  monto_pagado         Decimal                @default(0) @db.Decimal(12, 2)
-  saldo_pendiente      Decimal                @default(0) @db.Decimal(12, 2)
+  id                 BigInt            @id @default(autoincrement())
+  cliente_id         BigInt?
+  estado             EstadoPedido?     @default(pendiente)
+  prioridad          PrioridadPedido?  @default(normal)
+  notas_cliente      String?
+  created_by         BigInt?
+  created_at         DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
+  notas_pedido       String?
+  total_estimado     Decimal?          @default(0) @db.Decimal(12, 2)
+  total_unidades     Int               @default(0)
+  moq_aplicado       Int               @default(400)
+  cotizacion_id      BigInt?
+  subtotal           Decimal           @default(0) @db.Decimal(12, 2)
+  igv                Decimal           @default(0) @db.Decimal(12, 2)
+  total              Decimal           @default(0) @db.Decimal(12, 2)
+  monto_descuento    Decimal           @default(0) @db.Decimal(12, 2)
+  costo_envio        Decimal           @default(0) @db.Decimal(12, 2)
+  moneda             String            @default("PEN") @db.VarChar(3)
+  metodo_pago        MetodoPago?
+  direccion_despacho String?
+  monto_pagado       Decimal           @default(0) @db.Decimal(12, 2)
+  saldo_pendiente    Decimal           @default(0) @db.Decimal(12, 2)
+  
   asientos_contables   asientos_contables[]
   comprobantes         comprobantes[]
   confecciones         confecciones[]
@@ -1428,12 +1430,14 @@ model pedidos {
   pagos                pagos[]
   pedido_items         pedido_items[]
   clientes             clientes?              @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios             usuarios?              @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creado_por           usuarios?              @relation(fields: [created_by], references: [id])
+  cotizacion  cotizaciones?  @relation("CotizacionPedidos", fields: [cotizacion_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   reservas_stock       reservas_stock[]
   seguimiento_pedido   seguimiento_pedido[]
 
   @@index([cliente_id], map: "idx_pedidos_cliente")
-  @@index([estado], map: "idx_pedidos_estado")
+  @@index([estado],     map: "idx_pedidos_estado")
+  @@index([id],         map: "pedidos_id_idx")
   @@schema("public")
 }
 

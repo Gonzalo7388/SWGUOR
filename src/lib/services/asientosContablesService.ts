@@ -1,96 +1,117 @@
-import { prisma } from '@/lib/prisma';
-import { CrearAsientoContable, AsientoContable } from '@/lib/schemas/asientosContablesSchema';
+import { prisma }                                from '@/lib/prisma';
+import { TipoAsiento, CuentaContable, Prisma }  from '@prisma/client';
+
+// Tipo inferido directamente desde Prisma sin ningún cast
+type AsientoRow = Prisma.asientos_contablesGetPayload<Record<string, never>>;
+
+// ── Tipos de entrada ──────────────────────────────────────────────────────────
+
+interface CrearAsientoInput {
+  tipo:        TipoAsiento;
+  monto:       number;
+  cuenta:      CuentaContable;
+  fecha?:      Date | string;
+  descripcion?: string | null;
+  pedido_id?:   bigint | number | null;
+  pago_id?:     bigint | number | null;
+  usuario_id?:  bigint | number | null;
+}
+
+interface FiltrosAsiento {
+  tipo?:      TipoAsiento;
+  cuenta?:    CuentaContable;
+  pedido_id?: bigint | number;
+  pago_id?:   bigint | number;
+  desde?:     Date;
+  hasta?:     Date;
+}
+
+// ── Servicio ──────────────────────────────────────────────────────────────────
 
 export const asientosContablesService = {
-  listar: async (filtros?: any): Promise<AsientoContable[]> => {
-    const where: any = {};
-    if (filtros?.tipo) where.tipo = filtros.tipo;
-    if (filtros?.cuenta) where.cuenta = filtros.cuenta;
-    if (filtros?.pedido_id) where.pedido_id = BigInt(filtros.pedido_id);
-    if (filtros?.pago_id) where.pago_id = BigInt(filtros.pago_id);
-    if (filtros?.desde || filtros?.hasta) {
-      where.fecha = {};
-      if (filtros?.desde) where.fecha.gte = filtros.desde;
-      if (filtros?.hasta) where.fecha.lte = filtros.hasta;
-    }
 
-    return await prisma.asientos_contables.findMany({
-      where,
+  listar: (filtros?: FiltrosAsiento): Promise<AsientoRow[]> => {
+    return prisma.asientos_contables.findMany({
+      where: {
+        ...(filtros?.tipo      != null && { tipo:      filtros.tipo }),
+        ...(filtros?.cuenta    != null && { cuenta:    filtros.cuenta }),
+        ...(filtros?.pedido_id != null && { pedido_id: BigInt(filtros.pedido_id) }),
+        ...(filtros?.pago_id   != null && { pago_id:   BigInt(filtros.pago_id) }),
+        ...((filtros?.desde != null || filtros?.hasta != null) && {
+          fecha: {
+            ...(filtros.desde != null && { gte: filtros.desde }),
+            ...(filtros.hasta != null && { lte: filtros.hasta }),
+          },
+        }),
+      },
       orderBy: { fecha: 'desc' },
-    }) as unknown as Promise<any[]>;
+    });
   },
 
-  obtenerPorId: async (id: string): Promise<any | null> => {
-    return await prisma.asientos_contables.findUnique({
+  obtenerPorId: (id: bigint | number): Promise<AsientoRow | null> => {
+    return prisma.asientos_contables.findUnique({
       where: { id: BigInt(id) },
-    }) as unknown as Promise<any | null>;
+    });
   },
 
-  crear: async (datos: CrearAsientoContable): Promise<any> => {
-    const body = datos as any;
-    return await prisma.asientos_contables.create({
+  crear: (input: CrearAsientoInput): Promise<AsientoRow> => {
+    return prisma.asientos_contables.create({
       data: {
-        fecha: body.fecha,
-        tipo: body.tipo,
-        monto: body.monto,
-        cuenta: body.cuenta,
-        descripcion: body.descripcion,
-        pedido_id: body.pedido_id ? BigInt(body.pedido_id) : undefined,
-        pago_id: body.pago_id ? BigInt(body.pago_id) : undefined,
-        usuario_id: body.usuario_id ? BigInt(body.usuario_id) : undefined,
+        tipo:        input.tipo,
+        monto:       input.monto,
+        cuenta:      input.cuenta,
+        fecha:       input.fecha       != null ? new Date(input.fecha) : new Date(),
+        descripcion: input.descripcion ?? null,
+        pedido_id:   input.pedido_id   != null ? BigInt(input.pedido_id)  : null,
+        pago_id:     input.pago_id     != null ? BigInt(input.pago_id)    : null,
+        usuario_id:  input.usuario_id  != null ? BigInt(input.usuario_id) : null,
       },
-    }) as Promise<any>;
+    });
   },
 
-  actualizar: async (id: string, datos: Partial<CrearAsientoContable>): Promise<any> => {
-    const body = datos as any;
-    return await prisma.asientos_contables.update({
+  actualizar: (
+    id:    bigint | number,
+    input: Partial<CrearAsientoInput>,
+  ): Promise<AsientoRow> => {
+    return prisma.asientos_contables.update({
       where: { id: BigInt(id) },
       data: {
-        ...(body.fecha ? { fecha: body.fecha } : {}),
-        ...(body.tipo ? { tipo: body.tipo } : {}),
-        ...(body.monto !== undefined ? { monto: body.monto } : {}),
-        ...(body.cuenta ? { cuenta: body.cuenta } : {}),
-        ...(body.descripcion !== undefined ? { descripcion: body.descripcion } : {}),
-        ...(body.pedido_id !== undefined ? { pedido_id: body.pedido_id ? BigInt(body.pedido_id) : null } : {}),
-        ...(body.pago_id !== undefined ? { pago_id: body.pago_id ? BigInt(body.pago_id) : null } : {}),
-        ...(body.usuario_id !== undefined ? { usuario_id: body.usuario_id ? BigInt(body.usuario_id) : null } : {}),
+        ...(input.tipo        != null && { tipo:        input.tipo }),
+        ...(input.monto       != null && { monto:       input.monto }),
+        ...(input.cuenta      != null && { cuenta:      input.cuenta }),
+        ...(input.fecha       != null && { fecha:       new Date(input.fecha) }),
+        // Para campos nullable permitimos null explícito además de valor
+        ...('descripcion' in input && { descripcion: input.descripcion ?? null }),
+        ...('pedido_id'   in input && { pedido_id:   input.pedido_id  != null ? BigInt(input.pedido_id)  : null }),
+        ...('pago_id'     in input && { pago_id:     input.pago_id    != null ? BigInt(input.pago_id)    : null }),
+        ...('usuario_id'  in input && { usuario_id:  input.usuario_id != null ? BigInt(input.usuario_id) : null }),
       },
-    }) as Promise<any>;
+    });
   },
 
-  eliminar: async (id: string): Promise<{ success: boolean; message: string }> => {
+  eliminar: async (id: bigint | number): Promise<{ success: boolean; message: string }> => {
     try {
       await prisma.asientos_contables.delete({
         where: { id: BigInt(id) },
       });
       return { success: true, message: 'Registro eliminado correctamente' };
-    } catch (error: any) {
-      if (error?.code === 'P2025') {
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2025'
+      ) {
         return { success: false, message: 'Registro no encontrado' };
       }
       throw error;
     }
   },
 
-  obtenerTodas: async (filtros?: any): Promise<any[]> => {
-    return await asientosContablesService.listar(filtros);
-  },
-
-  aprobar: async (_asientoId: string, _aprobadoPor: string): Promise<AsientoContable> => {
-    throw new Error('No implementado');
-  },
-
-  reversear: async (_asientoId: string, _motivo: string): Promise<AsientoContable> => {
-    throw new Error('No implementado');
-  },
-
-  obtenerPorPeriodo: async (desde: Date, hasta: Date): Promise<any[]> => {
-    return await prisma.asientos_contables.findMany({
-      where: {
-        fecha: { gte: desde, lte: hasta },
-      },
+  obtenerPorPeriodo: (desde: Date, hasta: Date): Promise<AsientoRow[]> => {
+    return prisma.asientos_contables.findMany({
+      where:   { fecha: { gte: desde, lte: hasta } },
       orderBy: { fecha: 'desc' },
-    }) as unknown as Promise<any[]>;
+    });
   },
 };

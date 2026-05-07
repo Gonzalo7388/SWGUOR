@@ -1,89 +1,104 @@
 import { prisma } from '@/lib/prisma';
-import { CrearPago, Pago } from '@/lib/schemas/pagosSchema';
+import { pagos, Prisma, EstadoPago, MetodoPago, TipoPago } from '@prisma/client';
+import { randomUUID } from 'crypto';
+
+// Campos reales del modelo 'pagos':
+//   id_uuid (PK UUID), pedido_id, monto, metodo_pago, fecha_pago,
+//   comprobante_url, notas, usuario_id, tipo, estado,
+//   verificado_at, verificado_por, created_at, updated_at
+
+interface FiltrosPagos {
+  estado?:      EstadoPago;
+  metodo_pago?: MetodoPago;
+  pedido_id?:   number | bigint;
+}
+
+interface CrearPagoInput {
+  pedido_id:        number | bigint;
+  monto:            Prisma.Decimal | number | string;
+  metodo_pago:      MetodoPago;
+  tipo?:            TipoPago;
+  fecha_pago?:      Date;
+  comprobante_url?: string;
+  notas?:           string;
+  usuario_id?:      number | bigint;
+}
 
 export const pagosService = {
-  crear: async (datos: CrearPago): Promise<any> => {
-    const ultimoPago = await prisma.pagos.findFirst({
-      orderBy: { numero: 'desc' },
-      select: { numero: true },
+  crear: async (datos: CrearPagoInput): Promise<pagos> => {
+    return prisma.pagos.create({
+      data: {
+        id_uuid:         randomUUID(),
+        pedido_id:       BigInt(datos.pedido_id),
+        monto:           datos.monto,
+        metodo_pago:     datos.metodo_pago,
+        fecha_pago:      datos.fecha_pago      ?? new Date(),
+        tipo:            datos.tipo            ?? 'pago_completo',
+        estado:          'pendiente',
+        comprobante_url: datos.comprobante_url ?? null,
+        notas:           datos.notas           ?? null,
+        usuario_id:      datos.usuario_id ? BigInt(datos.usuario_id) : null,
+      },
     });
-
-    const proximoNumero = (ultimoPago?.numero ? parseInt(ultimoPago.numero) : 0) + 1;
-
-    return await prisma.pagos.create({
-      data: {
-        numero: proximoNumero.toString(),
-        comprobanteId: datos.comprobanteId,
-        pedidoId: datos.pedidoId,
-        ordenCompraId: datos.ordenCompraId,
-        fecha: datos.fecha,
-        monto: datos.monto,
-        moneda: datos.moneda,
-        metodoPago: datos.metodoPago,
-        estatus: 'PENDIENTE',
-        referencia: datos.referencia,
-        procesadoPor: datos.procesadoPor,
-        observaciones: datos.observaciones,
-      },
-    }) as Promise<Pago>;
   },
 
-  obtenerTodas: async (filtros?: any): Promise<any[]> => {
-    const where: any = {};
-    if (filtros?.estatus) where.estatus = filtros.estatus;
-    if (filtros?.metodoPago) where.metodoPago = filtros.metodoPago;
-
-    return await prisma.pagos.findMany({
-      where,
-      orderBy: { fecha: 'desc' },
-    }) as Promise<Pago[]>;
-  },
-
-  procesar: async (pagoId: string, numeroTransaccion?: string, referencia?: string): Promise<Pago> => {
-    return await prisma.pagos.update({
-      where: { id: pagoId },
-      data: {
-        estatus: 'COMPLETADO',
-        numeroTransaccion,
-        referencia,
-      },
-    }) as Promise<Pago>;
-  },
-
-  rechazar: async (pagoId: string, motivo: string): Promise<Pago> => {
-    return await prisma.pagos.update({
-      where: { id: pagoId },
-      data: {
-        estatus: 'RECHAZADO',
-        detalleRechazo: motivo,
-      },
-    }) as Promise<Pago>;
-  },
-
-  reembolsar: async (pagoId: string, motivo: string, montoReembolso: number): Promise<Pago> => {
-    return await prisma.pagos.update({
-      where: { id: pagoId },
-      data: {
-        estatus: 'REEMBOLSADO',
-        observaciones: `REEMBOLSO: ${motivo}`,
-      },
-    }) as Promise<Pago>;
-  },
-
-  obtenerPendientes: async (): Promise<Pago[]> => {
-    return await prisma.pagos.findMany({
-      where: { estatus: 'PENDIENTE' },
-      orderBy: { fecha: 'asc' },
-    }) as Promise<Pago[]>;
-  },
-
-  obtenerCompletados: async (desde: Date, hasta: Date): Promise<Pago[]> => {
-    return await prisma.pagos.findMany({
+  obtenerTodas: async (filtros?: FiltrosPagos): Promise<pagos[]> => {
+    return prisma.pagos.findMany({
       where: {
-        estatus: 'COMPLETADO',
-        fecha: { gte: desde, lte: hasta },
+        ...(filtros?.estado      && { estado:      filtros.estado }),
+        ...(filtros?.metodo_pago && { metodo_pago: filtros.metodo_pago }),
+        ...(filtros?.pedido_id   && { pedido_id:   BigInt(filtros.pedido_id) }),
       },
-      orderBy: { fecha: 'desc' },
-    }) as Promise<Pago[]>;
+      orderBy: { fecha_pago: 'desc' },
+    });
+  },
+
+  // Verificar pago → estado: 'verificado'
+  procesar: async (pagoUuid: string, verificadoPor?: bigint): Promise<pagos> => {
+    return prisma.pagos.update({
+      where: { id_uuid: pagoUuid },
+      data:  {
+        estado:         'verificado',
+        verificado_at:  new Date(),
+        verificado_por: verificadoPor ?? null,
+      },
+    });
+  },
+
+  // Rechazar pago → estado: 'rechazado'
+  rechazar: async (pagoUuid: string, motivo: string): Promise<pagos> => {
+    return prisma.pagos.update({
+      where: { id_uuid: pagoUuid },
+      data:  { estado: 'rechazado', notas: motivo },
+    });
+  },
+
+  // El schema no tiene estado 'reembolsado'; se deja constancia en notas
+  reembolsar: async (
+    pagoUuid: string,
+    motivo: string,
+    montoReembolso: number,
+  ): Promise<pagos> => {
+    return prisma.pagos.update({
+      where: { id_uuid: pagoUuid },
+      data:  { notas: `REEMBOLSO (${montoReembolso}): ${motivo}` },
+    });
+  },
+
+  obtenerPendientes: async (): Promise<pagos[]> => {
+    return prisma.pagos.findMany({
+      where:   { estado: 'pendiente' },
+      orderBy: { fecha_pago: 'asc' },
+    });
+  },
+
+  obtenerVerificados: async (desde: Date, hasta: Date): Promise<pagos[]> => {
+    return prisma.pagos.findMany({
+      where: {
+        estado:    'verificado',
+        fecha_pago: { gte: desde, lte: hasta },
+      },
+      orderBy: { fecha_pago: 'desc' },
+    });
   },
 };

@@ -1,26 +1,31 @@
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { EstadoFicha } from '@prisma/client';
-import { calcularCostoFicha, insertarMovimiento, obtenerAuditoriaRegistro } from '@/lib/helpers/rpc-helpers';
+import { EstadoFicha }     from '@prisma/client';
+import {
+  calcularCostoFicha,
+  insertarMovimiento,
+  obtenerAuditoriaRegistro,
+} from '@/lib/helpers/rpc-helpers';
 
 export const FichasTecnicasService = {
 
-  // ── listar todas las fichas ────────────────────────
   async listar(filtros?: { estado?: EstadoFicha; busqueda?: string }) {
     const fichas = await prisma.fichas_tecnicas.findMany({
       where: {
         ...(filtros?.estado && { estado: filtros.estado }),
         ...(filtros?.busqueda && {
           OR: [
-            { version: { contains: filtros.busqueda, mode: 'insensitive' } },
+            { version:               { contains: filtros.busqueda, mode: 'insensitive' } },
             { descripcion_detallada: { contains: filtros.busqueda, mode: 'insensitive' } },
-            { producto: { nombre: { contains: filtros.busqueda, mode: 'insensitive' } } },
-            { producto: { sku:    { contains: filtros.busqueda, mode: 'insensitive' } } },
+            // la relación correcta en el schema es "productos" (plural)
+            { productos: { nombre: { contains: filtros.busqueda, mode: 'insensitive' } } },
+            { productos: { sku:    { contains: filtros.busqueda, mode: 'insensitive' } } },
           ],
         }),
       },
       include: {
-        producto: { select: { id: true, nombre: true, sku: true, imagen: true } },
+        // relación correcta: "productos" (plural)
+        productos:    { select: { id: true, nombre: true, sku: true, imagen: true } },
         ficha_medidas: { select: { id: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -28,17 +33,16 @@ export const FichasTecnicasService = {
     return serializeBigInt(fichas);
   },
 
-  // ── obtener una ficha por ID con todo el detalle ───
   async obtenerPorId(id: string) {
     const ficha = await prisma.fichas_tecnicas.findUnique({
       where:   { id: BigInt(id) },
       include: {
-        producto: { select: { id: true, nombre: true, sku: true, imagen: true } },
+        productos:    { select: { id: true, nombre: true, sku: true, imagen: true } },
         ficha_medidas: { orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }] },
         fichas_tecnicas_detalle: {
           include: {
             materiales: { select: { id: true, nombre: true, tipo: true, composicion: true, color: true, unidad_medida: true, precio_unitario: true } },
-            insumo:   { select: { id: true, nombre: true, tipo: true, unidad_medida: true, precio_unitario: true } },
+            insumo:     { select: { id: true, nombre: true, tipo: true, unidad_medida: true, precio_unitario: true } },
           },
           orderBy: { id: 'asc' },
         },
@@ -83,9 +87,12 @@ export const FichasTecnicasService = {
         },
       });
 
-      await tx.productos.update({
-        where: { id: BigInt(data.producto_id) },
-        data:  { fichas_tecnicas_id: ficha.id },
+      // En el schema productos → fichas_tecnicas es una relación de lista (fichas_tecnicas[])
+      // El FK real es fichas_tecnicas.id_producto → se actualiza en la ficha, no en el producto.
+      // Si se necesita vincular bidireccionalmente, sólo actualizar id_producto en la ficha:
+      await tx.fichas_tecnicas.update({
+        where: { id: ficha.id },
+        data:  { id_producto: BigInt(data.producto_id) },
       });
 
       return serializeBigInt(ficha);
@@ -143,24 +150,14 @@ export const FichasTecnicasService = {
     return { success: true };
   },
 
-  // ── FUNCIONES CON RPC ──────────────────────────────
-  
-  /**
-   * Obtiene costo de ficha usando RPC calcularCostoFicha
-   */
   async obtenerCostoFicha(fichaId: string | number): Promise<number> {
     const id = typeof fichaId === 'string' ? parseInt(fichaId) : fichaId;
-    const costo = await calcularCostoFicha({ fichaId: id });
-    return costo;
+    return calcularCostoFicha({ fichaId: id });
   },
 
-  /**
-   * Obtiene ficha con costo calculado vía RPC
-   */
   async obtenerPorIdConCosto(id: string) {
     const ficha = await this.obtenerPorId(id);
     if (!ficha) return null;
-
     try {
       const costo = await this.obtenerCostoFicha(id);
       return { ...ficha, costo_calculado: costo };
@@ -170,13 +167,8 @@ export const FichasTecnicasService = {
     }
   },
 
-  /**
-   * Aprueba una ficha técnica
-   * - Cambia estado a "aprobada"
-   * - Registra en auditoría vía RPC
-   */
   async aprobarFicha(fichaId: string, usuarioId: string | number) {
-    const id = BigInt(fichaId);
+    const id   = BigInt(fichaId);
     const usId = typeof usuarioId === 'string' ? BigInt(usuarioId) : usuarioId;
 
     return prisma.$transaction(async (tx) => {
@@ -185,9 +177,9 @@ export const FichasTecnicasService = {
         data:  { estado: 'aprobada' as EstadoFicha },
       });
 
-      // Registrar en auditoría
+      // tipoMovimiento (camelCase) es la clave correcta en InsertarMovimientoParams
       await insertarMovimiento({
-        tipo_movimiento: 'ajuste',
+        tipoMovimiento: 'ajuste',
         referencia_tipo: 'AJUSTE',
         referencia_id:   Number(id),
         cantidad:        0,
@@ -199,30 +191,19 @@ export const FichasTecnicasService = {
     });
   },
 
-  /**
-   * Marca ficha como obsoleta
-   */
   async marcarFichaObsoleta(fichaId: string) {
-    const id = BigInt(fichaId);
-    
     const ficha = await prisma.fichas_tecnicas.update({
-      where: { id },
+      where: { id: BigInt(fichaId) },
       data:  { estado: 'obsoleta' as EstadoFicha },
     });
-
     return serializeBigInt(ficha);
   },
 
-  /**
-   * Obtiene histórico de cambios en ficha usando RPC
-   */
   async obtenerHistorico(fichaId: string) {
-    const id = parseInt(fichaId);
     try {
-      const auditoria = await obtenerAuditoriaRegistro('fichas_tecnicas', id);
-      return auditoria;
+      return await obtenerAuditoriaRegistro('fichas_tecnicas', parseInt(fichaId));
     } catch (error) {
-      console.warn(`No se pudo obtener auditoría para ficha ${id}:`, error);
+      console.warn(`No se pudo obtener auditoría para ficha ${fichaId}:`, error);
       return [];
     }
   },

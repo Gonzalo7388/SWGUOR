@@ -1,65 +1,81 @@
 import { prisma } from '@/lib/prisma';
-import { CrearOrdenCompra, OrdenCompra, ActualizarOrdenCompra } from '@/lib/schemas/ordenesCompraSchema';
+import { ordenes_compra, Prisma, EstadoOrdenCompra } from '@prisma/client';
+
+// EstadoOrdenCompra válidos: pendiente | confirmada | parcialmente_recibida | completada | cancelada
+
+interface FiltrosOrdenCompra {
+  proveedor_id?: number | bigint;
+  estado?: EstadoOrdenCompra;
+}
+
+type OrdenCompraConProveedor = Prisma.ordenes_compraGetPayload<{
+  include: { proveedores: true };
+}>;
 
 export const ordenesCompraService = {
-  crear: async (datos: CrearOrdenCompra): Promise<any> => {
-    return await prisma.ordenes_compra.create({
+  crear: async (
+    datos: Prisma.ordenes_compraUncheckedCreateInput,
+  ): Promise<ordenes_compra> => {
+    return prisma.ordenes_compra.create({
       data: {
-        proveedor_id: BigInt(datos.proveedorId),
-        estado: 'pendiente',
-        total_orden: datos.montoTotal,
-        notas: datos.observaciones,
-        creado_por: datos.creado_por,
+        proveedor_id: datos.proveedor_id,
+        estado:       'pendiente',
+        total_orden:  datos.total_orden,
+        notas:        datos.notas        ?? null,
+        creado_por:   datos.creado_por   ?? null,
       },
     });
   },
 
-  obtenerTodas: async (filtros?: any): Promise<any[]> => {
-    const where: any = {};
-    if (filtros?.proveedor_id) where.proveedor_id = BigInt(filtros.proveedor_id);
-    if (filtros?.estado) where.estado = filtros.estado;
-
-    return await prisma.ordenes_compra.findMany({
-      where,
+  obtenerTodas: async (
+    filtros?: FiltrosOrdenCompra,
+  ): Promise<OrdenCompraConProveedor[]> => {
+    return prisma.ordenes_compra.findMany({
+      where: {
+        ...(filtros?.proveedor_id && { proveedor_id: BigInt(filtros.proveedor_id) }),
+        ...(filtros?.estado        && { estado: filtros.estado }),
+      },
       orderBy: { created_at: 'desc' },
       include: { proveedores: true },
     });
   },
 
-  aprobar: async (ordenId: string, aprobadoPor: string, observaciones?: string): Promise<any> => {
-    return await prisma.ordenes_compra.update({
-      where: { id: BigInt(ordenId) },
-      data: {
-        estado: 'aprobada',
-        notas: observaciones,
-      },
+  // 'aprobada' no existe en el enum → se mapea a 'confirmada'
+  aprobar: async (
+    ordenId: bigint,
+    observaciones?: string,
+  ): Promise<ordenes_compra> => {
+    return prisma.ordenes_compra.update({
+      where: { id: ordenId },
+      data:  { estado: 'confirmada', notas: observaciones ?? null },
     });
   },
 
-  recibir: async (ordenId: string, cantidadRecibida: number): Promise<any> => {
-    return await prisma.ordenes_compra.update({
-      where: { id: BigInt(ordenId) },
-      data: {
-        estado: 'recibida',
-      },
+  // 'recibida' no existe en el enum → se mapea a 'completada'
+  recibir: async (ordenId: bigint): Promise<ordenes_compra> => {
+    return prisma.ordenes_compra.update({
+      where: { id: ordenId },
+      data:  { estado: 'completada' },
     });
   },
 
-  obtenerVencidas: async (): Promise<any[]> => {
-    const ahora = new Date();
-    return await prisma.ordenes_compra.findMany({
+  obtenerVencidas: async (): Promise<ordenes_compra[]> => {
+    return prisma.ordenes_compra.findMany({
       where: {
-        fecha_prometida: { lt: ahora },
-        estado: { not: 'recibida' },
+        fecha_prometida: { lt: new Date() },
+        estado:          { not: 'completada' },
       },
       orderBy: { fecha_prometida: 'asc' },
     });
   },
-    
-  actualizarEstatus: async (ordenId: string, nuevoEstatus: string): Promise<any> => {
-    return await prisma.ordenes_compra.update({
-      where: { id: BigInt(ordenId) },
-      data: { estado: nuevoEstatus as any },
+
+  actualizarEstado: async (
+    ordenId: bigint,
+    nuevoEstado: EstadoOrdenCompra,
+  ): Promise<ordenes_compra> => {
+    return prisma.ordenes_compra.update({
+      where: { id: ordenId },
+      data:  { estado: nuevoEstado },
     });
   },
 };

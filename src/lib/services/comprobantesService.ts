@@ -1,72 +1,120 @@
-import { prisma } from '@/lib/prisma';
-import { CrearComprobante, Comprobante } from '@/lib/schemas/comprobantesSchema';
+import { prisma }                                          from '@/lib/prisma';
+import { TipoComprobante, EstadoComprobante, Prisma }      from '@prisma/client';
+import { randomUUID }                                      from 'crypto';
+
+// Tipo inferido directamente desde Prisma sin ningún cast
+type ComprobanteRow = Prisma.comprobantesGetPayload<Record<string, never>>;
+
+// ── Tipos de entrada ──────────────────────────────────────────────────────────
+
+interface CrearComprobanteInput {
+  serie:      string;
+  tipo:       TipoComprobante;
+  ruc_emisor: string;
+  subtotal:   number;
+  igv:        number;
+  total:      number;
+  moneda?:        string;
+  fecha_emision?: Date | string;
+  pedido_id?:     bigint | number | null;
+  pago_id?:       bigint | number | null;
+}
+
+interface FiltrosComprobante {
+  pedido_id?:   bigint | number;
+  tipo?:        TipoComprobante;
+  estado_sunat?: EstadoComprobante;
+}
+
+// ── Servicio ──────────────────────────────────────────────────────────────────
 
 export const comprobantesService = {
-  crear: async (datos: CrearComprobante): Promise<any> => {
-    const ultimoComprobante = await prisma.comprobantes.findFirst({
-      where: { serie: datos.serie },
+
+  crear: async (input: CrearComprobanteInput): Promise<ComprobanteRow> => {
+    // Obtener el último correlativo de la misma serie para autoincrementar
+    const ultimo = await prisma.comprobantes.findFirst({
+      where:   { serie: input.serie },
       orderBy: { correlativo: 'desc' },
-      select: { correlativo: true },
+      select:  { correlativo: true },
     });
 
-    const proximoNumero = (ultimoComprobante?.correlativo ? parseInt(ultimoComprobante.correlativo) : 0) + 1;
+    const proximoCorrelativo =
+      (ultimo?.correlativo ? parseInt(ultimo.correlativo, 10) : 0) + 1;
 
-    return await prisma.comprobantes.create({
+    return prisma.comprobantes.create({
       data: {
-        correlativo: proximoNumero.toString(),
-        serie: datos.serie,
-        tipo: datos.tipo,
-        moneda: datos.moneda,
-        ruc_emisor: datos.ruc_emisor || '',
-        fecha_emision: datos.fecha || new Date(),
-        subtotal: datos.subtotal || 0,
-        igv: datos.igv || 0,
-        total: datos.total || 0,
+        id_uuid:       randomUUID(),
+        serie:         input.serie,
+        correlativo:   proximoCorrelativo.toString().padStart(8, '0'),
+        tipo:          input.tipo,
+        ruc_emisor:    input.ruc_emisor,
+        subtotal:      input.subtotal,
+        igv:           input.igv,
+        total:         input.total,
+        moneda:        input.moneda        ?? 'PEN',
+        fecha_emision: input.fecha_emision != null ? new Date(input.fecha_emision) : new Date(),
+        pedido_id:     input.pedido_id     != null ? BigInt(input.pedido_id)        : null,
+        pago_id:       input.pago_id       != null ? BigInt(input.pago_id)          : null,
       },
-    }) as Promise<any>;
+    });
   },
 
-  listar: async (filtros?: any): Promise<any[]> => {
-    const where: any = {};
-    if (filtros?.clienteId) where.clienteId = filtros.clienteId;
-    if (filtros?.tipo) where.tipo = filtros.tipo;
-    if (filtros?.estado) where.estado = filtros.estado;
-
-    return await prisma.comprobantes.findMany({
-      where,
-      orderBy: { fecha_emision: 'desc' },
-    }) as unknown as Promise<any[]>;
-  },
-
-  anular: async (comprobanteId: string, motivo: string): Promise<any> => {
-    return await prisma.comprobantes.update({
-      where: { id_uuid: comprobanteId },
-      data: {
-        pdf_url: `ANULADO: ${motivo}`,
-      },
-    }) as Promise<any>;
-  },
-
-  obtenerPendientes: async (): Promise<any[]> => {
-    return await prisma.comprobantes.findMany({
-      orderBy: { fecha_emision: 'asc' },
-    }) as Promise<any[]>;
-  },
-
-  obtenerVencidas: async (): Promise<any[]> => {
-    const ahora = new Date();
-    return await prisma.comprobantes.findMany({
+  listar: (filtros?: FiltrosComprobante): Promise<ComprobanteRow[]> => {
+    return prisma.comprobantes.findMany({
       where: {
-        fecha_emision: { lt: ahora },
+        ...(filtros?.pedido_id    != null && { pedido_id:    BigInt(filtros.pedido_id) }),
+        ...(filtros?.tipo         != null && { tipo:         filtros.tipo }),
+        ...(filtros?.estado_sunat != null && { estado_sunat: filtros.estado_sunat }),
       },
-      orderBy: { fecha_emision: 'asc' },
-    }) as Promise<any[]>;
+      orderBy: { fecha_emision: 'desc' },
+    });
   },
 
-  marcarComoPagada: async (comprobanteId: string): Promise<any> => {
-    return await prisma.comprobantes.update({
-      where: { id_uuid: comprobanteId },
-      data: { fecha_emision: new Date() },
-    }) as Promise<any>;
+  obtenerPorId: (idUuid: string): Promise<ComprobanteRow | null> => {
+    return prisma.comprobantes.findUnique({
+      where: { id_uuid: idUuid },
+    });
+  },
+
+  // Marca como rechazado en SUNAT y guarda el motivo en respuesta_sunat
+  anular: (idUuid: string, motivo: string): Promise<ComprobanteRow> => {
+    return prisma.comprobantes.update({
+      where: { id_uuid: idUuid },
+      data: {
+        estado_sunat:    EstadoComprobante.rechazado,
+        respuesta_sunat: `ANULADO: ${motivo}`,
+        updated_at:      new Date(),
+      },
+    });
+  },
+
+  obtenerPendientes: (): Promise<ComprobanteRow[]> => {
+    return prisma.comprobantes.findMany({
+      where:   { estado_sunat: EstadoComprobante.pendiente },
+      orderBy: { fecha_emision: 'asc' },
+    });
+  },
+
+  // Comprobantes pendientes cuya fecha de emisión ya pasó
+  obtenerVencidos: (): Promise<ComprobanteRow[]> => {
+    return prisma.comprobantes.findMany({
+      where: {
+        estado_sunat: EstadoComprobante.pendiente,
+        fecha_emision: { lt: new Date() },
+      },
+      orderBy: { fecha_emision: 'asc' },
+    });
+  },
+
+  // Marca como enviado a SUNAT con fecha de envío
+  marcarComoEnviado: (idUuid: string): Promise<ComprobanteRow> => {
+    return prisma.comprobantes.update({
+      where: { id_uuid: idUuid },
+      data: {
+        estado_sunat:     EstadoComprobante.enviado,
+        enviado_sunat_at: new Date(),
+        updated_at:       new Date(),
+      },
+    });
   },
 };

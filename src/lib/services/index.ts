@@ -1,36 +1,67 @@
-// Services
+// ── Servicios de dominio ─────────────────────────────────────────────────────
 export { notificacionesService } from './notificacionesService';
-export { almacenesService } from './almacenesService';
-export { reservaStockService } from './reservaStockService';
+export { almacenesService }      from './almacenesService';
+export { reservaStockService }   from './reservaStockService';
 export { precioHistoricoService } from './precioHistoricoService';
-export { pagosTalleresService } from './pagosTalleresService';
+export { pagosTalleresService }  from './pagosTalleresService';
 export { tarifaTalleresService } from './tarifaTalleresService';
-export { guiasRemisionService } from './guiasRemisionService';
-export { ordenesCompraService } from './ordenesCompraService';
-export { incidenciasService } from './incidenciasService';
+export { guiasRemisionService }  from './guiasRemisionService';
+export { ordenesCompraService }  from './ordenesCompraService';
+export { incidenciasService }    from './incidenciasService';
 export { asientosContablesService } from './asientosContablesService';
-export { auditoriaService } from './auditoriaService';
-export { comprobantesService } from './comprobantesService';
-export { pagosService } from './pagosService';
+export { auditoriaService }      from './auditoriaService';
+export { comprobantesService }   from './comprobantesService';
+export { pagosService }          from './pagosService';
 
-// RPC Services (integración con PostgreSQL RPC)
+// ── Servicios que usan Prisma directamente (sin RPC) ─────────────────────────
 export { FichasTecnicasService } from './fichas-tecnicas-services';
-export { InventarioService } from './inventario-services';
-export { notificacionesService as NotificacionesRPCService } from './notificaciones-rpc-service';
+export { InventarioService }     from './inventario-services';
+export { ProductosService }      from './productos-services';
 
-// RPC Helpers (abstracción de funciones PostgreSQL)
+// ── RPC unificado ─────────────────────────────────────────────────────────────
+// Todo lo que antes estaba en:
+//   notificaciones-rpc-service.ts
+//   fichas-tecnicas-rpc-service.ts
+//   inventario-rpc-service.ts
+//   movimientos-inventario-services.ts  (lógica RPC)
 export {
-  calcularCostoFicha,
-  crearReservaStock,
-  actualizarPrecioConHistorico,
-  insertarMovimiento,
-  obtenerStockDisponible,
-  registrarCambioEstadoConfeccion,
-  obtenerAuditoriaRegistro,
+  // Notificaciones
   crearNotificacion,
   obtenerNotificacionesNoLeidas,
   marcarNotificacionesComoLeidas,
-  obtenerHistoricoPrecio,
-  validarStockSuficiente,
-  obtenerAuditoriaReciente,
-} from '@/lib/helpers/rpc-helpers';
+  marcarTodasComoLeidas,
+  notificarCotizacionExpirada,
+  notificarDevolucionSolicitada,
+  notificarStockBajo,
+  notificarPagoPendiente,
+  notificarConfeccionCompletada,
+
+  // Fichas técnicas
+  obtenerCostoFicha,
+  obtenerFichaTecnicaConCosto,
+  crearFichaTecnica,
+  actualizarFichaTecnica,
+  aprobarFichaTecnica,
+  marcarFichaObsoleta,
+  obtenerFichasPorProducto,
+  obtenerHistoricoFicha,
+
+  // Inventario — stock
+  obtenerStockProducto,
+  obtenerStockInsumo,
+  obtenerStockMaterial,
+  obtenerStockDisponibleProducto,
+  validarStock,
+  obtenerInsumosBajoStock,
+  obtenerItemsConStockBajo,
+
+  // Inventario — movimientos
+  registrarMovimiento,
+  listarMovimientos,
+  obtenerResumenMovimientos,
+
+  // Namespaces agrupados (alternativa)
+  NotificacionesRPC,
+  FichasTecnicasRPC,
+  InventarioRPC,
+} from './rpc-service';

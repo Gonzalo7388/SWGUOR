@@ -7,8 +7,8 @@ export const PedidosService = {
   async listar() {
     const pedidos = await prisma.pedidos.findMany({
       include: {
-        clientes: { select: { id: true, razon_social: true, nombre_comercial: true } },
-        pedido_items:    { select: { id: true, cantidad: true } },
+        clientes:    { select: { id: true, razon_social: true, nombre_comercial: true } },
+        pedido_items: { select: { id: true, cantidad: true } },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -27,16 +27,23 @@ export const PedidosService = {
         },
         pedido_items: {
           include: {
-            productos:          { select: { id: true, nombre: true, sku: true, imagen: true, fichas_tecnicas_id: true } },
+            // fichas_tecnicas_id no existe en productosSelect:
+            // la relación desde productos es fichas_tecnicas[] (lista)
+            // Se selecciona la relación directa fichas_tecnicas en el include
+            productos:         { select: { id: true, nombre: true, sku: true, imagen: true } },
             variantes_producto: { select: { id: true, color: true, talla: true, sku: true } },
           },
         },
         seguimiento_pedido: { orderBy: { created_at: 'desc' } },
         ordenes_produccion: {
           include: {
-            talleres: { select: { id: true, nombre: true, contacto: true, email: true } },
-            fichas_tecnicas:    { select: { id: true, version: true, estado: true } },
-            seguimiento_produccion: { where: { activo: true }, take: 1, orderBy: { created_at: 'desc' } },
+            talleres:       { select: { id: true, nombre: true, contacto: true, email: true } },
+            fichas_tecnicas: { select: { id: true, version: true, estado: true } },
+            seguimiento_produccion: {
+              where:   { activo: true },
+              take:    1,
+              orderBy: { created_at: 'desc' },
+            },
           },
           orderBy: { created_at: 'desc' },
         },
@@ -46,9 +53,9 @@ export const PedidosService = {
   },
 
   async actualizar(id: string, data: {
-    estado?:       EstadoPedido; 
-    prioridad?:    PrioridadPedido;
-    notas_pedido?: string;
+    estado?:        EstadoPedido;
+    prioridad?:     PrioridadPedido;
+    notas_pedido?:  string;
     notas_cliente?: string;
   }) {
     const pedido = await prisma.pedidos.update({
@@ -59,9 +66,9 @@ export const PedidosService = {
   },
 
   async registrarSeguimiento(data: {
-    pedido_id: string;
-    status:    EstadoPedido;
-    notas?:    string;
+    pedido_id:   string;
+    status:      EstadoPedido;
+    notas?:      string;
     creado_por?: string;
   }) {
     return prisma.$transaction(async (tx) => {
