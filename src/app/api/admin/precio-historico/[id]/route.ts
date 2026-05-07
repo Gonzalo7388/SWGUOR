@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const { id } = await params;
-    const data = await precioHistoricoService.obtenerPorId(id);
+    const data = await precioHistoricoService.obtenerPorId(Number(id));
     if (!data) {
       return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 });
     }
@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const body = await request.json();
     const validated = precioHistoricoUpdateSchema.parse(body);
-    const data = await precioHistoricoService.actualizar(id, validated);
+    const data = await precioHistoricoService.actualizar(Number(id), validated);
     return NextResponse.json({ success: true, data });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   try {
     const { id } = await params;
-    const result = await precioHistoricoService.eliminar(id);
+    const result = await precioHistoricoService.eliminar(Number(id));
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

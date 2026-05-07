@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const { id } = await params;
-    const data = await asientosContablesService.obtenerPorId(id);
+    const data = await asientosContablesService.obtenerPorId(Number(id));
     if (!data) {
       return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 });
     }
@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const body = await request.json();
     const validated = asientosContablesUpdateSchema.parse(body);
-    const data = await asientosContablesService.actualizar(id, validated);
+    const data = await asientosContablesService.actualizar(Number(id), validated);
     return NextResponse.json({ success: true, data });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   try {
     const { id } = await params;
-    const result = await asientosContablesService.eliminar(id);
+    const result = await asientosContablesService.eliminar(Number(id));
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

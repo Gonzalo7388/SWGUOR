@@ -4,7 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import inventarioService from "@/lib/services/inventario-rpc-service";
+import {
+  obtenerItemsConStockBajo,
+  obtenerStockProducto,
+  obtenerStockInsumo,
+  obtenerStockMaterial,
+  registrarMovimiento,
+  listarMovimientos,
+} from '@/lib/services';
 
 // ============================================================================
 // GET - Obtener stock
@@ -19,9 +26,7 @@ export async function GET(request: NextRequest) {
     // Obtener items con stock bajo
     if (action === "bajo-stock") {
       const almacenId = url.searchParams.get("almacenId");
-      const items = await inventarioService.obtenerItemsConStockBajo(
-        almacenId ? Number(almacenId) : undefined
-      );
+      const items = await obtenerItemsConStockBajo(almacenId ? Number(almacenId) : undefined);
       return NextResponse.json({
         success: true,
         data: items,
@@ -38,11 +43,11 @@ export async function GET(request: NextRequest) {
     let stock;
 
     if (tipoItem === "producto") {
-      stock = await inventarioService.obtenerStockProducto(Number(itemId));
+      stock = await obtenerStockProducto(Number(itemId));
     } else if (tipoItem === "insumo") {
-      stock = await inventarioService.obtenerStockInsumo(Number(itemId));
+      stock = await obtenerStockInsumo(Number(itemId));
     } else if (tipoItem === "material") {
-      stock = await inventarioService.obtenerStockMaterial(Number(itemId));
+      stock = await obtenerStockMaterial(Number(itemId));
     } else {
       return NextResponse.json(
         { error: "Tipo de item inválido" },
@@ -74,41 +79,45 @@ export async function POST(request: NextRequest) {
     let movimiento;
 
     if (tipo === "entrada") {
-      movimiento = await inventarioService.registrarEntrada({
-        productoId: datos.productoId,
-        insumoId: datos.insumoId,
-        materialId: datos.materialId,
-        almacenId: datos.almacenId,
-        cantidad: datos.cantidad,
-        motivo: datos.motivo,
-        usuarioId: datos.usuarioId,
-        costoUnitario: datos.costoUnitario,
-        tipoReferencia: datos.tipoReferencia || "COMPRA",
-        referenciaId: datos.referenciaId || 0,
-      });
+      movimiento = await registrarMovimiento({
+        tipoMovimiento: 'entrada',
+        referenciaType: datos.tipoReferencia || 'COMPRA',
+        referenciaId: datos.referenciaId ? Number(datos.referenciaId) : 0,
+        cantidad: Number(datos.cantidad),
+        motivo: datos.motivo ?? '',
+        productoId: datos.productoId ? Number(datos.productoId) : undefined,
+        insumoId: datos.insumoId ? Number(datos.insumoId) : undefined,
+        materialId: datos.materialId ? Number(datos.materialId) : undefined,
+        usuarioId: datos.usuarioId ? Number(datos.usuarioId) : undefined,
+        almacenId: datos.almacenId ? Number(datos.almacenId) : undefined,
+        costoUnitario: datos.costoUnitario ? Number(datos.costoUnitario) : undefined,
+      } as any);
     } else if (tipo === "salida") {
-      movimiento = await inventarioService.registrarSalida({
-        productoId: datos.productoId,
-        insumoId: datos.insumoId,
-        materialId: datos.materialId,
-        almacenId: datos.almacenId,
-        cantidad: datos.cantidad,
-        motivo: datos.motivo,
-        usuarioId: datos.usuarioId,
-        tipoReferencia: datos.tipoReferencia || "PRODUCCION",
-        referenciaId: datos.referenciaId || 0,
-      });
+      movimiento = await registrarMovimiento({
+        tipoMovimiento: 'salida',
+        referenciaType: datos.tipoReferencia || 'PRODUCCION',
+        referenciaId: datos.referenciaId ? Number(datos.referenciaId) : 0,
+        cantidad: Number(datos.cantidad),
+        motivo: datos.motivo ?? '',
+        productoId: datos.productoId ? Number(datos.productoId) : undefined,
+        insumoId: datos.insumoId ? Number(datos.insumoId) : undefined,
+        materialId: datos.materialId ? Number(datos.materialId) : undefined,
+        usuarioId: datos.usuarioId ? Number(datos.usuarioId) : undefined,
+        almacenId: datos.almacenId ? Number(datos.almacenId) : undefined,
+      } as any);
     } else if (tipo === "ajuste") {
-      movimiento = await inventarioService.registrarAjuste({
-        productoId: datos.productoId,
-        insumoId: datos.insumoId,
-        materialId: datos.materialId,
-        almacenId: datos.almacenId,
-        cantidadAnterior: datos.cantidadAnterior,
-        cantidadNueva: datos.cantidadNueva,
-        motivo: datos.motivo,
-        usuarioId: datos.usuarioId,
-      });
+      movimiento = await registrarMovimiento({
+        tipoMovimiento: 'ajuste',
+        referenciaType: 'AJUSTE',
+        referenciaId: datos.referenciaId ? Number(datos.referenciaId) : 0,
+        cantidad: Number(datos.cantidadNueva ?? datos.cantidad ?? 0),
+        motivo: datos.motivo ?? '',
+        productoId: datos.productoId ? Number(datos.productoId) : undefined,
+        insumoId: datos.insumoId ? Number(datos.insumoId) : undefined,
+        materialId: datos.materialId ? Number(datos.materialId) : undefined,
+        usuarioId: datos.usuarioId ? Number(datos.usuarioId) : undefined,
+        almacenId: datos.almacenId ? Number(datos.almacenId) : undefined,
+      } as any);
     } else {
       return NextResponse.json(
         { error: "Tipo de movimiento inválido" },
@@ -139,14 +148,14 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const movimientos = await inventarioService.filtrarMovimientos({
-      tipoMovimiento: body.tipoMovimiento,
-      referenciaType: body.referenciaType,
-      almacenId: body.almacenId,
-      fechaInicio: body.fechaInicio ? new Date(body.fechaInicio) : undefined,
-      fechaFin: body.fechaFin ? new Date(body.fechaFin) : undefined,
-      limit: body.limit || 50,
-      offset: body.offset || 0,
+    const movimientos = await listarMovimientos({
+      tipo_movimiento: body.tipoMovimiento,
+      referencia_tipo: body.referenciaType,
+      almacen_id: body.almacenId,
+      desde: body.fechaInicio ? new Date(body.fechaInicio) : undefined,
+      hasta: body.fechaFin ? new Date(body.fechaFin) : undefined,
+      limite: body.limit || 50,
+      producto_id: body.productoId,
     });
 
     return NextResponse.json({

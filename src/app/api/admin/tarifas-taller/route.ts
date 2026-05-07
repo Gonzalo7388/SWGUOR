@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const tarifa = await prisma.tarifas_taller.create({
       data: {
         taller_id: BigInt(validated.tallerId),
-        especialidad: validated.tipoServicio,
+        especialidad: (validated.tipoServicio as string).toLowerCase() as any,
         precio_unitario: validated.precioUnitario,
         moneda: validated.moneda,
         vigente_desde: new Date(validated.vigenciaDesde),

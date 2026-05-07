@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import fichasTecnicasService from "@/lib/services/fichas-tecnicas-rpc-service";
+import { obtenerFichaTecnicaConCosto, crearFichaTecnica, actualizarFichaTecnica } from '@/lib/services';
 import { CalcularCostoFichaSchema } from "@/lib/schemas/rpc-schemas";
 
 // ============================================================================
@@ -23,9 +23,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const ficha = await fichasTecnicasService.obtenerFichaTecnica(
-      Number(fichaId)
-    );
+    const ficha = await obtenerFichaTecnicaConCosto(Number(fichaId));
 
     if (!ficha) {
       return NextResponse.json(
@@ -54,7 +52,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const nuevaFicha = await fichasTecnicasService.crearFichaTecnica({
+    const nuevaFicha = await crearFichaTecnica({
       productoId: body.productoId,
       version: body.version,
       descripcionDetallada: body.descripcionDetallada,
@@ -97,16 +95,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const fichaActualizada = await fichasTecnicasService.actualizarFichaTecnica(
-      Number(fichaId),
-      {
-        version: body.version,
-        descripcionDetallada: body.descripcionDetallada,
-        estado: body.estado,
-        samTotal: body.samTotal,
-        detalles: body.detalles,
-      }
-    );
+    const fichaActualizada = await actualizarFichaTecnica(Number(fichaId), {
+      version: body.version,
+      descripcionDetallada: body.descripcionDetallada,
+      estado: body.estado,
+      samTotal: body.samTotal,
+      detalles: body.detalles,
+    });
 
     return NextResponse.json({
       success: true,

@@ -19,7 +19,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const pedido_id = url.searchParams.get('pedido_id') ?? undefined;
     const pago_id = url.searchParams.get('pago_id') ?? undefined;
-    const data = await asientosContablesService.listar({ pedido_id, pago_id });
+    const data = await asientosContablesService.listar({
+      pedido_id: pedido_id ? Number(pedido_id) : undefined,
+      pago_id: pago_id ? Number(pago_id) : undefined,
+    });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -270,12 +270,12 @@ export const InventarioService = {
 
       // Registrar en RPC
       await insertarMovimiento({
-        tipo_movimiento: data.tipo_movimiento,
-        referencia_tipo: data.referencia_tipo,
-        referencia_id: data.referencia_id,
+        tipoMovimiento: data.tipo_movimiento as any,
+        referenciaType: data.referencia_tipo as any,
+        referenciaId: data.referencia_id as any,
         cantidad: data.cantidad,
-        descripcion: data.descripcion,
-        usuario_id: data.usuario_id,
+        motivo: data.descripcion ?? '',
+        usuarioId: data.usuario_id as any,
       });
 
       return serializeBigInt(movimiento);

@@ -28,11 +28,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
     const validated = tarifasTallerUpdateSchema.parse(body);
 
-    const tarifa = await prisma.tarifas_taller.update({
+      const tarifa = await prisma.tarifas_taller.update({
       where: { id: BigInt(id) },
       data: {
-        ...(validated.tallerId ? { taller_id: BigInt(validated.tallerId) } : {}),
-        ...(validated.tipoServicio ? { especialidad: validated.tipoServicio } : {}),
+        ...(validated.tallerId ? { taller_id: BigInt(validated.tallerId) as any } : {}),
+        ...(validated.tipoServicio ? { especialidad: (validated.tipoServicio as string).toLowerCase() as any } : {}),
         ...(validated.precioUnitario !== undefined ? { precio_unitario: validated.precioUnitario } : {}),
         ...(validated.moneda ? { moneda: validated.moneda } : {}),
         ...(validated.vigenciaDesde ? { vigente_desde: new Date(validated.vigenciaDesde) } : {}),

@@ -122,7 +122,7 @@ export async function POST(req: Request) {
         total: new Prisma.Decimal(totales.total),
         valida_hasta: validaHasta,
         expira_at: validaHasta,
-        metodo_pago: metodo_pago ?? null,
+        // `metodo_pago` no existe en el input tipado de Prisma aquí; omitir/guardar en tabla relacionada si se requiere.
         direccion_despacho: direccion_despacho ?? null,
         monto_descuento: new Prisma.Decimal(totales.montoDescuento),
         moneda: moneda ?? 'PEN',

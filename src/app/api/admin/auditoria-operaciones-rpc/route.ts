@@ -8,8 +8,15 @@ import {
   obtenerAuditoriaRegistro,
   obtenerAuditoriaReciente,
 } from "@/lib/helpers/rpc-helpers";
-import fichasTecnicasService from "@/lib/services/fichas-tecnicas-rpc-service";
-import notificacionesService from "@/lib/services/notificaciones-rpc-service";
+import {
+  aprobarFichaTecnica,
+  marcarFichaObsoleta,
+  notificarCotizacionExpirada,
+  notificarDevolucionSolicitada,
+  notificarStockBajo,
+  notificarPagoPendiente,
+  notificarConfeccionCompletada,
+} from '@/lib/services';
 
 // ============================================================================
 // GET - Obtener auditoría
@@ -63,10 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Aprobar ficha técnica
     if (operacion === "aprobar-ficha") {
-      const fichaActualizada = await fichasTecnicasService.aprobarFichaTecnica(
-        body.fichaId,
-        body.usuarioId
-      );
+      const fichaActualizada = await aprobarFichaTecnica(Number(body.fichaId), Number(body.usuarioId));
 
       return NextResponse.json(
         {
@@ -80,9 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Marcar ficha como obsoleta
     if (operacion === "obsoleta-ficha") {
-      const fichaActualizada = await fichasTecnicasService.marcarFichaComObsoleta(
-        body.fichaId
-      );
+      const fichaActualizada = await marcarFichaObsoleta(Number(body.fichaId));
 
       return NextResponse.json(
         {
@@ -96,8 +98,8 @@ export async function POST(request: NextRequest) {
 
     // Notificar eventos
     if (operacion === "notificar-cotizacion-expirada") {
-      await notificacionesService.notificarCotizacionExpirada({
-        cotizacionId: body.cotizacionId,
+      await notificarCotizacionExpirada({
+        cotizacionId: Number(body.cotizacionId),
         cotizacionNumero: body.cotizacionNumero,
       });
 
@@ -108,11 +110,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (operacion === "notificar-stock-bajo") {
-      await notificacionesService.notificarStockBajo({
-        itemId: body.itemId,
+      await notificarStockBajo({
+        itemId: Number(body.itemId),
         itemNombre: body.itemNombre,
-        stockActual: body.stockActual,
-        stockMinimo: body.stockMinimo,
+        stockActual: Number(body.stockActual),
+        stockMinimo: Number(body.stockMinimo),
         tipoItem: body.tipoItem,
       });
 
@@ -123,9 +125,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (operacion === "notificar-devolucion") {
-      await notificacionesService.notificarDevolucionSolicitada({
-        devolucionId: body.devolucionId,
-        clienteId: body.clienteId,
+      await notificarDevolucionSolicitada({
+        devolucionId: Number(body.devolucionId),
+        clienteId: Number(body.clienteId),
         productoNombre: body.productoNombre,
       });
 
@@ -136,10 +138,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (operacion === "notificar-pago-taller") {
-      await notificacionesService.notificarPagoPendiente({
-        confeccionId: body.confeccionId,
+      await notificarPagoPendiente({
+        confeccionId: Number(body.confeccionId),
         tallerNombre: body.tallerNombre,
-        monto: body.monto,
+        monto: Number(body.monto),
       });
 
       return NextResponse.json({
@@ -149,9 +151,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (operacion === "notificar-confeccion-completada") {
-      await notificacionesService.notificarConfeccionCompletada({
-        confeccionId: body.confeccionId,
-        pedidoId: body.pedidoId,
+      await notificarConfeccionCompletada({
+        confeccionId: Number(body.confeccionId),
+        pedidoId: Number(body.pedidoId),
       });
 
       return NextResponse.json({

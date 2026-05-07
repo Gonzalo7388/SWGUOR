@@ -105,7 +105,7 @@ export const ProductosService = {
           reglas_descuento: producto.reglas_descuento ?? null,
           colores_disponibles: producto.colores_disponibles ?? [],
           tallas_disponibles: producto.tallas_disponibles ?? [],
-          fichas_tecnicas_id,
+          ...(fichas_tecnicas_id ? { fichas_tecnicas: { connect: { id: fichas_tecnicas_id } } } : {}),
           updated_at: new Date(),
         },
       });

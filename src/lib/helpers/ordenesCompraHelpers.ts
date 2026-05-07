@@ -13,8 +13,10 @@ export const ordenesCompraHelpers = {
   estaCancelada: (orden: OrdenCompra): boolean =>
     orden.estado === 'cancelada',
 
-  estaVencida: (orden: OrdenCompra): boolean =>
-    orden.fecha_prometida && new Date() > orden.fecha_prometida && orden.estado !== 'completada',
+  estaVencida: (orden: OrdenCompra): boolean => {
+    if (!orden.fecha_prometida) return false;
+    return new Date() > orden.fecha_prometida && orden.estado !== 'completada';
+  },
 
   agruparPorEstatus: (ordenes: OrdenCompra[]) =>
     ordenes.reduce((acc, curr) => {

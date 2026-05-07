@@ -456,11 +456,11 @@ export async function aprobarFichaTecnica(
 
   await insertarMovimiento({
     tipoMovimiento: 'ajuste',
-    referencia_tipo: 'AJUSTE',
-    referencia_id:   fichaId,
+    referenciaType: 'AJUSTE',
+    referenciaId:   fichaId,
     cantidad:        0,
-    descripcion:     `Ficha técnica #${fichaId} aprobada por usuario ${usuarioId}`,
-    usuario_id:      usuarioId,
+    motivo:          `Ficha técnica #${fichaId} aprobada por usuario ${usuarioId}`,
+    usuarioId:       usuarioId,
   }).catch(() => null);
 
   return ficha;
@@ -563,7 +563,11 @@ export async function obtenerStockMaterial(materialId: number): Promise<StockPor
 export async function obtenerStockDisponibleProducto(
   productoId: number,
   almacenId: number,
-): Promise<number | null> {
+): Promise<{
+  stock_actual: number;
+  reservas_activas: number;
+  disponible: number;
+} | null> {
   try {
     return await obtenerStockDisponible(productoId, almacenId);
   } catch {

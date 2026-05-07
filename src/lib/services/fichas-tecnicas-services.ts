@@ -180,11 +180,11 @@ export const FichasTecnicasService = {
       // tipoMovimiento (camelCase) es la clave correcta en InsertarMovimientoParams
       await insertarMovimiento({
         tipoMovimiento: 'ajuste',
-        referencia_tipo: 'AJUSTE',
-        referencia_id:   Number(id),
+        referenciaType: 'AJUSTE',
+        referenciaId:   Number(id),
         cantidad:        0,
-        descripcion:     `Ficha técnica aprobada por usuario ${usId}`,
-        usuario_id:      Number(usId),
+        motivo:          `Ficha técnica aprobada por usuario ${usId}`,
+        usuarioId:       Number(usId),
       });
 
       return serializeBigInt(ficha);

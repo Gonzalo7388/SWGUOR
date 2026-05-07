@@ -18,13 +18,14 @@ export async function registrarEntradaCompra(data: {
     cantidad: data.cantidad,
     tipo_movimiento: 'entrada',
     motivo: `Compra OC-${data.numero_oc}`,
-    costo_unitario: data.costo_unitario,
+    
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'COMPRA',
     referencia_id: data.numero_oc,
   });
-}
+  }
+
 
 export async function registrarSalidaVenta(data: {
   producto_id: string | number;

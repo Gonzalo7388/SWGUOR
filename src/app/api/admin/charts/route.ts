@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       prisma.pedido_items.groupBy({
         by: ['producto_id'],
         _sum: { cantidad: true },
-        _count: { id: true },
+        _count: true,
         orderBy: { _sum: { cantidad: 'desc' } },
         take: 8,
       }),
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
       // 4. ÓRDENES POR ESTADO
       prisma.ordenes_produccion.groupBy({
         by: ['estado'],
-        _count: { id: true },
+        _count: true,
         orderBy: { _count: { id: 'desc' } },
       }),
 
@@ -73,14 +73,14 @@ export async function GET(req: Request) {
       // 7. COTIZACIONES DEL PERIODO (tendencia de conversión)
       prisma.cotizaciones.groupBy({
         by: ['estado'],
-        _count: { id: true },
+        _count: true,
         where: { created_at: { gte: startDate } },
       }),
 
       prisma.pagos.groupBy({
         by: ['metodo_pago'],
         _sum: { monto: true },
-        _count: { id: true },
+        _count: true,
         where: { created_at: { gte: startDate } },
       }),
     ]);
@@ -111,7 +111,7 @@ export async function GET(req: Request) {
         ? productosMap.get(p.producto_id.toString())?.sku ?? null
         : null,
       cantidad_total: p._sum.cantidad ?? 0,
-      pedidos_count: p._count.id,
+      pedidos_count: p._count,
     }));
 
     // ── Procesar: Stock levels agrupados por categoría ──
@@ -151,7 +151,7 @@ export async function GET(req: Request) {
 
     const ordenesEstado = ordenesPorEstado.map((o) => ({
       name: estadoColorMap[o.estado ?? '']?.name ?? o.estado,
-      value: o._count.id,
+      value: o._count,
       color: estadoColorMap[o.estado ?? '']?.color ?? '#6b7280',
     }));
 
@@ -175,22 +175,22 @@ export async function GET(req: Request) {
 
     // ── Procesar: Tendencia de cotizaciones ──
     const cotizacionesTrendMap = cotizacionesTrend.reduce<Record<string, number>>((acc, c) => {
-      acc[c.estado ?? 'borrador'] = c._count.id;
+      acc[c.estado ?? 'borrador'] = c._count;
       return acc;
     }, {});
 
     // ── Procesar: Pagos por método ──
     const pagosPorMetodo = pagosMetodo.map((p) => ({
       metodo: p.metodo_pago,
-      monto_total: Number(p._sum.monto ?? 0),
-      count: p._count.id,
+      monto_total: Number(p._sum?.monto ?? 0),
+      count: (p._count as any)?.id ?? 0,
     }));
 
     // ── Stats resumen ──
     const stats = {
       totalVentas: totalIngresos,
-      totalOrdenes: ordenesPorEstado.reduce((sum, o) => sum + o._count.id, 0),
-      totalCotizaciones: cotizacionesTrend.reduce((sum, c) => sum + c._count.id, 0),
+      totalOrdenes: ordenesPorEstado.reduce((sum, o) => sum + o._count, 0),
+      totalCotizaciones: cotizacionesTrend.reduce((sum, c) => sum + c._count, 0),
       stockBajo: stockBajoFiltrado.length,
       ventasCount: typeof ingresosVsGastos._count === 'number' ? ingresosVsGastos._count : 0,
     };

@@ -57,3 +57,4 @@ export type TipoAsiento = z.infer<typeof TipoAsientoEnum>;
 export type CuentaContable = z.infer<typeof CuentaContableEnum>;
 export type AsientoContable = z.infer<typeof asientoContableBaseSchema>;
 export type CrearAsientoContable = z.infer<typeof crearAsientoContableSchema>;
+export type DetalleAsiento = any;
