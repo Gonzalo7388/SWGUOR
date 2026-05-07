@@ -1,17 +1,46 @@
+import type {
+  EstadoDespacho,
+  TipoIncidenciaCliente,
+  SeveridadIncidencia,
+} from '@/lib/services/despachosServices';
 /**
  * Constantes de Estados para el Sistema GUOR v2 - Edición ERP B2B
  * Centrado en el ciclo de vida comercial y logístico
  */
-import type { EstadoDespacho } from '@prisma/client';
 
-type EstadoOrden =
-  | 'solicitado'
-  | 'cotizado'
-  | 'aprobado'
-  | 'pagado'
-  | 'en_proceso'
-  | 'finalizado'
-  | 'cancelado';
+// ─── Estados de despacho ──────────────────────────────────────────────────────
+export const ESTADO_CONFIG: Record<
+  EstadoDespacho,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  pendiente:  { label: 'En Almacén',        color: '#6B7280', bg: '#F9FAFB', border: '#D1D5DB' },
+  preparando: { label: 'Preparando',         color: '#8A7676', bg: '#F5EBEB', border: '#E7D7D7' },
+  en_ruta:    { label: 'En ruta',            color: '#B8962D', bg: '#FDF6E3', border: '#D4AF37' },
+  entregado:  { label: 'Entregado',          color: '#4A3737', bg: '#F5F5F5', border: '#CCCCCC' },
+  incidencia: { label: 'Con incidencia',     color: '#A32D2D', bg: '#FCEBEB', border: '#E24B4A' },
+};
+ 
+// ─── Tipos de incidencia ──────────────────────────────────────────────────────
+export const TIPO_LABELS: Record<TipoIncidenciaCliente, string> = {
+  defecto_confeccion:  'Defecto de confección',
+  pedido_equivocado:   'Pedido equivocado',
+  talla_incorrecta:    'Talla incorrecta',
+  cantidad_incorrecta: 'Cantidad incorrecta',
+  dano_en_transporte:  'Daño en transporte',
+  empaque_defectuoso:  'Empaque defectuoso',
+  otro:                'Otro',
+};
+ 
+// ─── Severidad de incidencia ──────────────────────────────────────────────────
+export const SEVERIDAD_CONFIG: Record<
+  SeveridadIncidencia,
+  { label: string; color: string; bg: string; border: string; desc: string }
+> = {
+  baja:    { label: 'Baja',    color: '#3B6D11', bg: '#EAF3DE', border: '#639922', desc: 'No afecta la operación'   },
+  media:   { label: 'Media',   color: '#B8962D', bg: '#FDF6E3', border: '#D4AF37', desc: 'Afecta parcialmente'      },
+  alta:    { label: 'Alta',    color: '#993C1D', bg: '#FAECE7', border: '#D85A30', desc: 'Requiere atención pronta' },
+  critica: { label: 'Crítica', color: '#A32D2D', bg: '#FCEBEB', border: '#E24B4A', desc: 'Paraliza la operación'   },
+};
   
 // ─── COTIZACIONES B2B ────────────────────────────────────────────────────────
 // Estados específicos para el flujo de negociación e IA

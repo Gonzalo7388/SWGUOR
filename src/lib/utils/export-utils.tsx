@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import { pdf, Document, Page, Text, View, StyleSheet, Image as PdfImage } from '@react-pdf/renderer';
 import { ProductoStockResumen } from '@/lib/hooks/useStockResumen';
 
+
 // =====================================================
 // INTERFACES Y TIPOS
 // =====================================================
@@ -923,3 +924,587 @@ export const exportClientesListToPDF = async (
     orientation: 'landscape',
   });
 };
+
+// ── Paleta GUOR Portal ──────────────────────────────────────────────────────
+const COLOR = {
+  ocre:      '#b5854b',
+  ocreDark:  '#9a6e3a',
+  ocreLight: '#fff4e2',
+  negro:     '#231e1d',
+  gris:      '#64748b',
+  grisClaro: '#f1f5f9',
+  blanco:    '#ffffff',
+  linea:     '#e2e8f0',
+  texto:     '#1e293b',
+};
+
+// ── Tipos ───────────────────────────────────────────────────────────────────
+export interface CotizacionItemPDF {
+  numero: number;
+  descripcion: string;
+  talla: string;
+  color: string;
+  cantidad: number;
+  precio_unitario: number;
+  total: number;
+}
+
+export interface CotizacionPDFData {
+  numero: string;                 // e.g. "COT-260507-145832-42"
+  fecha: string;                  // e.g. "07/05/2026"
+  valido_hasta: string;           // e.g. "14/05/2026"
+  cliente_nombre: string;
+  cliente_ruc?: string;
+  cliente_telefono?: string;
+  cliente_email?: string;
+  cliente_direccion?: string;
+  moneda: string;                 // "Soles (PEN)"
+  items: CotizacionItemPDF[];
+  subtotal: number;
+  descuento_pct?: number;
+  descuento_monto?: number;
+  costo_envio?: number;
+  igv: number;
+  total: number;
+  notas?: string;
+  zona_envio?: string;
+}
+
+// ── Estilos ─────────────────────────────────────────────────────────────────
+const S = StyleSheet.create({
+  page: {
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    color: COLOR.texto,
+    paddingTop: 0,
+    paddingBottom: 36,
+    paddingHorizontal: 0,
+  },
+
+  // ── Header strip ──
+  headerStrip: {
+    backgroundColor: COLOR.ocreLight,
+    paddingHorizontal: 36,
+    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    borderBottomWidth: 3,
+    borderBottomColor: COLOR.ocre,
+  },
+  headerLeft: {
+    flexDirection: 'column',
+    gap: 3,
+  },
+  empresa: {
+    fontSize: 18,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.negro,
+    letterSpacing: 0.5,
+  },
+  headerMeta: {
+    fontSize: 8,
+    color: COLOR.gris,
+    marginTop: 2,
+  },
+
+  // ── Badge "COTIZACIÓN" ──
+  badgeCot: {
+    backgroundColor: COLOR.ocre,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  badgeCotText: {
+    color: COLOR.blanco,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+
+  // ── Número + fechas (top-right) ──
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 3,
+  },
+  cotNumero: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.negro,
+  },
+  cotFecha: {
+    fontSize: 8,
+    color: COLOR.gris,
+  },
+
+  // ── Sección dos columnas ──
+  sectionRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 36,
+    marginTop: 18,
+    gap: 14,
+  },
+  card: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLOR.linea,
+    borderRadius: 6,
+    padding: 12,
+    backgroundColor: COLOR.blanco,
+  },
+  cardTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.ocre,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.ocreLight,
+    paddingBottom: 4,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    marginBottom: 3,
+  },
+  cardLabel: {
+    fontSize: 8,
+    color: COLOR.gris,
+    width: 68,
+  },
+  cardValue: {
+    fontSize: 8,
+    color: COLOR.texto,
+    fontFamily: 'Helvetica-Bold',
+    flex: 1,
+  },
+  cardValueNormal: {
+    fontSize: 8,
+    color: COLOR.texto,
+    flex: 1,
+  },
+
+  // ── Tabla de productos ──
+  tableWrap: {
+    marginHorizontal: 36,
+    marginTop: 18,
+    borderRadius: 6,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLOR.linea,
+  },
+  tableHead: {
+    flexDirection: 'row',
+    backgroundColor: COLOR.negro,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+  },
+  tableHeadCell: {
+    color: COLOR.blanco,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 7.5,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLOR.linea,
+  },
+  tableRowAlt: {
+    backgroundColor: COLOR.ocreLight,
+  },
+  tableCell: {
+    fontSize: 8,
+    color: COLOR.texto,
+  },
+  tableCellBold: {
+    fontSize: 8,
+    color: COLOR.texto,
+    fontFamily: 'Helvetica-Bold',
+  },
+
+  // Anchos de columnas
+  colNum:   { width: '5%'  },
+  colDesc:  { width: '36%' },
+  colTalla: { width: '10%' },
+  colColor: { width: '13%' },
+  colCant:  { width: '10%', textAlign: 'right' },
+  colPUnit: { width: '13%', textAlign: 'right' },
+  colTotal: { width: '13%', textAlign: 'right' },
+
+  // ── Totales ──
+  totalesWrap: {
+    marginHorizontal: 36,
+    marginTop: 14,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  totalesBox: {
+    width: 220,
+    borderWidth: 1,
+    borderColor: COLOR.linea,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  totalesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.linea,
+  },
+  totalesLabel: {
+    fontSize: 8,
+    color: COLOR.gris,
+  },
+  totalesValue: {
+    fontSize: 8,
+    color: COLOR.texto,
+    fontFamily: 'Helvetica-Bold',
+  },
+  totalesDiscount: {
+    color: '#16a34a',
+  },
+  totalFinalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLOR.negro,
+  },
+  totalFinalLabel: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.blanco,
+  },
+  totalFinalValue: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.ocreLight,
+  },
+
+  // ── Observaciones ──
+  notasWrap: {
+    marginHorizontal: 36,
+    marginTop: 16,
+    padding: 10,
+    backgroundColor: COLOR.ocreLight,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: COLOR.ocre,
+  },
+  notasTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.ocreDark,
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  notasBullet: {
+    fontSize: 8,
+    color: COLOR.gris,
+    marginBottom: 2,
+  },
+
+  // ── Footer ──
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLOR.negro,
+    paddingVertical: 9,
+    paddingHorizontal: 36,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 7.5,
+    color: '#94a3b8',
+  },
+  footerBrand: {
+    fontSize: 7.5,
+    color: COLOR.ocreLight,
+    fontFamily: 'Helvetica-Bold',
+  },
+});
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const fmt = (n: number) =>
+  `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const dash = (v?: string | null) => v || '—';
+
+// ── Documento React-PDF ─────────────────────────────────────────────────────
+const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
+  <Document
+    title={`Cotización ${d.numero}`}
+    author="Modas y Estilos GUOR S.A.C."
+    subject="Cotización comercial"
+  >
+    <Page size="A4" style={S.page}>
+
+      {/* ── HEADER ── */}
+      <View style={S.headerStrip}>
+        <View style={S.headerLeft}>
+          <Text style={S.empresa}>MODAS Y ESTILOS GUOR S.A.C.</Text>
+          <Text style={S.headerMeta}>RUC: 20555924624  |  +51 908 801 912  |  modasyestilosguor@gmail.com</Text>
+          <Text style={S.headerMeta}>Rio Sta. Fe 590, Lima 15434, Perú  |  www.modas-y-estilos-guor.pe</Text>
+          <View style={S.badgeCot}>
+            <Text style={S.badgeCotText}>COTIZACIÓN</Text>
+          </View>
+        </View>
+        <View style={S.headerRight}>
+          <Text style={S.cotNumero}>N°: {d.numero}</Text>
+          <Text style={S.cotFecha}>Fecha: {d.fecha}</Text>
+          <Text style={S.cotFecha}>Válido hasta: {d.valido_hasta}</Text>
+        </View>
+      </View>
+
+      {/* ── DATOS CLIENTE + CONDICIONES ── */}
+      <View style={S.sectionRow}>
+        {/* Cliente */}
+        <View style={S.card}>
+          <Text style={S.cardTitle}>Datos del Cliente</Text>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Cliente</Text>
+            <Text style={S.cardValue}>{dash(d.cliente_nombre)}</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>RUC</Text>
+            <Text style={S.cardValueNormal}>{dash(d.cliente_ruc)}</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Tel</Text>
+            <Text style={S.cardValueNormal}>{dash(d.cliente_telefono)}</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Email</Text>
+            <Text style={S.cardValueNormal}>{dash(d.cliente_email)}</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Dir</Text>
+            <Text style={S.cardValueNormal}>{dash(d.cliente_direccion)}</Text>
+          </View>
+        </View>
+
+        {/* Condiciones */}
+        <View style={S.card}>
+          <Text style={S.cardTitle}>Condiciones</Text>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Moneda</Text>
+            <Text style={S.cardValueNormal}>{d.moneda}</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Vigencia</Text>
+            <Text style={S.cardValueNormal}>7 días calendario</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>IGV</Text>
+            <Text style={S.cardValueNormal}>18% incluido</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Envío</Text>
+            <Text style={S.cardValueNormal}>{dash(d.zona_envio)}</Text>
+          </View>
+          <View style={S.cardRow}>
+            <Text style={S.cardLabel}>Forma de pago</Text>
+            <Text style={S.cardValueNormal}>A convenir</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ── TABLA DE PRODUCTOS ── */}
+      <View style={S.tableWrap}>
+        {/* Cabecera */}
+        <View style={S.tableHead}>
+          <Text style={[S.tableHeadCell, S.colNum]}>#</Text>
+          <Text style={[S.tableHeadCell, S.colDesc]}>Descripción</Text>
+          <Text style={[S.tableHeadCell, S.colTalla]}>Talla</Text>
+          <Text style={[S.tableHeadCell, S.colColor]}>Color</Text>
+          <Text style={[S.tableHeadCell, S.colCant]}>Cant.</Text>
+          <Text style={[S.tableHeadCell, S.colPUnit]}>P. Unit.</Text>
+          <Text style={[S.tableHeadCell, S.colTotal]}>Total</Text>
+        </View>
+
+        {/* Filas */}
+        {d.items.map((item, i) => (
+          <View
+            key={i}
+            style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}
+          >
+            <Text style={[S.tableCell, S.colNum]}>{item.numero}</Text>
+            <Text style={[S.tableCell, S.colDesc]}>{item.descripcion}</Text>
+            <Text style={[S.tableCell, S.colTalla]}>{item.talla}</Text>
+            <Text style={[S.tableCell, S.colColor]}>{item.color}</Text>
+            <Text style={[S.tableCell, S.colCant]}>{item.cantidad.toLocaleString()}</Text>
+            <Text style={[S.tableCell, S.colPUnit]}>{fmt(item.precio_unitario)}</Text>
+            <Text style={[S.tableCellBold, S.colTotal]}>{fmt(item.total)}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* ── TOTALES ── */}
+      <View style={S.totalesWrap}>
+        <View style={S.totalesBox}>
+          {/* Subtotal */}
+          <View style={S.totalesRow}>
+            <Text style={S.totalesLabel}>Subtotal</Text>
+            <Text style={S.totalesValue}>{fmt(d.subtotal)}</Text>
+          </View>
+
+          {/* Descuento (si aplica) */}
+          {!!d.descuento_monto && d.descuento_monto > 0 && (
+            <View style={S.totalesRow}>
+              <Text style={S.totalesLabel}>
+                Descuento {d.descuento_pct ? `${d.descuento_pct}%` : ''}
+              </Text>
+              <Text style={[S.totalesValue, S.totalesDiscount]}>
+                − {fmt(d.descuento_monto)}
+              </Text>
+            </View>
+          )}
+
+          {/* Envío */}
+          {!!d.costo_envio && d.costo_envio > 0 && (
+            <View style={S.totalesRow}>
+              <Text style={S.totalesLabel}>Envío</Text>
+              <Text style={S.totalesValue}>{fmt(d.costo_envio)}</Text>
+            </View>
+          )}
+
+          {/* IGV */}
+          <View style={S.totalesRow}>
+            <Text style={S.totalesLabel}>IGV (18%)</Text>
+            <Text style={S.totalesValue}>{fmt(d.igv)}</Text>
+          </View>
+
+          {/* Total final */}
+          <View style={S.totalFinalRow}>
+            <Text style={S.totalFinalLabel}>TOTAL</Text>
+            <Text style={S.totalFinalValue}>{fmt(d.total)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ── OBSERVACIONES ── */}
+      <View style={S.notasWrap}>
+        <Text style={S.notasTitle}>Observaciones</Text>
+        <Text style={S.notasBullet}>• Precios sujetos a disponibilidad de stock.</Text>
+        <Text style={S.notasBullet}>• Cotización válida hasta el {d.valido_hasta}.</Text>
+        <Text style={S.notasBullet}>• Para confirmar el pedido, comuníquese con nuestro equipo de ventas.</Text>
+        {d.notas && <Text style={S.notasBullet}>• {d.notas}</Text>}
+      </View>
+
+      {/* ── FOOTER ── */}
+      <View style={S.footer} fixed>
+        <Text style={S.footerText}>+51 908 801 912  |  modasyestilosguor@gmail.com  |  www.modas-y-estilos-guor.pe</Text>
+        <Text style={S.footerBrand}>GUOR S.A.C.</Text>
+      </View>
+    </Page>
+  </Document>
+);
+
+// ── Función principal de exportación ───────────────────────────────────────
+export const exportCotizacionIndividualToPDF = async (data: CotizacionPDFData) => {
+  const asPdf = pdf();
+  asPdf.updateContainer(<CotizacionDocument d={data} />);
+  const blob = await asPdf.toBlob();
+
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = `Cotizacion_GUOR_${data.numero}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ── Helper: convertir datos de API → CotizacionPDFData ─────────────────────
+// Úsalo en el componente que llama a la exportación:
+//
+//   const pdfData = buildCotizacionPDFData(cotizacion, items);
+//   await exportCotizacionIndividualToPDF(pdfData);
+//
+export function buildCotizacionPDFData(
+  cot: {
+    numero: string;
+    created_at: string;
+    valida_hasta: string;
+    total: number;
+    subtotal: number;
+    igv: number;
+    monto_descuento?: number;
+    costo_envio?: number;
+    zona_envio?: string;
+    notas_internas?: string;
+    clientes?: {
+      razon_social?: string;
+      ruc?: string | number;
+      telefono?: string;
+      email?: string;
+      direccion_fiscal?: string;
+    } | null;
+  },
+  items: Array<{
+    descripcion?: string;
+    nombre?: string;
+    talla_snapshot: string;
+    color_snapshot: string;
+    cantidad: number;
+    precio_unitario_snapshot: number;
+    subtotal: number;
+  }>,
+): CotizacionPDFData {
+  const fmt8 = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const subtotalBruto   = Number(cot.subtotal);
+  const descuentoMonto  = Number(cot.monto_descuento ?? 0);
+  const costoEnvio      = Number(cot.costo_envio ?? 0);
+  const igv             = Number(cot.igv);
+  const total           = Number(cot.total);
+
+  // Calcular % de descuento hacia atrás si no lo tenemos explícito
+  const descuentoPct = subtotalBruto > 0 && descuentoMonto > 0
+    ? Math.round((descuentoMonto / subtotalBruto) * 100)
+    : 0;
+
+  return {
+    numero:            cot.numero,
+    fecha:             fmt8(cot.created_at),
+    valido_hasta:      fmt8(cot.valida_hasta),
+    cliente_nombre:    cot.clientes?.razon_social ?? 'Cliente General',
+    cliente_ruc:       cot.clientes?.ruc ? String(cot.clientes.ruc) : undefined,
+    cliente_telefono:  cot.clientes?.telefono ?? undefined,
+    cliente_email:     cot.clientes?.email ?? undefined,
+    cliente_direccion: cot.clientes?.direccion_fiscal ?? undefined,
+    moneda:            'Soles (PEN)',
+    zona_envio:        cot.zona_envio ?? undefined,
+    notas:             cot.notas_internas
+      ?.replace(/\[ERP_META\][\s\S]*$/, '')  // quitar bloque interno
+      ?.trim() || undefined,
+    items: items.map((it, i) => ({
+      numero:           i + 1,
+      descripcion:      it.descripcion ?? it.nombre ?? '—',
+      talla:            it.talla_snapshot,
+      color:            it.color_snapshot,
+      cantidad:         Number(it.cantidad),
+      precio_unitario:  Number(it.precio_unitario_snapshot),
+      total:            Number(it.subtotal),
+    })),
+    subtotal:        subtotalBruto,
+    descuento_pct:   descuentoPct,
+    descuento_monto: descuentoMonto,
+    costo_envio:     costoEnvio,
+    igv,
+    total,
+  };
+}

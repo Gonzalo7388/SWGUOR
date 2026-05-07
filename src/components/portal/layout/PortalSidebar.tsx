@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   LayoutDashboard, FileText, ShoppingBag, Truck,
   PanelLeftClose, Package, PanelLeft, LogOut,
-  Settings, UserCircle
+  Settings, UserCircle, PackageOpen,
 } from 'lucide-react';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase';
@@ -20,20 +20,23 @@ const MENU_GROUPS = [
   {
     group: 'Comercial',
     items: [
-      { href: '/portal/productos',    label: 'Catálogo',    icon: ShoppingBag },
-      { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText },
-      { href: '/portal/pedidos',      label: 'Mis Pedidos', icon: Package },
+      { href: '/portal/productos',    label: 'Catálogo',     icon: ShoppingBag },
+      { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText    },
+      { href: '/portal/pedidos',      label: 'Mis Pedidos',  icon: Package     },
     ],
   },
   {
     group: 'Logística',
-    items: [{ href: '/portal/despachos', label: 'Seguimiento', icon: Truck }],
+    items: [
+      { href: '/portal/despachos',          label: 'Despachos',    icon: PackageOpen },
+      { href: '/portal/seguimiento-pedido',  label: 'Seguimiento',  icon: Truck       },
+    ],
   },
   {
     group: 'Soporte',
     items: [
-      { href: '/portal/perfil',         label: 'Mi Perfil',      icon: UserCircle },
-      { href: '/portal/configuracion',  label: 'Configuración',  icon: Settings },
+      { href: '/portal/perfil',        label: 'Mi Perfil',     icon: UserCircle },
+      { href: '/portal/configuracion', label: 'Configuración', icon: Settings   },
     ],
   },
 ];
@@ -57,7 +60,6 @@ export function PortalSidebar({ collapsed, onToggle }: PortalSidebarProps) {
       className={cn(
         'fixed left-0 top-0 h-full flex flex-col z-40 shadow-xl transition-all duration-300',
         'border-r border-[#e4c28a]/30',
-        // Fondo oscuro cálido de la paleta
         'bg-[#231e1d]',
         collapsed ? 'w-16' : 'w-64',
       )}
@@ -67,13 +69,7 @@ export function PortalSidebar({ collapsed, onToggle }: PortalSidebarProps) {
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1 animate-in fade-in duration-300">
             <div className="relative w-12 h-12 flex-shrink-0">
-              <Image
-                src="/logo.png"
-                alt="Logo"
-                fill
-                className="object-contain"
-                priority
-              />
+              <Image src="/logo.png" alt="Logo" fill className="object-contain" priority />
             </div>
             <div className="leading-tight">
               <span className="text-[#e4c28a] font-bold text-sm tracking-wide block">GUOR PRO</span>

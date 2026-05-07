@@ -157,8 +157,7 @@ export default function NuevaCotizacionPage() {
 
         const { data } = await res.json();
         limpiarBorrador();
-        const numeroCotizacion = generateCotizacionNumber(data.id);
-        setCotizacionId(numeroCotizacion);
+        setCotizacionId(data.numero); 
         setMostrarConfirmacion(true);
         toast.success(
           accion === 'borrador' ? 'Borrador guardado' : 'Cotización enviada a GUOR'

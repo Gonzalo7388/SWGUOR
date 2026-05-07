@@ -636,6 +636,7 @@ model clientes {
   direcciones_cliente  direcciones_cliente[]
   feedback_cliente     feedback_cliente[]
   pedidos              pedidos[]
+  incidencias_cliente  incidencias_cliente[]
 
   @@schema("public")
 }
@@ -831,7 +832,38 @@ model despachos {
   fecha_entrega     DateTime?
   updated_at        DateTime       @default(now())
   estado            EstadoDespacho @default(pendiente)
+
   pedidos           pedidos        @relation(fields: [pedido_id], references: [id])
+  despachos_tracking  despachos_tracking? 
+  @@schema("public")
+}
+
+model despachos_tracking {
+  id                  BigInt    @id @default(autoincrement())
+  despacho_id         BigInt    @unique
+  
+  origen_label        String?
+  origen_lat          Float?
+  origen_lng          Float?
+
+  destino_label       String?
+  destino_lat         Float?
+  destino_lng         Float?
+
+  pos_actual_lat      Float?
+  pos_actual_lng      Float?
+  pos_actualizada_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  distancia_km        Decimal?  @db.Decimal(8, 2)
+  tiempo_min          Int?
+  transportista       String?
+  guia                String?
+  total_items         Int?
+
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  despachos           despachos @relation(fields: [despacho_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@schema("public")
 }
@@ -1092,6 +1124,24 @@ model incidencias {
   @@index([severidad], map: "idx_incidencias_severidad")
   @@index([tipo], map: "idx_incidencias_tipo")
   @@schema("public")
+}
+
+model IncidenciasCliente {
+  id           BigInt                  @id @default(autoincrement())
+  cliente      BigInt?
+  pedido       BigInt?
+  tipo         TipoIncidenciaCliente?
+  descripcion  String?
+  estado       String?                 @default("abierta")
+  evidencia_url String[]
+  created_at   DateTime?               @default(now()) @db.Timestamptz
+  updated_at   DateTime?               @default(now()) @db.Timestamptz
+
+  // Relations
+  clientes     Clientes?               @relation(fields: [cliente], references: [id])
+  pedidos      Pedidos?                @relation(fields: [pedido], references: [id])
+
+  @@map("incidencias_cliente")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1434,6 +1484,7 @@ model pedidos {
   cotizacion  cotizaciones?  @relation("CotizacionPedidos", fields: [cotizacion_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   reservas_stock       reservas_stock[]
   seguimiento_pedido   seguimiento_pedido[]
+  incidencias_cliente  incidencias_cliente[]
 
   @@index([cliente_id], map: "idx_pedidos_cliente")
   @@index([estado],     map: "idx_pedidos_estado")
@@ -2248,6 +2299,19 @@ enum TipoIncidencia {
 
   @@schema("public")
 }
+
+enum TipoIncidenciaCliente {
+  defecto_confeccion
+  pedido_equivocado
+  talla_incorrecta
+  cantidad_incorrecta
+  dano_en_transporte
+  empaque_defectuoso
+  otro
+
+  @@map("tipo_incidencia_cliente")
+}
+
 
 enum TipoInsumo {
   tela
