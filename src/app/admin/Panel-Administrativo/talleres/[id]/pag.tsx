@@ -89,7 +89,8 @@ export default function EditarTallerPage({ params }: { params: Promise<{ id: str
       <TallerForm 
         initialData={taller} 
         onSubmit={handleUpdate} 
-        isLoading={isUpdating} 
+        isLoading={isUpdating}
+        readOnly={true} 
       />
     </div>
   );

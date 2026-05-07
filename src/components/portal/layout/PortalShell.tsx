@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { AsistenteIA } from '@/components/portal/AsistenteIA';
 import { PortalSidebar } from './PortalSidebar';
+import { Navbar } from './PortalNavbar';
 
 interface PortalShellProps {
   children: React.ReactNode;
@@ -34,7 +35,6 @@ export function PortalShell({ children }: PortalShellProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#fff4e2] flex items-center justify-center">
-        {/* Spinner con color de la marca */}
         <div className="w-6 h-6 border-2 border-[#b5854b] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -49,15 +49,19 @@ export function PortalShell({ children }: PortalShellProps) {
         onToggle={() => setCollapsed((prev) => !prev)}
       />
 
-      <main
+      <div
         className={cn(
-          'flex-1 transition-all duration-300 min-h-screen relative',
+          'flex-1 flex flex-col transition-all duration-300 min-h-screen',
           collapsed ? 'ml-16' : 'ml-64',
         )}
       >
-        {children}
-        <AsistenteIA />
-      </main>
+        <Navbar empresa={cliente.razon_social ?? cliente.nombre_comercial ?? undefined} />
+
+        <main className="flex-1 relative">
+          {children}
+          <AsistenteIA />
+        </main>
+      </div>
     </div>
   );
 }

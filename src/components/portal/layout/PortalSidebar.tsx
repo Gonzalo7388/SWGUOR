@@ -22,7 +22,7 @@ const MENU_GROUPS = [
     items: [
       { href: '/portal/productos',    label: 'Catálogo',    icon: ShoppingBag },
       { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText },
-      { href: '/portal/ordenes',      label: 'Mis órdenes', icon: Package },
+      { href: '/portal/pedidos',      label: 'Mis Pedidos', icon: Package },
     ],
   },
   {

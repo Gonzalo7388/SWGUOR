@@ -73,7 +73,7 @@ export async function GET(req: Request) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// POST: Crear cotización (Corregido)
+// POST: Crear cotización
 // ─────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   try {
@@ -112,55 +112,83 @@ export async function POST(req: Request) {
     validaHasta.setDate(validaHasta.getDate() + 7);
 
     // ── Inserción en DB con Tipado Unchecked (Limpia error 2322) ──
-    const cotizacion = await prisma.cotizaciones.create({
-      data: {
-        numero,
-        cliente_id: sesion.cliente_id,
-        estado: estado ?? 'borrador',
-        subtotal: new Prisma.Decimal(totales.subtotalBruto),
-        igv: new Prisma.Decimal(totales.igv),
-        total: new Prisma.Decimal(totales.total),
-        valida_hasta: validaHasta,
-        expira_at: validaHasta,
-        // `metodo_pago` no existe en el input tipado de Prisma aquí; omitir/guardar en tabla relacionada si se requiere.
-        direccion_despacho: direccion_despacho ?? null,
-        monto_descuento: new Prisma.Decimal(totales.montoDescuento),
-        moneda: moneda ?? 'PEN',
-        notas_internas: notas_internas ?? null,
-        cotizacion_items: {
-          create: items.map((item: any) => ({
-            producto_id:              BigInt(item.producto_id),
-            variante_id:              item.variante_id ? BigInt(item.variante_id) : null,
-            cantidad:                 Number(item.cantidad),
-            precio_unitario_snapshot: new Prisma.Decimal(item.precio_unitario),
-            subtotal:                 new Prisma.Decimal(item.cantidad * item.precio_unitario),
-            color_snapshot:           item.color_snapshot || 'N/A',
-            talla_snapshot:           item.talla_snapshot || 'N/A',
-            modelo_snapshot:          item.modelo_snapshot || null,
-            prenda_tipo_snapshot:     item.prenda_tipo_snapshot || null,
-          })) as Prisma.cotizacion_itemsUncheckedCreateWithoutCotizacionesInput[],
-        },
-      },
-      include: {
-        cotizacion_items: {
-          include: {
-            productos: { select: { id: true, nombre: true } },
-            variantes_producto: { select: { id: true, nombre: true, color: true, talla: true } },
+    console.log('data: ', {
+            numero,
+            cliente_id: sesion.cliente_id,
+            estado: estado ?? 'borrador',
+            subtotal: new Prisma.Decimal(totales.subtotalBruto),
+            igv: new Prisma.Decimal(totales.igv),
+            total: new Prisma.Decimal(totales.total),
+            valida_hasta: validaHasta,
+            expira_at: validaHasta,
+            //metodo_pago: metodo_pago ?? null,
+            direccion_despacho: direccion_despacho ?? null,
+            monto_descuento: new Prisma.Decimal(totales.montoDescuento),
+            moneda: moneda ?? 'PEN',
+            notas_internas: notas_internas ?? null,
+            cotizacion_items: {
+              create: items.map((item: any) => ({
+                producto_id:              BigInt(item.producto_id),
+                variante_id:              item.variante_id ? BigInt(item.variante_id) : null,
+                cantidad:                 Number(item.cantidad),
+                precio_unitario_snapshot: new Prisma.Decimal(item.precio_unitario),
+                subtotal:                 new Prisma.Decimal(item.cantidad * item.precio_unitario),
+                color_snapshot:           item.color_snapshot || 'N/A',
+                talla_snapshot:           item.talla_snapshot || 'N/A',
+                modelo_snapshot:          item.modelo_snapshot || null,
+                prenda_tipo_snapshot:     item.prenda_tipo_snapshot || null,
+              })) as Prisma.cotizacion_itemsUncheckedCreateWithoutCotizacionesInput[],
+            },
+          })
+        const cotizacion = await prisma.cotizaciones.create({
+          data: {
+            numero,
+            cliente_id: sesion.cliente_id,
+            estado: estado ?? 'borrador',
+            subtotal: new Prisma.Decimal(totales.subtotalBruto),
+            igv: new Prisma.Decimal(totales.igv),
+            total: new Prisma.Decimal(totales.total),
+            valida_hasta: validaHasta,
+            expira_at: validaHasta,
+            //metodo_pago: metodo_pago ?? null,
+            direccion_despacho: direccion_despacho ?? null,
+            monto_descuento: new Prisma.Decimal(totales.montoDescuento),
+            moneda: moneda ?? 'PEN',
+            notas_internas: notas_internas ?? null,
+            cotizacion_items: {
+              create: items.map((item: any) => ({
+                producto_id:              BigInt(item.producto_id),
+                variante_id:              item.variante_id ? BigInt(item.variante_id) : null,
+                cantidad:                 Number(item.cantidad),
+                precio_unitario_snapshot: new Prisma.Decimal(item.precio_unitario),
+                subtotal:                 new Prisma.Decimal(item.cantidad * item.precio_unitario),
+                color_snapshot:           item.color_snapshot || 'N/A',
+                talla_snapshot:           item.talla_snapshot || 'N/A',
+                modelo_snapshot:          item.modelo_snapshot || null,
+                prenda_tipo_snapshot:     item.prenda_tipo_snapshot || null,
+              })) as Prisma.cotizacion_itemsUncheckedCreateWithoutCotizacionesInput[],
+            },
           },
-        },
-      },
-    });
+          include: {
+            cotizacion_items: {
+              include: {
+                productos: { select: { id: true, nombre: true } },
+                variantes_producto: { select: { id: true, nombre: true, color: true, talla: true } },
+              },
+            },
+          },
+        });
 
-    return NextResponse.json({
-      success: true,
-      data: serializeBigInt(cotizacion),
-      calculo: totales,
-    }, { status: 201 });
+        return NextResponse.json({
+          success: true,
+          data: serializeBigInt(cotizacion),
+          calculo: totales,
+        }, { status: 201 });
 
-  } catch (error: any) {
-    console.error('[Portal] Error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+      } catch (error: any) {
+        console.error('[Portal] Error:', error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
 }
 
 // ── Lógica de Negocio (Calculadora B2B) ──

@@ -5,13 +5,13 @@ import {
   useCallback, useMemo, ReactNode,
 } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-//import type { reglas_descuento } from '@prisma/client';
 
 // ── Tipos ────────────────────────────────────────────────────────
 export interface ClientePortal {
   id: number;
   ruc: number;
   razon_social: string;
+  nombre_comercial: string;
   direccion?: string;
   email: string | null;
   telefono: number | null;
@@ -60,6 +60,13 @@ interface PortalCtx {
   actualizarCantidad: (variante_id: number, cantidad: number) => void;
   eliminarDelBorrador: (variante_id: number) => void;
   limpiarBorrador: () => void;
+  actualizarItem: (params: {
+    variante_id: number;
+    nueva_variante_id?: number;
+    talla?: string;
+    color?: string;
+    cantidad?: number;
+  }) => void;
   stats: { cotizaciones_activas: number; ordenes_activas: number; despachos_en_ruta: number };
 }
 
@@ -123,7 +130,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // 2. Obtener los datos del cliente usando el JOIN explícito que arreglamos
+        // 2. Obtener los datos del cliente usando el JOIN explícito
         const { data: perfilCompleto, error: joinError } = await supabase
           .from('usuarios')
           .select(`
@@ -141,21 +148,20 @@ export function PortalProvider({ children }: { children: ReactNode }) {
           : perfilCompleto?.cliente_datos;
 
         if (datosCliente) {
-          // Adaptamos la data de Supabase a la interfaz ClientePortal
           const clienteAdaptado: ClientePortal = {
             id: datosCliente.id,
             ruc: Number(datosCliente.ruc), 
             razon_social: datosCliente.razon_social || 'Sin Razón Social',
             direccion: datosCliente.direccion_fiscal || undefined,
             email: datosCliente.email,
-            // Limpiamos cualquier espacio o guion antes de convertir el teléfono a número
             telefono: datosCliente.telefono ? Number(datosCliente.telefono.replace(/\D/g, '')) : null,
             tipo_cliente: datosCliente.tipo_cliente || 'corporativo',
+            nombre_comercial: datosCliente.nombre_comercial || 'Sin Nombre Comercial',
           };
 
           setCliente(clienteAdaptado);
           
-          // 4. CARGAR ESTADÍSTICAS (Aquí estaba el error 400 por variable inexistente)
+          // 4. CARGAR ESTADÍSTICAS
           try {
             const [cotRes, ordRes, dspRes] = await Promise.all([
               supabase.from('cotizaciones').select('id', { count: 'exact', head: true })
@@ -186,10 +192,36 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
   const resumen = useMemo(() => calcularResumen(items), [items]);
 
+  const actualizarItem = useCallback(({ variante_id, nueva_variante_id, talla, color, cantidad }: {
+    variante_id: number;
+    nueva_variante_id?: number;
+    talla?: string;
+    color?: string;
+    cantidad?: number;
+  }) => {
+    setItems(prev =>
+      prev.map(item => {
+        if (item.variante_id !== variante_id) return item;
+
+        const updates: Partial<ItemCotizacion> = {};
+        
+        if (nueva_variante_id !== undefined) updates.variante_id = nueva_variante_id;
+        if (talla !== undefined) updates.talla = talla;
+        if (color !== undefined) updates.color = color;
+        if (cantidad !== undefined) {
+          updates.cantidad = Math.max(1, cantidad);
+          updates.subtotal = Math.max(1, cantidad) * item.precio_unitario;
+        }
+
+        return { ...item, ...updates };
+      })
+    );
+  }, []);
+
   const agregarAlBorrador = useCallback((nuevoItem: any) => {
     console.log('nuevoItem ', nuevoItem);
     setItems((prev: ItemCotizacion[]) => { 
-      const idx = prev.findIndex(i => i.producto_id === nuevoItem.producto_id);
+      const idx = prev.findIndex(i => i.producto_id === nuevoItem.id);
       
       if (idx >= 0) {
         return prev.map((i, n) => n === idx
@@ -235,6 +267,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
   const eliminarDelBorrador = useCallback((vid: number) =>
     setItems(prev => prev.filter(i => i.variante_id !== vid)), []);
+  
   const limpiarBorrador = useCallback(() => setItems([]), []);
 
   return (
@@ -242,6 +275,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       cliente, loading, items, resumen, stats,
       agregarAlBorrador,
       actualizarCantidad,
+      actualizarItem,
       eliminarDelBorrador,
       limpiarBorrador,
     }}>

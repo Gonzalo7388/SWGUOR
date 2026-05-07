@@ -9,7 +9,6 @@ import { EstadoBadge } from '@/components/portal/EstadoBadge';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { formatCurrency, formatDateLong } from '@/lib/helpers/format-helpers';
 import { toast } from 'sonner';
-import type { EstadoPago } from '@prisma/client';
 
 const BRAND_COLORS = {
   naranjaClaro: '#fff4e2',

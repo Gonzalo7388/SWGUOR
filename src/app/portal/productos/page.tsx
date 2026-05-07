@@ -7,6 +7,15 @@ import { ProductoCard } from '@/components/portal/ProductoCard';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 
+// ── Brand colors ──────────────────────────────────────────────────
+const BRAND = {
+  ocre:       '#b5854b',
+  ocreDark:   '#9a6e3a',
+  ocreLight:  '#fff4e2',
+  negro:      '#231e1d',
+  negroHover: '#3a3330',
+};
+
 // --- COMPONENTE SKELETON (Carga Visual) ---
 function ProductoSkeleton() {
   return (
@@ -22,7 +31,10 @@ function ProductoSkeleton() {
         </div>
         <div className="space-y-3 pt-2">
           <div className="flex justify-between items-center pt-4 border-t border-slate-50">
-            <div className="space-y-2"> <div className="h-2 bg-slate-100 rounded w-12" /> <div className="h-6 bg-slate-100 rounded w-24" /> </div>
+            <div className="space-y-2">
+              <div className="h-2 bg-slate-100 rounded w-12" />
+              <div className="h-6 bg-slate-100 rounded w-24" />
+            </div>
             <div className="h-12 w-12 bg-slate-200 rounded-2xl" />
           </div>
           <div className="h-10 w-full bg-slate-50 border border-slate-100 rounded-xl" />
@@ -42,7 +54,9 @@ function DetallesProductoModal({ producto, isOpen, onClose }: any) {
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div>
             <h2 className="text-xl font-black text-slate-900">{producto.nombre}</h2>
-            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">SKU: {producto.sku}</p>
+            <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: BRAND.ocre }}>
+              SKU: {producto.sku}
+            </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors border border-slate-200 shadow-sm">
             <X size={20} />
@@ -76,7 +90,7 @@ function DetallesProductoModal({ producto, isOpen, onClose }: any) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {producto.variantes_producto?.map((v: any, i: number) => (
-                    <tr key={i} className="hover:bg-blue-50/30 transition-colors">
+                    <tr key={i} className="hover:bg-amber-50/30 transition-colors">
                       <td className="px-4 py-3 text-slate-700 font-medium">{v.color}</td>
                       <td className="px-4 py-3 text-slate-600 italic">{v.talla}</td>
                       <td className="px-4 py-3 text-right font-bold text-slate-900">
@@ -158,7 +172,8 @@ export default function ProductosPage() {
           <input 
             type="text"
             placeholder="Buscar por nombre o SKU..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 transition-all"
+            style={{ '--tw-ring-color': BRAND.ocre } as React.CSSProperties}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -177,9 +192,25 @@ export default function ProductosPage() {
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Categorías</h3>
               <div className="flex flex-wrap gap-2">
                 {categoriasLista.map(cat => (
-                  <button key={cat} onClick={() => setCategoriaSel(cat)}
-                    className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all",
-                      categoriaSel === cat ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>
+                  <button 
+                    key={cat} 
+                    onClick={() => setCategoriaSel(cat)}
+                    className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all")}
+                    style={{
+                      backgroundColor: categoriaSel === cat ? BRAND.ocre : '#f1f5f9',
+                      color: categoriaSel === cat ? '#fff' : '#64748b',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (categoriaSel !== cat) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#e2e8f0';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (categoriaSel !== cat) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f1f5f9';
+                      }
+                    }}
+                  >
                     {cat}
                   </button>
                 ))}
@@ -190,9 +221,26 @@ export default function ProductosPage() {
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Tallas</h3>
               <div className="grid grid-cols-3 gap-2">
                 {tallasLista.map(t => (
-                  <button key={t} onClick={() => setTallaSel(t)}
-                    className={cn("py-2 rounded-xl text-xs font-bold border transition-all",
-                      tallaSel === t ? "border-blue-600 bg-blue-50 text-blue-600" : "border-slate-100 text-slate-500 hover:bg-slate-200")}>
+                  <button 
+                    key={t} 
+                    onClick={() => setTallaSel(t)}
+                    className="py-2 rounded-xl text-xs font-bold border transition-all"
+                    style={{
+                      borderColor: tallaSel === t ? BRAND.ocre : '#e2e8f0',
+                      backgroundColor: tallaSel === t ? BRAND.ocreLight : 'transparent',
+                      color: tallaSel === t ? BRAND.ocre : '#64748b',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (tallaSel !== t) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f1f5f9';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (tallaSel !== t) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
                     {t}
                   </button>
                 ))}
@@ -203,9 +251,26 @@ export default function ProductosPage() {
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Colores</h3>
               <div className="flex flex-wrap gap-2">
                 {coloresLista.map(c => (
-                  <button key={c} onClick={() => setColorSel(c)}
-                    className={cn("px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                      colorSel === c ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                  <button 
+                    key={c} 
+                    onClick={() => setColorSel(c)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                    style={{
+                      borderColor: colorSel === c ? BRAND.negro : '#e2e8f0',
+                      backgroundColor: colorSel === c ? BRAND.negro : 'transparent',
+                      color: colorSel === c ? '#fff' : '#64748b',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (colorSel !== c) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f1f5f9';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (colorSel !== c) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
                     {c}
                   </button>
                 ))}
@@ -227,7 +292,7 @@ export default function ProductosPage() {
                   key={prod.id}
                   className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
                   style={{ 
-                    animationDelay: `${index * 50}ms` // Crea el efecto cascada (stagger)
+                    animationDelay: `${index * 50}ms`
                   }}
                 >
                   <ProductoCard 
@@ -241,8 +306,13 @@ export default function ProductosPage() {
             <div className="h-96 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">
               <Package size={48} className="mb-4 opacity-20" />
               <p className="font-medium text-sm">No se encontraron productos para esta búsqueda.</p>
-              <button onClick={() => { setBusqueda(''); setCategoriaSel('Todos'); setTallaSel('Todas'); setColorSel('Todos'); }} 
-                      className="mt-4 text-blue-600 font-bold text-xs uppercase underline decoration-2 underline-offset-4">
+              <button 
+                onClick={() => { setBusqueda(''); setCategoriaSel('Todos'); setTallaSel('Todas'); setColorSel('Todos'); }} 
+                className="mt-4 text-sm font-bold uppercase underline decoration-2 underline-offset-4 transition-colors"
+                style={{ color: BRAND.ocre }}
+                onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = BRAND.ocreDark}
+                onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.color = BRAND.ocre}
+              >
                 Limpiar Filtros
               </button>
             </div>

@@ -24,15 +24,13 @@ export const ESTADOS_COTIZACION: Record<string, { label: string; color: string; 
   convertida: { label: 'En Orden',    color: 'text-blue-700',   bgColor: 'bg-blue-100' },
 };
 
-// ─── ÓRDENES DE VENTA/PRODUCCIÓN ──────────────────────────────────────────────
-export const ESTADOS_ORDEN = {
-  solicitado: { label: 'Solicitado', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  cotizado:   { label: 'Cotizado', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  aprobado:   { label: 'Aprobado', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  pagado:     { label: 'Pagado', color: 'text-teal-700', bgColor: 'bg-teal-100' },
-  en_proceso: { label: 'En Proceso', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  finalizado: { label: 'Finalizado', color: 'text-slate-700', bgColor: 'bg-slate-100' },
-  cancelado:  { label: 'Cancelado', color: 'text-rose-700', bgColor: 'bg-rose-100' },
+// ─── ESTADOS DE PEDIDOS DEL CLIENTE ──────────────────────────────────────────────
+export const ESTADOS_PEDIDO: Record<string, { label: string; color: string; bgColor: string }> = {
+  pendiente:           { label: 'Pendiente',          color: 'text-amber-700',   bgColor: 'bg-amber-100'   },
+  en_produccion:       { label: 'En Producción',      color: 'text-blue-700',    bgColor: 'bg-blue-100'    },
+  listo_para_despacho: { label: 'Listo p/ Despacho',  color: 'text-purple-700',  bgColor: 'bg-purple-100'  },
+  entregado:           { label: 'Entregado',           color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  cancelado:           { label: 'Cancelado',           color: 'text-red-700',     bgColor: 'bg-red-100'     },
 };
 
 // ─── PAGOS ───────────────────────────────────────────────────────────────
@@ -103,10 +101,10 @@ export const REGLAS_NEGOCIO = {
 
 export function getEstadoInfo(
   estado: string,
-  tipo: 'orden' | 'cliente' | 'despacho' | 'cotizacion',
+  tipo: 'pedido' | 'cliente' | 'despacho' | 'cotizacion',
 ): { label: string; color: string; bgColor: string } {
   const map: Record<string, Record<string, any>> = {
-    orden:      ESTADOS_ORDEN,
+    pedido:     ESTADOS_PEDIDO,
     cliente:    TIPOS_CLIENTE,
     despacho:   ESTADOS_DESPACHO,
     cotizacion: ESTADOS_COTIZACION,

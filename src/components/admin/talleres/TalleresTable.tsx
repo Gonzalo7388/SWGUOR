@@ -33,9 +33,11 @@ interface TalleresTableProps {
   canEdit: boolean;
   canDelete: boolean;
   onDelete: (taller: any) => void;
+  onEdit: (t: any) => void;
+
 }
 
-export default function TalleresTable({ data, canEdit, canDelete, onDelete }: TalleresTableProps) {
+export default function TalleresTable({ data, canEdit, canDelete, onDelete, onEdit }: TalleresTableProps) {
   const router = useRouter();
 
   const statusStyles: any = {
@@ -105,7 +107,7 @@ export default function TalleresTable({ data, canEdit, canDelete, onDelete }: Ta
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => router.push(`/admin/Panel-Administrativo/talleres/${taller.id}`)}>
-                      <Eye className="mr-2 h-4 w-4" /> Ver Perfil
+                      <Eye className="mr-2 h-4 w-4" /> Ver taller
                     </DropdownMenuItem>
                     
                     {canEdit && (
@@ -123,6 +125,9 @@ export default function TalleresTable({ data, canEdit, canDelete, onDelete }: Ta
                       >
                         <Trash2 className="mr-2 h-4 w-4" /> Eliminar
                       </DropdownMenuItem>
+                    )}
+                    {onEdit && (
+                      <Button onClick={() => onEdit(taller)}>Editar</Button>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

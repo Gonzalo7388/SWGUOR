@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
-import { ESTADOS_ORDEN, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
-type EstadoOrden =
+import { ESTADOS_PEDIDO, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
+type EstadoPedido =
   | 'solicitado'
   | 'cotizado'
   | 'aprobado'
@@ -91,8 +91,8 @@ export const toBadgeCls = (color: string, bgColor: string) =>
   `${bgColor.replace('100', '50')} ${color} border ${bgColor.replace('bg-', 'border-').replace('100', '200')}`;
 
 export function getOrdenStatus(estado: string) {
-  const key = estado?.toLowerCase() as EstadoOrden;
-  const cfg  = ESTADOS_ORDEN[key];
+  const key = estado?.toLowerCase() as EstadoPedido;
+  const cfg  = ESTADOS_PEDIDO[key];
   if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: null };
   return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor), icon: ESTADO_ICONS[key] ?? null };
 }

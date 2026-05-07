@@ -53,7 +53,7 @@ export async function GET(req: Request) {
       // 1. DETALLE DE VENTAS
       prisma.pedidos.findMany({
           where:   { created_at: whereFecha, estado: 'entregado' },
-        include: { usuarios: { select: { email: true } } },
+        include: { clientes: { select: { email: true } } },
         orderBy: { created_at: 'desc' },
         take:    200,
       }),
