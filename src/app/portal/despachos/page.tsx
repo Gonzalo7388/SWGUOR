@@ -1,7 +1,7 @@
 'use client';
 
 import { SeguimientoTimeline } from '@/components/portal/SeguimientoTimeline';
-import { Package, MapPin, Calendar } from 'lucide-react';
+import { Package, MapPin, Calendar, Link, AlertCircle } from 'lucide-react';
 
 // Datos de prueba (Luego vendrán de Supabase)
 const DESPACHOS_ACTIVOS = [
@@ -16,6 +16,23 @@ const DESPACHOS_ACTIVOS = [
 ];
 
 export default function DespachosPage() {
+  // Lógica para el CUS_21
+const handleConfirmarEntrega = async (despachoId: string) => {
+  const confirmacion = window.confirm(`¿Confirmas que has recibido el despacho ${despachoId} correctamente?`);
+  if (confirmacion) {
+    alert("¡Estado actualizado!");
+  }
+};
+  const confirmarEntrega = async (despachoId: string) => {
+  const confirmacion = confirm(`¿Confirmas que has recibido el despacho ${despachoId} correctamente?`);
+  
+  if (confirmacion) {
+    // Aquí simulamos la actualización en la base de datos
+    console.log("Actualizando despacho a ENTREGADO...", despachoId);
+    alert("¡Gracias! El estado del despacho ha sido actualizado a 'Entregado'.");
+    // En el futuro, aquí harías un .from('despachos').update({ estado: 'entregado' })
+  }
+};
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
       <div>
@@ -60,12 +77,32 @@ export default function DespachosPage() {
             <p className="text-xs text-slate-500 italic">
               * Los horarios pueden variar según condiciones logísticas en Lima Metropolitana.
             </p>
-            <button className="text-blue-600 font-bold text-xs hover:underline">
-              Ver Guía de Remisión
-            </button>
+            <div className="flex gap-4">
+  {/* NUEVO BOTÓN PARA TU CUS_25 */}
+  <Link 
+    href="/portal/despachos/incidencias"
+    className="text-red-500 font-bold text-xs hover:bg-red-50 p-2 rounded-lg transition-colors flex items-center gap-1"
+  >
+    <AlertCircle size={14} />
+    Reportar Incidencia
+  </Link>
+ {/* NUEVO BOTÓN CUS_21: Confirmar Entrega */}
+  {despacho.estado !== 'entregado' && (
+    <button 
+      onClick={() => confirmarEntrega(despacho.id)}
+      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 active:scale-95"
+    >
+      Confirmar Entrega
+    </button>
+  )}
+  <button className="text-blue-600 font-bold text-xs hover:underline">
+    Ver Guía de Remisión
+  </button>
+</div>
           </div>
         </div>
       ))}
     </div>
   );
+
 }
