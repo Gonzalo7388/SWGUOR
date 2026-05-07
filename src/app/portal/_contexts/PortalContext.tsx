@@ -60,6 +60,12 @@ interface PortalCtx {
   actualizarCantidad: (variante_id: number, cantidad: number) => void;
   eliminarDelBorrador: (variante_id: number) => void;
   limpiarBorrador: () => void;
+  actualizarItem: (params: {
+    variante_id: number;
+    nueva_variante_id: number;
+    talla: string;
+    color: string;
+  }) => void;
   stats: { cotizaciones_activas: number; ordenes_activas: number; despachos_en_ruta: number };
 }
 
@@ -186,6 +192,21 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
   const resumen = useMemo(() => calcularResumen(items), [items]);
 
+  const actualizarItem = ({ variante_id, nueva_variante_id, talla, color }) => {
+    setItems(prev =>
+      prev.map(item => {
+        if (item.variante_id !== variante_id) return item;
+
+        return {
+          ...item,
+          variante_id: nueva_variante_id, // 🔥 cambia la variante
+          talla,
+          color,
+        };
+      })
+    );
+  };
+
   const agregarAlBorrador = useCallback((nuevoItem: any) => {
     console.log('nuevoItem ', nuevoItem);
     setItems((prev: ItemCotizacion[]) => { 
@@ -242,6 +263,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       cliente, loading, items, resumen, stats,
       agregarAlBorrador,
       actualizarCantidad,
+      actualizarItem,
       eliminarDelBorrador,
       limpiarBorrador,
     }}>

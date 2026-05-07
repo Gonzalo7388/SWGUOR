@@ -13,6 +13,10 @@ import { Producto } from '../../../../components/portal/ProductoCard';
 
 const TALLAS_ORDEN = ['XS','S','M','L','XL','XXL','28','30','32','34'];
 
+
+
+
+
 type Variante = {
   id: number;
   color: string;
@@ -22,13 +26,15 @@ type Variante = {
 
 export default function NuevaCotizacionPage() {
   const router  = useRouter();
-  const { cliente, items, resumen, agregarAlBorrador, limpiarBorrador } = usePortal();
+  const { cliente, items, resumen, agregarAlBorrador, actualizarItem, limpiarBorrador } = usePortal();
 
   // Búsqueda de productos
   const [busqueda,      setBusqueda]      = useState('');
   const [categoriaId,   setCategoriaId]   = useState<number | undefined>();
   const [tallaFiltro,   setTallaFiltro]   = useState('');
   const { productos, loading: buscando }  = useProductosPortal({ busqueda, categoriaId, talla: tallaFiltro });
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [cotizacionId, setCotizacionId] = useState<string | null>(null);
 
   // Estado por producto (talla/color/cantidad elegidos antes de agregar)
   const [seleccion, setSeleccion] = useState<Record<number, {
@@ -53,6 +59,7 @@ export default function NuevaCotizacionPage() {
   const [itemDetalle, setItemDetalle] = useState<any>(null);
   const [colorSeleccionado, setColorSeleccionado] = useState('');
   const [tallaSeleccionada, setTallaSeleccionada] = useState('');
+  const [itemEditando, setItemEditando] = useState<any>(null);
 
   // ── ABRIR MODAL ─────────────────────────────────────────
   const handleVerDetalles = (item: any) => {
@@ -85,7 +92,7 @@ export default function NuevaCotizacionPage() {
 
     // ── AGREGAR DESDE MODAL ────────────────────────────────
   const handleAgregarDesdeModal = () => {
-    if (!itemDetalle) return;
+    if (!itemDetalle || !itemEditando) return;
 
     if (!colorSeleccionado || !tallaSeleccionada) {
       toast.error('Selecciona color y talla');
@@ -96,24 +103,27 @@ export default function NuevaCotizacionPage() {
       v => v.color === colorSeleccionado && v.talla === tallaSeleccionada
     );
 
-    agregarAlBorrador({
-      id: itemDetalle.producto_id,
-      nombre: itemDetalle.nombre,
-      sku: itemDetalle.sku,
-      imagen: itemDetalle.imagen,
-      precio: itemDetalle.precio_unitario,
-      cantidad: itemDetalle.cantidad,
+    if (!variante) {
+      toast.error('Variante no encontrada');
+      return;
+    }
+
+    actualizarItem({
+      variante_id: itemEditando.variante_id,
+      nueva_variante_id: variante.id,
       talla: tallaSeleccionada,
       color: colorSeleccionado,
-      variante_id: variante?.id,
-      variantes: variantes
     });
 
     toast.success('Producto actualizado');
+
     setItemDetalle(null);
+    setItemEditando(null);
   };
+
   // ── Enviar cotización ─────────────────────────────────────────────
   const handleEnviar = async (accion: 'borrador' | 'enviar') => {
+    
     if (!items.length) return;
 
     startTransition(async () => {
@@ -124,15 +134,16 @@ export default function NuevaCotizacionPage() {
           body: JSON.stringify({
             cliente_id: cliente!.id,
             estado:     accion === 'borrador' ? 'borrador' : 'enviada',
-            items: items.map(i => ({
-              producto_id:     i.producto_id,
-              variante_id:     i.variante_id,
-              precio_snapshot: i.precio_unitario,
-              cantidad:        i.cantidad,
-              talla:           i.talla,
-              color:           i.color,
-              subtotal:        i.subtotal,
-            })),
+           
+       items: items.map(i => ({
+  producto_id: i.producto_id,
+  variante_id: i.variante_id,
+  precio_unitario: i.precio_unitario, 
+  cantidad: i.cantidad,
+  color_snapshot: i.color,
+  talla_snapshot: i.talla,
+  subtotal: i.subtotal,
+})),
           }),
         });
 
@@ -152,8 +163,11 @@ export default function NuevaCotizacionPage() {
           throw new Error(err.error);
         }
 
-        const { id } = await res.json();
+        const { data } = await res.json();
         limpiarBorrador();
+
+        setCotizacionId(data.id);
+setMostrarConfirmacion(true);
 
         toast.success(
           accion === 'borrador'
@@ -161,7 +175,7 @@ export default function NuevaCotizacionPage() {
             : 'Cotización enviada a GUOR'
         );
 
-        router.push(`/portal/cotizaciones/${id}`);
+       
       } catch (e: any) {
         toast.error(e.message ?? 'Error al guardar la cotización');
       }
@@ -271,16 +285,18 @@ export default function NuevaCotizacionPage() {
             </p>
 
 
-          {/* boton detalles producto*/}  
-        <button
-               onClick={() => handleVerDetalles(item)}
-                className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-               Ver detalles
-        </button>
+            {/* boton detalles producto*/}  
+            <button
+              onClick={() => {
+                setItemEditando(item);
+                handleVerDetalles(item);
+              }}
+              className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+              Ver detalles
+            </button>
 
-
-           </div>
+          </div>
         ))}
 
       </div>
@@ -385,13 +401,53 @@ export default function NuevaCotizacionPage() {
           </div>
         </div>
       )}
-
+ 
       {/* Panel derecho — cotizador */}
       <div className="w-72 shrink-0 border-l border-slate-200 bg-white overflow-auto">
         <CotizadorPanel onEnviar={handleEnviar} isSending={isPending} />
       </div>
-
-      </div>
     </div>
-  );
+      {mostrarConfirmacion && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+    <div className="bg-white rounded-3xl shadow-2xl p-8 w-[90%] max-w-sm text-center space-y-6">
+
+      {/* ICONO */}
+      <div className="w-16 h-16 mx-auto rounded-full bg-orange-200 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-orange-400 flex items-center justify-center text-white text-xl">
+          
+        </div>
+      </div>
+
+      {/* TITULO */}
+      <div>
+        <h2 className="text-xl font-bold text-orange-500">
+          ¡Pedido Confirmado!
+        </h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Gracias por comprar en
+        </p>
+        <p className="font-semibold text-orange-400">
+          Modas y Estilos GUOR
+        </p>
+      </div>
+
+      {/* CODIGO */}
+      <div className="bg-orange-100 rounded-xl p-4">
+        <p className="text-xs text-slate-500 mb-1">
+          Número de Pedido
+        </p>
+        <p className="text-lg font-bold text-orange-500">
+          {cotizacionId}
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+      )}  
+</div>
+);
 }
+
