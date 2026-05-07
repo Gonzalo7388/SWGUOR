@@ -2,9 +2,14 @@
 'use client';
 
 import { Trash2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
-import { usePortal, MOQ_MINIMO } from '@/app/portal/_contexts/PortalContext';
+import { usePortal, MOQ_MINIMO, ZONAS_ENVIO, type ZonaEnvio } from '@/app/portal/_contexts/PortalContext';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
+
+// Tonalidades estilo portal cliente
+const PORTAL_OCRE = '#b5854b';
+const PORTAL_OCRE_DARK = '#9a6e3a';
+const PORTAL_CREAM = '#fff4e2';
 
 interface Props {
   onEnviar: (accion: 'borrador' | 'enviar') => void;
@@ -12,7 +17,7 @@ interface Props {
 }
 
 export function CotizadorPanel({ onEnviar, isSending }: Props) {
-  const { items, resumen, actualizarCantidad, eliminarDelBorrador: eliminarItem } = usePortal();
+  const { items, resumen, zonaEnvio, actualizarZonaEnvio, actualizarCantidad, eliminarDelBorrador: eliminarItem } = usePortal();
 
   const itemsConMoqError = items.filter(i => i.cantidad < MOQ_MINIMO);
   const puedeEnviar      = items.length > 0 && itemsConMoqError.length === 0;
@@ -53,10 +58,11 @@ export function CotizadorPanel({ onEnviar, isSending }: Props) {
 
         {/* Aviso de descuento próximo */}
         {resumen.descuento_pct === 0 && resumen.total_unidades >= 300 && (
-          <div 
-            className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-[11px] text-blue-700"
+          <div
             role="complementary"
             aria-label="Próximo nivel de descuento"
+            className="rounded-md px-3 py-2 text-[11px] font-medium"
+            style={{ backgroundColor: PORTAL_CREAM, border: `1px solid ${PORTAL_OCRE_DARK}`, color: PORTAL_OCRE }}
           >
             Agrega {(500 - resumen.total_unidades).toLocaleString()} uds más para 5% de descuento
           </div>
@@ -143,9 +149,29 @@ export function CotizadorPanel({ onEnviar, isSending }: Props) {
             <span>IGV 18%</span>
             <span>{formatCurrency(resumen.igv)}</span>
           </div>
+          <div className="rounded-xl border p-3 space-y-2" style={{ backgroundColor: PORTAL_CREAM, borderColor: PORTAL_OCRE_DARK }}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: PORTAL_OCRE }}>Envío</p>
+                <p className="text-xs" style={{ color: PORTAL_OCRE_DARK }}>{ZONAS_ENVIO[zonaEnvio].label}</p>
+              </div>
+              <span className="text-sm font-bold" style={{ color: PORTAL_OCRE_DARK }}>{formatCurrency(resumen.costo_envio)}</span>
+            </div>
+            <label className="text-[10px] font-black uppercase tracking-widest block" style={{ color: PORTAL_OCRE }}>Zona de envío</label>
+            <select
+              value={zonaEnvio}
+              onChange={(e) => actualizarZonaEnvio(e.target.value as ZonaEnvio)}
+              className="w-full h-9 rounded-md border px-3 text-xs focus:outline-none focus:ring-2"
+              style={{ backgroundColor: 'white', color: PORTAL_OCRE_DARK, borderColor: PORTAL_OCRE }}
+            >
+              <option value="cercana_sjl">Cercana a SJL - S/ 15.00</option>
+              <option value="media">Zona media - S/ 20.00</option>
+              <option value="lejana">Zona lejana - S/ 25.00</option>
+            </select>
+          </div>
           <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
             <span>Total a pagar</span>
-            <span className="text-lg text-blue-600">{formatCurrency(resumen.total)}</span>
+            <span className="text-lg" style={{ color: PORTAL_OCRE }}>{formatCurrency(resumen.total)}</span>
           </div>
 
           <div className="space-y-2 pt-2">
@@ -154,12 +180,13 @@ export function CotizadorPanel({ onEnviar, isSending }: Props) {
               disabled={!puedeEnviar || isSending}
               aria-busy={isSending}
               className={cn(
-                "w-full py-2.5 bg-blue-600 text-white rounded-md text-sm font-medium transition-all",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                "w-full py-2.5 rounded-md text-sm font-medium transition-all",
+                "focus:outline-none focus:ring-2 focus:ring-offset-2",
                 "disabled:opacity-40 disabled:cursor-not-allowed",
-                !isSending && "hover:bg-blue-700 active:scale-95"
+                !isSending && "hover:brightness-110 active:scale-95"
               )}
               title={!puedeEnviar ? "Completa los requisitos mínimos para enviar" : "Enviar cotización"}
+              style={{ backgroundColor: PORTAL_OCRE, color: 'white', boxShadow: '0 8px 18px rgba(181, 133, 75, 0.18)' }}
             >
               {isSending ? (
                 <span className="flex items-center justify-center gap-2">

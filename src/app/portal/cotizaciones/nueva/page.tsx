@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { AlertTriangle, CheckCircle, Loader2, Minus, Plus } from 'lucide-react';
 import { usePortal, MOQ_MINIMO } from '../../_contexts/PortalContext';
 import { CotizadorPanel }        from '@/components/portal/CotizacionPanel';
 import { cn }                    from '@/lib/utils';
+import { useRouter }             from 'next/navigation';
 import { toast }                 from 'sonner';
 
 // ── Brand colors ──────────────────────────────────────────────────
@@ -37,7 +38,8 @@ const generateCotizacionNumber = (cotizacionId: number): string => {
 };
 
 export default function NuevaCotizacionPage() {
-  const { cliente, items, resumen, actualizarItem, limpiarBorrador } = usePortal();
+  const { cliente, items, resumen, zonaEnvio, actualizarItem, limpiarBorrador } = usePortal();
+  const router = useRouter();
 
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [cotizacionId, setCotizacionId] = useState<string | null>(null);
@@ -51,6 +53,16 @@ export default function NuevaCotizacionPage() {
   const [isPending, startTransition] = useTransition();
 
   // ── ABRIR MODAL ─────────────────────────────────────────
+    // Redirect automático después de crear cotización
+    useEffect(() => {
+      if (mostrarConfirmacion) {
+        const timer = setTimeout(() => {
+          router.push('/portal/cotizaciones?nueva=true');
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }, [mostrarConfirmacion, router]);
+
   const handleVerDetalles = (item: any) => {
     setItemDetalle(item);
     const variantes: Variante[] = item.variantes ?? [];
@@ -116,6 +128,8 @@ export default function NuevaCotizacionPage() {
           body: JSON.stringify({
             cliente_id: cliente!.id,
             estado:     accion === 'borrador' ? 'borrador' : 'enviada',
+            costo_envio: resumen.costo_envio,
+            zona_envio: zonaEnvio,
             items: items.map(i => ({
               producto_id: i.producto_id,
               variante_id: i.variante_id,
@@ -197,7 +211,7 @@ export default function NuevaCotizacionPage() {
             onClick={() => handleEnviar('enviar')}
             disabled={!items.length || isPending}
             className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-all disabled:opacity-40 shadow-sm"
-            style={{ backgroundColor: BRAND.ocre }}
+            style={{ backgroundColor: BRAND.ocre, boxShadow: '0 10px 18px rgba(181, 133, 75, 0.18)' }}
             onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocreDark}
             onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocre}
           >

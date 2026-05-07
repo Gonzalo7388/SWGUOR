@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { items, notas_internas, direccion_despacho, metodo_pago, moneda, estado } = body;
+    const { items, notas_internas, direccion_despacho, metodo_pago, moneda, estado, costo_envio, zona_envio } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, error: 'Items requeridos' }, { status: 400 });
@@ -95,7 +95,8 @@ export async function POST(req: Request) {
       cantidad: Number(item.cantidad),
     }));
 
-    const totales = calcularTotalesCotizacion(itemsCalculo);
+    const costoEnvio = Number(costo_envio ?? 0);
+    const totales = calcularTotalesCotizacion(itemsCalculo, costoEnvio);
 
     if (!totales.cumpleMOQ) {
       return NextResponse.json({
@@ -153,6 +154,8 @@ export async function POST(req: Request) {
             //metodo_pago: metodo_pago ?? null,
             direccion_despacho: direccion_despacho ?? null,
             monto_descuento: new Prisma.Decimal(totales.montoDescuento),
+            costo_envio: new Prisma.Decimal(costoEnvio),
+            costo_total_estimado: new Prisma.Decimal(totales.total),
             moneda: moneda ?? 'PEN',
             notas_internas: notas_internas ?? null,
             cotizacion_items: {
@@ -200,7 +203,7 @@ const ESCALAS_DESCUENTO = [
 ];
 const MOQ_GENERAL = 400;
 
-function calcularTotalesCotizacion(items: { precioBase: number; cantidad: number }[]) {
+function calcularTotalesCotizacion(items: { precioBase: number; cantidad: number }[], costoEnvio: number) {
   const subtotalBruto = items.reduce((acc, i) => acc + i.precioBase * i.cantidad, 0);
   const cantidadTotal = items.reduce((acc, i) => acc + i.cantidad, 0);
   const escala = [...ESCALAS_DESCUENTO].reverse().find((r) => cantidadTotal >= r.min);
@@ -213,7 +216,8 @@ function calcularTotalesCotizacion(items: { precioBase: number; cantidad: number
     subtotalBruto,
     cantidadTotal,
     montoDescuento,
-    total: subtotalConDescuento + igv,
+    costoEnvio,
+    total: subtotalConDescuento + igv + costoEnvio,
     igv,
     cumpleMOQ: cantidadTotal >= MOQ_GENERAL,
   };

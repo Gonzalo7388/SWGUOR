@@ -45,6 +45,7 @@ interface CotizacionDetalle {
   descuento: number;
   porcentaje_descuento: number;
   igv: number;
+  costo_envio: number | null;
   total: number;
   items: CotizacionItem[];
 }
@@ -66,7 +67,8 @@ export default function DetalleCotizacionPage() {
         const { data, error } = await supabase
           .from('cotizaciones')
           .select(`
-            *,
+            id, numero, estado, created_at, analisis_ia,
+            subtotal_bruto, descuento, porcentaje_descuento, igv, costo_envio, total,
             items:cotizacion_items(
               id, cantidad, precio_unitario, subtotal,
               producto:productos(nombre, sku, imagen_url)
@@ -223,6 +225,11 @@ export default function DetalleCotizacionPage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm font-bold text-slate-400 uppercase tracking-tight">Impuestos (18%)</span>
                 <span className="font-bold text-slate-700">{formatCurrency(cot.igv)}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-tight">Envío</span>
+                <span className="font-bold text-slate-700">{formatCurrency(cot.costo_envio ?? 0)}</span>
               </div>
 
               <div className="pt-6 border-t border-slate-100">

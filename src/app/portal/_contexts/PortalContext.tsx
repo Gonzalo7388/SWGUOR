@@ -40,6 +40,14 @@ export interface ItemCotizacion {
   }>;
 }
 
+export type ZonaEnvio = 'cercana_sjl' | 'media' | 'lejana';
+
+export const ZONAS_ENVIO: Record<ZonaEnvio, { label: string; costo: number }> = {
+  cercana_sjl: { label: 'Cercana a SJL', costo: 15 },
+  media: { label: 'Zona media', costo: 20 },
+  lejana: { label: 'Zona lejana', costo: 25 },
+};
+
 export interface ResumenCotizacion {
   subtotal: number;
   total_unidades: number;
@@ -47,8 +55,10 @@ export interface ResumenCotizacion {
   descuento_monto: number;
   base_igv: number;
   igv: number;
+  costo_envio: number;
   total: number;
   descripcion_descuento: string;
+  descripcion_envio: string;
 }
 
 interface PortalCtx {
@@ -56,6 +66,8 @@ interface PortalCtx {
   loading: boolean;
   items: ItemCotizacion[];
   resumen: ResumenCotizacion;
+  zonaEnvio: ZonaEnvio;
+  actualizarZonaEnvio: (zona: ZonaEnvio) => void;
   agregarAlBorrador: (item: any) => void;
   actualizarCantidad: (variante_id: number, cantidad: number) => void;
   eliminarDelBorrador: (variante_id: number) => void;
@@ -79,20 +91,32 @@ const ESCALAS = [
   { min: 500,  pct: 5,  label: '≥ 500 uds'   },
 ];
 
-function calcularResumen(items: ItemCotizacion[]): ResumenCotizacion {
-  const subtotal       = items.reduce((s, i) => s + i.subtotal, 0);
+function getCostoEnvio(zona: ZonaEnvio): number {
+  return ZONAS_ENVIO[zona]?.costo ?? 0;
+}
+
+function calcularResumen(items: ItemCotizacion[], zonaEnvio: ZonaEnvio): ResumenCotizacion {
+  const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
   const total_unidades = items.reduce((s, i) => s + i.cantidad, 0);
-  const escala         = ESCALAS.find(e => total_unidades >= e.min);
-  const descuento_pct  = escala?.pct ?? 0;
+  const escala = ESCALAS.find(e => total_unidades >= e.min);
+  const descuento_pct = escala?.pct ?? 0;
   const descuento_monto = subtotal * (descuento_pct / 100);
-  const base_igv       = subtotal - descuento_monto;
-  const igv            = base_igv * IGV;
+  const base_igv = subtotal - descuento_monto;
+  const igv = base_igv * IGV;
+  const costo_envio = items.length > 0 ? getCostoEnvio(zonaEnvio) : 0;
   return {
-    subtotal, total_unidades, descuento_pct, descuento_monto,
-    base_igv, igv, total: base_igv + igv,
+    subtotal,
+    total_unidades,
+    descuento_pct,
+    descuento_monto,
+    base_igv,
+    igv,
+    costo_envio,
+    total: base_igv + igv + costo_envio,
     descripcion_descuento: escala
       ? `Descuento escala ${escala.pct}% (${escala.label})`
       : 'Sin descuento por volumen',
+    descripcion_envio: ZONAS_ENVIO[zonaEnvio].label,
   };
 }
 
@@ -102,6 +126,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   const [cliente, setCliente] = useState<ClientePortal | null>(null);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ItemCotizacion[]>([]);
+  const [zonaEnvio, setZonaEnvio] = useState<ZonaEnvio>('cercana_sjl');
   const [stats, setStats] = useState({
     cotizaciones_activas: 0, ordenes_activas: 0, despachos_en_ruta: 0,
   });
@@ -190,7 +215,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     init();
   }, []);
 
-  const resumen = useMemo(() => calcularResumen(items), [items]);
+  const resumen = useMemo(() => calcularResumen(items, zonaEnvio), [items, zonaEnvio]);
 
   const actualizarItem = useCallback(({ variante_id, nueva_variante_id, talla, color, cantidad }: {
     variante_id: number;
@@ -269,10 +294,11 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     setItems(prev => prev.filter(i => i.variante_id !== vid)), []);
   
   const limpiarBorrador = useCallback(() => setItems([]), []);
+  const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => setZonaEnvio(zona), []);
 
   return (
     <PortalContext.Provider value={{
-      cliente, loading, items, resumen, stats,
+      cliente, loading, items, resumen, zonaEnvio, actualizarZonaEnvio, stats,
       agregarAlBorrador,
       actualizarCantidad,
       actualizarItem,

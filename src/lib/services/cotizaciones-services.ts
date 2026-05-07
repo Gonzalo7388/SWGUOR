@@ -12,6 +12,7 @@ export interface CotizacionRow {
   descripcion:       string | null;
   monto:             number;
   estado:            string;
+  costo_envio:       number;
   fecha_vencimiento: string;
   fecha_creacion:    string;
   expirada?:         boolean;
@@ -36,6 +37,8 @@ export interface CrearCotizacionInput {
   tasa_impuesto:          string;
   tipo_operacion?:        string;
   notas_internas?:        string;
+  costo_envio?:           number;
+  zona_envio?:            string;
   // Metadatos ERP opcionales
   empresa?:           string;
   contacto?:          string;
@@ -70,6 +73,7 @@ function buildCotizacionRow(row: any, today: Date): CotizacionRow {
     descripcion:       row.notas_internas ?? null,
     monto:             Number(row.total ?? 0),
     estado:            estaExpirada ? 'expirada' : (row.estado ?? 'borrador'),
+    costo_envio:       Number(row.costo_envio ?? 0),
     fecha_vencimiento: row.valida_hasta.toISOString().split('T')[0],
     fecha_creacion:    row.created_at?.toISOString().split('T')[0] ?? '',
     expirada:          estaExpirada,
@@ -107,7 +111,7 @@ export const CotizacionesService = {
   async crear(input: CrearCotizacionInput): Promise<CotizacionRow> {
     const {
       cliente_id, nombre_cliente_manual, valida_hasta, moneda,
-      tasa_impuesto, tipo_operacion, notas_internas, items,
+      tasa_impuesto, tipo_operacion, notas_internas, items, costo_envio,
       ...metadatos
     } = input;
 
@@ -119,7 +123,8 @@ export const CotizacionesService = {
     const esExportacion  = tipo_operacion === 'Exportación';
     const tasa           = esExportacion ? 0 : (tasa_impuesto === 'IGV' ? 0.18 : 0);
     const igv            = totales.subtotalConDescuento * tasa;
-    const total          = totales.subtotalConDescuento + igv;
+    const costoEnvio     = Number(costo_envio ?? 0);
+    const total          = totales.subtotalConDescuento + igv + costoEnvio;
 
     const count  = await prisma.cotizaciones.count();
     const numero = `COT-${String(count + 1).padStart(6, '0')}`;
@@ -153,6 +158,8 @@ export const CotizacionesService = {
           valida_hasta:   new Date(valida_hasta),
           expira_at:      new Date(valida_hasta),
           notas_internas: notasFinales,
+          costo_envio:    new Prisma.Decimal(costoEnvio),
+          costo_total_estimado: new Prisma.Decimal(total),
           moneda:         moneda ?? 'PEN',
           cotizacion_items: {
             create: items.map((item) => ({

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Download, RefreshCw, Eye, Edit3, FileText, Search, Loader2 } from 'lucide-react';
 import { usePortal } from '../_contexts/PortalContext';
 import { EstadoBadge } from '@/components/portal/EstadoBadge';
@@ -29,7 +29,6 @@ interface Cot {
   valida_hasta: string;
 }
 
-// Definimos la interfaz para la respuesta de la DB para evitar 'as any'
 interface RawCotDB {
   id: number;
   numero: string | null;
@@ -49,43 +48,57 @@ const FILTROS: { value: EstadoFiltro; label: string }[] = [
 
 export default function HistorialCotizacionesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { cliente } = usePortal();
   const [cots, setCots] = useState<Cot[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<EstadoFiltro>('todas');
   const [busqueda, setBusqueda] = useState('');
 
-  useEffect(() => {
+  const fetchCotizaciones = useCallback(async () => {
     if (!cliente?.id) return;
-    const fetchCotizaciones = async () => {
-      setLoading(true);
-      const supabase = getSupabaseBrowserClient();
-      
-      let query = supabase
-        .from('cotizaciones')
-        .select('id, numero, total, estado, created_at, valida_hasta')
-        .eq('cliente_id', cliente.id)
-        .order('created_at', { ascending: false });
+    setLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    
+    let query = supabase
+      .from('cotizaciones')
+      .select('id, numero, total, estado, created_at, valida_hasta')
+      .eq('cliente_id', cliente.id)
+      .order('created_at', { ascending: false });
 
-      if (filtro !== 'todas') query = query.eq('estado', filtro);
+    if (filtro !== 'todas') query = query.eq('estado', filtro);
 
-      const { data, error } = await query;
+    const { data, error } = await query;
 
-      if (!error && data) {
-        const dataFormateada: Cot[] = (data as RawCotDB[]).map(c => ({
-          id: c.id,
-          numero: c.numero ?? `COT-${c.id}`,
-          total: Number(c.total) || 0,
-          estado: c.estado ?? 'borrador',
-          created_at: c.created_at ?? new Date().toISOString(),
-          valida_hasta: c.valida_hasta ?? ''
-        }));
-        setCots(dataFormateada);
-      }
-      setLoading(false);
-    };
-    fetchCotizaciones();
+    if (!error && data) {
+      const dataFormateada: Cot[] = (data as RawCotDB[]).map(c => ({
+        id: c.id,
+        numero: c.numero ?? `COT-${c.id}`,
+        total: Number(c.total) || 0,
+        estado: c.estado ?? 'borrador',
+        created_at: c.created_at ?? new Date().toISOString(),
+        valida_hasta: c.valida_hasta ?? ''
+      }));
+      setCots(dataFormateada);
+    }
+    setLoading(false);
   }, [cliente, filtro]);
+
+  useEffect(() => {
+    fetchCotizaciones();
+  }, [fetchCotizaciones]);
+
+  // Refresco automático cuando llega con parámetro nueva=true
+  useEffect(() => {
+    const nuevaCot = searchParams.get('nueva');
+    if (nuevaCot === 'true') {
+      const timer = setTimeout(() => {
+        fetchCotizaciones();
+        router.replace('/portal/cotizaciones');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, fetchCotizaciones, router]);
 
   const handleRecotizar = async (cotId: number) => {
     const loadingToast = toast.loading('Duplicando cotización...');
@@ -159,8 +172,21 @@ export default function HistorialCotizacionesPage() {
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="animate-spin text-ocre" size={32} style={{ color: BRAND_COLORS.ocre }} />
+            <Loader2 className="animate-spin" size={32} style={{ color: BRAND_COLORS.ocre }} />
             <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Cargando...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FileText size={48} className="text-slate-300 mb-4" />
+            <p className="font-bold text-slate-500 mb-2">No hay cotizaciones</p>
+            <p className="text-sm text-slate-400 mb-6">Crea tu primera cotización para verla aquí</p>
+            <Link
+              href="/portal/cotizaciones/nueva"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:brightness-110"
+              style={{ backgroundColor: BRAND_COLORS.ocre }}
+            >
+              <Plus size={16} /> Nueva Cotización
+            </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -195,8 +221,8 @@ export default function HistorialCotizacionesPage() {
                         {c.estado === 'borrador' && (
                           <Link 
                             href={`/portal/cotizaciones/${c.id}/editar`}
-                            className="p-2.5 text-slate-400 hover:text-white rounded-xl transition-all hover:bg-[var(--bg-hover)]"
-                            style={{ '--bg-hover': BRAND_COLORS.ocre } as React.CSSProperties}
+                            className="p-2.5 text-slate-400 hover:text-white rounded-xl transition-all"
+                            style={{ backgroundColor: BRAND_COLORS.ocre }}
                           >
                             <Edit3 size={18} />
                           </Link>
@@ -216,8 +242,8 @@ export default function HistorialCotizacionesPage() {
                         {(c.estado === 'expirada' || c.estado === 'rechazada') && (
                           <button
                             onClick={() => handleRecotizar(c.id)}
-                            className="p-2.5 text-slate-400 hover:text-white rounded-xl transition-all hover:bg-[var(--bg-hover)]"
-                            style={{ '--bg-hover': BRAND_COLORS.ocre } as React.CSSProperties}
+                            className="p-2.5 text-slate-400 hover:text-white rounded-xl transition-all"
+                            style={{ backgroundColor: BRAND_COLORS.ocre }}
                           >
                             <RefreshCw size={18} />
                           </button>
