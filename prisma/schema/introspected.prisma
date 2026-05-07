@@ -636,6 +636,7 @@ model clientes {
   direcciones_cliente  direcciones_cliente[]
   feedback_cliente     feedback_cliente[]
   pedidos              pedidos[]
+
   incidencias_cliente  incidencias_cliente[]
 
   @@schema("public")
@@ -1126,11 +1127,11 @@ model incidencias {
   @@schema("public")
 }
 
-model IncidenciasCliente {
+model incidencias_cliente {
   id           BigInt                  @id @default(autoincrement())
-  cliente      BigInt?
-  pedido       BigInt?
-  tipo         TipoIncidenciaCliente?
+  cliente_id   BigInt?
+  pedido_id    BigInt?
+  tipo         tipo_incidencia_cliente?
   descripcion  String?
   estado       String?                 @default("abierta")
   evidencia_url String[]
@@ -1138,10 +1139,11 @@ model IncidenciasCliente {
   updated_at   DateTime?               @default(now()) @db.Timestamptz
 
   // Relations
-  clientes     Clientes?               @relation(fields: [cliente], references: [id])
-  pedidos      Pedidos?                @relation(fields: [pedido], references: [id])
+  cliente      clientes?               @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pedido       pedidos?                @relation(fields: [pedido_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("incidencias_cliente")
+  @@schema("public")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -1481,7 +1483,7 @@ model pedidos {
   pedido_items         pedido_items[]
   clientes             clientes?              @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   creado_por           usuarios?              @relation(fields: [created_by], references: [id])
-  cotizacion  cotizaciones?  @relation("CotizacionPedidos", fields: [cotizacion_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cotizacion           cotizaciones?          @relation("CotizacionPedidos", fields: [cotizacion_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   reservas_stock       reservas_stock[]
   seguimiento_pedido   seguimiento_pedido[]
   incidencias_cliente  incidencias_cliente[]
@@ -2300,7 +2302,7 @@ enum TipoIncidencia {
   @@schema("public")
 }
 
-enum TipoIncidenciaCliente {
+enum tipo_incidencia_cliente {
   defecto_confeccion
   pedido_equivocado
   talla_incorrecta
@@ -2309,7 +2311,7 @@ enum TipoIncidenciaCliente {
   empaque_defectuoso
   otro
 
-  @@map("tipo_incidencia_cliente")
+  @@schema("public")
 }
 
 
