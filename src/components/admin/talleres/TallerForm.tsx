@@ -45,9 +45,11 @@ interface TallerFormProps {
   initialData?: TallerFormValues & { id?: string }; 
   onSubmit: (values: TallerFormValues) => void;
   isLoading: boolean;
+  readOnly?: boolean;
 }
 
-export default function TallerForm({ initialData, onSubmit, isLoading }: TallerFormProps) {
+export default function TallerForm({ initialData, onSubmit, isLoading, readOnly = false
+}: TallerFormProps) {
   // Agrega este estado para el chequeo de duplicados
   const [rucExists, setRucExists] = useState(false);
   const [checkingRuc, setCheckingRuc] = useState(false);
@@ -106,7 +108,8 @@ export default function TallerForm({ initialData, onSubmit, isLoading }: TallerF
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-bold">Nombre del Taller</FormLabel>
-                <FormControl><Input placeholder="Ej. Confecciones Guor" {...field} /></FormControl>
+                <FormControl>
+          <Input placeholder="Ej. Confecciones Guor" disabled={readOnly} {...field} /> </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -178,7 +181,7 @@ export default function TallerForm({ initialData, onSubmit, isLoading }: TallerF
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-bold">Especialidad Principal</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={readOnly} >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="¿Qué proceso realizan?" />
@@ -226,12 +229,14 @@ export default function TallerForm({ initialData, onSubmit, isLoading }: TallerF
           </div>
         </div>
 
-        <div className="flex justify-end gap-4">
-          <Button type="submit" disabled={isLoading} className="bg-pink-600 hover:bg-pink-700 text-white min-w-[150px]">
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar Taller
-          </Button>
-        </div>
+            {!readOnly && (
+            <div className="flex justify-end gap-4">
+            <Button type="submit" disabled={isLoading} className="bg-pink-600 hover:bg-pink-700 text-white min-w-[150px]" >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      Guardar Taller
+    </Button>
+  </div>
+)}
       </form>
     </Form>
   );

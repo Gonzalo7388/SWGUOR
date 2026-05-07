@@ -69,7 +69,7 @@ export default function EditTallerDialog({ isOpen, onClose, taller, onSuccess }:
           <Input name="contacto" value={form.contacto} onChange={handleChange} placeholder="Contacto" />
           <Input name="estado" value={form.estado} onChange={handleChange} placeholder="Estado" />
 
-          <Button onClick={handleUpdate} className="w-full bg-pink-600 text-white">
+          <Button onClick={handleUpdate} className="text-pink-600">
             Guardar cambios
           </Button>
         </div>

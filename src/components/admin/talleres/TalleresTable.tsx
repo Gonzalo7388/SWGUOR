@@ -34,6 +34,7 @@ interface TalleresTableProps {
   canDelete: boolean;
   onDelete: (taller: any) => void;
   onEdit: (t: any) => void;
+
 }
 
 export default function TalleresTable({ data, canEdit, canDelete, onDelete, onEdit }: TalleresTableProps) {
