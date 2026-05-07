@@ -24,7 +24,8 @@ export function useNotifications(userId?: number) {
 
       const normalized: Notificacion[] = raw.map((n) => ({
         ...n,
-        id: String(n.id),   // bigint → string
+        id: Number(n.id),   // bigint → number
+        leido_at: n.leido_at ? new Date(n.leido_at) : null,
       }));
 
       setNotificaciones(normalized);
@@ -42,7 +43,7 @@ export function useNotifications(userId?: number) {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  const markAsRead = async (id: string) => {
+  const markAsRead = async (id: number) => {
     try {
       await fetch(`/api/admin/notificaciones/${id}`, {
         method:  'PUT',
@@ -50,7 +51,7 @@ export function useNotifications(userId?: number) {
         body:    JSON.stringify({ leido: true }),  // leido, no leida
       });
       setNotificaciones((prev) =>
-        prev.map((n) => n.id === id ? { ...n, leido: true, leido_at: new Date().toISOString() } : n)
+        prev.map((n) => n.id === Number(id) ? { ...n, leido: true, leido_at: new Date() } : n)
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {

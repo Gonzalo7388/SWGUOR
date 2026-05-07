@@ -116,7 +116,6 @@ export function getEstadoInfo(
 }
 
 // Listas de exportación para Selects y Filtros
-export const LISTA_ESTADOS_CONFECCION = Object.keys(ESTADOS_CONFECCION);
 export const ESTADOS_CONFECCION: Record<string, { label: string; color: string; bgColor: string }> = {
   pendiente:   { label: 'Pendiente',    color: 'text-slate-700',  bgColor: 'bg-slate-100' },
   en_proceso:  { label: 'En Proceso',   color: 'text-blue-700',   bgColor: 'bg-blue-100' },
@@ -124,3 +123,4 @@ export const ESTADOS_CONFECCION: Record<string, { label: string; color: string; 
   rechazada:   { label: 'Rechazada',    color: 'text-amber-700',  bgColor: 'bg-amber-100' },
   cancelada:   { label: 'Cancelada',    color: 'text-red-700',    bgColor: 'bg-red-100' },
 };
+export const LISTA_ESTADOS_CONFECCION = Object.keys(ESTADOS_CONFECCION);

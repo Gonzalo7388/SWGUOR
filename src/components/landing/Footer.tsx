@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Phone, MapPin } from "lucide-react";
-import { FaInstagram, FaFacebookF } from "react-icons/fa";
+import { Phone, MapPin, Instagram, Facebook } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -55,7 +54,7 @@ const Footer = () => {
                 className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
                 style={{ background: "#fff4e2", color: "#231e1d" }}
               >
-                <FaInstagram size={28} />
+                <Instagram size={28} />
               </Link>
               <Link
                 href="https://www.facebook.com/share/18ZangYR1J/"
@@ -63,7 +62,7 @@ const Footer = () => {
                 className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
                 style={{ background: "#fff4e2", color: "#231e1d" }}
               >
-                <FaFacebookF size={28} />
+                <Facebook size={28} />
               </Link>
             </div>
           </div>

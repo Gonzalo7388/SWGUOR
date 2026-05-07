@@ -5,10 +5,11 @@ import { pagoTallerBaseSchema as pagosTallerUpdateSchema } from '@/lib/schemas/p
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const pago = await prisma.pagos_taller.findUnique({
-      where: { id: BigInt(params.id) },
+      where: { id: BigInt(id) },
       include: {
         talleres: true,
         confecciones: true,
@@ -28,13 +29,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = pagosTallerUpdateSchema.parse(body);
 
     const pago = await prisma.pagos_taller.update({
-      where: { id: BigInt(params.id) },
+      where: { id: BigInt(id) },
       data: {
         ...(validated.taller_id ? { taller_id: BigInt(validated.taller_id) } : {}),
         ...(validated.confeccion_id ? { confeccion_id: BigInt(validated.confeccion_id) } : {}),
@@ -67,9 +69,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await prisma.pagos_taller.delete({ where: { id: BigInt(params.id) } });
+    const { id } = await params;
+    await prisma.pagos_taller.delete({ where: { id: BigInt(id) } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[DELETE /pagos-taller/:id]', error);

@@ -1,22 +1,23 @@
 export const runtime = 'nodejs';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { asientoContableBaseSchema as asientosContablesUpdateSchema } from '@/lib/schemas/asientosContablesSchema';
-import { AsientosContablesService } from '@/lib/services/asientos-contables-services';
+import { asientosContablesService } from '@/lib/services';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { ZodError } from 'zod';
 
 const ASIENTOS_CONTABLES_ROLES: RolUsuario[] = ['administrador', 'gerente'];
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireServerRole(ASIENTOS_CONTABLES_ROLES);
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
-    const data = await AsientosContablesService.obtenerPorId(params.id);
+    const { id } = await params;
+    const data = await asientosContablesService.obtenerPorId(id);
     if (!data) {
       return NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 });
     }
@@ -26,16 +27,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireServerRole(ASIENTOS_CONTABLES_ROLES);
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = asientosContablesUpdateSchema.parse(body);
-    const data = await AsientosContablesService.actualizar(params.id, validated);
+    const data = await asientosContablesService.actualizar(id, validated);
     return NextResponse.json({ success: true, data });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -45,14 +47,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireServerRole(ASIENTOS_CONTABLES_ROLES);
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
-    const result = await AsientosContablesService.eliminar(params.id);
+    const { id } = await params;
+    const result = await asientosContablesService.eliminar(id);
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

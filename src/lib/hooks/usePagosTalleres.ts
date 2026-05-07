@@ -53,7 +53,7 @@ export function usePagosTalleres() {
       if (!response.ok) throw new Error('Error al registrar pago');
       
       const pagoActualizado: PagoTaller = await response.json();
-      setPagos(prev => prev.map(p => p.id === pagoId ? pagoActualizado : p));
+      setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

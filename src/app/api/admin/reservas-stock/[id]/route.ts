@@ -5,10 +5,11 @@ import { reservaStockBaseSchema as reservasStockUpdateSchema } from '@/lib/schem
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const reserva = await prisma.reservas_stock.findUnique({
-      where:   { id: BigInt(params.id) },
+      where:   { id: BigInt(id) },
       include: { variantes_producto: true, cotizaciones: true, pedidos: true },
     });
     if (!reserva) {
@@ -21,13 +22,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = reservasStockUpdateSchema.parse(body);
 
     const reserva = await prisma.reservas_stock.update({
-      where: { id: BigInt(params.id) },
+      where: { id: BigInt(id) },
       data: {
         ...(validated.pedido_id ? { pedido_id: BigInt(validated.pedido_id) } : {}),
         ...(validated.estado ? { estado: validated.estado } : {}),
@@ -45,9 +47,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await prisma.reservas_stock.delete({ where: { id: BigInt(params.id) } });
+    const { id } = await params;
+    await prisma.reservas_stock.delete({ where: { id: BigInt(id) } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[DELETE /reservas-stock/:id]', error);

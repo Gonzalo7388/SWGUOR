@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       include: {
         categorias: true,
         variantes_producto: true,
-        ficha_tecnica: true,
+        fichas_tecnicas: true,
       },
     });
 

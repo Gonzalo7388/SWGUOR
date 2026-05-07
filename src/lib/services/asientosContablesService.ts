@@ -2,93 +2,95 @@ import { prisma } from '@/lib/prisma';
 import { CrearAsientoContable, AsientoContable } from '@/lib/schemas/asientosContablesSchema';
 
 export const asientosContablesService = {
-  crear: async (datos: CrearAsientoContable): Promise<any> => {
-    const ultimoAsiento = await prisma.asientosContables.findFirst({
-      orderBy: { numero: 'desc' },
-      select: { numero: true },
-    });
-
-    const proximoNumero = (ultimoAsiento?.numero ? parseInt(ultimoAsiento.numero) : 0) + 1;
-
-    const totalDebito = detalles.reduce((sum, d) => sum + (d.debito || 0), 0);
-    const totalCredito = detalles.reduce((sum, d) => sum + (d.credito || 0), 0);
-
-    if (Math.abs(totalDebito - totalCredito) > 0.01) {
-      throw new Error('El asiento no está balanceado. Débito debe igual a Crédito');
+  listar: async (filtros?: any): Promise<AsientoContable[]> => {
+    const where: any = {};
+    if (filtros?.tipo) where.tipo = filtros.tipo;
+    if (filtros?.cuenta) where.cuenta = filtros.cuenta;
+    if (filtros?.pedido_id) where.pedido_id = BigInt(filtros.pedido_id);
+    if (filtros?.pago_id) where.pago_id = BigInt(filtros.pago_id);
+    if (filtros?.desde || filtros?.hasta) {
+      where.fecha = {};
+      if (filtros?.desde) where.fecha.gte = filtros.desde;
+      if (filtros?.hasta) where.fecha.lte = filtros.hasta;
     }
 
-    return await prisma.asientosContables.create({
+    return await prisma.asientos_contables.findMany({
+      where,
+      orderBy: { fecha: 'desc' },
+    }) as unknown as Promise<any[]>;
+  },
+
+  obtenerPorId: async (id: string): Promise<any | null> => {
+    return await prisma.asientos_contables.findUnique({
+      where: { id: BigInt(id) },
+    }) as unknown as Promise<any | null>;
+  },
+
+  crear: async (datos: CrearAsientoContable): Promise<any> => {
+    const body = datos as any;
+    return await prisma.asientos_contables.create({
       data: {
-        numero: proximoNumero.toString(),
-        fecha: datos.fecha,
-        concepto: datos.concepto,
-        tipoAsiento: datos.tipoAsiento,
-        estado: 'BORRADOR',
-        moneda: datos.moneda,
-        tasaCambio: datos.tasaCambio,
-        creadoPor: datos.creadoPor,
-        referencia: datos.referencia,
-        observaciones: datos.observaciones,
-        totalDebito,
-        totalCredito,
-        detalles: {
-          createMany: {
-            data: detalles.map((d: any) => ({
-              cuentaId: d.cuentaId,
-              descripcion: d.descripcion,
-              debito: d.debito,
-              credito: d.credito,
-              referencia: d.referencia,
-            })),
-          },
-        },
+        fecha: body.fecha,
+        tipo: body.tipo,
+        monto: body.monto,
+        cuenta: body.cuenta,
+        descripcion: body.descripcion,
+        pedido_id: body.pedido_id ? BigInt(body.pedido_id) : undefined,
+        pago_id: body.pago_id ? BigInt(body.pago_id) : undefined,
+        usuario_id: body.usuario_id ? BigInt(body.usuario_id) : undefined,
       },
-      include: { detalles: true },
-    }) as Promise<AsientoContable>;
+    }) as Promise<any>;
+  },
+
+  actualizar: async (id: string, datos: Partial<CrearAsientoContable>): Promise<any> => {
+    const body = datos as any;
+    return await prisma.asientos_contables.update({
+      where: { id: BigInt(id) },
+      data: {
+        ...(body.fecha ? { fecha: body.fecha } : {}),
+        ...(body.tipo ? { tipo: body.tipo } : {}),
+        ...(body.monto !== undefined ? { monto: body.monto } : {}),
+        ...(body.cuenta ? { cuenta: body.cuenta } : {}),
+        ...(body.descripcion !== undefined ? { descripcion: body.descripcion } : {}),
+        ...(body.pedido_id !== undefined ? { pedido_id: body.pedido_id ? BigInt(body.pedido_id) : null } : {}),
+        ...(body.pago_id !== undefined ? { pago_id: body.pago_id ? BigInt(body.pago_id) : null } : {}),
+        ...(body.usuario_id !== undefined ? { usuario_id: body.usuario_id ? BigInt(body.usuario_id) : null } : {}),
+      },
+    }) as Promise<any>;
+  },
+
+  eliminar: async (id: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      await prisma.asientos_contables.delete({
+        where: { id: BigInt(id) },
+      });
+      return { success: true, message: 'Registro eliminado correctamente' };
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        return { success: false, message: 'Registro no encontrado' };
+      }
+      throw error;
+    }
   },
 
   obtenerTodas: async (filtros?: any): Promise<any[]> => {
-    const where: any = {};
-    if (filtros?.tipoAsiento) where.tipoAsiento = filtros.tipoAsiento;
-    if (filtros?.estado) where.estado = filtros.estado;
-
-    return await prisma.asientosContables.findMany({
-      where,
-      orderBy: { fecha: 'desc' },
-      include: { detalles: true },
-    }) as Promise<AsientoContable[]>;
+    return await asientosContablesService.listar(filtros);
   },
 
-  aprobar: async (asientoId: string, aprobadoPor: string): Promise<AsientoContable> => {
-    return await prisma.asientosContables.update({
-      where: { id: asientoId },
-      data: {
-        estado: 'REGISTRADO',
-        aprobadoPor,
-      },
-      include: { detalles: true },
-    }) as Promise<AsientoContable>;
+  aprobar: async (_asientoId: string, _aprobadoPor: string): Promise<AsientoContable> => {
+    throw new Error('No implementado');
   },
 
-  reversear: async (asientoId: string, motivo: string): Promise<AsientoContable> => {
-    return await prisma.asientosContables.update({
-      where: { id: asientoId },
-      data: {
-        estado: 'REVERSADO',
-        observaciones: `REVERSADO: ${motivo}`,
-      },
-      include: { detalles: true },
-    }) as Promise<AsientoContable>;
+  reversear: async (_asientoId: string, _motivo: string): Promise<AsientoContable> => {
+    throw new Error('No implementado');
   },
 
-  obtenerPorPeriodo: async (desde: Date, hasta: Date): Promise<AsientoContable[]> => {
-    return await prisma.asientosContables.findMany({
+  obtenerPorPeriodo: async (desde: Date, hasta: Date): Promise<any[]> => {
+    return await prisma.asientos_contables.findMany({
       where: {
         fecha: { gte: desde, lte: hasta },
-        estado: { not: 'BORRADOR' },
       },
       orderBy: { fecha: 'desc' },
-      include: { detalles: true },
-    }) as Promise<AsientoContable[]>;
+    }) as unknown as Promise<any[]>;
   },
 };

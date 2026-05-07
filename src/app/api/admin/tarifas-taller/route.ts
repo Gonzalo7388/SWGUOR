@@ -25,14 +25,14 @@ export async function POST(request: NextRequest) {
 
     const tarifa = await prisma.tarifas_taller.create({
       data: {
-        taller_id: BigInt(validated.taller_id),
-        especialidad: validated.especialidad,
-        precio_unitario: validated.precio_unitario,
+        taller_id: BigInt(validated.tallerId),
+        especialidad: validated.tipoServicio,
+        precio_unitario: validated.precioUnitario,
         moneda: validated.moneda,
-        vigente_desde: new Date(validated.vigente_desde),
-        vigente_hasta: validated.vigente_hasta ? new Date(validated.vigente_hasta) : undefined,
+        vigente_desde: new Date(validated.vigenciaDesde),
+        vigente_hasta: validated.vigenciaHasta ? new Date(validated.vigenciaHasta) : undefined,
         activo: validated.activo,
-        notas: validated.notas,
+        notas: validated.observaciones,
       },
       include: { talleres: true },
     });

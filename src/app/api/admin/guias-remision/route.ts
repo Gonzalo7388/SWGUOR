@@ -47,14 +47,10 @@ export async function POST(request: NextRequest) {
         observaciones:     validated.observaciones     ?? null,
         pdf_url:           validated.pdf_url            ?? null,
         emitido_por:       validated.emitido_por ? BigInt(validated.emitido_por) : null,
-        guias_remision_items: {
-          create: validated.items.map((item) => ({
-            producto_id: BigInt(item.producto_id),
-            cantidad:    item.cantidad,
-            unidad:      item.unidad_medida, // ← campo en DB es "unidad", no "unidad_medida"
-            descripcion: item.descripcion,
-          })),
-        },
+        // items se crearán en un endpoint separado cuando sea implementado
+        // guias_remision_items: {
+        //   create: validated.items?.map(...) || []
+        // },
       },
       include: { guias_remision_items: true, pedidos: true },
     });

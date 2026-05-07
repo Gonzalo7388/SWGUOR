@@ -1,5 +1,43 @@
 import { PrecioHistorico } from '@/lib/schemas/precioHistoricoSchema';
 
+const baseUrl = '/api/admin/precio-historico';
+
+export async function fetchPrecioHistorico(productoId?: string): Promise<PrecioHistorico[]> {
+  const url = productoId ? `${baseUrl}?producto_id=${encodeURIComponent(productoId)}` : baseUrl;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Error al obtener el histórico de precios');
+  const payload = await response.json();
+  return payload.data ?? payload;
+}
+
+export async function createPrecioHistorico(data: any) {
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Error al crear el histórico de precios');
+  return response.json();
+}
+
+export async function updatePrecioHistorico(id: string, data: any) {
+  const response = await fetch(`${baseUrl}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Error al actualizar el histórico de precios');
+  return response.json();
+}
+
+export async function deletePrecioHistorico(id: string) {
+  const response = await fetch(`${baseUrl}/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Error al eliminar el histórico de precios');
+  return response.json();
+}
+
 export const precioHistoricoHelpers = {
   calcularVariacion: (actual: PrecioHistorico): number =>
     ((actual.precioNuevo - actual.precioAnterior) / actual.precioAnterior) * 100,
@@ -13,10 +51,10 @@ export const precioHistoricoHelpers = {
   },
 
   obtenerPrecioMaximo: (precios: PrecioHistorico[]): PrecioHistorico | undefined =>
-    precios.reduce((prev, curr) => curr.precioNuevo > prev.precioNuevo ? curr : prev),
+    precios.reduce((prev, curr) => (curr.precioNuevo > prev.precioNuevo ? curr : prev)),
 
   obtenerPrecioMinimo: (precios: PrecioHistorico[]): PrecioHistorico | undefined =>
-    precios.reduce((prev, curr) => curr.precioNuevo < prev.precioNuevo ? curr : prev),
+    precios.reduce((prev, curr) => (curr.precioNuevo < prev.precioNuevo ? curr : prev)),
 
   agruparPorRazon: (precios: PrecioHistorico[]) =>
     precios.reduce((acc, curr) => {

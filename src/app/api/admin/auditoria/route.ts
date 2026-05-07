@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auditoriaQuerySchema } from '@/lib/schemas/auditoria';
+import { obtenerAuditoriaSchema as auditoriaQuerySchema } from '@/lib/schemas/auditoriaSchema';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 
@@ -9,18 +9,21 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const result = auditoriaQuerySchema.safeParse({
-      usuario_id: searchParams.get('usuario_id') ?? undefined,
-      tabla: searchParams.get('tabla') ?? undefined,
-      accion: searchParams.get('accion') ?? undefined,
-      desde: searchParams.get('desde') ?? undefined,
-      hasta: searchParams.get('hasta') ?? undefined,
+      filtro: {
+        usuario_id: searchParams.get('usuario_id') ? parseInt(searchParams.get('usuario_id')!) : undefined,
+        tabla: searchParams.get('tabla') ?? undefined,
+        accion: searchParams.get('accion') ?? undefined,
+        desde: searchParams.get('desde') ? new Date(searchParams.get('desde')!) : undefined,
+        hasta: searchParams.get('hasta') ? new Date(searchParams.get('hasta')!) : undefined,
+      },
     });
 
     if (!result.success) {
       return NextResponse.json({ error: 'Filtros inválidos', details: result.error.issues }, { status: 400 });
     }
 
-    const { usuario_id, tabla, accion, desde, hasta } = result.data;
+    const { filtro } = result.data;
+    const { usuario_id, tabla, accion, desde, hasta } = filtro || {};
     const where: any = {};
 
     if (usuario_id) where.usuario_id = BigInt(usuario_id);

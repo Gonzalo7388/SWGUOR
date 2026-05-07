@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { precioHistoricoBaseSchema as precioHistoricoSchema } from '@/lib/schemas/precioHistoricoSchema';
-import { PrecioHistoricoService } from '@/lib/services/precio-historico-services';
+import { precioHistoricoService } from '@/lib/services';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { ZodError } from 'zod';
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const producto_id = url.searchParams.get('producto_id') ?? undefined;
-    const data = await PrecioHistoricoService.listar(producto_id);
+    const data = await precioHistoricoService.listar(producto_id);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const validated = precioHistoricoSchema.parse(body);
-    const data = await PrecioHistoricoService.crear(validated);
+    const data = await precioHistoricoService.crear(validated);
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {

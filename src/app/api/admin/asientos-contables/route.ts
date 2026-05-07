@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { asientoContableBaseSchema as asientosContablesSchema } from '@/lib/schemas/asientosContablesSchema';
-import { AsientosContablesService } from '@/lib/services/asientos-contables-services';
+import { asientosContablesService } from '@/lib/services';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { ZodError } from 'zod';
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const pedido_id = url.searchParams.get('pedido_id') ?? undefined;
     const pago_id = url.searchParams.get('pago_id') ?? undefined;
-    const data = await AsientosContablesService.listar({ pedido_id, pago_id });
+    const data = await asientosContablesService.listar({ pedido_id, pago_id });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const validated = asientosContablesSchema.parse(body);
-    const data = await AsientosContablesService.crear(validated);
+    const data = await asientosContablesService.crear(validated);
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {

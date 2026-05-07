@@ -1,38 +1,46 @@
 import { prisma } from '@/lib/prisma';
-import { Auditoria } from '@/lib/schemas/auditoriaSchema';
 
+// Auditoria service - compatible con el schema real de Prisma
 export const auditoriaService = {
-  registrar: async (datos: Omit<Auditoria, 'id' | 'timestamp'>): Promise<any> => {
-    return await prisma.auditoria.create({
-      data: {
-        usuario: datos.usuario,
-        accion: datos.accion,
-        tabla: datos.tabla,
-        registroId: datos.registroId,
-        cambios: datos.cambios,
-        ipOrigen: datos.ipOrigen,
-        userAgent: datos.userAgent,
-        estatus: datos.estatus,
-        detalleError: datos.detalleError,
-        modulo: datos.modulo,
-        descripcion: datos.descripcion,
-        sessionId: datos.sessionId,
-        timestamp: new Date(),
-      },
-    });
+  registrar: async (datos: {
+    usuario_id?: bigint | null;
+    accion: string;
+    tabla: string;
+    registro_id: bigint;
+    datos_antes?: any;
+    datos_despues?: any;
+    ip_address?: string;
+    user_agent?: string;
+  }): Promise<any> => {
+    try {
+      return await prisma.auditoria.create({
+        data: {
+          usuario_id: datos.usuario_id || null,
+          accion: datos.accion as any,
+          tabla: datos.tabla,
+          registro_id: datos.registro_id,
+          datos_antes: datos.datos_antes || null,
+          datos_despues: datos.datos_despues || null,
+          ip_address: datos.ip_address || null,
+          user_agent: datos.user_agent || null,
+        },
+      });
+    } catch (error) {
+      console.error('Error registrando auditoria:', error);
+      return null;
+    }
   },
 
-  obtenerRegistros: async (filtros?: any, pagina: number = 1, limite: number = 50): Promise<any[]> => {
+  obtenerRegistros: async (filtros?: any, pagina: number = 1, limite: number = 50): Promise<any> => {
     const where: any = {};
-    if (filtros?.usuario) where.usuario = filtros.usuario;
     if (filtros?.accion) where.accion = filtros.accion;
     if (filtros?.tabla) where.tabla = filtros.tabla;
-    if (filtros?.estatus) where.estatus = filtros.estatus;
+    if (filtros?.usuario_id) where.usuario_id = filtros.usuario_id;
 
     const [registros, total] = await Promise.all([
       prisma.auditoria.findMany({
         where,
-        orderBy: { timestamp: 'desc' },
+        orderBy: { created_at: 'desc' },
         skip: (pagina - 1) * limite,
         take: limite,
       }),
@@ -48,38 +56,24 @@ export const auditoriaService = {
     };
   },
 
-  obtenerPorTabla: async (tabla: string, registroId: string): Promise<any[]> => {
+  obtenerPorTabla: async (tabla: string, registro_id: bigint): Promise<any[]> => {
     return await prisma.auditoria.findMany({
-      where: { tabla, registroId },
-      orderBy: { timestamp: 'desc' },
+      where: { tabla, registro_id },
+      orderBy: { created_at: 'desc' },
     });
   },
 
-  obtenerPorUsuario: async (usuarioId: string, desde?: Date, hasta?: Date): Promise<any[]> => {
-    const where: any = { usuario: usuarioId };
+  obtenerPorUsuario: async (usuario_id: bigint, desde?: Date, hasta?: Date): Promise<any[]> => {
+    const where: any = { usuario_id };
     if (desde || hasta) {
-      where.timestamp = {};
-      if (desde) where.timestamp.gte = desde;
-      if (hasta) where.timestamp.lte = hasta;
+      where.created_at = {};
+      if (desde) where.created_at.gte = desde;
+      if (hasta) where.created_at.lte = hasta;
     }
 
     return await prisma.auditoria.findMany({
       where,
-      orderBy: { timestamp: 'desc' },
-    });
-  },
-
-  obtenerErrores: async (desde?: Date, hasta?: Date): Promise<any[]> => {
-    const where: any = { estatus: 'ERROR' };
-    if (desde || hasta) {
-      where.timestamp = {};
-      if (desde) where.timestamp.gte = desde;
-      if (hasta) where.timestamp.lte = hasta;
-    }
-
-    return await prisma.auditoria.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
+      orderBy: { created_at: 'desc' },
     });
   },
 
@@ -88,7 +82,7 @@ export const auditoriaService = {
     fecha.setDate(fecha.getDate() - diasAnterior);
 
     const result = await prisma.auditoria.deleteMany({
-      where: { timestamp: { lt: fecha } },
+      where: { created_at: { lt: fecha } },
     });
     return result.count;
   },
@@ -96,7 +90,7 @@ export const auditoriaService = {
   generarResumen: async (desde: Date, hasta: Date) => {
     const registros = await prisma.auditoria.findMany({
       where: {
-        timestamp: { gte: desde, lte: hasta },
+        created_at: { gte: desde, lte: hasta },
       },
     });
 
@@ -106,15 +100,10 @@ export const auditoriaService = {
         acc[r.accion] = (acc[r.accion] || 0) + 1;
         return acc;
       }, {}),
-      porUsuario: registros.reduce((acc: any, r: any) => {
-        acc[r.usuario] = (acc[r.usuario] || 0) + 1;
+      porTabla: registros.reduce((acc: any, r: any) => {
+        acc[r.tabla] = (acc[r.tabla] || 0) + 1;
         return acc;
       }, {}),
-      porModulo: registros.reduce((acc: any, r: any) => {
-        acc[r.modulo] = (acc[r.modulo] || 0) + 1;
-        return acc;
-      }, {}),
-      errores: registros.filter(r => r.estatus === 'ERROR').length,
     };
   },
 };

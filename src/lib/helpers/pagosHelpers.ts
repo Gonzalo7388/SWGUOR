@@ -2,38 +2,38 @@ import { Pago } from '@/lib/schemas/pagosSchema';
 
 export const pagosHelpers = {
   estaCompletado: (pago: Pago): boolean =>
-    pago.estatus === 'COMPLETADO',
+    pago.estado === 'verificado',
 
   estaPendiente: (pago: Pago): boolean =>
-    pago.estatus === 'PENDIENTE',
+    pago.estado === 'pendiente',
 
   estaProcesando: (pago: Pago): boolean =>
-    pago.estatus === 'PROCESANDO',
+    pago.estado === 'pendiente',
 
   estaRechazado: (pago: Pago): boolean =>
-    pago.estatus === 'RECHAZADO',
+    pago.estado === 'rechazado',
 
   estaReembolsado: (pago: Pago): boolean =>
-    pago.estatus === 'REEMBOLSADO',
+    pago.estado === 'rechazado',
 
   agruparPorEstatus: (pagos: Pago[]) =>
     pagos.reduce((acc, curr) => {
-      if (!acc[curr.estatus]) acc[curr.estatus] = [];
-      acc[curr.estatus].push(curr);
+      if (!acc[curr.estado]) acc[curr.estado] = [];
+      acc[curr.estado].push(curr);
       return acc;
     }, {} as Record<string, Pago[]>),
 
   agruparPorMetodo: (pagos: Pago[]) =>
     pagos.reduce((acc, curr) => {
-      if (!acc[curr.metodoPago]) acc[curr.metodoPago] = [];
-      acc[curr.metodoPago].push(curr);
+      if (!acc[curr.metodo_pago]) acc[curr.metodo_pago] = [];
+      acc[curr.metodo_pago].push(curr);
       return acc;
     }, {} as Record<string, Pago[]>),
 
   obtenerMontoTotalCompletado: (pagos: Pago[]): number =>
     pagos
       .filter(p => pagosHelpers.estaCompletado(p))
-      .reduce((sum, p) => sum + p.monto, 0),
+      .reduce((sum, p) => sum + (typeof p.monto === 'number' ? p.monto : Number(p.monto)), 0),
 
   obtenerMontoTotalPendiente: (pagos: Pago[]): number =>
     pagos

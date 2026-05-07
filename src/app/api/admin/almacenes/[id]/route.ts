@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { almacenUpdateSchema } from '@/lib/schemas/almacen';
+import { actualizarAlmacenSchema as almacenUpdateSchema } from '@/lib/schemas/almacenesSchema';
 import { ZodError } from 'zod';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const almacen = await prisma.almacenes.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
     });
 
     if (!almacen) {
@@ -20,13 +21,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = almacenUpdateSchema.parse(body);
 
     const almacen = await prisma.almacenes.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
       data: validated,
     });
 
@@ -40,10 +42,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await prisma.almacenes.delete({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
     });
 
     return NextResponse.json({ message: 'Almacén eliminado' });

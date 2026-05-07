@@ -3,10 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { feedbackClienteUpdateSchema } from '@/lib/schemas/feedback-cliente';
 import { ZodError } from 'zod';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const feedback = await prisma.feedback_cliente.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
       include: { clientes: true, pedidos: true },
     });
 
@@ -21,13 +22,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = feedbackClienteUpdateSchema.parse(body);
 
     const feedback = await prisma.feedback_cliente.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
       data: validated,
       include: { clientes: true, pedidos: true },
     });
@@ -42,10 +44,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     await prisma.feedback_cliente.delete({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
     });
 
     return NextResponse.json({ message: 'Feedback eliminado' });

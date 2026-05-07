@@ -32,11 +32,6 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3">
-<<<<<<< HEAD
-          <Image src="/logo.png" alt="GUOR Logo" width={40} height={40} className="object-contain" />
-          <span className="text-xl font-black tracking-tight uppercase italic" style={{ color: "#231e1d" }}>
-            Guor<span className="not-italic" style={{ color: "#e4c28a" }}>Style</span>
-=======
           <Image
             src="/logo.png"
             alt="GUOR Logo"
@@ -52,17 +47,12 @@ const Navbar = () => {
             <span className="not-italic" style={{ color: "#e4c28a" }}>
               Style
             </span>
->>>>>>> test
           </span>
         </Link>
 
         {/* LINKS DESKTOP */}
         <div className="hidden md:flex items-center gap-8">
-<<<<<<< HEAD
-          {["nosotros", "catalogo", "testimonios", "preguntas"].map((item) => (
-=======
           {navItems.map((item) => (
->>>>>>> test
             <Link
               key={item.name}
               href={item.href}

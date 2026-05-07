@@ -24,13 +24,13 @@ export default function NotificacionesPage() {
       const raw: any[] = Array.isArray(response.data) ? response.data : [];
 
       const normalized: Notificacion[] = raw.map((n) => ({
-        id:              String(n.id),       // bigint → string
+        id:              Number(n.id),       // bigint → number
         usuario_id:      Number(n.usuario_id),
         tipo:            n.tipo,
         titulo:          n.titulo,
         mensaje:         n.mensaje,
         leido:           n.leido ?? false,
-        leido_at:        n.leido_at ?? null,
+        leido_at:        n.leido_at ? new Date(n.leido_at) : null,
         referencia_tipo: n.referencia_tipo ?? null,
         referencia_id:   n.referencia_id != null ? Number(n.referencia_id) : null,
         url_destino:     n.url_destino ?? null,

@@ -7,7 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { almacenSchema, AlmacenInput } from '@/lib/schemas/almacen';
+import { z } from 'zod';
+
+const almacenFormSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es obligatorio'),
+  descripcion: z.string().optional(),
+  ubicacion: z.string().optional(),
+  capacidad_maxima: z.number().int().positive().optional(),
+  estado: z.enum(['activo', 'inactivo']),
+});
+
+type AlmacenInput = z.infer<typeof almacenFormSchema>;
 
 interface AlmacenDialogProps {
   open: boolean;
@@ -55,7 +65,7 @@ export default function AlmacenDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const validated = almacenSchema.parse(formData);
+      const validated = almacenFormSchema.parse(formData);
       onSave(validated);
     } catch (error: any) {
       const zodErrors: Record<string, string> = {};

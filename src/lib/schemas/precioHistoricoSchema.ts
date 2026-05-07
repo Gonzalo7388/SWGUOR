@@ -2,8 +2,9 @@ import { z } from 'zod';
 
 export const precioHistoricoBaseSchema = z.object({
   id: z.number().int().positive(),
-  producto_id: z.number().int().positive(),
-  precio: z.number().positive().multipleOf(0.01),
+  productoId: z.string().uuid(),
+  precioAnterior: z.number().nonnegative(),
+  precioNuevo: z.number().nonnegative(),
   moneda: z.enum(['PEN', 'USD']).default('PEN'),
   tipoProducto: z.enum(['MATERIA_PRIMA', 'CONFECCIONADO']),
   fechaVigencia: z.date(),

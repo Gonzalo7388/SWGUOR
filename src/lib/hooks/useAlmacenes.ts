@@ -53,7 +53,7 @@ export function useAlmacenes() {
       if (!response.ok) throw new Error('Error al actualizar almacén');
       
       const almacenActualizado: Almacen = await response.json();
-      setAlmacenes(prev => prev.map(a => a.id === id ? almacenActualizado : a));
+      setAlmacenes(prev => prev.map(a => a.id === Number(id) ? almacenActualizado : a));
       return almacenActualizado;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

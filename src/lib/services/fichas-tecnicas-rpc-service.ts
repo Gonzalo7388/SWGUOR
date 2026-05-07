@@ -157,7 +157,7 @@ export async function crearFichaTecnica(
     await insertarMovimiento({
       tipoMovimiento: "entrada",
       referenciaType: "PRODUCCION",
-      referenciaId: ficha.id,
+      referenciaId: Number(ficha.id),
       cantidad: 1,
       motivo: `Ficha técnica creada para producto ${input.productoId}`,
       usuarioId: input.createdBy,
@@ -166,7 +166,7 @@ export async function crearFichaTecnica(
     // Calcular costo
     let costoCalculado = 0;
     try {
-      costoCalculado = await calcularCostoFicha({ fichaId: ficha.id });
+      costoCalculado = await calcularCostoFicha({ fichaId: Number(ficha.id) });
     } catch (error) {
       console.warn("No se pudo calcular costo inicial:", error);
     }
@@ -205,7 +205,6 @@ export async function actualizarFichaTecnica(
         sam_total: input.samTotal
           ? new Prisma.Decimal(input.samTotal)
           : undefined,
-        updated_at: new Date(),
         fichas_tecnicas_detalle: input.detalles
           ? {
               create: input.detalles.map((detalle) => ({

@@ -68,9 +68,9 @@ export default function ConfeccionesPage() {
     const list = Array.isArray(confecciones) ? confecciones : [];
     return {
       total:       list.length,
-      activas:     list.filter(c => !["completado", "cancelado"].includes(c.estado)).length,
-      urgentes:    list.filter(c => c.prioridad === "urgente" && c.estado !== "completado").length,
-      completadas: list.filter(c => c.estado === "completado").length,
+      activas:     list.filter(c => !["completada", "cancelada"].includes(c.estado)).length,
+      urgentes:    list.filter(c => c.prioridad === "urgente" && c.estado !== "completada").length,
+      completadas: list.filter(c => c.estado === "completada").length,
     };
   }, [confecciones]);
 
@@ -78,9 +78,9 @@ export default function ConfeccionesPage() {
   const confeccionesFiltradas = useMemo(() => {
     let result = Array.isArray(confecciones) ? [...confecciones] : [];
 
-    if (statusFilter === "activas")    result = result.filter(c => !["completado", "cancelado"].includes(c.estado));
-    if (statusFilter === "urgentes")   result = result.filter(c => c.prioridad === "urgente" && c.estado !== "completado");
-    if (statusFilter === "completadas") result = result.filter(c => c.estado === "completado");
+    if (statusFilter === "activas")    result = result.filter(c => !["completada", "cancelada"].includes(c.estado));
+    if (statusFilter === "urgentes")   result = result.filter(c => c.prioridad === "urgente" && c.estado !== "completada");
+    if (statusFilter === "completadas") result = result.filter(c => c.estado === "completada");
 
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();

@@ -53,7 +53,7 @@ export function useGuiasRemision() {
       if (!response.ok) throw new Error('Error al entregar guía');
       
       const guiaActualizada: GuiaRemision = await response.json();
-      setGuias(prev => prev.map(g => g.id === guiaId ? guiaActualizada : g));
+      setGuias(prev => prev.map(g => g.id === Number(guiaId) ? guiaActualizada : g));
       return guiaActualizada;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

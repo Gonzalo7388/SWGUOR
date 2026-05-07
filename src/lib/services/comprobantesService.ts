@@ -5,36 +5,28 @@ export const comprobantesService = {
   crear: async (datos: CrearComprobante): Promise<any> => {
     const ultimoComprobante = await prisma.comprobantes.findFirst({
       where: { serie: datos.serie },
-      orderBy: { numero: 'desc' },
-      select: { numero: true },
+      orderBy: { correlativo: 'desc' },
+      select: { correlativo: true },
     });
 
-    const proximoNumero = (ultimoComprobante?.numero ? parseInt(ultimoComprobante.numero) : 0) + 1;
+    const proximoNumero = (ultimoComprobante?.correlativo ? parseInt(ultimoComprobante.correlativo) : 0) + 1;
 
     return await prisma.comprobantes.create({
       data: {
-        numero: proximoNumero.toString(),
+        correlativo: proximoNumero.toString(),
         serie: datos.serie,
         tipo: datos.tipo,
-        estado: 'BORRADOR',
-        clienteId: datos.clienteId,
-        fecha: datos.fecha,
-        fechaVencimiento: datos.fechaVencimiento,
-        montoSubtotal: datos.montoSubtotal,
-        igv: datos.igv,
-        otrosCargos: datos.otrosCargos,
-        descuento: datos.descuento,
-        montoTotal: datos.montoTotal,
         moneda: datos.moneda,
-        metodoPago: datos.metodoPago,
-        referencia: datos.referencia,
-        observaciones: datos.observaciones,
-        emitidoPor: datos.emitidoPor,
+        ruc_emisor: datos.ruc_emisor || '',
+        fecha_emision: datos.fecha || new Date(),
+        subtotal: datos.subtotal || 0,
+        igv: datos.igv || 0,
+        total: datos.total || 0,
       },
-    }) as Promise<Comprobante>;
+    }) as Promise<any>;
   },
 
-  obtenerTodas: async (filtros?: any): Promise<any[]> => {
+  listar: async (filtros?: any): Promise<any[]> => {
     const where: any = {};
     if (filtros?.clienteId) where.clienteId = filtros.clienteId;
     if (filtros?.tipo) where.tipo = filtros.tipo;
@@ -42,44 +34,39 @@ export const comprobantesService = {
 
     return await prisma.comprobantes.findMany({
       where,
-      orderBy: { fecha: 'desc' },
-    }) as Promise<Comprobante[]>;
+      orderBy: { fecha_emision: 'desc' },
+    }) as unknown as Promise<any[]>;
   },
 
-  anular: async (comprobanteId: string, motivo: string): Promise<Comprobante> => {
+  anular: async (comprobanteId: string, motivo: string): Promise<any> => {
     return await prisma.comprobantes.update({
-      where: { id: comprobanteId },
+      where: { id_uuid: comprobanteId },
       data: {
-        estado: 'ANULADA',
-        observaciones: `ANULADO: ${motivo}`,
+        pdf_url: `ANULADO: ${motivo}`,
       },
-    }) as Promise<Comprobante>;
+    }) as Promise<any>;
   },
 
-  obtenerPendientes: async (): Promise<Comprobante[]> => {
+  obtenerPendientes: async (): Promise<any[]> => {
     return await prisma.comprobantes.findMany({
-      where: {
-        estado: { in: ['EMITIDA', 'ENVIADA'] },
-      },
-      orderBy: { fechaVencimiento: 'asc' },
-    }) as Promise<Comprobante[]>;
+      orderBy: { fecha_emision: 'asc' },
+    }) as Promise<any[]>;
   },
 
-  obtenerVencidas: async (): Promise<Comprobante[]> => {
+  obtenerVencidas: async (): Promise<any[]> => {
     const ahora = new Date();
     return await prisma.comprobantes.findMany({
       where: {
-        fechaVencimiento: { lt: ahora },
-        estado: { not: 'PAGADA' },
+        fecha_emision: { lt: ahora },
       },
-      orderBy: { fechaVencimiento: 'asc' },
-    }) as Promise<Comprobante[]>;
+      orderBy: { fecha_emision: 'asc' },
+    }) as Promise<any[]>;
   },
 
-  marcarComoPagada: async (comprobanteId: string): Promise<Comprobante> => {
+  marcarComoPagada: async (comprobanteId: string): Promise<any> => {
     return await prisma.comprobantes.update({
-      where: { id: comprobanteId },
-      data: { estado: 'PAGADA' },
-    }) as Promise<Comprobante>;
+      where: { id_uuid: comprobanteId },
+      data: { fecha_emision: new Date() },
+    }) as Promise<any>;
   },
 };

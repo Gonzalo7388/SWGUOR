@@ -28,7 +28,7 @@ export default async function PedidoDetallePage({ params }: PageProps) {
         },
         pedido_items: {
           include: {
-            productos:          { select: { id: true, nombre: true, sku: true, imagen: true, fichas_tecnicas_id: true } },
+            productos:          { select: { id: true, nombre: true, sku: true, imagen: true, fichas_tecnicas: true } },
             variantes_producto: { select: { id: true, color: true, talla: true, sku: true } },
           },
         },

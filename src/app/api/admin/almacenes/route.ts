@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { almacenSchema } from '@/lib/schemas/almacen';
+import { crearAlmacenSchema as almacenSchema } from '@/lib/schemas/almacenesSchema';
 import { ZodError } from 'zod';
 
 export async function GET(request: NextRequest) {

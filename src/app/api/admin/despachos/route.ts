@@ -26,12 +26,6 @@ export async function GET(req: Request) {
             clientes: { select: { id: true, razon_social: true } },
           },
         },
-        usuarios: {
-          select: {
-            id: true,
-            personal_interno: { select: { nombre_completo: true } },
-          },
-        },
       },
       orderBy: { fecha_despacho: 'desc' },
     });
@@ -41,7 +35,6 @@ export async function GET(req: Request) {
       despacho_id:    `DSP-${String(d.id).padStart(6, '0')}`,
       cliente:        d.pedidos?.clientes?.razon_social ?? 'N/A',
       direccion:      d.direccion_entrega,
-      usuario_nombre: d.usuarios?.personal_interno?.[0]?.nombre_completo ?? 'N/A',
     }));
 
     return NextResponse.json({ data, count: data.length });
@@ -89,18 +82,12 @@ export async function POST(req: Request) {
     const despacho = await prisma.despachos.create({
       data: {
         pedido_id:         pedidoId,
-        usuario_id:        usuarioId,
         direccion_entrega: body.direccion_entrega.trim(),
         fecha_despacho:    body.fecha_despacho ? new Date(body.fecha_despacho) : new Date(),
         estado:            body.estado ?? 'pendiente',
       },
       include: {
         pedidos: { include: { clientes: { select: { razon_social: true } } } },
-        usuarios: {
-          select: {
-            personal_interno: { select: { nombre_completo: true } },
-          },
-        },
       },
     });
 
@@ -154,11 +141,6 @@ export async function PATCH(req: Request) {
         data,
         include: {
           pedidos: { include: { clientes: { select: { razon_social: true } } } },
-          usuarios: {
-            select: {
-              personal_interno: { select: { nombre_completo: true } },
-            },
-          },
         },
       });
 

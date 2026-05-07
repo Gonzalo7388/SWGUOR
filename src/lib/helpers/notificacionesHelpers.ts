@@ -1,14 +1,11 @@
-import { Notificacion, TipoNotificacion, CanalNotificacion } from '@/lib/schemas/notificacionesSchema';
+import { Notificacion, TipoNotificacion } from '@/lib/schemas/notificacionesSchema';
 
 export const notificacionesHelpers = {
-  filtrarPorEstatus: (notificaciones: Notificacion[], leida: boolean) => 
-    notificaciones.filter(n => n.leida === leida),
+  filtrarPorEstatus: (notificaciones: Notificacion[], leido: boolean) => 
+    notificaciones.filter(n => n.leido === leido),
 
   filtrarPorTipo: (notificaciones: Notificacion[], tipo: TipoNotificacion) => 
     notificaciones.filter(n => n.tipo === tipo),
-
-  filtrarPorCanal: (notificaciones: Notificacion[], canal: CanalNotificacion) => 
-    notificaciones.filter(n => n.canal === canal),
 
   agruparPorTipo: (notificaciones: Notificacion[]) =>
     notificaciones.reduce((acc, curr) => {
@@ -17,24 +14,17 @@ export const notificacionesHelpers = {
       return acc;
     }, {} as Record<TipoNotificacion, Notificacion[]>),
 
-  obtenerNoLeidasPorCanal: (notificaciones: Notificacion[]) =>
-    notificaciones
-      .filter(n => !n.leida)
-      .reduce((acc, curr) => {
-        if (!acc[curr.canal]) acc[curr.canal] = 0;
-        acc[curr.canal]++;
-        return acc;
-      }, {} as Record<CanalNotificacion, number>),
+  obtenerNoLeidas: (notificaciones: Notificacion[]) =>
+    notificaciones.filter(n => !n.leido),
 
-  marcarMultiplesComoLeidas: (notificaciones: Notificacion[], ids: string[]) =>
+  marcarMultiplesComoLeidas: (notificaciones: Notificacion[], ids: number[]) =>
     notificaciones.map(n => 
-      ids.includes(n.id) ? { ...n, leida: true } : n
+      ids.includes(n.id) ? { ...n, leido: true } : n
     ),
 
   obtenerResumenNotificaciones: (notificaciones: Notificacion[]) => ({
     total: notificaciones.length,
-    noLeidas: notificaciones.filter(n => !n.leida).length,
-    criticas: notificaciones.filter(n => n.prioridad === 'CRITICA').length,
+    noLeidas: notificaciones.filter(n => !n.leido).length,
     porTipo: Object.entries(
       notificaciones.reduce((acc, n) => {
         acc[n.tipo] = (acc[n.tipo] || 0) + 1;

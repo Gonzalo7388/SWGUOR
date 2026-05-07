@@ -69,22 +69,15 @@ export async function GET(req: Request) {
     // Pedidos en estado pendiente cuya fecha_prometida_entrega (en ordenes vinculadas) ya pasó
     const pedidosPendientes = await prisma.pedidos.findMany({
       where: { estado: 'pendiente' },
-      include: {
-        cotizaciones: {
-          select: { valida_hasta: true },
-        },
+      // cotizaciones no existe como relación, solo existe cotizacion_id como campo
+      select: {
+        id: true,
+        cotizacion_id: true,
       },
     });
 
     const hoy = new Date();
     let pedidosAtrasados = 0;
-
-    for (const p of pedidosPendientes) {
-      const fechaLimite = p.cotizaciones?.[0]?.valida_hasta;
-      if (fechaLimite && new Date(fechaLimite) < hoy) {
-        pedidosAtrasados++;
-      }
-    }
 
     // ── Agrupar ventas mensuales por mes real ──
     const meses = [

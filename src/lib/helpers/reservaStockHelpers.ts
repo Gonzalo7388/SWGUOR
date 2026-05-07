@@ -2,40 +2,29 @@ import { ReservaStock } from '@/lib/schemas/reservaStockSchema';
 
 export const reservaStockHelpers = {
   estaActiva: (reserva: ReservaStock): boolean =>
-    reserva.estatus === 'ACTIVA',
-
-  obtenerPorcentajeUtilizado: (reserva: ReservaStock): number =>
-    ((reserva.cantidadReservada - reserva.cantidadDisponible) / reserva.cantidadReservada) * 100,
+    reserva.estado === 'activa',
 
   estaCancelada: (reserva: ReservaStock): boolean =>
-    reserva.estatus === 'CANCELADA',
+    reserva.estado === 'cancelada',
 
   estaVencida: (reserva: ReservaStock): boolean => {
-    if (!reserva.fechaExpiracion) return false;
-    return new Date() > reserva.fechaExpiracion;
+    if (!reserva.expira_en) return false;
+    return new Date() > reserva.expira_en;
   },
 
   necesitaAlerta: (reserva: ReservaStock): boolean =>
-    reserva.estaVencida || reserva.cantidadDisponible === 0,
+    reservaStockHelpers.estaVencida(reserva) || reserva.cantidad === 0,
 
-  agruparPorMotivo: (reservas: ReservaStock[]) =>
+  agruparPorEstado: (reservas: ReservaStock[]) =>
     reservas.reduce((acc, curr) => {
-      if (!acc[curr.motivo]) acc[curr.motivo] = [];
-      acc[curr.motivo].push(curr);
-      return acc;
-    }, {} as Record<string, ReservaStock[]>),
-
-  agruparPorEstatus: (reservas: ReservaStock[]) =>
-    reservas.reduce((acc, curr) => {
-      if (!acc[curr.estatus]) acc[curr.estatus] = [];
-      acc[curr.estatus].push(curr);
+      if (!acc[curr.estado]) acc[curr.estado] = [];
+      acc[curr.estado].push(curr);
       return acc;
     }, {} as Record<string, ReservaStock[]>),
 
   obtenerResumenCapacidad: (reservas: ReservaStock[]) => ({
-    totalReservado: reservas.reduce((sum, r) => sum + r.cantidadReservada, 0),
-    totalDisponible: reservas.reduce((sum, r) => sum + r.cantidadDisponible, 0),
-    totalUtilizado: reservas.reduce((sum, r) => sum + (r.cantidadReservada - r.cantidadDisponible), 0),
+    totalReservado: reservas.reduce((sum, r) => sum + r.cantidad, 0),
+    totalUtilizado: 0,
   }),
 
   filtrarActivasYVigentes: (reservas: ReservaStock[]) =>

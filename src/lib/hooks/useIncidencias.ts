@@ -53,7 +53,7 @@ export function useIncidencias() {
       if (!response.ok) throw new Error('Error al resolver incidencia');
       
       const incidenciaActualizada: Incidencia = await response.json();
-      setIncidencias(prev => prev.map(i => i.id === incidenciaId ? incidenciaActualizada : i));
+      setIncidencias(prev => prev.map(i => i.id === Number(incidenciaId) ? incidenciaActualizada : i));
       return incidenciaActualizada;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -71,7 +71,7 @@ export function useIncidencias() {
       if (!response.ok) throw new Error('Error al asignar incidencia');
       
       const incidenciaActualizada: Incidencia = await response.json();
-      setIncidencias(prev => prev.map(i => i.id === incidenciaId ? incidenciaActualizada : i));
+      setIncidencias(prev => prev.map(i => i.id === Number(incidenciaId) ? incidenciaActualizada : i));
       return incidenciaActualizada;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

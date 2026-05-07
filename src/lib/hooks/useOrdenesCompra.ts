@@ -53,7 +53,7 @@ export function useOrdenesCompra() {
       if (!response.ok) throw new Error('Error al actualizar orden');
       
       const ordenActualizada: OrdenCompra = await response.json();
-      setOrdenes(prev => prev.map(o => o.id === id ? ordenActualizada : o));
+      setOrdenes(prev => prev.map(o => o.id === Number(id) ? ordenActualizada : o));
       return ordenActualizada;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -71,7 +71,7 @@ export function useOrdenesCompra() {
       if (!response.ok) throw new Error('Error al aprobar orden');
       
       const ordenActualizada: OrdenCompra = await response.json();
-      setOrdenes(prev => prev.map(o => o.id === ordenId ? ordenActualizada : o));
+      setOrdenes(prev => prev.map(o => o.id === Number(ordenId) ? ordenActualizada : o));
       return ordenActualizada;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -89,7 +89,7 @@ export function useOrdenesCompra() {
       if (!response.ok) throw new Error('Error al recibir orden');
       
       const ordenActualizada: OrdenCompra = await response.json();
-      setOrdenes(prev => prev.map(o => o.id === ordenId ? ordenActualizada : o));
+      setOrdenes(prev => prev.map(o => o.id === Number(ordenId) ? ordenActualizada : o));
       return ordenActualizada;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

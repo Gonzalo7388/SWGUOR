@@ -53,7 +53,7 @@ export function useComprobantes() {
       if (!response.ok) throw new Error('Error al anular comprobante');
       
       const comprobanteActualizado: Comprobante = await response.json();
-      setComprobantes(prev => prev.map(c => c.id === comprobanteId ? comprobanteActualizado : c));
+      setComprobantes(prev => prev.map(c => c.id === Number(comprobanteId) ? comprobanteActualizado : c));
       return comprobanteActualizado;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

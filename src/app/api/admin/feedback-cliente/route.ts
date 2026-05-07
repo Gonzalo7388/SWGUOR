@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       cliente_id:  BigInt(validated.cliente_id),
       pedido_id:   BigInt(validated.pedido_id),
       puntuacion:  validated.puntuacion,
-      comentarios: validated.comentario ?? null,
+      comentarios: validated.comentarios ?? null,
     },
     include: { clientes: true, pedidos: true },
   });

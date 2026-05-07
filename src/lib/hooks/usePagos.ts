@@ -53,7 +53,7 @@ export function usePagos() {
       if (!response.ok) throw new Error('Error al procesar pago');
       
       const pagoActualizado: Pago = await response.json();
-      setPagos(prev => prev.map(p => p.id === pagoId ? pagoActualizado : p));
+      setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -71,7 +71,7 @@ export function usePagos() {
       if (!response.ok) throw new Error('Error al rechazar pago');
       
       const pagoActualizado: Pago = await response.json();
-      setPagos(prev => prev.map(p => p.id === pagoId ? pagoActualizado : p));
+      setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -89,7 +89,7 @@ export function usePagos() {
       if (!response.ok) throw new Error('Error al reembolsar pago');
       
       const pagoActualizado: Pago = await response.json();
-      setPagos(prev => prev.map(p => p.id === pagoId ? pagoActualizado : p));
+      setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

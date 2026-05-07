@@ -77,12 +77,11 @@ export async function GET(req: Request) {
         where: { created_at: { gte: startDate } },
       }),
 
-      // 8. PAGOS POR MÉTODO
       prisma.pagos.groupBy({
         by: ['metodo_pago'],
         _sum: { monto: true },
         _count: { id: true },
-        orderBy: { _sum: { monto: 'desc' } },
+        where: { created_at: { gte: startDate } },
       }),
     ]);
 
