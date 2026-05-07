@@ -33,7 +33,7 @@ interface TalleresTableProps {
   canEdit: boolean;
   canDelete: boolean;
   onDelete: (taller: any) => void;
-  onEdit: (t: any) => void;
+  onEdit?: (t: any) => void;
 
 }
 

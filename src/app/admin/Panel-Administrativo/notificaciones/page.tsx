@@ -34,7 +34,7 @@ export default function NotificacionesPage() {
         referencia_tipo: n.referencia_tipo ?? null,
         referencia_id:   n.referencia_id != null ? Number(n.referencia_id) : null,
         url_destino:     n.url_destino ?? null,
-        created_at:      n.created_at,
+        created_at:      new Date(n.created_at),
       }));
 
       setNotificaciones(normalized);

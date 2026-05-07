@@ -20,7 +20,7 @@ import {
 // ============================================================================
 
 export interface FichaTecnicaConDetalles extends fichas_tecnicas {
-  detalles: fichas_tecnicas_detalle[];
+  fichas_tecnicas_detalle: fichas_tecnicas_detalle[];
   costoCalculado?: number;
 }
 
@@ -108,6 +108,7 @@ export async function obtenerFichaTecnica(
 
     return {
       ...ficha,
+      fichas_tecnicas_detalle: ficha.fichas_tecnicas_detalle,
       costoCalculado,
     } as any;
   } catch (error) {
@@ -269,7 +270,6 @@ export async function aprobarFichaTecnica(
       where: { id: fichaId },
       data: {
         estado: "aprobada",
-        updated_at: new Date(),
       },
     });
 
@@ -296,7 +296,6 @@ export async function marcarFichaComObsoleta(
       where: { id: fichaId },
       data: {
         estado: "obsoleta",
-        updated_at: new Date(),
       },
     });
   } catch (error) {

@@ -11,7 +11,42 @@ import {
   crearNotificacion,
 } from "@/lib/helpers/rpc-helpers";
 import { almacen_stock, movimientos_inventario } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+
+type ReferenciaMovimientoPrisma = "ORDEN" | "COMPRA" | "VENTA" | "AJUSTE";
+
+function normalizarReferenciaPrisma(referencia: string | undefined): ReferenciaMovimientoPrisma {
+  switch (referencia) {
+    case "COMPRA":
+    case "VENTA":
+    case "AJUSTE":
+    case "ORDEN":
+      return referencia;
+    case "PRODUCCION":
+    case "TRANSFERENCIA":
+      return "ORDEN";
+    case "DEVOLUCCION":
+    case "REEMPLAZO":
+    default:
+      return "AJUSTE";
+  }
+}
+
+function normalizarReferenciaRpc(referencia: string | undefined): "COMPRA" | "VENTA" | "AJUSTE" | "ORDEN" | "PRODUCCION" {
+  switch (referencia) {
+    case "COMPRA":
+    case "VENTA":
+    case "AJUSTE":
+    case "ORDEN":
+    case "PRODUCCION":
+      return referencia;
+    case "TRANSFERENCIA":
+      return "ORDEN";
+    case "DEVOLUCCION":
+    case "REEMPLAZO":
+    default:
+      return "AJUSTE";
+  }
+}
 
 // ============================================================================
 // TIPOS
@@ -51,11 +86,11 @@ export async function obtenerStockProducto(
     });
 
     return stocks.map((s) => ({
-      almacenId: s.almacen_id,
+      almacenId: Number(s.almacen_id),
       almacenNombre: s.almacenes?.nombre || "Desconocido",
       cantidad: Number(s.cantidad || 0),
       stockMinimo: Number(s.stock_minimo || 0),
-      disponible: Number((s.cantidad || 0) - (s.stock_minimo || 0)),
+      disponible: Number(s.cantidad || 0) - Number(s.stock_minimo || 0),
     }));
   } catch (error) {
     console.error("Error en obtenerStockProducto:", error);
@@ -80,11 +115,11 @@ export async function obtenerStockInsumo(
     });
 
     return stocks.map((s) => ({
-      almacenId: s.almacen_id,
+      almacenId: Number(s.almacen_id),
       almacenNombre: s.almacenes?.nombre || "Desconocido",
       cantidad: Number(s.cantidad || 0),
       stockMinimo: Number(s.stock_minimo || 0),
-      disponible: Number((s.cantidad || 0) - (s.stock_minimo || 0)),
+      disponible: Number(s.cantidad || 0) - Number(s.stock_minimo || 0),
     }));
   } catch (error) {
     console.error("Error en obtenerStockInsumo:", error);
@@ -109,11 +144,11 @@ export async function obtenerStockMaterial(
     });
 
     return stocks.map((s) => ({
-      almacenId: s.almacen_id,
+      almacenId: Number(s.almacen_id),
       almacenNombre: s.almacenes?.nombre || "Desconocido",
       cantidad: Number(s.cantidad || 0),
       stockMinimo: Number(s.stock_minimo || 0),
-      disponible: Number((s.cantidad || 0) - (s.stock_minimo || 0)),
+      disponible: Number(s.cantidad || 0) - Number(s.stock_minimo || 0),
     }));
   } catch (error) {
     console.error("Error en obtenerStockMaterial:", error);
@@ -137,6 +172,9 @@ export async function registrarEntrada(data: {
   referenciaId: number;
 }): Promise<movimientos_inventario> {
   try {
+    const referenciaPrisma = normalizarReferenciaPrisma(data.tipoReferencia);
+    const referenciaRpc = normalizarReferenciaRpc(data.tipoReferencia);
+
     // Registrar movimiento
     const movimiento = await prisma.movimientos_inventario.create({
       data: {
@@ -148,7 +186,7 @@ export async function registrarEntrada(data: {
         motivo: data.motivo,
         usuario_id: data.usuarioId,
         tipo_movimiento: "entrada",
-        referencia_tipo: data.tipoReferencia,
+        referencia_tipo: referenciaPrisma,
         referencia_id: data.referenciaId,
       },
     });
@@ -156,7 +194,7 @@ export async function registrarEntrada(data: {
     // Intentar registrar también mediante RPC
     await insertarMovimiento({
       tipoMovimiento: "entrada",
-      referenciaType: data.tipoReferencia,
+      referenciaType: referenciaRpc,
       referenciaId: data.referenciaId,
       cantidad: data.cantidad,
       motivo: data.motivo,
@@ -189,6 +227,9 @@ export async function registrarSalida(data: {
   referenciaId: number;
 }): Promise<movimientos_inventario> {
   try {
+    const referenciaPrisma = normalizarReferenciaPrisma(data.tipoReferencia);
+    const referenciaRpc = normalizarReferenciaRpc(data.tipoReferencia);
+
     // Validar stock suficiente
     if (data.productoId) {
       const tieneSuficiente = await validarStockSuficiente(
@@ -210,7 +251,7 @@ export async function registrarSalida(data: {
         motivo: data.motivo,
         usuario_id: data.usuarioId,
         tipo_movimiento: "salida",
-        referencia_tipo: data.tipoReferencia,
+        referencia_tipo: referenciaPrisma,
         referencia_id: data.referenciaId,
       },
     });
@@ -218,7 +259,7 @@ export async function registrarSalida(data: {
     // Registrar mediante RPC
     await insertarMovimiento({
       tipoMovimiento: "salida",
-      referenciaType: data.tipoReferencia,
+      referenciaType: referenciaRpc,
       referenciaId: data.referenciaId,
       cantidad: data.cantidad,
       motivo: data.motivo,
@@ -249,8 +290,7 @@ export async function registrarAjuste(data: {
   usuarioId?: number;
 }): Promise<movimientos_inventario> {
   try {
-    const cantidad =
-      cantidadNueva - data.cantidadAnterior;
+    const cantidad = data.cantidadNueva - data.cantidadAnterior;
     const tipoMovimiento = cantidad > 0 ? "entrada" : "salida";
 
     const movimiento = await prisma.movimientos_inventario.create({
@@ -321,7 +361,7 @@ export async function filtrarMovimientos(data: {
     const movimientos = await prisma.movimientos_inventario.findMany({
       where: {
         tipo_movimiento: data.tipoMovimiento,
-        referencia_tipo: data.referenciaType,
+        referencia_tipo: data.referenciaType ? normalizarReferenciaPrisma(data.referenciaType) : undefined,
         almacen_id: data.almacenId,
         created_at: {
           gte: data.fechaInicio,
@@ -417,14 +457,14 @@ export async function obtenerItemsConStockBajo(
     return stocksBajos
       .filter(
         (s) =>
-          (s.cantidad || 0) <=
-          ((s.stock_minimo || 0) * 1.2)
+          Number(s.cantidad || 0) <=
+          Number(s.stock_minimo || 0) * 1.2
       )
       .map((s) => {
         if (s.producto_id) {
           return {
             tipo: "producto",
-            id: s.producto_id,
+            id: Number(s.producto_id),
             nombre: s.productos?.nombre || "Desconocido",
             stock: Number(s.cantidad || 0),
             minimo: Number(s.stock_minimo || 0),
@@ -432,7 +472,7 @@ export async function obtenerItemsConStockBajo(
         } else if (s.insumo_id) {
           return {
             tipo: "insumo",
-            id: s.insumo_id,
+            id: Number(s.insumo_id),
             nombre: s.insumo?.nombre || "Desconocido",
             stock: Number(s.cantidad || 0),
             minimo: Number(s.stock_minimo || 0),
@@ -440,7 +480,7 @@ export async function obtenerItemsConStockBajo(
         } else {
           return {
             tipo: "material",
-            id: s.material_id || 0,
+            id: Number(s.material_id || 0),
             nombre: s.materiales?.nombre || "Desconocido",
             stock: Number(s.cantidad || 0),
             minimo: Number(s.stock_minimo || 0),
