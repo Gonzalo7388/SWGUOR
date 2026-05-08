@@ -7,43 +7,38 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ShieldOff, Loader2 } from "lucide-react";
-import type { usuarios } from "@prisma/client";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-interface SuspenderUsuarioDialogProps {
+interface SuspenderTallerDialogProps {
   isOpen:    boolean;
   onClose:   () => void;
   onSuccess: () => void;
-  usuario:   usuarios | null;
+  taller:    any;
 }
 
-// ─── Componente ───────────────────────────────────────────────
-export default function SuspenderUsuarioDialog({
-  isOpen, onClose, onSuccess, usuario,
-}: SuspenderUsuarioDialogProps) {
+export default function SuspenderTallerDialog({
+  isOpen, onClose, onSuccess, taller,
+}: SuspenderTallerDialogProps) {
+  const supabase = getSupabaseBrowserClient();
   const [loading, setLoading] = useState(false);
-
-  const nombre = usuario?.email ?? "este usuario";
+  const nombre = taller?.nombre ?? "este taller";
 
   const handleSuspender = async () => {
-    if (!usuario) return;
+    if (!taller?.id) return;
     setLoading(true);
     try {
-      // Llama a toggleEstado del servicio: cambia estado a "inactivo"
-      // y banea al usuario en Supabase Auth (ban_duration: '87600h')
-      const res = await fetch(`/api/admin/usuarios/${usuario.id}/estado`, {
-        method:  "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ estado: "inactivo" }),
-      });
+      const { error } = await supabase
+        .from("talleres")
+        .update({ estado: "suspendido" })
+        .eq("id", taller.id);
 
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.message ?? "Error al suspender usuario");
+      if (error) throw error;
 
-      toast.success(`${nombre} ha sido suspendido correctamente`);
+      toast.success(`"${nombre}" ha sido suspendido correctamente`);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      toast.error(error.message ?? "No se pudo suspender el usuario");
+    } catch {
+      toast.error("No se pudo suspender el taller en este momento");
     } finally {
       setLoading(false);
     }
@@ -53,7 +48,7 @@ export default function SuspenderUsuarioDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 border-none shadow-2xl bg-white overflow-hidden">
 
-        {/* Franja superior coloreada - Borde Visual */}
+        {/* Franja superior */}
         <div className="h-2 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 w-full" />
 
         <div className="p-6 space-y-5">
@@ -65,56 +60,45 @@ export default function SuspenderUsuarioDialog({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight">
-                Suspender Usuario
+                Suspender Taller
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                El registro se conserva — solo se desactiva el acceso.
+                El registro se conserva — solo se desactiva para nuevas órdenes.
               </DialogDescription>
             </div>
           </div>
 
-          {/* Cuerpo de advertencia */}
+          {/* Cuerpo */}
           <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 space-y-2">
             <p className="text-sm text-slate-700">
               ¿Confirmas que deseas suspender a{" "}
               <span className="font-semibold text-amber-700">{nombre}</span>?
             </p>
-            <ul className="text-xs text-slate-500 space-y-1 mt-2 list-none">
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                Su sesión será bloqueada inmediatamente en Supabase Auth.
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                No podrá iniciar sesión mientras esté suspendido.
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                Todos sus datos se conservan y se puede reactivar en cualquier momento.
-              </li>
+            <ul className="text-xs text-slate-500 space-y-1 mt-2">
+              {[
+                "Ya no podrá recibir nuevas órdenes de producción.",
+                "Su historial y datos se conservan para reportes y auditorías.",
+                "Puede reactivarse en cualquier momento desde editar.",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  {item}
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Footer */}
           <DialogFooter className="pt-4 border-t border-slate-100 flex gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 text-slate-500 hover:bg-slate-100"
-            >
+            <Button type="button" variant="ghost" onClick={onClose} disabled={loading}
+              className="flex-1 text-slate-500 hover:bg-slate-100">
               Cancelar
             </Button>
-            <Button
-              type="button"
-              onClick={handleSuspender}
-              disabled={loading}
-              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-100 transition-all"
-            >
+            <Button onClick={handleSuspender} disabled={loading}
+              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-100 transition-all">
               {loading
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Suspendiendo…</>
-                : "Suspender acceso"
+                : "Suspender Taller"
               }
             </Button>
           </DialogFooter>

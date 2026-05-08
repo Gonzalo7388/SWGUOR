@@ -39,7 +39,7 @@ export default function SuspenderTallerDialog({
       // Cambio de lógica: update en lugar de delete
       const { error } = await supabase
         .from("talleres")
-        .update({ estado: "inactivo" }) // O "suspendido" según prefieras en tu DB
+        .update({ estado: "suspendido" })
         .eq("id", taller.id);
 
       if (error) throw error;
