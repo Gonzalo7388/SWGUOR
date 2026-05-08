@@ -2,11 +2,6 @@ import { prisma } from '@/lib/prisma';
 import { pagos, Prisma, EstadoPago, MetodoPago, TipoPago } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
-// Campos reales del modelo 'pagos':
-//   id_uuid (PK UUID), pedido_id, monto, metodo_pago, fecha_pago,
-//   comprobante_url, notas, usuario_id, tipo, estado,
-//   verificado_at, verificado_por, created_at, updated_at
-
 interface FiltrosPagos {
   estado?:      EstadoPago;
   metodo_pago?: MetodoPago;
@@ -25,6 +20,7 @@ interface CrearPagoInput {
 }
 
 export const pagosService = {
+
   crear: async (datos: CrearPagoInput): Promise<pagos> => {
     return prisma.pagos.create({
       data: {
@@ -53,11 +49,16 @@ export const pagosService = {
     });
   },
 
-  // Verificar pago → estado: 'verificado'
-  procesar: async (pagoUuid: string, verificadoPor?: bigint): Promise<pagos> => {
+  obtenerPorId: async (id_uuid: string): Promise<pagos | null> => {
+    return prisma.pagos.findUnique({
+      where: { id_uuid },
+    });
+  },
+
+  procesar: async (id_uuid: string, verificadoPor?: bigint): Promise<pagos> => {
     return prisma.pagos.update({
-      where: { id_uuid: pagoUuid },
-      data:  {
+      where: { id_uuid },
+      data: {
         estado:         'verificado',
         verificado_at:  new Date(),
         verificado_por: verificadoPor ?? null,
@@ -65,22 +66,20 @@ export const pagosService = {
     });
   },
 
-  // Rechazar pago → estado: 'rechazado'
-  rechazar: async (pagoUuid: string, motivo: string): Promise<pagos> => {
+  rechazar: async (id_uuid: string, motivo: string): Promise<pagos> => {
     return prisma.pagos.update({
-      where: { id_uuid: pagoUuid },
+      where: { id_uuid },
       data:  { estado: 'rechazado', notas: motivo },
     });
   },
 
-  // El schema no tiene estado 'reembolsado'; se deja constancia en notas
   reembolsar: async (
-    pagoUuid: string,
+    id_uuid: string,
     motivo: string,
     montoReembolso: number,
   ): Promise<pagos> => {
     return prisma.pagos.update({
-      where: { id_uuid: pagoUuid },
+      where: { id_uuid },
       data:  { notas: `REEMBOLSO (${montoReembolso}): ${motivo}` },
     });
   },
@@ -95,7 +94,7 @@ export const pagosService = {
   obtenerVerificados: async (desde: Date, hasta: Date): Promise<pagos[]> => {
     return prisma.pagos.findMany({
       where: {
-        estado:    'verificado',
+        estado:     'verificado',
         fecha_pago: { gte: desde, lte: hasta },
       },
       orderBy: { fecha_pago: 'desc' },

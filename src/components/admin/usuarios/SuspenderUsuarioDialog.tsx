@@ -2,48 +2,56 @@
 
 import { useState } from "react";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle,
+  Dialog, DialogContent, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { ShieldOff, Loader2 } from "lucide-react";
+import { Button }      from "@/components/ui/button";
+import { Badge }       from "@/components/ui/badge";
+import { toast }       from "sonner";
+import { ShieldOff, CircleCheck, Loader2 } from "lucide-react";
 import type { usuarios } from "@prisma/client";
 
 interface SuspenderUsuarioDialogProps {
   isOpen:    boolean;
   onClose:   () => void;
   onSuccess: () => void;
-  usuario:   usuarios | null;
+  usuario:   usuarios;
 }
 
-// ─── Componente ───────────────────────────────────────────────
+function getInitials(email: string): string {
+  const parts = email.split("@")[0].split(/[._-]/);
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export default function SuspenderUsuarioDialog({
   isOpen, onClose, onSuccess, usuario,
 }: SuspenderUsuarioDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  const nombre = usuario?.email ?? "este usuario";
+  const email    = usuario?.email ?? "—";
+  const rol      = usuario?.rol   ?? "Sin rol";
+  const initials = getInitials(email);
 
   const handleSuspender = async () => {
-    if (!usuario) return;
+    if (!usuario?.id) return;
     setLoading(true);
     try {
-      // Llama a toggleEstado del servicio: cambia estado a "inactivo"
-      // y banea al usuario en Supabase Auth (ban_duration: '87600h')
-      const res = await fetch(`/api/admin/usuarios/${usuario.id}/estado`, {
+      const res = await fetch(`/api/admin/usuarios/${usuario.id}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ estado: "inactivo" }),
+        body:    JSON.stringify({ estado: "suspendido" }),
       });
-
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.message ?? "Error al suspender usuario");
-
-      toast.success(`${nombre} ha sido suspendido correctamente`);
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? "Error desconocido");
+      }
+      toast.success(`"${email}" ha sido suspendido correctamente`);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      toast.error(error.message ?? "No se pudo suspender el usuario");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo suspender el usuario");
     } finally {
       setLoading(false);
     }
@@ -51,75 +59,87 @@ export default function SuspenderUsuarioDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 border-none shadow-2xl bg-white overflow-hidden">
 
-        {/* Franja superior coloreada - Borde Visual */}
-        <div className="h-2 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 w-full" />
+      <DialogContent className="w-[340px] p-0 gap-0 border border-slate-200 shadow-xl rounded-2xl bg-white overflow-hidden">
 
-        <div className="p-6 space-y-5">
+        <div className="p-4 space-y-3"> 
 
           {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100 flex-shrink-0">
-              <ShieldOff className="w-5 h-5 text-amber-600" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+              <ShieldOff className="w-4 h-4 text-orange-500" strokeWidth={1.75} />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight">
-                Suspender Usuario
+              <DialogTitle className="text-sm font-semibold text-slate-900 leading-none">
+                Suspender acceso
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                El registro se conserva — solo se desactiva el acceso.
+              <DialogDescription className="text-xs text-slate-400 mt-1">
+                Esta acción puede revertirse en cualquier momento.
               </DialogDescription>
             </div>
           </div>
 
-          {/* Cuerpo de advertencia */}
-          <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 space-y-2">
-            <p className="text-sm text-slate-700">
-              ¿Confirmas que deseas suspender a{" "}
-              <span className="font-semibold text-amber-700">{nombre}</span>?
-            </p>
-            <ul className="text-xs text-slate-500 space-y-1 mt-2 list-none">
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                Su sesión será bloqueada inmediatamente en Supabase Auth.
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                No podrá iniciar sesión mientras esté suspendido.
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                Todos sus datos se conservan y se puede reactivar en cualquier momento.
-              </li>
-            </ul>
+          {/* Separador */}
+          <div className="border-t border-slate-100" />
+
+          {/* Label */}
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest -mb-2">
+            Usuario afectado
+          </p>
+
+          {/* Tarjeta usuario */}
+          <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+            <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-blue-700">{initials}</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-700 truncate">{email}</p>
+              <p className="text-[10px] text-slate-400 capitalize">{rol}</p>
+            </div>
+            <Badge className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2 py-0 shrink-0 shadow-none">
+              Activo
+            </Badge>
           </div>
 
-          {/* Footer */}
-          <DialogFooter className="pt-4 border-t border-slate-100 flex gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 text-slate-500 hover:bg-slate-100"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSuspender}
-              disabled={loading}
-              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-100 transition-all"
-            >
-              {loading
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Suspendiendo…</>
-                : "Suspender acceso"
-              }
-            </Button>
-          </DialogFooter>
+          {/* Consecuencias */}
+          <ul className="space-y-1.5">
+            {[
+              "El historial y datos del usuario se conservan intactos.",
+              "No podrá iniciar sesión hasta ser reactivado.",
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-2">
+                <CircleCheck className="w-3 h-3 text-slate-300 shrink-0" strokeWidth={2} />
+                <span className="text-xs text-slate-500">{item}</span>
+              </li>
+            ))}
+          </ul>
 
         </div>
+
+        {/* Footer */}
+        <div className="px-4 pb-4 flex gap-2"> 
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 h-9 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl border border-slate-200"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSuspender}
+            disabled={loading}
+            className="flex-1 h-9 text-xs font-semibold bg-red-800 hover:bg-red-900 text-red-50 rounded-xl shadow-none gap-1.5"
+          >
+            {loading ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" />Suspendiendo…</>
+            ) : (
+              <><ShieldOff className="h-3.5 w-3.5" />Suspender usuario</>
+            )}
+          </Button>
+        </div>
+
       </DialogContent>
     </Dialog>
   );

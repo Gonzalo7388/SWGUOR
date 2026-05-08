@@ -1,9 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+const supabase = getSupabaseBrowserClient();
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +85,7 @@ const PEDIDO_SELECT = `
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getPedidosActivos(): Promise<PedidoConSeguimiento[]> {
+  const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from('pedidos')
     .select(PEDIDO_SELECT)
@@ -120,6 +118,7 @@ export function subscribeSeguimiento(
   pedidoId: number,
   onInsert: (row: SeguimientoPedido) => void,
 ) {
+  const supabase = getSupabaseBrowserClient();
   const channel = supabase
     .channel(`seguimiento-${pedidoId}`)
     .on(
@@ -144,6 +143,7 @@ function mapearPedido(raw: any): PedidoConSeguimiento {
     (a: SeguimientoPedido, b: SeguimientoPedido) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
+  const supabase = getSupabaseBrowserClient();
 
   const ultima = historial.at(-1)?.created_at ?? raw.created_at;
 
