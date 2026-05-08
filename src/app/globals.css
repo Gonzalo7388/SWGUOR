@@ -142,3 +142,7 @@
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
   border-radius: 0.75rem;
 }
+
+[role="dialog"] > button[aria-label="Close"] {
+  display: none;
+}
