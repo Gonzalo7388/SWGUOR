@@ -32,9 +32,9 @@ export async function GET(req: Request) {
 
     const data = despachos.map((d) => ({
       ...serializeBigInt(d),
-      despacho_id:    `DSP-${String(d.id).padStart(6, '0')}`,
-      cliente:        d.pedidos?.clientes?.razon_social ?? 'N/A',
-      direccion:      d.direccion_entrega,
+      despacho_id: `DSP-${String(d.id).padStart(6, '0')}`,
+      cliente: d.pedidos?.clientes?.razon_social ?? 'N/A',
+      direccion: d.direccion_entrega,
     }));
 
     return NextResponse.json({ data, count: data.length });

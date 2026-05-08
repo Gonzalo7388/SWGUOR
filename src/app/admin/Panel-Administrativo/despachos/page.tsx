@@ -1,21 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Truck, MapPin, CheckCircle2, Clock, XCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { XCircle } from "lucide-react";
+
+// Hooks y Utilidades
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
-interface Despacho {
+// Componentes Fragmentados
+import { DespachoStats } from "@/components/admin/despachos/DespachoStats";
+import { DespachoFilters } from "@/components/admin/despachos/DespachoFilters";
+import { DespachoTable } from "@/components/admin/despachos/DespachoTable";
+import { DespachoPagination } from "@/components/admin/despachos/DespachoPaginacion";
+
+// Tipado para consistencia
+export interface Despacho {
   id: number;
   despacho_id: string;
-  orden_id: number;
+  pedido_id: string;
   cliente: string;
   direccion: string;
-  estado: "preparando" | "enviado" | "transito" | "entregado";
-  transportista: string;
+  estado: "preparando" | "en_ruta" | "entregado" | "incidencia";
   tracking: string;
   fecha_despacho: string;
   fecha_entrega: string;
@@ -30,286 +35,137 @@ export default function DespachosPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
 
-  const [stats, setStats] = useState({ 
-    total: 0, 
-    preparando: 0, 
-    transito: 0, 
-    entregados: 0 
-  });
-
   const canView = can("view", "despachos");
-  const canCreate = can("create", "despachos");
 
+  // 1. Carga de Datos desde la API
   const cargarDatos = useCallback(async () => {
-    if (!canView) {
-      setLoading(false);
-      return;
-    }
+    if (!canView) return;
 
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filtroEstado !== "todos") params.append("estado", filtroEstado);
-
-      const response = await fetch(`/api/admin/despachos?${params}`);
+      const response = await fetch(`/api/admin/despachos`);
       if (!response.ok) throw new Error("Error al cargar despachos");
 
       const { data } = await response.json();
+      
+      // Mapeo seguro de datos según la estructura del backend (snake_case)
       const datosFormateados = data.map((item: any) => ({
         id: item.id,
         despacho_id: item.despacho_id,
-        orden_id: item.orden,
+        pedido_id: String(item.pedido_id),
         cliente: item.cliente,
         direccion: item.direccion,
         estado: item.estado,
-        transportista: item.transportista,
-        tracking: item.tracking,
-        fecha_despacho: new Date(item.fechaDespacho).toISOString().split("T")[0],
-        fecha_entrega: item.fechaEntrega ? new Date(item.fechaEntrega).toISOString().split("T")[0] : "Pendiente"
+        tracking: item.tracking || "S/N",
+        fecha_despacho: item.fecha_despacho ? new Date(item.fecha_despacho).toLocaleDateString() : "---",
+        fecha_entrega: item.fecha_entrega ? new Date(item.fecha_entrega).toLocaleDateString() : "Pendiente"
       }));
 
       setDespachos(datosFormateados);
-
-      setStats({
-        total: datosFormateados.length,
-        preparando: datosFormateados.filter((d: Despacho) => d.estado === "preparando").length,
-        transito: datosFormateados.filter((d: Despacho) => d.estado === "transito").length,
-        entregados: datosFormateados.filter((d: Despacho) => d.estado === "entregado").length
-      });
     } catch (error) {
-      console.error("Error cargando despachos:", error);
-      toast.error("Error al sincronizar despachos");
+      console.error("Error:", error);
+      toast.error("No se pudieron sincronizar los despachos");
     } finally {
       setLoading(false);
     }
-  }, [canView, filtroEstado]);
+  }, [canView]);
 
   useEffect(() => {
-    if (!authLoading) {
-      cargarDatos();
-    }
+    if (!authLoading) cargarDatos();
   }, [authLoading, cargarDatos]);
 
+  // 2. Lógica de Filtrado (Estado + Buscador)
   const filteredDespachos = useMemo(() => {
-    return despachos.filter(d =>
-      d.despacho_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.tracking?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [despachos, searchTerm]);
+    return despachos.filter((d) => {
+      const matchesEstado = filtroEstado === "todos" || d.estado === filtroEstado;
+      const matchesSearch = 
+        d.despacho_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.tracking.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesEstado && matchesSearch;
+    });
+  }, [despachos, filtroEstado, searchTerm]);
 
-  const currentTotalForPagination = stats.total;
-  const totalPages = Math.ceil(currentTotalForPagination / pageSize);
+  // 3. Cálculos de Estadísticas dinámicas
+  const stats = useMemo(() => ({
+    total: despachos.length,
+    preparando: despachos.filter(d => d.estado === "preparando").length,
+    transito: despachos.filter(d => d.estado === "en_ruta").length,
+    entregados: despachos.filter(d => d.estado === "entregado").length,
+  }), [despachos]);
 
-  if (authLoading) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Verificando permisos...</p>
-      </div>
-    );
-  }
+  // 4. Paginación
+  const totalPages = Math.ceil(filteredDespachos.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const start = currentPage * pageSize;
+    return filteredDespachos.slice(start, start + pageSize);
+  }, [filteredDespachos, currentPage, pageSize]);
 
-  if (!canView) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
-        <XCircle className="w-16 h-16 text-red-500 mb-4" />
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
-        <p className="text-gray-500">No tienes permisos para ver despachos</p>
-      </div>
-    );
-  }
+  // Estados de Carga y Permisos
+  if (authLoading) return <LoadingSpinner label="Verificando permisos..." />;
+  if (!canView) return <AccessDenied />;
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Gestión de Despachos
-            </h1>
-            <p className="text-gray-500 text-sm">Control de envíos y entregas</p>
-          </div>
+        {/* Encabezado */}
+        <header>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Gestión de Despachos</h1>
+          <p className="text-gray-500 text-sm">Monitoreo de logística y última milla en tiempo real.</p>
+        </header>
 
-          <div className="flex items-center gap-3">
-            {canCreate && (
-              <Button className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95">
-                <Plus className="w-5 h-5" /> Nuevo Despacho
-              </Button>
-            )}
-          </div>
-        </div>
+        {/* Componente 1: Resumen de Estadísticas */}
+        <DespachoStats 
+          stats={stats} 
+          filtroActual={filtroEstado} 
+          setFiltro={(f) => { setFiltroEstado(f); setCurrentPage(0); }} 
+        />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard 
-            title="TOTAL" 
-            value={stats.total} 
-            icon={<Truck className="w-5 h-5" />} 
-            isActive={filtroEstado === "todos"} 
-            color="pink" 
-            onClick={() => {setFiltroEstado("todos"); setCurrentPage(0);}} 
-          />
-          <StatCard 
-            title="PREPARANDO" 
-            value={stats.preparando} 
-            icon={<Clock className="w-5 h-5" />} 
-            isActive={filtroEstado === "preparando"} 
-            color="orange" 
-            onClick={() => {setFiltroEstado("preparando"); setCurrentPage(0);}} 
-          />
-          <StatCard 
-            title="EN TRÁNSITO" 
-            value={stats.transito} 
-            icon={<MapPin className="w-5 h-5" />} 
-            isActive={filtroEstado === "transito"} 
-            color="blue" 
-            onClick={() => {setFiltroEstado("transito"); setCurrentPage(0);}} 
-          />
-          <StatCard 
-            title="ENTREGADOS" 
-            value={stats.entregados} 
-            icon={<CheckCircle2 className="w-5 h-5" />} 
-            isActive={filtroEstado === "entregado"} 
-            color="emerald" 
-            onClick={() => {setFiltroEstado("entregado"); setCurrentPage(0);}} 
-          />
-        </div>
+        {/* Componente 2: Filtros y Buscador */}
+        <DespachoFilters 
+          searchTerm={searchTerm} 
+          setSearchTerm={(t) => { setSearchTerm(t); setCurrentPage(0); }} 
+          onRefresh={cargarDatos} 
+          loading={loading} 
+        />
 
-        {/* Buscador */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-            <Input 
-              placeholder="Buscar por despacho, cliente o tracking..." 
-              className="pl-10 h-11 border-gray-200 focus:ring-pink-500"
-              value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(0);}}
-            />
-          </div>
-          <Button variant="outline" className="h-11 border-gray-200" onClick={cargarDatos}>
-            <RefreshCw className={`w-4 h-4 ${loading && 'animate-spin'}`} />
-          </Button>
-        </div>
+        {/* Componente 3: Tabla de Datos */}
+        <DespachoTable 
+          despachos={paginatedData} 
+          loading={loading} 
+        />
 
-        {/* Tabla */}
-        {loading ? (
-          <div className="h-64 flex flex-col items-center justify-center bg-white rounded-xl border animate-pulse">
-            <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Sincronizando despachos...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left py-3 px-4 text-[10px] font-bold text-gray-500 uppercase">Despacho</th>
-                      <th className="text-left py-3 px-4 text-[10px] font-bold text-gray-500 uppercase">Cliente</th>
-                      <th className="text-left py-3 px-4 text-[10px] font-bold text-gray-500 uppercase">Dirección</th>
-                      <th className="text-left py-3 px-4 text-[10px] font-bold text-gray-500 uppercase">Estado</th>
-                      <th className="text-left py-3 px-4 text-[10px] font-bold text-gray-500 uppercase">Tracking</th>
-                      <th className="text-left py-3 px-4 text-[10px] font-bold text-gray-500 uppercase">Entrega</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredDespachos.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-gray-400">
-                          No hay despachos para mostrar
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredDespachos.map(desp => {
-                        const estadoStyle: any = {
-                          preparando: "bg-yellow-50 text-yellow-700",
-                          enviado: "bg-blue-50 text-blue-700",
-                          transito: "bg-purple-50 text-purple-700",
-                          entregado: "bg-emerald-50 text-emerald-700"
-                        };
-                        const labels: any = {
-                          preparando: "Preparando",
-                          enviado: "Enviado",
-                          transito: "En Tránsito",
-                          entregado: "Entregado"
-                        };
-                        return (
-                          <tr key={desp.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-4 px-4 font-bold text-gray-900">{desp.despacho_id}</td>
-                            <td className="py-4 px-4 text-gray-700">{desp.cliente}</td>
-                            <td className="py-4 px-4 text-gray-700 text-sm">{desp.direccion}</td>
-                            <td className="py-4 px-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${estadoStyle[desp.estado]}`}>
-                                {labels[desp.estado]}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4 text-gray-700 text-sm">{desp.tracking}</td>
-                            <td className="py-4 px-4 text-gray-700 text-sm">{desp.fecha_entrega}</td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* Paginación */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-              <p className="text-xs text-gray-500">
-                Mostrando <span className="font-bold text-gray-900">{despachos.length}</span> de <span className="font-bold text-gray-900">{currentTotalForPagination}</span>
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <div className="px-4 py-1.5 text-xs font-bold bg-gray-50 border rounded-lg flex items-center">
-                  Página {currentPage + 1} de {totalPages || 1}
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage + 1 >= totalPages}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Componente 4: Control de Paginación */}
+        <DespachoPagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredDespachos.length}
+          onPageChange={setCurrentPage}
+        />
+
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value, icon, isActive, color, onClick }: any) {
-  const styles: any = {
-    pink: { active: "border-pink-500 ring-pink-50 bg-white", iconActive: "bg-pink-600 text-white", iconInactive: "bg-gray-100 text-gray-600", textActive: "text-pink-600", textInactive: "text-gray-800" },
-    orange: { active: "border-orange-500 ring-orange-50 bg-white", iconActive: "bg-orange-600 text-white", iconInactive: "bg-gray-100 text-gray-600", textActive: "text-orange-600", textInactive: "text-gray-800" },
-    blue: { active: "border-blue-500 ring-blue-50 bg-white", iconActive: "bg-blue-600 text-white", iconInactive: "bg-gray-100 text-gray-600", textActive: "text-blue-600", textInactive: "text-gray-800" },
-    emerald: { active: "border-emerald-500 ring-emerald-50 bg-white", iconActive: "bg-emerald-600 text-white", iconInactive: "bg-gray-100 text-gray-600", textActive: "text-emerald-600", textInactive: "text-gray-800" }
-  };
-  const currentStyle = styles[color] || styles.pink;
-
+// Sub-componentes locales de apoyo
+function LoadingSpinner({ label }: { label: string }) {
   return (
-    <button 
-      onClick={onClick} 
-      className={`group p-3 rounded-xl border transition-all duration-300 flex items-center gap-3 cursor-pointer ${
-        isActive 
-          ? `ring-4 shadow-xl scale-[1.02] z-10 ${currentStyle.active}` 
-          : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'
-      }`}
-    >
-      <div className={`p-2 rounded-lg transition-all duration-300 ${
-        isActive ? `${currentStyle.iconActive} rotate-3` : `${currentStyle.iconInactive} group-hover:rotate-3`
-      }`}>
-        {icon}
-      </div>
-      <div className="text-left overflow-hidden"> 
-        <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest truncate">{title}</p>
-        <p className={`text-xl font-black tracking-tight ${isActive ? currentStyle.textActive : currentStyle.textInactive}`}>
-          {value}
-        </p>
-      </div>
-    </button>
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4" />
+      <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">{label}</p>
+    </div>
+  );
+}
+
+function AccessDenied() {
+  return (
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-50 text-center p-6">
+      <XCircle className="w-16 h-16 text-red-500 mb-4" />
+      <h2 className="text-2xl font-bold text-gray-900">Acceso Restringido</h2>
+      <p className="text-gray-500 max-w-sm">No cuentas con los permisos necesarios para visualizar el módulo de logística.</p>
+    </div>
   );
 }

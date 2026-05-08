@@ -11,7 +11,6 @@ import {
 import { toast } from 'sonner';
 import { exportCotizacionesToPDF } from '@/lib/utils/export-utils';
 import { exportToExcel } from '@/lib/utils/export-utils';
-import { CotizacionesService } from '@/lib/services/cotizaciones-services';
 import type { CotizacionRow } from '@/lib/services/cotizaciones-services';
 import { CotizacionActions } from '@/components/admin/cotizaciones/CotizacionActions';
 import Link from 'next/link';
@@ -154,12 +153,6 @@ export default function CotizacionesPage() {
               <FileSpreadsheet className="w-5 h-5" />
               <span className="hidden sm:inline">Exportar Excel</span>
             </Button>
-
-            <Link href="/admin/Panel-Administrativo/cotizaciones/nueva">
-              <Button className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95">
-                <Plus className="w-5 h-5" /> Nueva Cotización
-              </Button>
-            </Link>
           </div>
         </div>
 
