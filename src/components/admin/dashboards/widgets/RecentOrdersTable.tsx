@@ -18,11 +18,12 @@ interface RecentOrdersTableProps {
 
 // ── Estados reales del enum EstadoPedido ───────────────────────────────────
 const STATUS_CONFIG: Record<EstadoPedido, { cls: string; icon: React.ReactNode; label: string }> = {
-  pendiente:           { cls: 'bg-blue-50 text-blue-600 border-blue-100',     icon: <Clock size={11} />,        label: 'Pendiente'       },
-  en_produccion:       { cls: 'bg-orange-50 text-orange-600 border-orange-100', icon: <AlertCircle size={11} />, label: 'En producción'   },
-  listo_para_despacho: { cls: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <Truck size={11} />,    label: 'Listo despacho'  },
-  entregado:           { cls: 'bg-slate-100 text-slate-600 border-slate-200',  icon: <CheckCircle2 size={11} />, label: 'Entregado'       },
-  cancelado:           { cls: 'bg-rose-50 text-rose-600 border-rose-100',      icon: <XCircle size={11} />,      label: 'Cancelado'       },
+  pendiente: { cls: 'bg-blue-50 text-blue-600 border-blue-100', icon: <Clock size={11} />, label: 'Pendiente' },
+  en_produccion: { cls: 'bg-orange-50 text-orange-600 border-orange-100', icon: <AlertCircle size={11} />, label: 'En producción' },
+  listo_para_despacho: { cls: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <Truck size={11} />, label: 'Listo despacho' },
+  entregado: { cls: 'bg-slate-100 text-slate-600 border-slate-200', icon: <CheckCircle2 size={11} />, label: 'Entregado' },
+  cancelado: { cls: 'bg-rose-50 text-rose-600 border-rose-100', icon: <XCircle size={11} />, label: 'Cancelado' },
+  pagado: { cls: 'bg-violet-50 text-violet-600 border-violet-100', icon: <CheckCircle2 size={11} />, label: 'Pagado' },
 };
 
 const FALLBACK_STATUS = {
@@ -34,9 +35,9 @@ const FALLBACK_STATUS = {
 // ── Componente ─────────────────────────────────────────────────────────────
 export default function RecentOrdersTable({ orders, rol }: RecentOrdersTableProps) {
   const p = rol ? ROLE_PALETTES[rol] : null;
-  const headColor  = p?.mid  ?? '#94a3b8';
+  const headColor = p?.mid ?? '#94a3b8';
   const titleColor = p?.text ?? '#1e293b';
-  const btnBg      = p?.text ?? '#0f172a';
+  const btnBg = p?.text ?? '#0f172a';
 
   // "pendiente" es el estado inicial real según el schema
   const pendientes = orders.filter((o) => o.estado === 'pendiente').length;
@@ -112,9 +113,9 @@ export default function RecentOrdersTable({ orders, rol }: RecentOrdersTableProp
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                       {order.created_at
                         ? new Date(order.created_at).toLocaleDateString('es-PE', {
-                            day: 'numeric',
-                            month: 'short',
-                          })
+                          day: 'numeric',
+                          month: 'short',
+                        })
                         : 'Sin fecha'}
                     </p>
                   </td>

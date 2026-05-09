@@ -133,10 +133,13 @@ export function FichaTecnicaForm({ productos }: { productos?: any[] }) {
 
       // 2. Guardar medidas en bulk
       if (puedeMedidas && data.medidas?.length > 0 && fichaId) {
-        const medidasRes = await fetch(`/api/admin/fichas-tecnicas/${fichaId}/medidas/bulk`, {
+        const medidasRes = await fetch('/api/admin/fichas-tecnicas/medidas', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ medidas: data.medidas }),
+          body: JSON.stringify({ 
+            ficha_id: fichaId, 
+            medidas: data.medidas 
+          }),
         });
         if (!medidasRes.ok) toast.warning('Ficha creada pero hubo un error al guardar medidas');
       }

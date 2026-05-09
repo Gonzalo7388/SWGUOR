@@ -2,16 +2,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Crown, Palette, Scissors, Phone, Truck, Building } from 'lucide-react';
+import { Crown, Palette, Scissors, Phone, Truck, Building, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ROLE_TABS = [
   { key: 'gerente',              label: 'Gerencial',     icon: Crown,   color: 'text-amber-600'  },
-  { key: 'administrador',        label: 'Administrador', icon: Crown,   color: 'text-rose-600'   },
+  { key: 'administrador',        label: 'Admin',         icon: Crown,   color: 'text-rose-600'   },
   { key: 'recepcionista',        label: 'Recepción',     icon: Phone,   color: 'text-blue-600'   },
-  { key: 'diseñador',            label: 'Diseño',        icon: Palette, color: 'text-purple-600' },
+  { key: 'disenador',            label: 'Diseño',        icon: Palette, color: 'text-purple-600' },
   { key: 'cortador',             label: 'Corte',         icon: Scissors,color: 'text-green-600'  },
-  { key: 'ayudante',             label: 'Logística',     icon: Truck,   color: 'text-orange-600' },
+  { key: 'ayudante',             label: 'Producción',    icon: Truck,   color: 'text-orange-600' },
+  { key: 'almacenero',           label: 'Almacén',       icon: Box,     color: 'text-sky-600'    },
   { key: 'representante_taller', label: 'Taller',        icon: Building,color: 'text-teal-600'   },
 ];
 

@@ -247,43 +247,45 @@ export const CotizacionesService = {
         data:  { estado: 'aprobada', aprobado_at: new Date() },
       });
 
-      let pedidoId: number | undefined;
+      const totalUnidades = cotizacion.cotizacion_items.reduce(
+        (sum, item) => sum + item.cantidad, 0
+      );
 
-      if (cotizacion.aprobacion_automatica === true) {
-        const totalUnidades = cotizacion.cotizacion_items.reduce(
-          (sum, item) => sum + item.cantidad, 0
-        );
-
-        const pedido = await tx.pedidos.create({
-          data: {
-            cliente_id:     cotizacion.cliente_id,
-            estado:         'pendiente',
-            prioridad:      'normal',
-            notas_pedido:   cotizacion.notas_internas ?? null,
-            total_estimado: cotizacion.total ?? new Prisma.Decimal(0),
-            total_unidades: totalUnidades,
-            pedido_items: {
-              create: cotizacion.cotizacion_items.map((item) => ({
-                producto_id: item.producto_id,
-                variante_id: item.variante_id,
-                cantidad:    item.cantidad,
-                especificaciones: {
-                  precio_unitario: Number(item.precio_unitario_snapshot),
-                  subtotal:        Number(item.subtotal),
-                  color:           item.color_snapshot,
-                  modelo:          item.modelo_snapshot,
-                  prenda_tipo:     item.prenda_tipo_snapshot,
-                  talla:           item.talla_snapshot,
-                },
-              })) as Prisma.pedido_itemsUncheckedCreateWithoutPedidosInput[],
-            },
+      // Creamos el pedido directamente desde la cotización
+      const pedido = await tx.pedidos.create({
+        data: {
+          cliente_id:      cotizacion.cliente_id,
+          cotizacion_id:   cotizacion.id, // Vínculo directo
+          estado:          'pendiente',
+          prioridad:       'normal',
+          notas_pedido:    cotizacion.notas_internas ?? null,
+          total_unidades:  totalUnidades,
+          // Heredar montos financieros
+          subtotal:        cotizacion.subtotal ?? new Prisma.Decimal(0),
+          igv:             cotizacion.igv      ?? new Prisma.Decimal(0),
+          total:           cotizacion.total    ?? new Prisma.Decimal(0),
+          total_estimado:  cotizacion.total    ?? new Prisma.Decimal(0),
+          costo_envio:     cotizacion.costo_envio ?? new Prisma.Decimal(0),
+          moneda:          cotizacion.moneda   ?? 'PEN',
+          pedido_items: {
+            create: cotizacion.cotizacion_items.map((item) => ({
+              producto_id: item.producto_id,
+              variante_id: item.variante_id,
+              cantidad:    item.cantidad,
+              especificaciones: {
+                precio_unitario: Number(item.precio_unitario_snapshot),
+                subtotal:        Number(item.subtotal),
+                color:           item.color_snapshot,
+                modelo:          item.modelo_snapshot,
+                prenda_tipo:     item.prenda_tipo_snapshot,
+                talla:           item.talla_snapshot,
+              },
+            })) as Prisma.pedido_itemsUncheckedCreateWithoutPedidosInput[],
           },
-        });
+        },
+      });
 
-        pedidoId = Number(pedido.id);
-      }
-
-      return { pedidoId };
+      return { pedidoId: Number(pedido.id) };
     });
 
     return { success: true, pedidoId: result.pedidoId };

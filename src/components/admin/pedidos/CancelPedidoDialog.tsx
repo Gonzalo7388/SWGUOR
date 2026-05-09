@@ -10,7 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { XCircle, Loader2, AlertTriangle } from "lucide-react";
+import { 
+  XCircle, Loader2, AlertTriangle, X, 
+  ShoppingCart, RefreshCcw, Trash2, Ban
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function CancelPedidoDialog({ isOpen, pedido, onClose, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
@@ -26,7 +30,7 @@ export default function CancelPedidoDialog({ isOpen, pedido, onClose, onSuccess 
 
       if (!response.ok) throw new Error(result.error || "Error al anular");
 
-      toast.success("Pedido anulado y stock restaurado");
+      toast.success("Protocolo de anulación completado: Stock restaurado");
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -38,65 +42,106 @@ export default function CancelPedidoDialog({ isOpen, pedido, onClose, onSuccess 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[28px] shadow-2xl">
-        {/* Banner rojo superior - Identidad visual de borrado/anulación */}
-        <div className="h-2 bg-red-600 w-full" />
-
-        <div className="p-8 space-y-6">
-          {/* Header con icono y títulos */}
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-red-50 rounded-2xl flex-shrink-0">
-              <XCircle className="w-7 h-7 text-red-600" />
+      <DialogContent className="max-w-md bg-white/95 backdrop-blur-2xl border-none shadow-[0_32px_128px_-32px_rgba(220,38,38,0.3)] p-0 overflow-hidden rounded-[48px] animate-in zoom-in-95 duration-500">
+        
+        {/* HEADER CRÍTICO */}
+        <div className="bg-gradient-to-br from-red-600 to-rose-950 px-10 py-12 text-white relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/20 rounded-full -ml-12 -mb-12 blur-xl" />
+          
+          <div className="flex justify-between items-start relative z-10">
+            <div className="p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl">
+              <Ban className="w-8 h-8 text-white" />
             </div>
-            <div className="space-y-1">
-              <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">
-                Anular Pedido
-              </DialogTitle>
-              <DialogDescription className="text-sm font-bold text-pink-600 uppercase tracking-widest">
-                Folio: #{pedido?.id?.toString().slice(-8).toUpperCase()}
-              </DialogDescription>
-            </div>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
+               <X className="w-5 h-5 text-white/70" />
+            </button>
           </div>
 
-          {/* Mensaje de advertencia estilo DeleteUsuario */}
-          <div className="bg-red-50 border border-red-100 rounded-[20px] p-5">
-            <div className="flex gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-slate-700 leading-relaxed">
-                ¿Estás seguro que deseas anular la venta de{" "}
-                <span className="font-black text-red-600">
-                  {pedido?.clientes?.razon_social || "este cliente"}
-                </span>? 
-                <br /><br />
-                Esta acción cambiará el estado a <span className="font-bold underline">CANCELADO</span> y los productos regresarán automáticamente al inventario.
-              </p>
+          <div className="mt-8 space-y-2 relative z-10">
+            <DialogTitle className="text-3xl font-black tracking-tighter uppercase leading-tight">
+              Anulación de <br /> Transacción
+            </DialogTitle>
+            <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md w-fit px-3 py-1 rounded-full border border-white/10">
+               <span className="text-[10px] font-black text-rose-200 uppercase tracking-widest">
+                 Folio: #{pedido?.id?.toString().slice(-8).toUpperCase()}
+               </span>
             </div>
           </div>
+        </div>
 
-          {/* Footer de acciones */}
-          <DialogFooter className="flex flex-row gap-3 mt-4">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
-            >
-              Mantener
-            </Button>
+        <div className="p-10 space-y-8">
+          
+          {/* TARJETA DE ADVERTENCIA PREMIUM */}
+          <div className="bg-rose-50/50 border border-rose-100 rounded-[32px] p-8 space-y-6 relative overflow-hidden group">
+             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                <AlertTriangle className="w-16 h-16 text-red-600" />
+             </div>
+             
+             <div className="flex gap-4 relative z-10">
+                <div className="space-y-4">
+                   <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                      ¿Confirma la anulación comercial de este pedido para el cliente <span className="font-black text-red-600 italic">"{pedido?.clientes?.razon_social || "Empresa No Identificada"}"</span>?
+                   </p>
+                   
+                   <div className="grid grid-cols-1 gap-3">
+                      <ImpactItem 
+                        icon={<RefreshCcw className="w-3.5 h-3.5" />} 
+                        text="Restauración automática de stock en inventario." 
+                      />
+                      <ImpactItem 
+                        icon={<XCircle className="w-3.5 h-3.5" />} 
+                        text="El estado pasará irreversiblemente a CANCELADO." 
+                      />
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          {/* ACCIONES FINALES */}
+          <DialogFooter className="flex flex-col gap-4">
             <Button
               onClick={handleCancel}
               disabled={loading}
-              className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95"
+              className="w-full h-16 bg-red-600 hover:bg-red-700 text-white rounded-3xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-red-200 transition-all active:scale-95 group"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Ejecutando...
+                </div>
               ) : (
-                "Confirmar Anulación"
+                <div className="flex items-center gap-3">
+                  Confirmar Anulación
+                  <Trash2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                </div>
               )}
             </Button>
+            
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] hover:text-slate-600 transition-colors"
+            >
+              Mantener Transacción
+            </button>
           </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
+// ── UI Helpers ────────────────────────────────────────────────
+function ImpactItem({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="flex items-start gap-3 bg-white/60 backdrop-blur-sm p-3 rounded-2xl border border-rose-100 shadow-sm">
+      <div className="text-red-600 mt-0.5 shrink-0">
+        {icon}
+      </div>
+      <p className="text-[11px] font-bold text-slate-500 leading-tight">
+        {text}
+      </p>
+    </div>
+  );
+}

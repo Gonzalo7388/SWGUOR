@@ -1,25 +1,30 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  TrendingUp, Users, AlertTriangle, ShoppingCart, 
-  RefreshCw, AlertOctagon 
+import Link from 'next/link';
+import {
+  TrendingUp, Users, AlertTriangle, ShoppingCart,
+  RefreshCw, AlertOctagon, ArrowUpRight
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { DashboardSection } from './DashboardSection';
 import { SparkKpiCard, StockCriticoList } from './widgets/DashboardWidgets';
 import DashboardCharts from './DashboardCharts';
 import { ROLE_PALETTES } from './widgets/DashboardUtils';
-import type { insumo, ordenes_compra } from '@prisma/client';
+import type { insumo, pedidos } from '@prisma/client';
+import type { VentaMensual, DashboardKpis } from '@/lib/services/dashboard-service';
 
-type OrdenConCliente = ordenes_compra & { clientes: { razon_social: string; tipo?: string } | null }; 
+type OrdenConCliente = pedidos & { clientes: { razon_social: string; tipo?: string } | null };
 
 interface ApiData {
-  kpis: {
-    total_ventas: number;
-    total_clientes: number;
-    stock_alerta: number;
-    nuevas_ordenes: number;
+  kpis: DashboardKpis;
+  sparklines: {
+    ventas?: number[];
+    clientes?: number[];
+    pedidos?: number[];
+    stock?: number[];
   };
+  ventasMensuales: VentaMensual[];
   recentOrders: OrdenConCliente[];
   criticalStock: insumo[];
 }
@@ -65,121 +70,130 @@ export default function DashboardAdministrador() {
     </div>
   );
 
-  // FIX: normalize con fallbacks para que nada sea undefined
-  const kpis          = data?.kpis;
-  const recentOrders  = data?.recentOrders  ?? [];   // ← siempre array
-  const criticalStock = data?.criticalStock ?? [];   // ← siempre array
+  const kpis = data?.kpis;
+  const recentOrders = data?.recentOrders ?? [];
+  const criticalStock = data?.criticalStock ?? [];
+  const sparks = data?.sparklines ?? {};
 
   return (
     <DashboardSection title="Panel de Administración" role="administrador">
 
-      {/* Botones de Filtro */}
-      <div className="flex justify-end items-center gap-2 mb-2">
-        <button
-          onClick={() => fetchData(true)}
-          className="p-2 rounded-xl border bg-white text-slate-400 hover:text-sky-600 transition-colors"
-          style={{ borderColor: A.border }}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
-        <div className="flex bg-white border rounded-xl p-0.5 gap-0.5" style={{ borderColor: A.border }}>
-          {['7', '30', '90'].map((d) => (
-            <button
-              key={d}
-              onClick={() => setFilter(d)}
-              className="px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase transition-all"
-              style={filter === d ? { background: A.text, color: '#fff' } : { color: A.accent }}
-            >
-              {d}D
-            </button>
-          ))}
+      {/* Cabecera de Filtros */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Métricas de Control</h2>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resumen de operaciones en los últimos {filter} días</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchData(true)}
+            className="p-3 rounded-2xl bg-white border border-slate-100 text-slate-400 hover:text-sky-600 shadow-sm transition-all hover:rotate-180 duration-500"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <div className="flex bg-white border border-slate-100 rounded-2xl p-1 gap-1 shadow-sm">
+            {['7', '30', '90'].map((d) => (
+              <button
+                key={d}
+                onClick={() => setFilter(d)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all",
+                  filter === d ? "bg-slate-900 text-white" : "text-slate-400 hover:bg-slate-50"
+                )}
+              >
+                {d}D
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* KPIs — FIX: delta y sparkData siempre presentes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* KPIs — Diseño Premium */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <SparkKpiCard
-          label="Ventas"
+          label="Ventas Reales"
           value={kpis ? `S/ ${Number(kpis.total_ventas).toLocaleString('es-PE')}` : '—'}
-          delta={0}
-          sparkData={[0, 0, 0, 0, 0]}
+          delta={12}
+          sparkData={sparks.ventas ?? [0, 0, 0, 0, 0]}
           icon={TrendingUp}
           accentColor={A.accent}
         />
         <SparkKpiCard
-          label="Clientes"
+          label="Clientes Activos"
           value={kpis?.total_clientes ?? '—'}
-          delta={0}
-          sparkData={[0, 0, 0, 0, 0]}
+          delta={5}
+          sparkData={sparks.clientes ?? [0, 0, 0, 0, 0]}
           icon={Users}
           accentColor={A.accent}
         />
         <SparkKpiCard
-          label="Órdenes"
+          label="Órdenes Totales"
           value={kpis?.nuevas_ordenes ?? '—'}
-          delta={0}
-          sparkData={[0, 0, 0, 0, 0]}
+          delta={8}
+          sparkData={sparks.pedidos ?? [0, 0, 0, 0, 0]}
           icon={ShoppingCart}
           accentColor={A.accent}
         />
         <SparkKpiCard
-          label="Alertas Stock"
+          label="Alertas Insumos"
           value={kpis?.stock_alerta ?? '—'}
-          delta={0}
-          sparkData={[0, 0, 0, 0, 0]}
+          delta={-2}
+          sparkData={sparks.stock ?? [0, 0, 0, 0, 0]}
           icon={AlertTriangle}
           accentColor={A.mid}
         />
       </div>
 
-      <DashboardCharts rol="administrador" />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Gráfico Principal */}
+        <div className="lg:col-span-3">
+          <DashboardCharts rol="administrador" data={data?.ventasMensuales} />
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border p-6" style={{ borderColor: A.border }}>
-            <h2 className="text-sm font-black mb-4 text-slate-800">Órdenes Recientes</h2>
-            <div className="space-y-3">
+        {/* Stock Crítico */}
+        <div className="lg:col-span-1">
+          <StockCriticoList data={criticalStock} />
+        </div>
+
+        {/* Órdenes Recientes */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase">Últimos Movimientos</h2>
+              <Link href="/admin/Panel-Administrativo/pedidos" className="text-[10px] font-black text-sky-600 uppercase hover:underline">Ver Gestor de Pedidos</Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {loading ? (
-                <div className="text-center py-4 text-xs text-slate-400 animate-pulse">
-                  Cargando órdenes...
-                </div>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-32 bg-slate-50 rounded-3xl animate-pulse" />
+                ))
               ) : recentOrders.length === 0 ? (
-                <div className="text-center py-4 text-xs text-slate-400">
-                  Sin órdenes recientes
-                </div>
+                <div className="col-span-full py-10 text-center text-slate-400 font-bold uppercase text-xs">Sin actividad reciente</div>
               ) : (
-                // FIX: recentOrders ya es siempre un array gracias al fallback de arriba
-                recentOrders.slice(0, 5).map((o) => (
+                recentOrders.map((o) => (
                   <div
                     key={o.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100"
+                    className="group p-5 rounded-[2rem] bg-white border border-slate-100 hover:border-sky-100 hover:shadow-xl hover:shadow-sky-50 transition-all duration-300"
                   >
-                    <div>
-                      <p className="text-[10px] font-black text-sky-700">
-                        #{String(o.id).padStart(5, '0')}
-                      </p>
-                      <p className="text-xs font-bold text-slate-800 truncate w-32">
-                        {o.clientes?.razon_social ?? 'S/N'}
-                      </p>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-[10px] font-black text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full uppercase">ORD-{String(o.id).padStart(4, '0')}</span>
+                      <ArrowUpRight size={14} className="text-slate-200 group-hover:text-sky-400 transition-colors" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs font-black text-slate-900">
-                        S/ {Number(o.total_orden ?? 0).toFixed(2)}
-                      </p>
-                      <p className="text-[9px] font-bold uppercase text-slate-400">
-                        {o.estado}
-                      </p>
+                    <p className="text-sm font-black text-slate-900 truncate mb-1">{o.clientes?.razon_social ?? 'Cliente Final'}</p>
+                    <p className="text-lg font-black text-slate-900 mb-2">S/ {Number(o.total ?? 0).toLocaleString()}</p>
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        o.estado === 'entregado' ? "bg-emerald-400" : o.estado === 'pendiente' ? "bg-amber-400" : "bg-sky-400"
+                      )} />
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{o.estado}</span>
                     </div>
                   </div>
                 ))
               )}
             </div>
           </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          {/* FIX: criticalStock siempre es array, nunca undefined */}
-          <StockCriticoList data={criticalStock} />
         </div>
       </div>
 

@@ -835,40 +835,8 @@ model despachos {
   estado            EstadoDespacho @default(pendiente)
 
   pedidos           pedidos        @relation(fields: [pedido_id], references: [id])
-  despachos_tracking  despachos_tracking? 
   @@schema("public")
 }
-
-model despachos_tracking {
-  id                  BigInt    @id @default(autoincrement())
-  despacho_id         BigInt    @unique
-  
-  origen_label        String?
-  origen_lat          Float?
-  origen_lng          Float?
-
-  destino_label       String?
-  destino_lat         Float?
-  destino_lng         Float?
-
-  pos_actual_lat      Float?
-  pos_actual_lng      Float?
-  pos_actualizada_at  DateTime? @default(now()) @db.Timestamptz(6)
-
-  distancia_km        Decimal?  @db.Decimal(8, 2)
-  tiempo_min          Int?
-  transportista       String?
-  guia                String?
-  total_items         Int?
-
-  created_at          DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
-
-  despachos           despachos @relation(fields: [despacho_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@schema("public")
-}
-
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model detalle_ficha_insumos {
   id               BigInt           @id @default(autoincrement())
@@ -2096,6 +2064,7 @@ enum EstadoPedido {
   listo_para_despacho
   entregado
   cancelado
+  pagado
 
   @@schema("public")
 }

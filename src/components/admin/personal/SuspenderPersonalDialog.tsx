@@ -2,31 +2,33 @@
 
 import { useState } from "react";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle,
+  Dialog, DialogContent, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ShieldOff, Loader2, Briefcase } from "lucide-react";
+import {
+  ShieldOff, ShieldCheck, Loader2, X, AlertTriangle,
+  ShieldAlert, UserX, UserCheck, Fingerprint, Briefcase,
+  History, Lock
+} from "lucide-react";
 import type { PersonalRow } from "@/lib/services/personal-interno-services";
+import { cn } from "@/lib/utils";
 
-// ─── Tipos ────────────────────────────────────────────────────
 interface SuspenderPersonalDialogProps {
-  isOpen:    boolean;
-  onClose:   () => void;
+  isOpen: boolean;
+  onClose: () => void;
   onSuccess: () => void;
-  personal:  PersonalRow | null;
+  personal: PersonalRow | null;
 }
 
-// ─── Componente ───────────────────────────────────────────────
 export default function SuspenderPersonalDialog({
   isOpen, onClose, onSuccess, personal,
 }: SuspenderPersonalDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  const nombre = personal?.nombre_completo ?? "este miembro";
-  const cargo  = personal?.cargo?.replace(/_/g, " ") ?? null;
+  const nombre = personal?.nombre_completo ?? "Colaborador";
+  const cargo = personal?.cargo?.replace(/_/g, " ") ?? "Sin cargo";
   const activo = personal?.estado === "activo";
-
   const accion = activo ? "Suspender" : "Reactivar";
 
   const handleConfirmar = async () => {
@@ -44,8 +46,8 @@ export default function SuspenderPersonalDialog({
 
       toast.success(
         activo
-          ? `${nombre} ha sido suspendido correctamente`
-          : `${nombre} ha sido reactivado correctamente`,
+          ? `Acceso Revocado: ${nombre} ha sido suspendido`
+          : `Acceso Restaurado: ${nombre} está activo nuevamente`,
       );
       onSuccess();
       onClose();
@@ -58,102 +60,119 @@ export default function SuspenderPersonalDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 border-none shadow-2xl bg-white overflow-hidden">
+      <DialogContent className="max-w-md bg-white/95 backdrop-blur-2xl border-none shadow-[0_32px_128px_-32px_rgba(0,0,0,0.2)] p-0 overflow-hidden rounded-[40px] animate-in zoom-in-95 duration-500">
 
-        <div className={`h-2 w-full ${activo ? "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600" : "bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500"}`} />
+        {/* CABECERA DINÁMICA */}
+        <div className={cn(
+          "px-8 py-10 text-white relative overflow-hidden transition-colors duration-700",
+          activo
+            ? "bg-gradient-to-br from-amber-500 via-rose-700 to-rose-900 shadow-[inset_0_-24px_48px_-12px_rgba(0,0,0,0.1)]"
+            : "bg-gradient-to-br from-teal-500 via-emerald-700 to-indigo-900"
+        )}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl" />
 
-        <div className="p-6 space-y-5">
-
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className={`p-2.5 rounded-xl border flex-shrink-0 ${
-              activo ? "bg-amber-50 border-amber-100" : "bg-teal-50 border-teal-100"
-            }`}>
-              <ShieldOff className={`w-5 h-5 ${activo ? "text-amber-600" : "text-teal-600"}`} />
+          <div className="flex justify-between items-start relative z-10">
+            <div className="p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
+              {activo ? <ShieldAlert className="w-7 h-7 text-white" /> : <ShieldCheck className="w-7 h-7 text-white" />}
             </div>
-            <div>
-              <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight">
-                {accion} Personal
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                {activo
-                  ? "El registro se conserva — solo se desactiva el acceso."
-                  : "Se restaurará el acceso al sistema para este miembro."
-                }
-              </DialogDescription>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
+              <X className="w-5 h-5 text-white/70" />
+            </button>
+          </div>
+
+          <div className="mt-8 space-y-1 relative z-10">
+            <DialogTitle className="text-3xl font-black tracking-tighter uppercase leading-tight">
+              {activo ? "Suspender" : "Reactivar"} <br /> Credenciales
+            </DialogTitle>
+            <DialogDescription className="text-white/60 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
+              <Fingerprint className="w-3 h-3" /> Seguridad de Infraestructura GUOR
+            </DialogDescription>
+          </div>
+        </div>
+
+        <div className="p-8 space-y-8">
+          {/* TARJETA COLABORADOR */}
+          <div className="bg-slate-50 border border-slate-100 rounded-[24px] p-6 flex items-center gap-4">
+            <div className={cn(
+              "w-14 h-14 rounded-2xl bg-white shadow-sm border flex items-center justify-center shrink-0 transition-colors",
+              activo ? "border-amber-100" : "border-emerald-100"
+            )}>
+              {activo ? <UserX className="w-6 h-6 text-amber-500" /> : <UserCheck className="w-6 h-6 text-emerald-500" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Colaborador</p>
+              <p className="text-sm font-black text-slate-800 truncate">{nombre}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Briefcase className="w-3 h-3 text-slate-400" />
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{cargo}</p>
+              </div>
             </div>
           </div>
 
-          {/* Info del miembro */}
-          <div className={`rounded-lg border p-4 space-y-3 ${
-            activo ? "bg-amber-50 border-amber-100" : "bg-teal-50 border-teal-100"
-          }`}>
-            <p className="text-sm text-slate-700">
-              ¿Confirmas que deseas{" "}
-              <span className={`font-semibold ${activo ? "text-amber-700" : "text-teal-700"}`}>
-                {accion.toLowerCase()}
-              </span>{" "}
-              a <span className="font-semibold text-slate-800">{nombre}</span>?
-            </p>
-
-            {cargo && (
-              <div className="flex items-center gap-1.5 w-fit">
-                <Briefcase size={11} className="text-slate-400" />
-                <span className="text-[11px] text-slate-500 capitalize font-medium">{cargo}</span>
-              </div>
-            )}
-
-            <ul className="text-xs text-slate-500 space-y-1 list-none mt-1">
+          {/* IMPACTO */}
+          <div className="space-y-4 px-2">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Consecuencias de Acción</p>
+            <ul className="space-y-4">
               {activo ? (
                 <>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    No podrá iniciar sesión mientras esté suspendido.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    Todos sus datos se conservan y se puede reactivar en cualquier momento.
-                  </li>
+                  <ImpactItem icon={<Lock className="w-4 h-4 text-rose-500" />} text="Cierre inmediato de sesiones activas." />
+                  <ImpactItem icon={<AlertTriangle className="w-4 h-4 text-amber-500" />} text="Inhabilitación de módulos administrativos." />
+                  <ImpactItem icon={<History className="w-4 h-4 text-blue-500" />} text="Se mantiene la trazabilidad histórica." />
                 </>
               ) : (
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" />
-                  Podrá iniciar sesión con sus credenciales existentes.
-                </li>
+                <>
+                  <ImpactItem icon={<ShieldCheck className="w-4 h-4 text-emerald-500" />} text="Restauración total de privilegios." />
+                  <ImpactItem icon={<UserCheck className="w-4 h-4 text-teal-500" />} text="Acceso inmediato al portal administrativo." />
+                </>
               )}
             </ul>
           </div>
 
-          {/* Footer */}
-          <DialogFooter className="pt-4 border-t border-slate-100 flex gap-2">
+          {/* FOOTER */}
+          <div className="flex flex-col gap-3 pt-2">
             <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 text-slate-500 hover:bg-slate-100"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
               onClick={handleConfirmar}
               disabled={loading}
-              className={`flex-1 text-white shadow-md transition-all ${
+              className={cn(
+                "w-full h-16 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95",
                 activo
-                  ? "bg-amber-500 hover:bg-amber-600 shadow-amber-100"
-                  : "bg-teal-600 hover:bg-teal-700 shadow-teal-100"
-              }`}
+                  ? "bg-slate-900 hover:bg-slate-800 shadow-slate-200"
+                  : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+              )}
             >
-              {loading
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{accion}ndo…</>
-                : `${accion} acceso`
-              }
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Procesando...
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  Confirmar {accion}
+                  {activo ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                </div>
+              )}
             </Button>
-          </DialogFooter>
-
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-slate-600 transition-colors"
+            >
+              Mantener Estado Actual
+            </button>
+          </div>
         </div>
+
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ImpactItem({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <li className="flex items-start gap-3 text-xs font-bold text-slate-600 leading-relaxed">
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      {text}
+    </li>
   );
 }

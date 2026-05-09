@@ -6,8 +6,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ShieldOff, Loader2, Building2 } from "lucide-react";
+import { 
+  ShieldOff, Loader2, Building2, AlertTriangle, 
+  CheckCircle2, X, AlertCircle, Info, Hash, Mail,
+  UserCheck, UserMinus, ShieldAlert, ShieldCheck
+} from "lucide-react";
 import type { ClienteListItem } from "@/lib/services/clientes-services";
+import { cn } from "@/lib/utils";
 
 // ─── Tipos ────────────────────────────────────────────────────
 interface SuspenderClienteDialogProps {
@@ -47,8 +52,8 @@ export default function SuspenderClienteDialog({
 
       toast.success(
         activo
-          ? `La cuenta de ${display} ha sido suspendida`
-          : `La cuenta de ${display} ha sido reactivada`,
+          ? `Operación exitosa: Acceso restringido para ${display}`
+          : `Operación exitosa: Acceso restaurado para ${display}`,
       );
       onSuccess();
       onClose();
@@ -61,126 +66,142 @@ export default function SuspenderClienteDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 border-none shadow-2xl bg-white overflow-hidden">
-
-        {/* Franja: ámbar para suspender, azul para reactivar */}
-        <div className={`h-1.5 w-full ${activo ? "bg-amber-500" : "bg-blue-500"}`} />
-
-        <div className="p-6 space-y-5">
-
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className={`p-2.5 rounded-xl border flex-shrink-0 ${
-              activo ? "bg-amber-50 border-amber-100" : "bg-blue-50 border-blue-100"
-            }`}>
-              <ShieldOff className={`w-5 h-5 ${activo ? "text-amber-600" : "text-blue-600"}`} />
+      <DialogContent className="max-w-md bg-white/95 backdrop-blur-2xl border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] p-0 overflow-hidden rounded-[40px] animate-in zoom-in-95 duration-500">
+        
+        {/* CABECERA DINÁMICA SEGÚN ESTADO */}
+        <div className={cn(
+          "px-8 py-10 text-white relative overflow-hidden",
+          activo ? "bg-amber-600" : "bg-indigo-600"
+        )}>
+          {/* Elementos decorativos glass */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl" />
+          
+          <div className="flex justify-between items-start relative z-10">
+            <div className="p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
+              {activo ? <UserMinus className="w-7 h-7 text-white" /> : <UserCheck className="w-7 h-7 text-white" />}
             </div>
-            <div>
-              <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight">
-                {accion} Cliente
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                {activo
-                  ? "La cuenta del cliente será deshabilitada."
-                  : "Se restaurará el acceso al sistema para este cliente."
-                }
-              </DialogDescription>
-            </div>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
+               <X className="w-5 h-5 text-white/70" />
+            </button>
           </div>
 
-          {/* Info del cliente */}
-          <div className={`rounded-lg border p-4 space-y-3 ${
-            activo ? "bg-amber-50 border-amber-100" : "bg-blue-50 border-blue-100"
-          }`}>
-            <p className="text-sm text-slate-700">
-              ¿Confirmas que deseas{" "}
-              <span className={`font-semibold ${activo ? "text-amber-700" : "text-blue-700"}`}>
-                {accion.toLowerCase()}
-              </span>{" "}
-              la cuenta de{" "}
-              <span className="font-semibold text-slate-800">{display}</span>?
-            </p>
+          <div className="mt-8 space-y-1 relative z-10">
+            <DialogTitle className="text-3xl font-black tracking-tighter uppercase leading-tight">
+              {accion} <br /> Acceso
+            </DialogTitle>
+            <DialogDescription className="text-white/70 font-bold text-[11px] uppercase tracking-[0.2em] flex items-center gap-2">
+              Seguridad Administrativa GUOR PRO
+            </DialogDescription>
+          </div>
+        </div>
 
-            {/* Datos del cliente */}
-            <div className="flex flex-col gap-1">
-              {razonSocial && (
-                <div className="flex items-center gap-1.5">
-                  <Building2 size={11} className="text-slate-400 shrink-0" />
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    {razonSocial}
-                  </span>
+        <div className="p-8 space-y-8">
+          {/* TARJETA DE INFORMACIÓN DEL CLIENTE */}
+          <div className="bg-slate-50 border border-slate-100 rounded-[24px] p-6 space-y-4">
+             <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
+                  <Building2 className="w-6 h-6 text-slate-400" />
                 </div>
-              )}
-              {ruc && (
-                <span className="text-[11px] text-slate-400 font-mono ml-4">
-                  RUC: {ruc}
-                </span>
-              )}
-            </div>
+                <div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entidad Identificada</p>
+                   <p className="text-sm font-black text-slate-800 line-clamp-1">{display}</p>
+                </div>
+             </div>
 
-            {/* Consecuencias */}
-            <ul className="text-xs text-slate-500 space-y-1 list-none mt-1">
-              {activo ? (
-                <>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    El cliente no podrá iniciar sesión en el portal.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    Su historial de pedidos y datos se conservan íntegramente.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    Se puede reactivar la cuenta en cualquier momento.
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                    Se habilitará el acceso al portal del cliente.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                    Podrá iniciar sesión con sus credenciales existentes.
-                  </li>
-                </>
-              )}
-            </ul>
+             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                      <Hash className="w-3 h-3" /> Registro
+                   </p>
+                   <p className="text-[11px] font-bold text-slate-600">{ruc || "N/A"}</p>
+                </div>
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Contacto
+                   </p>
+                   <p className="text-[11px] font-bold text-slate-600 truncate">{email || "Sin correo"}</p>
+                </div>
+             </div>
           </div>
 
-          {/* Footer */}
-          <DialogFooter className="pt-4 border-t border-slate-100 flex gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 text-slate-500 hover:bg-slate-100"
-            >
-              Cancelar
-            </Button>
+          {/* MENSAJE DE ADVERTENCIA */}
+          <div className={cn(
+             "p-6 rounded-[24px] border relative overflow-hidden group",
+             activo ? "bg-amber-50/50 border-amber-100" : "bg-indigo-50/50 border-indigo-100"
+          )}>
+             <div className="flex gap-4 relative z-10">
+                <div className={cn(
+                  "p-2 rounded-lg shrink-0",
+                  activo ? "bg-amber-100 text-amber-600" : "bg-indigo-100 text-indigo-600"
+                )}>
+                  {activo ? <ShieldAlert className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                </div>
+                <div className="space-y-3">
+                   <p className="text-sm font-black text-slate-800">
+                      Impacto de la Operación
+                   </p>
+                   <ul className="space-y-2">
+                     {activo ? (
+                       <>
+                         <li className="flex items-start gap-2 text-[11px] font-bold text-slate-500">
+                            <AlertCircle className="w-3 h-3 mt-0.5 text-amber-500" />
+                            El cliente perderá acceso inmediato al portal corporativo.
+                         </li>
+                         <li className="flex items-start gap-2 text-[11px] font-bold text-slate-500">
+                            <AlertCircle className="w-3 h-3 mt-0.5 text-amber-500" />
+                            No podrá generar nuevas cotizaciones ni visualizar pedidos.
+                         </li>
+                       </>
+                     ) : (
+                       <>
+                         <li className="flex items-start gap-2 text-[11px] font-bold text-slate-500">
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 text-indigo-500" />
+                            Se restaurará la capacidad de login y operación comercial.
+                         </li>
+                         <li className="flex items-start gap-2 text-[11px] font-bold text-slate-500">
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 text-indigo-500" />
+                            El cliente podrá visualizar todo su historial previo.
+                         </li>
+                       </>
+                     )}
+                   </ul>
+                </div>
+             </div>
+          </div>
+
+          {/* ACCIONES FINALES */}
+          <DialogFooter className="flex flex-col gap-3 pt-4 border-t border-slate-100">
             <Button
               type="button"
               onClick={handleConfirmar}
               disabled={loading}
-              className={`flex-1 text-white shadow-md transition-all ${
-                activo
-                  ? "bg-amber-500 hover:bg-amber-600 shadow-amber-100"
-                  : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
-              }`}
+              className={cn(
+                "w-full h-16 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 text-base uppercase tracking-widest",
+                activo 
+                  ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-amber-200/50" 
+                  : "bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 shadow-indigo-200/50"
+              )}
             >
               {loading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{accion}ndo…</>
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Sincronizando...
+                </div>
               ) : (
-                `${accion} cuenta`
+                `Confirmar ${accion}`
               )}
             </Button>
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-slate-600 transition-colors"
+            >
+              Cerrar sin Cambios
+            </button>
           </DialogFooter>
-
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+}

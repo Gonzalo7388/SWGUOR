@@ -10,16 +10,44 @@ import { DashboardSection } from './DashboardSection';
 import { SparkKpiCard, VentasMensualesChart, RankingProductos } from './widgets/DashboardWidgets';
 import { ROLE_PALETTES } from "./widgets/DashboardUtils";
 import DashboardCharts from './DashboardCharts';
+import type { pedidos } from '@prisma/client';
+import type { VentaMensual, DashboardKpis } from '@/lib/services/dashboard-service';
+
+interface GerenteData {
+  kpis: DashboardKpis;
+  sparklines: any;
+  ventasMensuales: VentaMensual[];
+  recentOrders: (pedidos & { clientes: { razon_social: string } | null })[];
+  balanceData: any[];
+  rankingProductos: any[];
+}
 
 export default function GerenteDashboard() {
   const G = ROLE_PALETTES.gerente;
+  const [data, setData] = React.useState<GerenteData | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  // Datos simulados para el balance estratégico
-  const balanceData = [
-    { label: "Margen Neto", value: "32.5%", icon: Award, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Costo Operativo", value: "S/ 12,400", icon: Briefcase, color: "text-amber-600", bg: "bg-amber-50" },
-    { label: "Proyección Cierre", value: "S/ 58k", icon: Target, color: "text-violet-600", bg: "bg-violet-50" },
-  ];
+  React.useEffect(() => {
+    fetch('/api/admin/dashboard?days=30')
+      .then(res => res.json())
+      .then(json => {
+        setData(json);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Activity className="animate-spin text-violet-600" size={32} />
+        <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Calculando métricas estratégicas...</p>
+      </div>
+    );
+  }
+
+  const k = data?.kpis;
+  const b = data?.balanceData ?? [];
 
   return (
     <DashboardSection 
@@ -32,35 +60,51 @@ export default function GerenteDashboard() {
         {/* 1. KPIs de Alto Nivel */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <SparkKpiCard 
-            label="Ingresos Totales" value="S/ 45,280" delta={12} 
-            icon={DollarSign} accentColor={G.accent} sparkData={[30, 45, 35, 50, 48, 60]} 
+            label="Ingresos Totales" 
+            value={`S/ ${Number(k?.facturacion ?? 0).toLocaleString()}`} 
+            delta={12} 
+            icon={DollarSign} 
+            accentColor={G.accent} 
+            sparkData={data?.sparklines?.facturacion ?? []} 
           />
           <SparkKpiCard 
-            label="Nuevos Clientes" value="124" delta={5} 
-            icon={Users} accentColor={G.accent} sparkData={[10, 15, 8, 20, 25, 22]} 
+            label="Nuevos Clientes" 
+            value={k?.clientesB2B ?? 0} 
+            delta={5} 
+            icon={Users} 
+            accentColor={G.accent} 
+            sparkData={data?.sparklines?.clientes ?? []} 
           />
           <SparkKpiCard 
-            label="Efectividad Ventas" value="94.2%" delta={2} 
-            icon={Activity} accentColor={G.accent} sparkData={[80, 85, 90, 88, 92, 94]} 
+            label="Pedidos Activos" 
+            value={k?.pedidosActivos ?? 0} 
+            delta={2} 
+            icon={Activity} 
+            accentColor={G.accent} 
+            sparkData={data?.sparklines?.pedidos ?? []} 
           />
           <SparkKpiCard 
-            label="ROI Publicidad" value="4.2x" delta={4} 
-            icon={TrendingUp} accentColor={G.accent} sparkData={[3.5, 3.8, 4.0, 3.9, 4.1, 4.2]} 
+            label="Cotiz. Pendientes" 
+            value={k?.cotizacionesPend ?? 0} 
+            delta={4} 
+            icon={TrendingUp} 
+            accentColor={G.accent} 
+            sparkData={data?.sparklines?.cotizaciones ?? []} 
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 2. Gráfico de Tendencia Principal (Ocupa 3 columnas) */}
           <div className="lg:col-span-3">
-            <DashboardCharts rol="gerente" />
+            <DashboardCharts rol="gerente" data={data?.ventasMensuales} />
           </div>
 
           {/* 3. Balance de Situación Rápido */}
           <div className="flex flex-col gap-4">
-            {balanceData.map((item, idx) => (
+            {b.map((item: any, idx: number) => (
               <div key={idx} className="bg-white border border-slate-100 rounded-[24px] p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className={`${item.bg} p-3 rounded-2xl`}>
-                  <item.icon size={20} className={item.color} />
+                <div className={`p-3 rounded-2xl ${idx === 0 ? 'bg-emerald-50' : idx === 1 ? 'bg-amber-50' : 'bg-violet-50'}`}>
+                  {idx === 0 ? <Award size={20} className="text-emerald-600" /> : idx === 1 ? <Briefcase size={20} className="text-amber-600" /> : <Target size={20} className="text-violet-600" />}
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
@@ -75,7 +119,7 @@ export default function GerenteDashboard() {
                   <h4 className="text-[10px] font-bold text-violet-200 uppercase tracking-[0.2em] mb-4">Meta Mensual</h4>
                   <div className="flex items-end gap-2 mb-2">
                     <span className="text-3xl font-black">82%</span>
-                    <span className="text-xs font-bold text-violet-200 mb-1">S/ 45k de S/ 55k</span>
+                    <span className="text-xs font-bold text-violet-200 mb-1">S/ {Math.round((k?.facturacion ?? 0) / 1000)}k de S/ 55k</span>
                   </div>
                   <div className="h-2 w-full bg-white/20 rounded-full">
                     <div className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: '82%' }}></div>
@@ -104,31 +148,24 @@ export default function GerenteDashboard() {
                     </div>
                   </div>
                </div>
-               <VentasMensualesChart data={[]} accentColor={G.accent} />
+               <VentasMensualesChart data={data?.ventasMensuales ?? []} accentColor={G.accent} />
             </div>
           </div>
 
           <div className="space-y-6">
-            <RankingProductos data={[]} accentColor={G.accent} />
+            <RankingProductos data={data?.rankingProductos ?? []} accentColor={G.accent} />
             
             {/* Resumen Ejecutivo de Clientes */}
             <div className="bg-slate-900 rounded-[32px] p-7 text-white">
               <h4 className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-4">Top Clientes (LTV)</h4>
               <div className="space-y-4">
-                {[
-                  { name: "Corporación Textil SAC", total: "S/ 12,450", trend: "up" },
-                  { name: "Tiendas Boutique Lima", total: "S/ 8,900", trend: "up" },
-                  { name: "Distribuidora Norte", total: "S/ 5,200", trend: "down" },
-                ].map((c, i) => (
+                {(data?.recentOrders ?? []).slice(0, 3).map((o, i) => (
                   <div key={i} className="flex justify-between items-center group cursor-pointer">
                     <div>
-                      <p className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">{c.name}</p>
-                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">{c.total}</p>
+                      <p className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors truncate w-32">{o.clientes?.razon_social ?? 'S/N'}</p>
+                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">S/ {Number(o.total ?? 0).toLocaleString()}</p>
                     </div>
-                    {c.trend === 'up' ? 
-                      <ArrowUpRight size={16} className="text-emerald-400" /> : 
-                      <ArrowDownRight size={16} className="text-rose-400" />
-                    }
+                    <ArrowUpRight size={16} className="text-emerald-400" />
                   </div>
                 ))}
               </div>

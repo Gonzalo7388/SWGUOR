@@ -1,40 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Button }        from "@/components/ui/button";
-import { Input }         from "@/components/ui/input";
-import { Label }         from "@/components/ui/label";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast }         from "sonner";
-import { UserCog, ShieldCheck, Mail } from "lucide-react";
+import { toast } from "sonner";
+import {
+  UserCog, ShieldCheck, Mail, X, Loader2, Save,
+  Settings2, ShieldAlert, Fingerprint
+} from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { Rol, usuarios } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 const ROLES_SISTEMA: { value: Rol; label: string }[] = [
-  { value: "gerente",              label: "Gerente General"         },
-  { value: "administrador",        label: "Administrador"           },
-  { value: "recepcionista",        label: "Recepcionista"           },
-  { value: "disenador",            label: "Diseñador"               },
-  { value: "cortador",             label: "Cortador"                },
-  { value: "ayudante",             label: "Ayudante"                },
+  { value: "gerente", label: "Gerente General" },
+  { value: "administrador", label: "Administrador" },
+  { value: "recepcionista", label: "Recepcionista" },
+  { value: "disenador", label: "Diseñador" },
+  { value: "cortador", label: "Cortador" },
+  { value: "ayudante", label: "Ayudante" },
   { value: "representante_taller", label: "Representante de Taller" },
-  { value: "cliente",              label: "Cliente"                 },
+  { value: "cliente", label: "Cliente" },
 ];
 
 interface EditUsuarioDialogProps {
-  isOpen:    boolean;
-  onClose:   () => void;
+  isOpen: boolean;
+  onClose: () => void;
   onSuccess: () => void;
-  usuario:   usuarios;
+  usuario: usuarios;
 }
 
 export default function EditUsuarioDialog({
   isOpen, onClose, onSuccess, usuario,
 }: EditUsuarioDialogProps) {
-  const [loading,         setLoading]         = useState(false);
+  const [loading, setLoading] = useState(false);
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(usuario?.rol ?? null);
-  const [rolActual,       setRolActual]       = useState<Rol | null>(null);
+  const [rolActual, setRolActual] = useState<Rol | null>(null);
 
   const puedeEditarEmail = rolActual === 'administrador';
 
@@ -62,19 +66,13 @@ export default function EditUsuarioDialog({
     if (usuario) setRolSeleccionado(usuario.rol ?? null);
   }, [usuario]);
 
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-
-    // Payload para PATCH /api/admin/usuarios — solo campos que existen en usuarios
     const payloadUsuario: Record<string, unknown> = {
-      id:  usuario.id,
+      id: usuario.id,
       rol: rolSeleccionado,
     };
     if (puedeEditarEmail) {
@@ -83,13 +81,13 @@ export default function EditUsuarioDialog({
 
     try {
       const resUsuario = await fetch("/api/admin/usuarios", {
-        method:  "PATCH",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payloadUsuario),
+        body: JSON.stringify(payloadUsuario),
       });
       if (!resUsuario.ok) throw new Error('Error actualizando usuario');
 
-      toast.success("Perfil actualizado con éxito");
+      toast.success("Perfil sincronizado: Los privilegios han sido actualizados");
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -101,100 +99,124 @@ export default function EditUsuarioDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] border-none shadow-2xl bg-white p-0 overflow-hidden">
-        <div className="h-2 bg-pink-600 w-full" />
+      <DialogContent className="max-w-[500px] bg-white/95 backdrop-blur-2xl border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.15)] p-0 overflow-hidden rounded-[48px] animate-in zoom-in-95 duration-500">
 
-        <div className="p-6">
-          <DialogHeader className="mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-pink-50 rounded-lg">
-                <UserCog className="w-6 h-6 text-pink-600" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-bold text-slate-800 uppercase tracking-tight">
-                  Configuración de Usuario
-                </DialogTitle>
-                <DialogDescription className="text-slate-500">
-                  Modifica los accesos y datos personales del personal.
-                </DialogDescription>
-              </div>
+        {/* HEADER PREMIUM */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-10 py-12 text-white relative shrink-0">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/10 rounded-full -ml-16 -mb-16 blur-2xl" />
+
+          <div className="flex justify-between items-start relative z-10">
+            <div className="p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[28px] shadow-2xl rotate-3 transition-transform hover:rotate-0">
+              <Settings2 className="w-8 h-8 text-indigo-400" />
             </div>
-          </DialogHeader>
+            <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="mt-8 space-y-2 relative z-10">
+            <DialogTitle className="text-3xl font-black tracking-tighter uppercase leading-tight">
+              Gestión de <br /> Privilegios
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 font-bold text-[11px] uppercase tracking-[0.3em] flex items-center gap-2">
+              <Fingerprint className="w-3.5 h-3.5 text-indigo-500" /> Configuración Avanzada GUOR PRO
+            </DialogDescription>
+          </div>
+        </div>
 
-            {/* Email */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5" /> Correo Electrónico
-                {puedeEditarEmail && (
-                  <span className="text-pink-600 text-[10px] font-black">· Editable</span>
-                )}
-              </Label>
-              <Input
-                name="email"
-                type="email"
-                defaultValue={usuario?.email}
-                disabled={!puedeEditarEmail}
-                placeholder="correo@empresa.com"
-                className={
-                  puedeEditarEmail
-                    ? "bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
-                    : "bg-slate-100 border-dashed text-slate-400 cursor-not-allowed h-11"
-                }
-              />
-              {!puedeEditarEmail && (
-                <p className="text-[10px] text-slate-400 italic">
-                  · Solo el rol <span className="font-bold text-slate-500">Administrador</span> puede editar el correo
-                </p>
-              )}
+        <div className="p-10 space-y-10">
+          <form onSubmit={handleSubmit} id="edit-usuario-form" className="space-y-8">
+
+            <div className="space-y-8">
+              {/* Email */}
+              <Field icon={<Mail className="w-4 h-4" />} label="Identidad Corporativa">
+                <div className="relative group">
+                  <Input
+                    name="email"
+                    type="email"
+                    defaultValue={usuario?.email}
+                    disabled={!puedeEditarEmail}
+                    className={cn(
+                      inputCls,
+                      !puedeEditarEmail && "bg-slate-50/50 border-dashed text-slate-400 cursor-not-allowed"
+                    )}
+                  />
+                  {!puedeEditarEmail && (
+                    <div className="flex items-center gap-2 mt-3 px-1">
+                      <ShieldAlert className="w-3 h-3 text-slate-300" />
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Solo administradores pueden editar este campo</p>
+                    </div>
+                  )}
+                </div>
+              </Field>
+
+              {/* Rol */}
+              <Field icon={<ShieldCheck className="w-4 h-4" />} label="Nivel de Acceso (Rol)">
+                <Select
+                  value={rolSeleccionado ?? ''}
+                  onValueChange={(value) => setRolSeleccionado(value as Rol)}
+                >
+                  <SelectTrigger className={cn(inputCls, "bg-white")}>
+                    <SelectValue placeholder="Seleccione un cargo" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-[32px] border-none shadow-2xl p-2 bg-white/95 backdrop-blur-xl max-h-64">
+                    {ROLES_SISTEMA.map((rol) => (
+                      <SelectItem key={rol.value} value={rol.value} className="rounded-2xl py-3 px-4 font-bold focus:bg-indigo-50 transition-colors">
+                        {rol.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
             </div>
-
-            {/* Rol */}
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400 flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5" /> Nivel de Acceso (Rol)
-              </Label>
-              <Select
-                value={rolSeleccionado ?? ''}
-                onValueChange={(value) => setRolSeleccionado(value as Rol)}
-              >
-                <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
-                  <SelectValue placeholder="Seleccione un cargo" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {ROLES_SISTEMA.map((rol) => (
-                    <SelectItem key={rol.value} value={rol.value} className="py-2">
-                      <span className="font-medium text-slate-700">{rol.label}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-slate-400 italic">
-                · El rol determina los módulos a los que el usuario puede acceder.
-              </p>
-            </div>
-
-            <DialogFooter className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
-              <Button type="button" variant="ghost" onClick={onClose} className="text-slate-500 hover:bg-slate-100">
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-200 px-8 transition-all"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Guardando
-                  </span>
-                ) : "Guardar Cambios"}
-              </Button>
-            </DialogFooter>
           </form>
+
+          {/* ACCIONES FINALES */}
+          <div className="flex flex-col gap-4 pt-4 border-t border-slate-100/50">
+            <Button
+              type="submit"
+              form="edit-usuario-form"
+              disabled={loading}
+              className="w-full h-16 bg-slate-900 hover:bg-slate-800 text-white rounded-[24px] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-slate-200 transition-all active:scale-95 group"
+            >
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Guardando Cambios...
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  Actualizar Privilegios
+                  <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </div>
+              )}
+            </Button>
+
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-slate-600 transition-colors"
+            >
+              Descartar Modificaciones
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Helpers Premium ──────────────────────────────────────────────────
+const inputCls = "bg-slate-50 border-slate-100 rounded-2xl focus:bg-white focus:border-indigo-200 focus:shadow-xl focus:shadow-indigo-50/50 focus-visible:ring-0 transition-all h-14 px-6 text-sm font-bold text-slate-700 placeholder:text-slate-300";
+
+function Field({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <Label className="text-[11px] uppercase font-black text-slate-400 flex items-center gap-2 tracking-[0.2em] ml-1">
+        {icon}{label}
+      </Label>
+      {children}
+    </div>
   );
 }

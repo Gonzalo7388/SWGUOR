@@ -24,6 +24,7 @@ export type RolUsuario =
   | 'cortador'
   | 'ayudante'
   | 'representante_taller'
+  | 'almacenero'
   | 'cliente';
 
 export type EstadoUsuario = 'activo' | 'inactivo' | 'suspendido';
@@ -114,27 +115,27 @@ export type AccionRecurso =
   | 'download' | 'make' | 'assign' | 'upload' | 'detail';
 
 type ExtractRecurso<K extends string> =
-  K extends `ver_historial_${infer R}`     ? R :
-  K extends `ver_seguimiento_${infer R}`   ? R :
-  K extends `ver_detalle_${infer R}`       ? R :
-  K extends `ver_${infer R}`               ? R :
-  K extends `crear_${infer R}`             ? R :
-  K extends `editar_${infer R}`            ? R :
-  K extends `suspender_${infer R}`         ? R :
-  K extends `descontinuar_${infer R}`      ? R :
-  K extends `agotar_${infer R}`            ? R :
-  K extends `exportar_${infer R}`          ? R :
-  K extends `cancelar_${infer R}`          ? R :
-  K extends `aprobar_${infer R}`           ? R :
-  K extends `ajustar_${infer R}`           ? R :
-  K extends `registrar_${infer R}`         ? R :
-  K extends `subir_${infer R}`             ? R :
+  K extends `ver_historial_${infer R}` ? R :
+  K extends `ver_seguimiento_${infer R}` ? R :
+  K extends `ver_detalle_${infer R}` ? R :
+  K extends `ver_${infer R}` ? R :
+  K extends `crear_${infer R}` ? R :
+  K extends `editar_${infer R}` ? R :
+  K extends `suspender_${infer R}` ? R :
+  K extends `descontinuar_${infer R}` ? R :
+  K extends `agotar_${infer R}` ? R :
+  K extends `exportar_${infer R}` ? R :
+  K extends `cancelar_${infer R}` ? R :
+  K extends `aprobar_${infer R}` ? R :
+  K extends `ajustar_${infer R}` ? R :
+  K extends `registrar_${infer R}` ? R :
+  K extends `subir_${infer R}` ? R :
   K extends `actualizar_estado_${infer R}` ? R :
-  K extends `cambiar_estado_${infer R}`    ? R :
-  K extends `asignar_ordenes_${infer R}`   ? R :
-  K extends `realizar_${infer R}`          ? R :
-  K extends `descargar_${infer R}`         ? R :
-  K extends `filtrar_${infer R}`           ? R :
+  K extends `cambiar_estado_${infer R}` ? R :
+  K extends `asignar_ordenes_${infer R}` ? R :
+  K extends `realizar_${infer R}` ? R :
+  K extends `descargar_${infer R}` ? R :
+  K extends `filtrar_${infer R}` ? R :
   never;
 
 export type RecursoKey = ExtractRecurso<PermissionKey>;
@@ -142,28 +143,28 @@ export type RecursoKey = ExtractRecurso<PermissionKey>;
 export type PermisosRecurso = Partial<Record<RecursoKey, AccionRecurso[]>>;
 
 const ACCION_MAP: Record<string, AccionRecurso> = {
-  ver:                'view',
-  ver_historial:      'view',
-  ver_seguimiento:    'view',
-  ver_detalle:        'detail',
-  crear:              'create',
-  crear_cotizacion:   'create',
-  editar:             'edit',
-  suspender:          'archive',
-  descontinuar:       'archive',
-  agotar:             'archive',
-  exportar:           'export',
-  cancelar:           'cancel',
-  aprobar:            'approve',
-  ajustar:            'adjust',
-  registrar:          'create',
-  subir:              'upload',
-  actualizar_estado:  'update_status',
-  cambiar_estado:     'update_status',
-  asignar_ordenes:    'assign',
-  realizar:           'make',
-  descargar:          'download',
-  filtrar:            'view',
+  ver: 'view',
+  ver_historial: 'view',
+  ver_seguimiento: 'view',
+  ver_detalle: 'detail',
+  crear: 'create',
+  crear_cotizacion: 'create',
+  editar: 'edit',
+  suspender: 'archive',
+  descontinuar: 'archive',
+  agotar: 'archive',
+  exportar: 'export',
+  cancelar: 'cancel',
+  aprobar: 'approve',
+  ajustar: 'adjust',
+  registrar: 'create',
+  subir: 'upload',
+  actualizar_estado: 'update_status',
+  cambiar_estado: 'update_status',
+  asignar_ordenes: 'assign',
+  realizar: 'make',
+  descargar: 'download',
+  filtrar: 'view',
 } as const;
 
 // ─────────────────────────────────────────────
@@ -249,7 +250,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
   disenador: [
     'ver_dashboard',
     'ver_pedidos',
-    'ver_inventario','ver_movimiento_inventario',
+    'ver_inventario', 'ver_movimiento_inventario',
     'ver_insumo',
     'ver_materiales',
     'ver_productos', 'crear_productos', 'editar_productos',
@@ -299,6 +300,14 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_incidencias_taller', 'crear_incidencias_taller',
     'ver_despachos', 'ver_productos',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
+  ],
+
+  almacenero: [
+    'ver_dashboard',
+    'ver_inventario', 'ver_movimiento_inventario', 'ajustar_stock',
+    'ver_insumo', 'crear_insumo', 'editar_insumo',
+    'ver_materiales', 'crear_materiales', 'editar_materiales',
+    'ver_almacenes', 'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
 
   cliente: [
@@ -408,14 +417,15 @@ export const ROLES_INFO: Record<RolUsuario, {
    */
   nivel: number;
 }> = {
-  gerente:              { label: 'Gerente General',         descripcion: 'Visibilidad total + aprobaciones clave',  color: 'bg-violet-100 text-violet-700',   nivel: 5 },
-  administrador:        { label: 'Administrador',           descripcion: 'Acceso operativo total',                  color: 'bg-sky-100 text-sky-700',         nivel: 4 },
-  recepcionista:        { label: 'Recepcionista',           descripcion: 'Maneja órdenes, clientes y cotizaciones', color: 'bg-pink-100 text-pink-700',       nivel: 3 },
-  disenador:            { label: 'Diseñador',               descripcion: 'Responsable del diseño de prendas',       color: 'bg-fuchsia-100 text-fuchsia-700', nivel: 2 },
-  cortador:             { label: 'Cortador',                descripcion: 'Responsable del corte de prendas',        color: 'bg-orange-100 text-orange-600',   nivel: 2 },
-  representante_taller: { label: 'Representante de Taller', descripcion: 'Responsable de taller externo',           color: 'bg-lime-100 text-lime-700',       nivel: 2 },
-  ayudante:             { label: 'Ayudante',                descripcion: 'Asiste en tareas generales',              color: 'bg-teal-100 text-teal-700',       nivel: 1 },
-  cliente:              { label: 'Cliente',                 descripcion: 'Acceso al portal de compras',             color: 'bg-amber-100 text-amber-700',     nivel: 0 },
+  gerente: { label: 'Gerente General', descripcion: 'Visibilidad total + aprobaciones clave', color: 'bg-violet-100 text-violet-700', nivel: 5 },
+  administrador: { label: 'Administrador', descripcion: 'Acceso operativo total', color: 'bg-sky-100 text-sky-700', nivel: 4 },
+  recepcionista: { label: 'Recepcionista', descripcion: 'Maneja órdenes, clientes y cotizaciones', color: 'bg-pink-100 text-pink-700', nivel: 3 },
+  disenador: { label: 'Diseñador', descripcion: 'Responsable del diseño de prendas', color: 'bg-fuchsia-100 text-fuchsia-700', nivel: 2 },
+  cortador: { label: 'Cortador', descripcion: 'Responsable del corte de prendas', color: 'bg-orange-100 text-orange-600', nivel: 2 },
+  representante_taller: { label: 'Representante de Taller', descripcion: 'Responsable de taller externo', color: 'bg-lime-100 text-lime-700', nivel: 2 },
+  ayudante: { label: 'Ayudante', descripcion: 'Asiste en tareas generales', color: 'bg-teal-100 text-teal-700', nivel: 1 },
+  almacenero: { label: 'Almacenero', descripcion: 'Gestión de stock y almacén', color: 'bg-sky-100 text-sky-700', nivel: 2 },
+  cliente: { label: 'Cliente', descripcion: 'Acceso al portal de compras', color: 'bg-amber-100 text-amber-700', nivel: 0 },
 };
 
 export const ROLE_COLORS: Record<RolUsuario, string> = Object.fromEntries(
@@ -429,14 +439,14 @@ export const ROLE_LABELS: Record<RolUsuario, string> = Object.fromEntries(
 export const LISTA_ROLES = Object.keys(ROLES_INFO) as RolUsuario[];
 
 export const ESTADO_LABELS: Record<EstadoUsuario, string> = {
-  activo:     'Activo',
-  inactivo:   'Inactivo',
+  activo: 'Activo',
+  inactivo: 'Inactivo',
   suspendido: 'Suspendido',
 };
 
 export const ESTADO_COLORS: Record<EstadoUsuario, string> = {
-  activo:     'bg-green-100 text-green-800',
-  inactivo:   'bg-gray-100 text-gray-800',
+  activo: 'bg-green-100 text-green-800',
+  inactivo: 'bg-gray-100 text-gray-800',
   suspendido: 'bg-red-100 text-red-800',
 };
 
