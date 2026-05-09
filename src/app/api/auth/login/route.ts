@@ -2,6 +2,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 // Rate limiting simple en memoria (para producción usar Redis)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -66,14 +67,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    // 2. Consulta simplificada primero para asegurar que el usuario existe
-    const { data: usuario, error: dbError } = await supabase
-      .from('usuarios')
-      .select('id, rol, estado')
-      .eq('auth_id', authData.user.id)
-      .single();
+    // 2. Consulta unificada usando Prisma para máxima velocidad
+    const usuario = await prisma.usuarios.findUnique({
+      where: { auth_id: authData.user.id },
+      select: { 
+        id: true, 
+        rol: true, 
+        estado: true,
+        clientes: { select: { id: true } }
+      }
+    });
 
-    if (dbError || !usuario) {
+    if (!usuario) {
       return NextResponse.json({ error: 'Usuario no registrado en el sistema' }, { status: 403 });
     }
 
@@ -82,26 +87,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La cuenta no se encuentra activa' }, { status: 403 });
     }
 
-    // 4. Si es cliente, buscamos su perfil vinculado por separado para evitar fallos de join
+    // 4. Extraer cliente_id de la relación directa si es cliente
     let cliente_id = null;
     if (usuario.rol === 'cliente') {
-      const { data: cliente } = await supabase
-        .from('clientes')
-        .select('id')
-        .eq('usuario_id', usuario.id)
-        .single();
-      
-      if (!cliente) {
+      if (!usuario.clientes) {
         return NextResponse.json({ error: 'Perfil de cliente no vinculado' }, { status: 403 });
       }
-      cliente_id = cliente.id;
+      cliente_id = usuario.clientes.id;
     }
 
     return NextResponse.json({
       success: true,
-      role: usuario.rol.toLowerCase().trim(),
-      user_id: usuario.id,
-      cliente_id: cliente_id
+      role: usuario.rol?.toLowerCase().trim() || '',
+      user_id: usuario.id.toString(),
+      cliente_id: cliente_id?.toString() || null
     });
 
   } catch (error) {

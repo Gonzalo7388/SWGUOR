@@ -10,8 +10,13 @@ export async function GET(req: Request) {
       estado:    searchParams.get('estado')    ?? undefined,
       taller_id: searchParams.get('taller_id') ?? undefined,
       pedido_id: searchParams.get('pedido_id') ?? undefined,
+      search:    searchParams.get('search')    ?? undefined,
+      page:      searchParams.has('page') ? Number(searchParams.get('page')) : 1,
+      limit:     searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
+      statusFilter: searchParams.get('statusFilter') ?? undefined,
     });
-    return NextResponse.json({ success: true, data });
+    // El servicio ahora retorna { data, meta }
+    return NextResponse.json({ success: true, ...data });
   } catch (error: any) {
     console.error('[GET /confecciones]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

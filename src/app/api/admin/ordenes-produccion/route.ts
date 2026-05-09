@@ -6,10 +6,14 @@ import { NextResponse } from 'next/server';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const data = await OrdenesProduccionService.listar(
-      searchParams.get('producto_id') ?? undefined
-    );
-    return NextResponse.json({ success: true, data });
+    const result = await OrdenesProduccionService.listar({
+      producto_id: searchParams.get('producto_id') ?? undefined,
+      search:      searchParams.get('search')      ?? undefined,
+      etapa:       searchParams.get('etapa')       ?? undefined,
+      page:        searchParams.has('page') ? Number(searchParams.get('page')) : 1,
+      limit:       searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
+    });
+    return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     console.error('[GET /ordenes-produccion]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

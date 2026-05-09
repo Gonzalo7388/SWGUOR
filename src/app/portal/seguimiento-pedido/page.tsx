@@ -15,6 +15,7 @@ import {
   type EstadoPedido,
   type SeguimientoPedido,
 } from '@/lib/services/seguimiento-pedido-services';
+import { usePortal } from '../_contexts/PortalContext';
 
 // ─── Config visual de etapas ──────────────────────────────────────────────────
 
@@ -447,22 +448,24 @@ function CardPedido({ pedido, onNuevoEstado }: {
 // ─── Página ───────────────────────────────────────────────────────────────────
 
 export default function SeguimientoPedidoPage() {
+  const { cliente } = usePortal();
   const [pedidos,  setPedidos]  = useState<PedidoConSeguimiento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error,    setError]    = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
+    if (!cliente?.id) return;
     setCargando(true);
     setError(null);
     try {
-      const data = await getPedidosActivos();
+      const data = await getPedidosActivos(cliente.id);
       setPedidos(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [cliente?.id]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -486,115 +489,122 @@ export default function SeguimientoPedidoPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#FCF7F7] text-[#4A3737]">
-
-      {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section className="border-b border-[#D4AF37]/20 bg-[#F5EBEB]">
-        <div className="max-w-5xl mx-auto px-4 py-14">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-[#8A7676] mb-4">
-            Portal B2B · Atención VIP
-          </p>
-          <h1 className="text-3xl md:text-4xl font-serif leading-tight">
-            Seguimiento de{' '}
-            <span className="text-[#B8962D] italic">Pedidos</span>
+    <div className="space-y-10 pb-20">
+      {/* ── Header ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[#d4af37] font-semibold text-xs uppercase tracking-[0.2em]">
+            <div className="w-8 h-px bg-[#d4af37]/40" />
+            <span>Atención Prioritaria B2B</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
+            Trazabilidad de <span className="text-[#d4af37]">Órdenes</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-[#6D5A5A] leading-relaxed">
-            Monitorea en tiempo real el estado de tu orden mayorista a través de
-            cada etapa del proceso. Los cambios de estado se reflejan automáticamente.
+          <p className="text-slate-500 max-w-xl text-lg leading-relaxed">
+            Gestione y monitorea el ciclo de vida de sus pedidos mayoristas en tiempo real.
           </p>
         </div>
-      </section>
-
-      {/* ── Contenido ───────────────────────────────────────────────────────── */}
-      <main className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-
-        {/* Encabezado lista */}
+        
         {!cargando && !error && (
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#4A3737] uppercase tracking-widest">
-              Pedidos activos
-            </h2>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-[#8A7676]">
-                {pedidos.length} orden{pedidos.length !== 1 ? 'es' : ''} en proceso
-              </span>
-              <button
-                onClick={cargar}
-                className="p-1.5 rounded-lg hover:bg-[#F0E4E4] transition-colors"
-                aria-label="Refrescar"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-[#8A7676]" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Cargando */}
-        {cargando && (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <Loader2 className="w-7 h-7 text-[#D4AF37] animate-spin" />
-            <p className="text-sm text-[#8A7676]">Cargando pedidos…</p>
-          </div>
-        )}
-
-        {/* Error */}
-        {!cargando && error && (
-          <div className="flex items-start gap-3 bg-[#FCEBEB] border border-[#F09595] rounded-2xl px-5 py-4">
-            <AlertCircle className="w-5 h-5 text-[#A32D2D] flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[#A32D2D]">
-                Error al cargar pedidos
-              </p>
-              <p className="text-xs text-[#993C1D] mt-0.5">{error}</p>
+          <div className="flex items-center gap-4 bg-white p-2 pl-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col text-right pr-2 border-r border-slate-100">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ordenes</span>
+              <span className="text-lg font-bold text-slate-900">{pedidos.length}</span>
             </div>
             <button
               onClick={cargar}
-              className="text-xs font-bold text-[#A32D2D] hover:text-[#7A1F1F] uppercase tracking-wider transition-colors"
+              className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all hover:rotate-180 duration-500"
             >
-              Reintentar
+              <RefreshCw size={18} />
             </button>
           </div>
         )}
+      </div>
 
-        {/* Vacío */}
-        {!cargando && !error && pedidos.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
-            <Package className="w-10 h-10 text-[#D4AF37]/40" />
-            <p className="text-sm font-semibold text-[#4A3737]">Sin pedidos activos</p>
-            <p className="text-xs text-[#8A7676]">
-              No hay órdenes en proceso en este momento.
-            </p>
+      {/* ── Content ── */}
+      <div className="grid grid-cols-1 gap-10">
+        {cargando ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <div className="w-12 h-12 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-400 font-medium">Sincronizando sus pedidos...</p>
           </div>
-        )}
-
-        {/* Lista */}
-        {!cargando && !error && pedidos.map((p) => (
-          <CardPedido
-            key={p.id}
-            pedido={p}
-            onNuevoEstado={handleNuevoEstado}
-          />
-        ))}
-
-        {/* Nota de ayuda */}
-        {!cargando && !error && pedidos.length > 0 && (
-          <section className="bg-[#F5EBEB] border border-[#EAD7D7] rounded-2xl p-5 md:p-6">
-            <div className="flex items-start gap-3">
-              <CircleHelp className="w-4 h-4 text-[#B8962D] mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-[#6D5A5A] leading-relaxed">
-                Para una consulta puntual, incluye en tu mensaje el código de orden,
-                nombre del cliente y modelo solicitado para una respuesta más rápida.
-              </p>
+        ) : error ? (
+          <div className="bg-rose-50 border border-rose-100 rounded-3xl p-8 flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center text-rose-600">
+              <AlertCircle size={32} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-rose-900">Error de conexión</h3>
+              <p className="text-rose-600/80">{error}</p>
+            </div>
+            <button
+              onClick={cargar}
+              className="px-8 py-3 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/20"
+            >
+              Intentar de nuevo
+            </button>
+          </div>
+        ) : pedidos.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] p-20 flex flex-col items-center text-center gap-6 shadow-sm">
+            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+              <Package size={48} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold text-slate-900">Sin pedidos activos</h3>
+              <p className="text-slate-500 max-w-sm">No tiene órdenes en proceso en este momento. Puede revisar su historial en la sección de facturación.</p>
             </div>
             <Link
-              href="/ecommerce/preguntas-frecuentes"
-              className="inline-block mt-4 text-xs uppercase tracking-[0.2em] font-semibold text-[#4A3737] hover:text-[#B8962D] transition-colors"
+              href="/portal/productos"
+              className="px-10 py-4 bg-[#d4af37] text-white rounded-2xl font-bold hover:bg-[#b8962d] transition-all shadow-xl shadow-[#d4af37]/20"
             >
-              Ver preguntas frecuentes →
+              Explorar Catálogo
             </Link>
+          </div>
+        ) : (
+          pedidos.map((p) => (
+            <CardPedido key={p.id} pedido={p} onNuevoEstado={handleNuevoEstado} />
+          ))
+        )}
+
+        {/* ── Ayuda ── */}
+        {!cargando && !error && pedidos.length > 0 && (
+          <section className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-slate-900/20">
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="space-y-4 text-center md:text-left">
+                <div className="flex items-center gap-3 justify-center md:justify-start">
+                  <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-[#d4af37]">
+                    <CircleHelp size={20} />
+                  </div>
+                  <h3 className="text-2xl font-bold">¿Necesita asistencia técnica?</h3>
+                </div>
+                <p className="text-slate-400 max-w-md text-sm leading-relaxed">
+                  Nuestro equipo comercial está disponible para resolver dudas sobre tiempos de entrega o especificaciones técnicas de su lote.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                <a
+                  href="https://wa.me/51908801912"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-bold hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                  <MessageCircle size={18} />
+                  WhatsApp VIP
+                </a>
+                <Link
+                  href="/ecommerce/preguntas-frecuentes"
+                  className="px-8 py-4 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20 transition-all flex items-center justify-center gap-2 border border-white/10"
+                >
+                  Soporte
+                </Link>
+              </div>
+            </div>
+            {/* Decoración fondo */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#d4af37]/10 blur-[100px] -mr-32 -mt-32" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 blur-[100px] -ml-32 -mb-32" />
           </section>
         )}
-      </main>
+      </div>
     </div>
   );
-}
+}

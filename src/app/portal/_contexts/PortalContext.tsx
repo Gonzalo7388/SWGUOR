@@ -84,6 +84,7 @@ interface PortalCtx {
 
 // ── Reglas de negocio ────────────────────────────────────────────
 export const MOQ_MINIMO = 400;
+export const MAX_UNIDADES = 2000;
 const IGV = 0.18;
 const ESCALAS = [
   { min: 2000, pct: 15, label: '≥ 2,000 uds' },
@@ -234,8 +235,9 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         if (talla !== undefined) updates.talla = talla;
         if (color !== undefined) updates.color = color;
         if (cantidad !== undefined) {
-          updates.cantidad = Math.max(1, cantidad);
-          updates.subtotal = Math.max(1, cantidad) * item.precio_unitario;
+          const cantidadSegura = Math.min(MAX_UNIDADES, Math.max(1, cantidad));
+          updates.cantidad = cantidadSegura;
+          updates.subtotal = cantidadSegura * item.precio_unitario;
         }
 
         return { ...item, ...updates };
@@ -252,8 +254,8 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         return prev.map((i, n) => n === idx
           ? { 
               ...i, 
-              cantidad: i.cantidad + (nuevoItem.cantidad || 1), 
-              subtotal: (i.cantidad + (nuevoItem.cantidad || 1)) * i.precio_unitario 
+              cantidad: Math.min(MAX_UNIDADES, i.cantidad + (nuevoItem.cantidad || 1)), 
+              subtotal: Math.min(MAX_UNIDADES, i.cantidad + (nuevoItem.cantidad || 1)) * i.precio_unitario 
             }
           : i
         );
@@ -283,11 +285,11 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const actualizarCantidad = useCallback((variante_id: number, cantidad: number) => {
-    setItems(prev => prev.map(i =>
-      i.variante_id === variante_id
-        ? { ...i, cantidad: Math.max(1, cantidad), subtotal: Math.max(1, cantidad) * i.precio_unitario }
-        : i
-    ));
+    setItems(prev => prev.map(i => {
+      if (i.variante_id !== variante_id) return i;
+      const cant = Math.min(MAX_UNIDADES, Math.max(1, cantidad));
+      return { ...i, cantidad: cant, subtotal: cant * i.precio_unitario };
+    }));
   }, []);
 
   const eliminarDelBorrador = useCallback((vid: number) =>

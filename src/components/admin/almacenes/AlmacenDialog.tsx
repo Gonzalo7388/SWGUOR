@@ -8,16 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { z } from 'zod';
-
-const almacenFormSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio'),
-  descripcion: z.string().optional(),
-  ubicacion: z.string().optional(),
-  capacidad_maxima: z.number().int().positive().optional(),
-  estado: z.enum(['activo', 'inactivo']),
-});
-
-type AlmacenInput = z.infer<typeof almacenFormSchema>;
+import { crearAlmacenSchema, type CrearAlmacen as AlmacenInput } from '@/lib/schemas/almacenesSchema';
 
 interface AlmacenDialogProps {
   open: boolean;
@@ -35,8 +26,9 @@ export default function AlmacenDialog({
   const [formData, setFormData] = useState<Partial<AlmacenInput>>({
     nombre: '',
     descripcion: '',
-    ubicacion: '',
-    capacidad_maxima: undefined,
+    direccion: '',
+    capacidad_total: undefined,
+    unidad_capacidad: 'unidades',
     estado: 'activo',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -46,16 +38,18 @@ export default function AlmacenDialog({
       setFormData({
         nombre: almacen.nombre,
         descripcion: almacen.descripcion || '',
-        ubicacion: almacen.ubicacion || '',
-        capacidad_maxima: almacen.capacidad_maxima,
+        direccion: almacen.direccion || '',
+        capacidad_total: almacen.capacidad_total ? Number(almacen.capacidad_total) : undefined,
+        unidad_capacidad: almacen.unidad_capacidad || 'unidades',
         estado: almacen.estado,
       });
     } else {
       setFormData({
         nombre: '',
         descripcion: '',
-        ubicacion: '',
-        capacidad_maxima: undefined,
+        direccion: '',
+        capacidad_total: undefined,
+        unidad_capacidad: 'unidades',
         estado: 'activo',
       });
     }
@@ -65,93 +59,131 @@ export default function AlmacenDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const validated = almacenFormSchema.parse(formData);
+      const validated = crearAlmacenSchema.parse(formData);
       onSave(validated);
     } catch (error: any) {
-      const zodErrors: Record<string, string> = {};
-      error.errors.forEach((err: any) => {
-        zodErrors[err.path[0]] = err.message;
-      });
-      setErrors(zodErrors);
+      if (error instanceof z.ZodError) {
+        const zodErrors: Record<string, string> = {};
+        error.issues.forEach((err: any) => {
+          zodErrors[err.path[0]] = err.message;
+        });
+        setErrors(zodErrors);
+      }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {almacen ? 'Editar Almacén' : 'Crear Almacén'}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+        <div className="bg-slate-900 p-6 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#d4af37]">
+              {almacen ? 'Editar Almacén' : 'Nuevo Almacén'}
+            </DialogTitle>
+            <p className="text-slate-400 text-sm mt-1">
+              {almacen ? 'Actualiza los datos del centro de distribución' : 'Registra un nuevo depósito en el sistema'}
+            </p>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="nombre">Nombre</Label>
-            <Input
-              id="nombre"
-              value={formData.nombre || ''}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              required
-            />
-            {errors.nombre && <p className="text-sm text-red-500">{errors.nombre}</p>}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white">
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="nombre" className="text-xs font-bold uppercase tracking-wider text-slate-500">Nombre del Almacén</Label>
+              <Input
+                id="nombre"
+                placeholder="Ej: Almacén Central Gamarra"
+                className="rounded-xl border-slate-200 focus:ring-pink-500 h-11"
+                value={formData.nombre || ''}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+              {errors.nombre && <p className="text-[10px] font-bold text-rose-500 uppercase">{errors.nombre}</p>}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="direccion" className="text-xs font-bold uppercase tracking-wider text-slate-500">Dirección / Ubicación</Label>
+              <Input
+                id="direccion"
+                placeholder="Dirección exacta del local"
+                className="rounded-xl border-slate-200 focus:ring-pink-500 h-11"
+                value={formData.direccion || ''}
+                onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="capacidad_total" className="text-xs font-bold uppercase tracking-wider text-slate-500">Capacidad Total</Label>
+                <Input
+                  id="capacidad_total"
+                  type="number"
+                  placeholder="0.00"
+                  className="rounded-xl border-slate-200 focus:ring-pink-500 h-11"
+                  value={formData.capacidad_total || ''}
+                  onChange={(e) => setFormData({ ...formData, capacidad_total: parseFloat(e.target.value) || undefined })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="unidad_capacidad" className="text-xs font-bold uppercase tracking-wider text-slate-500">Unidad</Label>
+                <Select
+                  value={formData.unidad_capacidad}
+                  onValueChange={(value) => setFormData({ ...formData, unidad_capacidad: value })}
+                >
+                  <SelectTrigger className="rounded-xl border-slate-200 h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="unidades">Unidades</SelectItem>
+                    <SelectItem value="metros">Metros</SelectItem>
+                    <SelectItem value="kg">Kilogramos</SelectItem>
+                    <SelectItem value="m3">M3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="descripcion" className="text-xs font-bold uppercase tracking-wider text-slate-500">Notas Adicionales</Label>
+              <Textarea
+                id="descripcion"
+                placeholder="Detalles sobre el acceso o tipo de mercancía..."
+                className="rounded-xl border-slate-200 focus:ring-pink-500 min-h-[80px]"
+                value={formData.descripcion || ''}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="estado" className="text-xs font-bold uppercase tracking-wider text-slate-500">Estado Operativo</Label>
+              <Select
+                value={formData.estado}
+                onValueChange={(value) => setFormData({ ...formData, estado: value })}
+              >
+                <SelectTrigger className="rounded-xl border-slate-200 h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="activo">Activo (Operativo)</SelectItem>
+                  <SelectItem value="inactivo">Inactivo (Cerrado)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="descripcion">Descripción</Label>
-            <Textarea
-              id="descripcion"
-              value={formData.descripcion || ''}
-              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-              rows={2}
-            />
-            {errors.descripcion && <p className="text-sm text-red-500">{errors.descripcion}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="ubicacion">Ubicación</Label>
-            <Input
-              id="ubicacion"
-              value={formData.ubicacion || ''}
-              onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
-            />
-            {errors.ubicacion && <p className="text-sm text-red-500">{errors.ubicacion}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="capacidad_maxima">Capacidad Máxima</Label>
-            <Input
-              id="capacidad_maxima"
-              type="number"
-              value={formData.capacidad_maxima || ''}
-              onChange={(e) => setFormData({ ...formData, capacidad_maxima: parseInt(e.target.value) || undefined })}
-            />
-            {errors.capacidad_maxima && <p className="text-sm text-red-500">{errors.capacidad_maxima}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="estado">Estado</Label>
-            <Select
-              value={formData.estado}
-              onValueChange={(value: any) => setFormData({ ...formData, estado: value })}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="rounded-xl h-11 font-bold text-slate-500 hover:bg-slate-50"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="activo">Activo</SelectItem>
-                <SelectItem value="inactivo">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.estado && <p className="text-sm text-red-500">{errors.estado}</p>}
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit">
-              {almacen ? 'Actualizar' : 'Crear'}
+            <Button
+              type="submit"
+              className="rounded-xl h-11 px-8 font-bold bg-pink-600 hover:bg-pink-700 text-white shadow-lg active:scale-95 transition-all"
+            >
+              {almacen ? 'Guardar Cambios' : 'Crear Almacén'}
             </Button>
           </div>
         </form>

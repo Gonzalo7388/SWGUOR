@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import AdminSidebar from './Sidebar';
 import AdminHeader from './Header';
 import type { usuarios } from '@prisma/client';
+import { PermissionsProvider } from '@/components/providers/PermissionsProvider';
 
 export default function RealtimeLayoutWrapper({ 
   initialUsuario, 
@@ -53,14 +54,16 @@ export default function RealtimeLayoutWrapper({
   }, [initialUsuario.id, supabase]);
 
   return (
-    <div className="admin-shell flex h-screen overflow-hidden bg-slate-50">
-      <AdminSidebar usuario={usuario} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader usuario={usuario} />
-        <main className="admin-content flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
-          {children}
-        </main>
+    <PermissionsProvider usuario={usuario as any}>
+      <div className="admin-shell flex h-screen overflow-hidden bg-slate-50">
+        <AdminSidebar usuario={usuario} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AdminHeader usuario={usuario} />
+          <main className="admin-content flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </PermissionsProvider>
   );
-}
+}

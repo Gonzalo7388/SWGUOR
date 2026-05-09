@@ -1,22 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { toast } from 'sonner';
-import AlmacenesTable from '@/components/admin/almacenes/AlmacenesTable';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import AlmacenesTable, { Almacen } from '@/components/admin/almacenes/AlmacenesTable';
 import AlmacenDialog from '@/components/admin/almacenes/AlmacenDialog';
-
-interface Almacen {
-  id: number;
-  nombre: string;
-  descripcion?: string;
-  ubicacion?: string;
-  capacidad_maxima?: number;
-  estado: 'activo' | 'inactivo';
-  created_at: string;
-}
+import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
+import StatCard from '@/components/admin/common/StatCard';
+import AlmacenesToolbar from '@/components/admin/almacenes/AlmacenesToolbar';
+import { Layout, CheckCircle2, XCircle, BarChart3 } from 'lucide-react';
 
 export default function AlmacenesPage() {
   const { can } = usePermissions();
@@ -24,15 +16,20 @@ export default function AlmacenesPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAlmacen, setEditingAlmacen] = useState<Almacen | null>(null);
+  
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
 
   const loadAlmacenes = async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/admin/almacenes');
       if (!res.ok) throw new Error('Error al cargar almacenes');
       const data = await res.json();
       setAlmacenes(data);
     } catch (error) {
-      toast.error('Error al cargar almacenes');
+      toast.error('Error al conectar con la base de datos de almacenes');
       console.error(error);
     } finally {
       setLoading(false);
@@ -46,6 +43,23 @@ export default function AlmacenesPage() {
       setLoading(false);
     }
   }, [can]);
+
+  const stats = useMemo(() => {
+    const total = almacenes.length;
+    const activos = almacenes.filter(a => a.estado === 'activo').length;
+    const inactivos = total - activos;
+    const capacidadTotal = almacenes.reduce((acc, a) => acc + Number(a.capacidad_total || 0), 0);
+    return { total, activos, inactivos, capacidadTotal };
+  }, [almacenes]);
+
+  const filteredAlmacenes = useMemo(() => {
+    return almacenes.filter(a => {
+      const matchesSearch = a.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (a.direccion?.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === 'todos' || a.estado === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [almacenes, searchTerm, statusFilter]);
 
   const handleCreate = () => {
     setEditingAlmacen(null);
@@ -82,32 +96,75 @@ export default function AlmacenesPage() {
   };
 
   if (!can('view', 'almacenes')) {
-    return <div className="p-6">Acceso denegado</div>;
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center">
+        <XCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h1 className="text-xl font-bold text-gray-900">Acceso Denegado</h1>
+        <p className="text-gray-500">No tienes permisos para ver esta sección.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Almacenes</h1>
-          <p className="text-muted-foreground">Gestiona los almacenes del sistema</p>
-        </div>
-        {can('create', 'almacenes') && (
-          <Button onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Almacén
-          </Button>
-        )}
-      </div>
+    <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        <AdminPageHeader
+          title="Almacenes"
+          description="Gestión integral de centros de distribución y depósitos"
+          actionLabel="Nuevo Almacén"
+          onAction={can('create', 'almacenes') ? handleCreate : undefined}
+        />
 
-      {loading ? (
-        <div>Cargando...</div>
-      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Almacenes"
+            value={stats.total}
+            icon={Layout}
+            color="slate"
+            isActive={statusFilter === 'todos'}
+            onClick={() => setStatusFilter('todos')}
+          />
+          <StatCard
+            title="Activos"
+            value={stats.activos}
+            icon={CheckCircle2}
+            color="emerald"
+            isActive={statusFilter === 'activo'}
+            onClick={() => setStatusFilter('activo')}
+          />
+          <StatCard
+            title="Inactivos"
+            value={stats.inactivos}
+            icon={XCircle}
+            color="orange"
+            isActive={statusFilter === 'inactivo'}
+            onClick={() => setStatusFilter('inactivo')}
+          />
+          <StatCard
+            title="Capacidad Total"
+            value={stats.capacidadTotal.toLocaleString()}
+            icon={BarChart3}
+            color="blue"
+            disabled
+          />
+        </div>
+
+        <AlmacenesToolbar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          isLoading={loading}
+          onRefresh={loadAlmacenes}
+        />
+
         <AlmacenesTable
-          data={almacenes}
+          data={filteredAlmacenes}
+          isLoading={loading}
           onEdit={can('edit', 'almacenes') ? handleEdit : undefined}
         />
-      )}
+      </div>
 
       <AlmacenDialog
         open={dialogOpen}

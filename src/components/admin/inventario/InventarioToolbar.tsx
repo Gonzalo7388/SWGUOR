@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useId } from "react";
-import { Input } from "@/components/ui/input";
+import SearchInput from "../common/SearchInput";
+import FilterSelect from "../common/FilterSelect";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Scale, RefreshCw, ChevronDown } from "lucide-react";
+import { Scale, RefreshCw, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface InventarioToolbarProps {
   isInsumos: boolean;
@@ -44,136 +45,105 @@ export default function InventarioToolbar({
   const hasResult     = k > 0 && r > 0;
 
   return (
-    <div
-      className="overflow-hidden rounded-xl shadow-sm"
-      style={{ border: "1px solid #e5e7eb", background: "#fff" }}
-    >
+    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
       {/* ── Fila principal ── */}
       <div className="flex flex-col md:flex-row gap-3 p-4">
 
         {/* Búsqueda */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder={isInsumos ? "Buscar insumo por nombre..." : "Buscar tela, hilos, cierres o avíos..."}
-            className="pl-10 h-11 border-gray-200 focus:ring-pink-500"
-            value={isInsumos ? searchTermIns : searchTermMat}
-            onChange={e =>
-              isInsumos ? setSearchTermIns(e.target.value) : setSearchTermMat(e.target.value)
-            }
-          />
-        </div>
+        <SearchInput
+          placeholder={isInsumos ? "Buscar insumo por nombre..." : "Buscar tela, hilos, cierres o avíos..."}
+          value={isInsumos ? searchTermIns : searchTermMat}
+          onChange={isInsumos ? setSearchTermIns : setSearchTermMat}
+        />
 
         {/* Tipo */}
-        <Select
+        <FilterSelect
           value={isInsumos ? selectedTipoIns : selectedTipoMat}
           onValueChange={isInsumos ? setSelectedTipoIns : setSelectedTipoMat}
-        >
-          <SelectTrigger className="h-11 w-full md:w-48 border-gray-200">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos los tipos</SelectItem>
-            {isInsumos ? (
-              <>
-                <SelectItem value="Materia Prima">Materia Prima</SelectItem>
-                <SelectItem value="Insumo">Botones / Cierres</SelectItem>
-                <SelectItem value="Herramienta">Herramientas</SelectItem>
-              </>
-            ) : (
-              <>
-                <SelectItem value="plano">Plano</SelectItem>
-                <SelectItem value="punto">Punto</SelectItem>
-                <SelectItem value="tejido">Tejido</SelectItem>
-              </>
-            )}
-          </SelectContent>
-        </Select>
+          options={[
+            { label: "Todos los tipos", value: "todos" },
+            ...(isInsumos ? [
+              { label: "Materia Prima", value: "Materia Prima" },
+              { label: "Botones / Cierres", value: "Insumo" },
+              { label: "Herramientas", value: "Herramienta" },
+            ] : [
+              { label: "Plano", value: "plano" },
+              { label: "Punto", value: "punto" },
+              { label: "Tejido", value: "tejido" },
+            ])
+          ]}
+        />
 
         {/* Botón calculadora — solo en materiales */}
         {!isInsumos && (
           <button
             onClick={() => setCalcOpen(v => !v)}
-            className="flex items-center gap-2 rounded-xl px-4 h-11 text-sm font-bold transition-all"
-            style={{
-              background: calcOpen ? "#231e1d" : "#f9fafb",
-              color:      calcOpen ? "#e4c28a" : "#6b7280",
-              border:     calcOpen ? "1px solid rgba(228,194,138,0.35)" : "1px solid #e5e7eb",
-            }}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 h-11 text-sm font-bold transition-all",
+              calcOpen ? "bg-[#231e1d] text-[#e4c28a] border border-[rgba(228,194,138,0.35)] shadow-lg" : "bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100"
+            )}
           >
             <Scale className="w-4 h-4" />
             <span>Calculadora</span>
             <ChevronDown
-              className="w-3.5 h-3.5 transition-transform duration-200"
-              style={{ transform: calcOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              className={cn("w-3.5 h-3.5 transition-transform duration-200", calcOpen && "rotate-180")}
             />
           </button>
         )}
 
         {/* Refresh */}
-        <Button variant="outline" className="h-11 border-gray-200" onClick={onRefresh}>
-          <RefreshCw className={`w-4 h-4 ${cargando ? "animate-spin" : ""}`} />
+        <Button variant="outline" className="h-11 border-gray-200 rounded-xl px-4" onClick={onRefresh} disabled={cargando}>
+          <RefreshCw className={cn("w-4 h-4 text-gray-500", cargando && "animate-spin")} />
         </Button>
       </div>
 
       {/* ── Panel calculadora deslizante ── */}
       <div
+        className="transition-[grid-template-rows] duration-300 ease-in-out"
         style={{
-          display:          "grid",
+          display: "grid",
           gridTemplateRows: calcOpen ? "1fr" : "0fr",
-          transition:       "grid-template-rows 0.25s ease",
         }}
       >
-        <div className="overflow-hidden">
-          <div
-            className="flex flex-wrap items-end gap-4 px-4 py-4"
-            style={{ background: "#1c1815", borderTop: "1px solid rgba(228,194,138,0.12)" }}
-          >
+        <div className="overflow-hidden bg-[#1c1815] border-t border-[rgba(228,194,138,0.12)]">
+          <div className="flex flex-wrap items-end gap-6 px-6 py-6">
             {/* Label */}
-            <div className="flex items-center gap-2 self-center">
-              <div
-                className="flex h-7 w-7 items-center justify-center rounded-lg"
-                style={{ background: "rgba(228,194,138,0.1)" }}
-              >
-                <Scale className="h-3.5 w-3.5" style={{ color: "#e4c28a" }} />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(228,194,138,0.1)]">
+                <Scale className="h-5 w-5 text-[#e4c28a]" />
               </div>
-              <span
-                className="text-[10px] font-black uppercase tracking-[0.14em]"
-                style={{ color: "#e4c28a" }}
-              >
-                Rendimiento de tela
-              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#e4c28a]">Rendimiento</span>
+                <span className="text-[8px] font-bold uppercase tracking-widest text-[#b5854b]">Calculadora de Tela</span>
+              </div>
             </div>
 
-            <div className="hidden h-8 w-px sm:block" style={{ background: "rgba(228,194,138,0.12)" }} />
+            <div className="hidden h-10 w-px bg-[rgba(228,194,138,0.12)] sm:block" />
 
             {/* Kilos */}
-            <div className="flex flex-col gap-1">
-              <label htmlFor={kilosId} className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#b5854b" }}>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={kilosId} className="text-[9px] font-bold uppercase tracking-widest text-[#b5854b]">
                 Peso del rollo
               </label>
               <div className="relative">
                 <input
                   id={kilosId}
-                  type="number" min="0" step="0.1" placeholder="0.00"
+                  type="number" min="0" step="0.1" placeholder="0.0"
                   value={kilos}
                   onChange={e => setKilos(e.target.value)}
-                  className="w-28 rounded-lg py-1.5 pl-3 text-sm font-bold outline-none"
-                  style={{ paddingRight: "30px", background: "#2e2623", border: "1px solid #3d3028", color: "#fff4e2", caretColor: "#e4c28a" }}
-                  onFocus={e => { e.target.style.borderColor = "rgba(228,194,138,0.5)" }}
-                  onBlur={e  => { e.target.style.borderColor = "#3d3028" }}
+                  className="w-28 rounded-xl py-2 pl-4 text-sm font-bold outline-none bg-[#2e2623] border border-[#3d3028] text-[#fff4e2] focus:border-[rgba(228,194,138,0.5)] transition-all"
                 />
-                <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 text-[9px] font-bold uppercase" style={{ right: "8px", color: "#b5854b" }}>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold uppercase text-[#b5854b]">
                   kg
                 </span>
               </div>
             </div>
 
-            <span className="mb-1 text-lg font-black" style={{ color: "rgba(228,194,138,0.3)" }}>×</span>
+            <span className="mb-2 text-xl font-black text-[rgba(228,194,138,0.3)]">×</span>
 
             {/* Rendimiento */}
-            <div className="flex flex-col gap-1">
-              <label htmlFor={rendId} className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#b5854b" }}>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={rendId} className="text-[9px] font-bold uppercase tracking-widest text-[#b5854b]">
                 Rendimiento
               </label>
               <div className="relative">
@@ -182,44 +152,31 @@ export default function InventarioToolbar({
                   type="number" min="0" step="0.01" placeholder="0.00"
                   value={rendimiento}
                   onChange={e => setRendimiento(e.target.value)}
-                  className="w-28 rounded-lg py-1.5 pl-3 text-sm font-bold outline-none"
-                  style={{ paddingRight: "42px", background: "#2e2623", border: "1px solid #3d3028", color: "#fff4e2", caretColor: "#e4c28a" }}
-                  onFocus={e => { e.target.style.borderColor = "rgba(228,194,138,0.5)" }}
-                  onBlur={e  => { e.target.style.borderColor = "#3d3028" }}
+                  className="w-28 rounded-xl py-2 pl-4 text-sm font-bold outline-none bg-[#2e2623] border border-[#3d3028] text-[#fff4e2] focus:border-[rgba(228,194,138,0.5)] transition-all"
                 />
-                <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 text-[9px] font-bold uppercase" style={{ right: "8px", color: "#b5854b" }}>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold uppercase text-[#b5854b]">
                   m/kg
                 </span>
               </div>
             </div>
 
-            <span className="mb-1 text-lg font-black" style={{ color: "rgba(228,194,138,0.3)" }}>=</span>
+            <span className="mb-2 text-xl font-black text-[rgba(228,194,138,0.3)]">=</span>
 
             {/* Resultado */}
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#b5854b" }}>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#b5854b]">
                 Total disponible
               </span>
               <div
-                className="flex items-baseline gap-1 rounded-lg px-3 py-1.5"
-                style={{
-                  background: hasResult ? "rgba(228,194,138,0.1)" : "#2e2623",
-                  border:     hasResult ? "1px solid rgba(228,194,138,0.3)" : "1px solid #3d3028",
-                  minWidth:   "90px",
-                  transition: "all 0.2s",
-                }}
-              >
-                <span
-                  className="text-sm font-black tabular-nums"
-                  style={{ color: hasResult ? "#e4c28a" : "#4a3e38", transition: "color 0.2s" }}
-                >
-                  {hasResult
-                    ? total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    : "—"}
-                </span>
-                {hasResult && (
-                  <span className="text-[9px] font-bold uppercase" style={{ color: "#b5854b" }}>m</span>
+                className={cn(
+                  "flex items-baseline gap-2 rounded-xl px-5 py-2 border transition-all min-w-[120px]",
+                  hasResult ? "bg-[rgba(228,194,138,0.1)] border-[rgba(228,194,138,0.3)]" : "bg-[#2e2623] border-[#3d3028]"
                 )}
+              >
+                <span className={cn("text-lg font-black tabular-nums transition-colors", hasResult ? "text-[#e4c28a]" : "text-[#4a3e38]")}>
+                  {hasResult ? total.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}
+                </span>
+                {hasResult && <span className="text-[10px] font-black uppercase text-[#b5854b]">metros</span>}
               </div>
             </div>
 
@@ -227,10 +184,7 @@ export default function InventarioToolbar({
             {hasResult && (
               <button
                 onClick={() => { setKilos(""); setRendimiento(""); }}
-                className="self-end rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors"
-                style={{ color: "#b5854b", border: "1px solid #3d3028", background: "transparent" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(228,194,138,0.4)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#3d3028"; }}
+                className="mb-0.5 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#b5854b] border border-[#3d3028] hover:border-[rgba(228,194,138,0.4)] hover:text-[#e4c28a] transition-all active:scale-95"
               >
                 Limpiar
               </button>

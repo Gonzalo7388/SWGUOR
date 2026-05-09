@@ -14,7 +14,7 @@ interface UseDespachoState {
 }
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
-export function useDespachos(): UseDespachoState {
+export function useDespachos(clienteId?: number): UseDespachoState {
   const [despachos, setDespachos] = useState<DespachoFlat[]>([]);
   const [cargando,  setCargando]  = useState(true);
   const [error,     setError]     = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function useDespachos(): UseDespachoState {
     setError(null);
 
     try {
-      const raw   = await getDespachoActivos();
+      const raw   = await getDespachoActivos(clienteId);
       const plano = raw.map(aplanarDespacho);
       setDespachos(plano);
     } catch (err: unknown) {
@@ -36,7 +36,7 @@ export function useDespachos(): UseDespachoState {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [clienteId]);
 
   // ─── Subscripciones Realtime ───────────────────────────────────────────────
   // Por cada despacho activo escuchamos cambios en despachos_tracking

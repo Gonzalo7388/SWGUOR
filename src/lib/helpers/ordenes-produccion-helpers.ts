@@ -3,12 +3,25 @@ import type { ApiResponse } from '@/lib/schemas/ordenes-produccion';
 const API     = '/api/admin/ordenes-produccion';
 const SEG_API = '/api/admin/seguimiento-produccion';
 
-export async function fetchOrdenesProduccion(producto_id?: string): Promise<any[]> {
-  const params = producto_id ? `?producto_id=${producto_id}` : '';
-  const res    = await fetch(`${API}${params}`, { cache: 'no-store' });
+export async function fetchOrdenesProduccion(params?: {
+  producto_id?: string;
+  search?: string;
+  etapa?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: any[], meta?: any }> {
+  const query = new URLSearchParams();
+  if (params?.producto_id) query.set('producto_id', params.producto_id);
+  if (params?.search) query.set('search', params.search);
+  if (params?.etapa) query.set('etapa', params.etapa);
+  if (params?.page) query.set('page', params.page.toString());
+  if (params?.limit) query.set('limit', params.limit.toString());
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const res    = await fetch(`${API}${queryString}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Error al cargar órdenes');
   const result = await res.json();
-  return result.data ?? [];
+  return { data: result.data ?? [], meta: result.meta };
 }
 
 export async function createOrdenProduccion(data: {

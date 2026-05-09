@@ -133,16 +133,24 @@ const supabase = getSupabaseBrowserClient();
 
   // ─── Queries ──────────────────────────────────────────────────────────────────
 
-  export async function getDespachoActivos(): Promise<Despacho[]> {
+  export async function getDespachoActivos(clienteId?: number): Promise<Despacho[]> {
   const supabase = getSupabaseBrowserClient(); 
-  const { data, error } = await supabase
+  let query = supabase
   .from('despachos')
   .select(DESPACHO_SELECT)
-  .not('estado', 'eq', 'entregado')
-  .order('id', { ascending: false });
+  .not('estado', 'eq', 'entregado');
+
+  if (clienteId) {
+    query = query.eq('pedidos.cliente_id', clienteId);
+  }
+
+  const { data, error } = await query.order('id', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as Despacho[];
+  
+  // Filtrar nulos si el join no trajo el pedido (caso raro pero posible por RLS)
+  const results = (data ?? []) as unknown as Despacho[];
+  return clienteId ? results.filter(d => d.pedidos !== null) : results;
   }
 
   export async function getDespachoById(id: number): Promise<Despacho | null> {

@@ -3,22 +3,65 @@ import { serializeBigInt } from '@/lib/utils/serialize';
 
 export const OrdenesProduccionService = {
 
-  async listar(producto_id?: string) {
-    const ordenes = await prisma.ordenes_produccion.findMany({
-      where:   producto_id ? { producto_id: BigInt(producto_id) } : undefined,
-      include: {
-        productos: { select: { id: true, nombre: true, sku: true } },
-        talleres:    { select: { id: true, nombre: true, email: true, contacto: true } },
-        fichas_tecnicas:     { select: { id: true, version: true, estado: true } },
-        seguimiento_produccion: { 
-          where: { activo: true }, 
-          take: 1, 
-          orderBy: { created_at: 'desc' } 
+  async listar(params?: {
+    producto_id?: string;
+    search?:      string;
+    etapa?:       string;
+    page?:        number;
+    limit?:       number;
+  }) {
+    const { producto_id, search, etapa, page = 1, limit = 10 } = params || {};
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (producto_id) where.producto_id = BigInt(producto_id);
+
+    if (search) {
+      where.OR = [
+        { productos: { nombre: { contains: search, mode: 'insensitive' } } },
+        { talleres: { nombre: { contains: search, mode: 'insensitive' } } }
+      ];
+      // Si el search es un número, intentar buscar por id también
+      if (!isNaN(Number(search))) {
+        where.OR.push({ id: BigInt(search) });
+      }
+    }
+
+    if (etapa && etapa !== 'all') {
+      where.seguimiento_produccion = {
+        some: { activo: true, etapa: etapa }
+      };
+    }
+
+    const [total, ordenes] = await Promise.all([
+      prisma.ordenes_produccion.count({ where }),
+      prisma.ordenes_produccion.findMany({
+        where,
+        take: limit,
+        skip,
+        include: {
+          productos: { select: { id: true, nombre: true, sku: true } },
+          talleres:    { select: { id: true, nombre: true, email: true, contacto: true } },
+          fichas_tecnicas:     { select: { id: true, version: true, estado: true } },
+          seguimiento_produccion: { 
+            where: { activo: true }, 
+            take: 1, 
+            orderBy: { created_at: 'desc' } 
+          },
         },
-      },
-      orderBy: { created_at: 'desc' },
-    });
-    return serializeBigInt(ordenes);
+        orderBy: { created_at: 'desc' },
+      })
+    ]);
+
+    return {
+      data: serializeBigInt(ordenes),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   },
 
   async crear(data: {

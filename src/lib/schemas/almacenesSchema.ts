@@ -2,17 +2,17 @@ import { z } from 'zod';
 
 export const almacenBaseSchema = z.object({
   id: z.number().int().positive(),
-  nombre: z.string().min(1).max(255),
+  nombre: z.string().min(1, 'El nombre es obligatorio').max(255),
   direccion: z.string().max(255).nullable().optional(),
   telefono: z.string().max(255).nullable().optional(),
-  email: z.string().email().nullable().optional(),
+  email: z.string().email('Email inválido').nullable().optional(),
   descripcion: z.string().nullable().optional(),
   responsable_id: z.number().int().positive().nullable().optional(),
-  capacidad_total: z.number().nonnegative().nullable().optional(),
+  capacidad_total: z.number().nonnegative('La capacidad debe ser positiva').nullable().optional(),
   unidad_capacidad: z.string().default('unidades'),
   estado: z.string().default('activo'),
-  created_at: z.date(),
-  updated_at: z.date(),
+  created_at: z.date().optional(),
+  updated_at: z.date().optional(),
 });
 
 export const crearAlmacenSchema = almacenBaseSchema.omit({

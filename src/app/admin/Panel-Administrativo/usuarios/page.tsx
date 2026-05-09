@@ -25,6 +25,8 @@ async function fetchUsuarios(): Promise<usuarios[]> {
   return body.data ?? body;
 }
 
+import AdminPageHeader from "@/components/admin/common/AdminPageHeader";
+
 export default function UsuariosPage() {
   const { can, isLoading: authLoading } = usePermissions();
   const qc = useQueryClient();
@@ -71,24 +73,16 @@ export default function UsuariosPage() {
   if (authLoading) return <UsuariosPageSkeleton />;
 
   return (
-    <div className="p-6 md:p-10 bg-slate-50 min-h-screen">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header Simplificado */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Gestión de Accesos</h1>
-          </div>
-
-          {canCreate && (
-            <Button 
-              onClick={() => setCreateOpen(true)}
-              className="bg-pink-600  hover:bg-pink-700 text-white font-bold rounded-2xl h-12 px-6 shadow-lg shadow-pink-200 transition-all active:scale-95"
-            >
-              <UserPlus className="w-4 h-4 mr-2" /> Nuevo Acceso
-            </Button>
-          )}
-        </div>
+        {/* Header */}
+        <AdminPageHeader
+          title="Gestión de Accesos"
+          description="Control centralizado de usuarios, roles y permisos del sistema"
+          actionLabel="Nuevo Acceso"
+          onAction={canCreate ? () => setCreateOpen(true) : undefined}
+        />
 
         {/* Estadísticas de Accesos */}
         <StatsUsuarios 

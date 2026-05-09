@@ -1,89 +1,77 @@
 'use client';
 
-import { Truck, Loader2, AlertCircle } from 'lucide-react';
+import { Truck, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import CardDespacho from '@/components/portal/despachos/CardDespacho';
 import { useDespachos } from '@/lib/hooks/useDespachos';
+import { usePortal } from '../_contexts/PortalContext';
 
 export default function DespachosPage() {
-  const { despachos, cargando, error, refetch } = useDespachos();
+  const { cliente } = usePortal();
+  const { despachos, cargando, error, refetch } = useDespachos(cliente?.id);
 
   return (
-    <div className="min-h-screen bg-[#FCF7F7] text-[#4A3737]">
-
-      {/* ── Hero ── */}
-      <section className="border-b border-[#D4AF37]/20 bg-[#F5EBEB]">
-        <div className="max-w-5xl mx-auto px-4 py-14">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-[#8A7676] mb-4">
-            Logística
-          </p>
-          <h1 className="text-3xl md:text-4xl font-serif leading-tight">
-            Seguimiento de{' '}
-            <span className="text-[#B8962D] italic">Despachos</span>
+    <div className="space-y-10 pb-20">
+      {/* ── Header ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[#d4af37] font-semibold text-xs uppercase tracking-[0.2em]">
+            <div className="w-8 h-px bg-[#d4af37]/40" />
+            <span>Logística & Despacho</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
+            Gestión de <span className="text-[#d4af37]">Envíos</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-[#6D5A5A] leading-relaxed">
-            Monitorea la ruta y tiempo estimado de llegada de cada envío en tiempo real.
+          <p className="text-slate-500 max-w-xl text-lg leading-relaxed">
+            Rastree la ubicación de su mercancía y el tiempo estimado de entrega de sus lotes activos.
           </p>
         </div>
-      </section>
 
-      {/* ── Main ── */}
-      <main className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-
-        {/* Contador */}
         {!cargando && !error && (
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#4A3737] uppercase tracking-widest">
-              Envíos activos
-            </h2>
-            <span className="text-xs text-[#8A7676]">
-              {despachos.length} despacho{despachos.length !== 1 ? 's' : ''} en curso
-            </span>
-          </div>
-        )}
-
-        {/* Cargando */}
-        {cargando && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="w-7 h-7 text-[#D4AF37] animate-spin" />
-            <p className="text-sm text-[#8A7676]">Cargando despachos…</p>
-          </div>
-        )}
-
-        {/* Error */}
-        {!cargando && error && (
-          <div className="flex items-start gap-3 bg-[#FCEBEB] border border-[#F09595] rounded-2xl px-5 py-4">
-            <AlertCircle className="w-5 h-5 text-[#A32D2D] flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[#A32D2D]">
-                Error al cargar despachos
-              </p>
-              <p className="text-xs text-[#993C1D] mt-0.5">{error}</p>
+          <div className="flex items-center gap-4 bg-white p-2 pl-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col text-right pr-2 border-r border-slate-100">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Activos</span>
+              <span className="text-lg font-bold text-slate-900">{despachos.length}</span>
             </div>
             <button
               onClick={refetch}
-              className="text-xs font-bold text-[#A32D2D] hover:text-[#7A1F1F] uppercase tracking-wider transition-colors"
+              className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all hover:rotate-180 duration-500"
             >
-              Reintentar
+              <RefreshCw size={18} />
             </button>
           </div>
         )}
+      </div>
 
-        {/* Vacío */}
-        {!cargando && !error && despachos.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <Truck className="w-10 h-10 text-[#D4AF37]/40" />
-            <p className="text-sm font-semibold text-[#4A3737]">Sin despachos activos</p>
-            <p className="text-xs text-[#8A7676]">
-              No hay envíos en tránsito en este momento.
-            </p>
+      {/* ── Content ── */}
+      <div className="grid grid-cols-1 gap-8">
+        {cargando ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <div className="w-12 h-12 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-400 font-medium">Sincronizando logística...</p>
           </div>
+        ) : error ? (
+          <div className="bg-rose-50 border border-rose-100 rounded-3xl p-8 flex flex-col items-center text-center gap-4 text-rose-600">
+            <AlertCircle size={32} />
+            <p className="font-bold">Error al cargar logística</p>
+            <p className="text-sm opacity-80">{error}</p>
+            <button onClick={refetch} className="mt-2 text-sm font-bold uppercase underline">Reintentar</button>
+          </div>
+        ) : despachos.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] p-20 flex flex-col items-center text-center gap-6 shadow-sm">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+              <Truck size={40} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-slate-900">Sin envíos en ruta</h3>
+              <p className="text-slate-500 max-w-sm text-sm">No tiene despachos activos en este momento. Los pedidos aparecerán aquí una vez salgan de producción.</p>
+            </div>
+          </div>
+        ) : (
+          despachos.map((d) => (
+            <CardDespacho key={d.id} despacho={d} />
+          ))
         )}
-
-        {/* Lista de despachos */}
-        {!cargando && !error && despachos.map((d) => (
-          <CardDespacho key={d.id} despacho={d} />
-        ))}
-      </main>
+      </div>
     </div>
   );
 }

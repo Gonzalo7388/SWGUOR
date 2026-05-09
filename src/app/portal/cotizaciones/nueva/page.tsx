@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { AlertTriangle, CheckCircle, Loader2, Minus, Plus } from 'lucide-react';
-import { usePortal, MOQ_MINIMO } from '../../_contexts/PortalContext';
+import { usePortal, MOQ_MINIMO, MAX_UNIDADES } from '../../_contexts/PortalContext';
 import { CotizadorPanel }        from '@/components/portal/CotizacionPanel';
 import { cn }                    from '@/lib/utils';
 import { useRouter }             from 'next/navigation';
@@ -85,7 +85,11 @@ export default function NuevaCotizacionPage() {
 
   // ── ACTUALIZAR CANTIDAD en borrador ───────────────────────
   const handleCambiarCantidad = (item: any, nuevaCantidad: number) => {
-    const cantidad = Math.max(1, nuevaCantidad);
+    let cantidad = Math.max(1, nuevaCantidad);
+    if (cantidad > MAX_UNIDADES) {
+      cantidad = MAX_UNIDADES;
+      toast.error(`La cantidad máxima permitida es de ${MAX_UNIDADES.toLocaleString()} unidades`);
+    }
     actualizarItem({
       variante_id: item.variante_id,
       cantidad,

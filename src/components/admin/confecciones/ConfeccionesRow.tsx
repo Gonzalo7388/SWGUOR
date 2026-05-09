@@ -81,7 +81,7 @@ const ConfeccionRow = memo(({ orden, onEstadoChange }: ConfeccionRowProps) => {
             <div className="text-slate-400 text-[11px] font-medium mt-1">
               #{orden.id}
               {orden.pedido && (
-                <span className="ml-1.5">· Pedido {orden.pedido.numero_orden}</span>
+                <span className="ml-1.5">· Pedido #{orden.pedido.id}</span>
               )}
             </div>
             {orden.costo_unitario != null && (

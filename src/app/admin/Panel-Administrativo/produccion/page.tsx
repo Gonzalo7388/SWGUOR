@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useOrdenesProduccion } from "@/lib/hooks/useOrdenProduccion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Plus, Search, RefreshCw, ClipboardList, 
-  Timer, CheckCircle2} from "lucide-react";
+import {
+  Plus, RefreshCw, ClipboardList,
+  Timer, CheckCircle2
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import StatCard from "@/components/admin/produccion/StatCard";
 import OrdenFilters from "@/components/admin/produccion/OrdenFilters";
@@ -18,42 +18,45 @@ const OrdenFormDialog = dynamic(() => import("@/components/admin/produccion/Orde
 const OrdenDetalleSheet = dynamic(() => import("@/components/admin/produccion/OrdenDetalleSheet"));
 
 export default function OrdenesProduccionPage() {
-  const { ordenes, isLoading, refetch } = useOrdenesProduccion();
-
-  // Estados de filtrado
+  // Estados de filtrado y paginación
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [etapaFilter, setEtapaFilter] = useState("all");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  // Debounce para la búsqueda
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset page on new search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const { ordenes, meta, isLoading, refetch } = useOrdenesProduccion({
+    search: debouncedSearch,
+    etapa: etapaFilter,
+    page,
+    limit,
+  });
 
   // Estados para Diálogos
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState<any>(null);
 
-// Lógica de filtrado (Memoized para rendimiento)
-  const filteredData = useMemo(() => {
-    return ordenes.filter((o: any) => {
-      const matchSearch = 
-        o.productos?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        o.talleres?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.id.toString().includes(searchTerm);
-      
-      const etapaActual = o.seguimiento_produccion?.[0]?.etapa || 'pendiente';
-      const matchEtapa = etapaFilter === "all" || etapaActual === etapaFilter;
-      
-      return matchSearch && matchEtapa;
-    });
-  }, [ordenes, searchTerm, etapaFilter]);
-
-   // Estadísticas para StatCards
+  // Estadísticas para StatCards (NOTA: Esto ahora refleja el total de la base de datos)
   const stats = useMemo(() => ({
-    total: ordenes.length,
-    enProceso: ordenes.filter((o: any) => o.seguimiento_produccion?.[0]?.etapa === 'costura').length,
-    completadas: ordenes.filter((o: any) => o.seguimiento_produccion?.[0]?.etapa === 'entrega').length,
-  }), [ordenes]);
+    total: meta.total,
+    // Idealmente, esto también vendría del backend si quieres números precisos
+    enProceso: activeFilter === 'costura' ? meta.total : 0,
+    completadas: activeFilter === 'entrega' ? meta.total : 0,
+  }), [meta.total, activeFilter]);
 
   // SI ESTÁ CARGANDO, MUESTRA TODA LA ESTRUCTURA SKELETON
-  if (isLoading) {
+  if (isLoading && ordenes.length === 0) {
     return <OrdenesSkeleton />;
   }
 
@@ -70,8 +73,8 @@ export default function OrdenesProduccionPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
-          <Button 
-            onClick={() => { setSelectedOrden(null); setIsFormOpen(true); }} 
+          <Button
+            onClick={() => { setSelectedOrden(null); setIsFormOpen(true); }}
             className="bg-rose-600 hover:bg-rose-700 h-10 shadow-lg shadow-rose-200 transition-all active:scale-95"
           >
             <Plus className="h-4 w-4 mr-2" /> Nueva Orden
@@ -81,22 +84,22 @@ export default function OrdenesProduccionPage() {
 
       {/* StatCards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Total Órdenes" value={stats.total} icon={<ClipboardList />} color="pink" 
+        <StatCard
+          title="Total Órdenes" value={stats.total} icon={<ClipboardList />} color="pink"
           isActive={activeFilter === 'all'} onClick={() => setActiveFilter('all')}
         />
-        <StatCard 
-          title="En Costura" value={stats.enProceso} icon={<Timer />} color="orange" 
+        <StatCard
+          title="En Costura" value={stats.enProceso} icon={<Timer />} color="orange"
           isActive={activeFilter === 'costura'} onClick={() => setActiveFilter('costura')}
         />
-        <StatCard 
-          title="Entregadas" value={stats.completadas} icon={<CheckCircle2 />} color="emerald" 
+        <StatCard
+          title="Entregadas" value={stats.completadas} icon={<CheckCircle2 />} color="emerald"
           isActive={activeFilter === 'entrega'} onClick={() => setActiveFilter('entrega')}
         />
       </div>
-      
+
       {/* Filtros Integrados */}
-      <OrdenFilters 
+      <OrdenFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         etapaFilter={etapaFilter}
@@ -108,23 +111,49 @@ export default function OrdenesProduccionPage() {
       />
 
       {/* Tabla de Ordenes de Producción */}
-      <OrdenesTable 
-        data={filteredData}
+      <OrdenesTable
+        data={ordenes}
         onView={(orden) => { setSelectedOrden(orden); setIsSheetOpen(true); }}
         onEdit={(orden) => { setSelectedOrden(orden); setIsFormOpen(true); }}
       />
 
+      {/* Paginación */}
+      {!isLoading && meta.totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
+          <p className="text-xs text-slate-500">
+            Mostrando página <span className="font-bold text-slate-900">{meta.page}</span> de <span className="font-bold text-slate-900">{meta.totalPages}</span>
+            {' '} ({meta.total} registros totales)
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={meta.page === 1}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+              disabled={meta.page === meta.totalPages}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Componentes de Interacción */}
-      <OrdenFormDialog 
-        open={isFormOpen} 
-        onClose={() => setIsFormOpen(false)} 
-        initialData={selectedOrden} 
+      <OrdenFormDialog
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        initialData={selectedOrden}
       />
 
-      <OrdenDetalleSheet 
-        open={isSheetOpen} 
-        onClose={() => setIsSheetOpen(false)} 
-        orden={selectedOrden} 
+      <OrdenDetalleSheet
+        open={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        orden={selectedOrden}
       />
     </div>
   );

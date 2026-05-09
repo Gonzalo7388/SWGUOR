@@ -22,14 +22,42 @@ export default function RegisterPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    const ruc = formData.get('ruc') as string;
+    const telefono = formData.get('telefono') as string;
+
+    if (ruc.length !== 11) {
+      setError('El RUC debe tener exactamente 11 dígitos');
+      setLoading(false);
+      return;
+    }
+
+    if (telefono.length !== 9) {
+      setError('El teléfono debe tener exactamente 9 dígitos');
+      setLoading(false);
+      return;
+    }
+
+    const password = formData.get('password') as string;
+
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+      setError('La contraseña debe incluir mayúsculas, minúsculas, números y signos');
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       email: formData.get('email') as string,
       password: formData.get('password') as string,
       nombre_completo: formData.get('razonSocial') as string,
-      ruc: formData.get('ruc') as string,
+      ruc,
       razon_social: formData.get('razonSocial') as string,
       nombre_comercial: formData.get('nombreComercial') as string,
-      telefono: formData.get('telefono') as string,
+      telefono,
       direccion: formData.get('direccion') as string,
       tipo_cliente: formData.get('tipoCliente') as string,
     };
@@ -166,7 +194,16 @@ export default function RegisterPage() {
 
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2" size={18} style={{ color: "rgba(35,30,29,0.3)" }} />
-                <input name="ruc" required placeholder="NÚMERO DE RUC" className="register-input" />
+                <input 
+                  name="ruc" 
+                  required 
+                  placeholder="NÚMERO DE RUC (11 DÍGITOS)" 
+                  className="register-input" 
+                  maxLength={11}
+                  onInput={(e) => {
+                    e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, '');
+                  }}
+                />
               </div>
 
               <div className="relative group">
@@ -180,7 +217,16 @@ export default function RegisterPage() {
 
               <div className="relative group">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2" size={18} style={{ color: "rgba(35,30,29,0.3)" }} />
-                <input name="telefono" required placeholder="TELÉFONO" className="register-input" />
+                <input 
+                  name="telefono" 
+                  required 
+                  placeholder="TELÉFONO (9 DÍGITOS)" 
+                  className="register-input" 
+                  maxLength={9}
+                  onInput={(e) => {
+                    e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, '');
+                  }}
+                />
               </div>
 
               <div className="relative group">
@@ -195,7 +241,13 @@ export default function RegisterPage() {
 
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2" size={18} style={{ color: "rgba(35,30,29,0.3)" }} />
-                <input name="password" type={showPassword ? 'text' : 'password'} required placeholder="CONTRASEÑA" className="register-input pr-12" />
+                <input 
+                  name="password" 
+                  type={showPassword ? 'text' : 'password'} 
+                  required 
+                  placeholder="CONTRASEÑA (A-a, 0-9, #$*)" 
+                  className="register-input pr-12" 
+                />
                 <button
                   type="button"
                   className="absolute right-4 top-1/2 -translate-y-1/2"

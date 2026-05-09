@@ -73,10 +73,10 @@ export default function PedidoDetalle({ pedido, talleres }: PedidoDetalleProps) 
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${ESTADO_COLORS[pedido.estado] ?? "bg-gray-100 text-gray-600"}`}>
-                    {ESTADO_PEDIDO_LABELS[pedido.estado] ?? pedido.estado}
+                    {ESTADO_PEDIDO_LABELS[pedido.estado as keyof typeof ESTADO_PEDIDO_LABELS] ?? pedido.estado}
                   </span>
                   <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${PRIORIDAD_COLORS[pedido.prioridad] ?? "bg-gray-100 text-gray-500"}`}>
-                    {PRIORIDAD_PEDIDO_LABELS[pedido.prioridad] ?? pedido.prioridad}
+                    {PRIORIDAD_PEDIDO_LABELS[pedido.prioridad as keyof typeof PRIORIDAD_PEDIDO_LABELS] ?? pedido.prioridad}
                   </span>
                 </div>
               </div>

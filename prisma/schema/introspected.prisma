@@ -1392,6 +1392,7 @@ model pagos {
 
   @@index([fecha_pago(sort: Desc)], map: "idx_pagos_fecha")
   @@index([pedido_id], map: "idx_pagos_orden_link")
+  @@index([id_uuid])
   @@schema("public")
 }
 

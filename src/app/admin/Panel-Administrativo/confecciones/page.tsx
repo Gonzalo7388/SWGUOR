@@ -31,13 +31,31 @@ export default function ConfeccionesPage() {
   const [currentPage,   setCurrentPage]  = useState(0);
   const [statusFilter,  setStatusFilter] = useState<string | null>(null);
 
+  const [meta, setMeta] = useState({ total: 0, activas: 0, urgentes: 0, completadas: 0, page: 1, totalPages: 1 });
+  const [debouncedBusqueda, setDebouncedBusqueda] = useState("");
+
+  // Debounce para búsqueda
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedBusqueda(busqueda);
+      setCurrentPage(0);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [busqueda]);
+
   // ── Fetch ──────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = filtroEstado !== "todos" ? `?estado=${filtroEstado}` : "";
+      const q = new URLSearchParams();
+      if (filtroEstado !== "todos") q.set('estado', filtroEstado);
+      if (statusFilter) q.set('statusFilter', statusFilter);
+      if (debouncedBusqueda) q.set('search', debouncedBusqueda);
+      q.set('page', (currentPage + 1).toString());
+      q.set('limit', PAGE_SIZE.toString());
+
       const [confRes, tallerRes] = await Promise.all([
-        fetch(`/api/admin/confecciones${params}`),
+        fetch(`/api/admin/confecciones?${q.toString()}`),
         fetch("/api/admin/talleres"),
       ]);
       if (!confRes.ok || !tallerRes.ok) throw new Error("Error al obtener datos");
@@ -47,59 +65,45 @@ export default function ConfeccionesPage() {
         tallerRes.json(),
       ]);
 
-      // Ambas APIs retornan { success: true, data: [...] }
       setConfecciones(confData.data);
       setTalleres(tallerData.data);
+      
+      // Actualizar stats basándonos en lo que la base de datos reporta globalmente (o localmente si quieres mantenerlo simple)
+      setMeta({
+        total: confData.meta?.total || 0,
+        activas: statusFilter === 'activas' ? confData.meta?.total : (confData.meta?.total || 0), // Simplificación
+        urgentes: statusFilter === 'urgentes' ? confData.meta?.total : 0,
+        completadas: statusFilter === 'completadas' ? confData.meta?.total : 0,
+        page: confData.meta?.page || 1,
+        totalPages: confData.meta?.totalPages || 1
+      });
     } catch {
       toast.error("Error al cargar las órdenes de confección.");
     } finally {
       setIsLoading(false);
     }
-  }, [filtroEstado]);
+  }, [filtroEstado, statusFilter, debouncedBusqueda, currentPage]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setCurrentPage(0); }, [busqueda, filtroEstado, statusFilter]);
+  useEffect(() => { setCurrentPage(0); }, [filtroEstado, statusFilter]);
 
   // ── Permisos ───────────────────────────────────────────────
   const canCreate = can("create", "confecciones") || can("edit", "confecciones");
 
   // ── Stats ──────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const list = Array.isArray(confecciones) ? confecciones : [];
+    // Al usar paginación en el servidor, los totales por estado requieren consultas agrupadas,
+    // por simplicidad usamos el meta.total para el tab activo.
     return {
-      total:       list.length,
-      activas:     list.filter(c => !["completada", "cancelada"].includes(c.estado)).length,
-      urgentes:    list.filter(c => c.prioridad === "urgente" && c.estado !== "completada").length,
-      completadas: list.filter(c => c.estado === "completada").length,
+      total:       meta.total,
+      activas:     statusFilter === 'activas' ? meta.total : 0,
+      urgentes:    statusFilter === 'urgentes' ? meta.total : 0,
+      completadas: statusFilter === 'completadas' ? meta.total : 0,
     };
-  }, [confecciones]);
+  }, [meta.total, statusFilter]);
 
-  // ── Filtrado + búsqueda ────────────────────────────────────
-  const confeccionesFiltradas = useMemo(() => {
-    let result = Array.isArray(confecciones) ? [...confecciones] : [];
-
-    if (statusFilter === "activas")    result = result.filter(c => !["completada", "cancelada"].includes(c.estado));
-    if (statusFilter === "urgentes")   result = result.filter(c => c.prioridad === "urgente" && c.estado !== "completada");
-    if (statusFilter === "completadas") result = result.filter(c => c.estado === "completada");
-
-    if (busqueda.trim()) {
-      const q = busqueda.toLowerCase();
-      result = result.filter(c =>
-        c.prenda.toLowerCase().includes(q) ||
-        c.taller?.nombre.toLowerCase().includes(q) ||
-        c.pedido?.numero_orden?.toLowerCase().includes(q) ||
-        String(c.id).includes(q)
-      );
-    }
-
-    return result;
-  }, [confecciones, statusFilter, busqueda]);
-
-  const totalPages   = Math.ceil(confeccionesFiltradas.length / PAGE_SIZE);
-  const paginatedData = confeccionesFiltradas.slice(
-    currentPage * PAGE_SIZE,
-    (currentPage + 1) * PAGE_SIZE
-  );
+  const totalPages = meta.totalPages;
+  const paginatedData = confecciones;
 
   // ── Handlers ──────────────────────────────────────────────
   async function handleEstadoChange(id: number, nuevoEstado: ConfeccionRow_T["estado"]) {
@@ -227,7 +231,7 @@ export default function ConfeccionesPage() {
                 Mostrando{" "}
                 <span className="font-bold text-gray-900">{paginatedData.length}</span>{" "}
                 de{" "}
-                <span className="font-bold text-gray-900">{confeccionesFiltradas.length}</span>
+                <span className="font-bold text-gray-900">{meta.total}</span>
               </p>
               <div className="flex gap-2">
                 <Button

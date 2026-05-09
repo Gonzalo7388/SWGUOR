@@ -8,21 +8,61 @@ export const ConfeccionesService = {
     estado?:    string;
     taller_id?: string;
     pedido_id?: string;
+    search?:    string;
+    page?:      number;
+    limit?:     number;
+    statusFilter?: string;
   }) {
+    const { estado, taller_id, pedido_id, search, page = 1, limit = 10, statusFilter } = params || {};
+    const skip = (page - 1) * limit;
     const where: any = {};
-    if (params?.estado    && params.estado    !== 'todos') where.estado    = params.estado;
-    if (params?.taller_id && params.taller_id !== 'todos') where.taller_id = BigInt(params.taller_id);
-    if (params?.pedido_id)                                  where.pedido_id = BigInt(params.pedido_id);
+    
+    if (estado    && estado    !== 'todos') where.estado    = estado;
+    if (taller_id && taller_id !== 'todos') where.taller_id = BigInt(taller_id);
+    if (pedido_id)                          where.pedido_id = BigInt(pedido_id);
 
-    const confecciones = await prisma.confecciones.findMany({
-      where,
-      include: {
-        talleres: { select: { id: true, nombre: true } },
-        pedidos:  { select: { id: true, estado: true } },
-      },
-      orderBy: { created_at: 'desc' },
-    });
-    return serializeBigInt(confecciones);
+    if (statusFilter === 'activas') {
+      where.estado = { notIn: ['completada', 'cancelada'] };
+    } else if (statusFilter === 'urgentes') {
+      where.prioridad = 'urgente';
+      where.estado = { not: 'completada' };
+    } else if (statusFilter === 'completadas') {
+      where.estado = 'completada';
+    }
+
+    if (search) {
+      where.OR = [
+        { prenda: { contains: search, mode: 'insensitive' } },
+        { talleres: { nombre: { contains: search, mode: 'insensitive' } } }
+      ];
+      if (!isNaN(Number(search))) {
+        where.OR.push({ id: BigInt(search) });
+      }
+    }
+
+    const [total, confecciones] = await Promise.all([
+      prisma.confecciones.count({ where }),
+      prisma.confecciones.findMany({
+        where,
+        take: limit,
+        skip,
+        include: {
+          talleres: { select: { id: true, nombre: true } },
+          pedidos:  { select: { id: true, estado: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      })
+    ]);
+
+    return {
+      data: serializeBigInt(confecciones),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   },
 
   async obtenerPorId(id: string) {
