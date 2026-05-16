@@ -14,7 +14,7 @@ async function obtenerClienteSesion() {
   }
 
   const clienteDb = await prisma.clientes.findFirst({
-    where:  { usuario_id: auth.user.id },
+    where: { usuario_id: auth.user.id },
     select: { id: true, razon_social: true, ruc: true, activo: true },
   });
 
@@ -25,7 +25,7 @@ async function obtenerClienteSesion() {
   return {
     usuario_id: auth.user.id,
     cliente_id: clienteDb.id,
-    cliente:    clienteDb,
+    cliente: clienteDb,
   };
 }
 
@@ -50,16 +50,16 @@ export async function GET(
 
     const cotizacion = await prisma.cotizaciones.findFirst({
       where: {
-        id:         BigInt(id),
+        id: BigInt(id),
         cliente_id: sesion.cliente_id,   // ← seguridad: solo ve sus propias cotizaciones
       },
       include: {
-        clientes: {
+        cliente: {
           select: {
-            razon_social:     true,
-            ruc:              true,
-            telefono:         true,
-            email:            true,
+            razon_social: true,
+            ruc: true,
+            telefono: true,
+            email: true,
             direccion_fiscal: true,
           },
         },

@@ -1,6 +1,6 @@
 'use server';
 
-import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario-services';
+import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario.service';
 import type { TipoMovimiento, ReferenciaMovimiento } from '@prisma/client';
 
 export async function registrarEntradaCompra(data: {
@@ -12,19 +12,18 @@ export async function registrarEntradaCompra(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({ 
+  return MovimientosInventarioService.registrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     cantidad: data.cantidad,
     tipo_movimiento: 'entrada',
     motivo: `Compra OC-${data.numero_oc}`,
-    
+
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'COMPRA',
-    referencia_id: data.numero_oc,
   });
-  }
+}
 
 
 export async function registrarSalidaVenta(data: {
@@ -42,7 +41,6 @@ export async function registrarSalidaVenta(data: {
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'VENTA',
-    referencia_id: data.numero_ov,
   });
 }
 
@@ -61,7 +59,6 @@ export async function registrarSalidaProduccion(data: {
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'ORDEN',
-    referencia_id: data.confeccion_id,
   });
 }
 
@@ -72,7 +69,7 @@ export async function registrarEntradaDevolucionCliente(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({ 
+  return MovimientosInventarioService.registrar({
     producto_id: data.producto_id,
     cantidad: data.cantidad,
     tipo_movimiento: 'entrada',
@@ -80,7 +77,6 @@ export async function registrarEntradaDevolucionCliente(data: {
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'VENTA',
-    referencia_id: data.numero_devolucion,
   });
 }
 
@@ -92,7 +88,7 @@ export async function registrarSalidaDevolucionProveedor(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({ 
+  return MovimientosInventarioService.registrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     cantidad: data.cantidad,
@@ -101,7 +97,6 @@ export async function registrarSalidaDevolucionProveedor(data: {
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'COMPRA',
-    referencia_id: data.numero_devolucion,
   });
 }
 
@@ -115,7 +110,7 @@ export async function registrarSalidaIncidencia(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({ 
+  return MovimientosInventarioService.registrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     producto_id: data.producto_id,
@@ -125,7 +120,6 @@ export async function registrarSalidaIncidencia(data: {
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
     referencia_tipo: 'AJUSTE',
-    referencia_id: data.numero_incidencia,
   });
 }
 
@@ -140,7 +134,7 @@ export async function registrarAjusteManual(data: {
 }) {
   const tipo = (data.cantidad > 0 ? 'entrada' : 'salida') as TipoMovimiento;
 
-  return MovimientosInventarioService.registrar({ 
+  return MovimientosInventarioService.registrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     producto_id: data.producto_id,
@@ -165,7 +159,7 @@ export async function fetchMovimientos(filtros?: {
   limite?: number;
 }) {
   try {
-    const data = await MovimientosInventarioService.listar(filtros); 
+    const data = await MovimientosInventarioService.listar(filtros);
     return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error.message };

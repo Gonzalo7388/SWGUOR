@@ -6,33 +6,33 @@ import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import type { Categoria } from '@/lib/services/categorias.service';
 
 interface CategoriaForm {
-  nombre:      string;
+  nombre: string;
   descripcion: string;
-  activo:      boolean;
+  activo: boolean;
 }
 
 interface Props {
-  categoria: any | null;
-  isSaving:  boolean;
-  onClose:   () => void;
-  onSave:    (data: CategoriaForm) => void;
+  categoria: Categoria | null;
+  isSaving: boolean;
+  onClose: () => void;
+  onSave: (data: CategoriaForm) => void;
 }
 
 const EMPTY: CategoriaForm = { nombre: '', descripcion: '', activo: true };
 
 export default function CategoriaFormModal({ categoria, isSaving, onClose, onSave }: Props) {
-  const [form, setForm]     = useState<CategoriaForm>(EMPTY);
+  const [form, setForm] = useState<CategoriaForm>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (categoria) {
       setForm({
-        nombre:      categoria.nombre      ?? '',
+        nombre: categoria.nombre ?? '',
         descripcion: categoria.descripcion ?? '',
-        activo:      categoria.activo      ?? true,
+        activo: categoria.activo ?? true,
       });
     } else {
       setForm(EMPTY);
@@ -112,14 +112,12 @@ export default function CategoriaFormModal({ categoria, isSaving, onClose, onSav
             <button
               type="button"
               onClick={() => handleChange('activo', !form.activo)}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                form.activo ? 'bg-rose-600' : 'bg-gray-300'
-              }`}
+              className={`relative w-12 h-6 rounded-full transition-colors ${form.activo ? 'bg-rose-600' : 'bg-gray-300'
+                }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  form.activo ? 'translate-x-6' : 'translate-x-0'
-                }`}
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.activo ? 'translate-x-6' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>

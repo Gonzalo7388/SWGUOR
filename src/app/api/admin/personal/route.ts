@@ -1,14 +1,14 @@
 export const runtime = 'nodejs';
-import { PersonalInternoService } from '@/lib/services/personal-interno-services';
-import { NextResponse }           from 'next/server';
+import { PersonalInternoService } from '@/lib/services/personal-interno.service';
+import { NextResponse } from 'next/server';
 
 // GET /api/admin/personal?cargo=xxx&estado=xxx&busqueda=xxx
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const data = await PersonalInternoService.listar({
-      cargo:    searchParams.get('cargo')    ?? undefined,
-      estado:   searchParams.get('estado')   ?? undefined,
+      cargo: searchParams.get('cargo') ?? undefined,
+      estado: searchParams.get('estado') ?? undefined,
       busqueda: searchParams.get('busqueda') ?? undefined,
     });
     return NextResponse.json({ success: true, data });

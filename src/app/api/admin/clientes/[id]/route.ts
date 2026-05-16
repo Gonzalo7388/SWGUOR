@@ -1,6 +1,6 @@
 export const runtime = 'nodejs';
-import { ClientesService } from '@/lib/services/clientes-services';
-import { NextResponse }    from 'next/server';
+import { ClientesService } from '@/lib/services/clientes.service';
+import { NextResponse } from 'next/server';
 
 // GET /api/admin/clientes/[id]
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const data   = await ClientesService.obtenerDetalle(id);
+    const data = await ClientesService.obtenerDetalle(id);
     if (!data) return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {

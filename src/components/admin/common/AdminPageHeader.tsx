@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdminPageHeaderProps {
   title: string;
   description?: string;
   actionLabel?: string;
-  onAction?: () => void;
+  onAction?: () => void | Promise<void>;
   showAction?: boolean;
+  icon?: LucideIcon;
   children?: React.ReactNode;
   className?: string;
 }
@@ -18,6 +19,7 @@ export default function AdminPageHeader({
   actionLabel,
   onAction,
   showAction = true,
+  icon: Icon = Plus,
   children,
   className,
 }: AdminPageHeaderProps) {
@@ -34,7 +36,7 @@ export default function AdminPageHeader({
             onClick={onAction}
             className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white active:scale-95 rounded-xl transition-all"
           >
-            <Plus className="w-5 h-5" />
+            <Icon className="w-5 h-5" />
             {actionLabel}
           </Button>
         )}

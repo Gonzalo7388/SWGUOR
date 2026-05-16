@@ -3,7 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 
 export interface Almacen {
   id: number;
@@ -21,10 +21,11 @@ export interface Almacen {
 interface AlmacenesTableProps {
   data: Almacen[];
   onEdit?: (almacen: Almacen) => void;
+  onDelete?: (almacen: Almacen) => void;
   isLoading?: boolean;
 }
 
-export default function AlmacenesTable({ data, onEdit, isLoading }: AlmacenesTableProps) {
+export default function AlmacenesTable({ data, onEdit, onDelete, isLoading }: AlmacenesTableProps) {
   if (isLoading) {
     return (
       <div className="border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
@@ -104,16 +105,28 @@ export default function AlmacenesTable({ data, onEdit, isLoading }: AlmacenesTab
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  {onEdit && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onEdit(almacen)}
-                      className="rounded-xl hover:bg-pink-50 hover:text-pink-600 transition-all active:scale-90"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <div className="flex justify-end gap-1">
+                    {onEdit && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => onEdit(almacen)}
+                        className="rounded-xl hover:bg-pink-50 hover:text-pink-600 transition-all active:scale-90"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => onDelete(almacen)}
+                        className="rounded-xl hover:bg-red-50 hover:text-red-600 transition-all active:scale-90"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))

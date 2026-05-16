@@ -15,10 +15,8 @@ import { exportToExcel, exportToPDF } from "@/lib/utils/export-utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 const TalleresTable      = dynamic(() => import("@/components/admin/talleres/TalleresTable"));
-const CreateTallerDialog = dynamic(() => import("@/components/admin/talleres/CreateTallerDialog"));
-const EditTallerDialog   = dynamic(() => import("@/components/admin/talleres/EditTallerDialog"));
-const TallerDetailDialog = dynamic(() => import("@/components/admin/talleres/TallerDetailDialog"));
-const SuspenderDialog    = dynamic(() => import("@/components/admin/talleres/SuspenderTallerDialog"));
+import TallerFormModal from "@/components/admin/talleres/TallerFormModal";
+import { TallerDetailModal, TallerSuspendModal } from "@/components/admin/talleres/TallerModals";
 const TallerSkeleton     = dynamic(() => import("@/components/admin/talleres/TallerSkeleton"));
 
 type DialogMode = "create" | "edit" | "view" | "delete" | null;
@@ -202,31 +200,28 @@ export default function TalleresPage() {
       </div>
 
       {/* ── Dialogs ── */}
-      <CreateTallerDialog
-        isOpen={dialogMode === "create"}
-        onClose={closeDialog}
-        onSuccess={loadData}
-      />
+      {(dialogMode === "create" || dialogMode === "edit") && (
+        <TallerFormModal
+          taller={dialogMode === "edit" ? selectedTaller : null}
+          onClose={closeDialog}
+          onSuccess={loadData}
+        />
+      )}
 
-      <EditTallerDialog
-        isOpen={dialogMode === "edit"}
-        taller={selectedTaller}
-        onClose={closeDialog}
-        onSuccess={loadData}
-      />
+      {dialogMode === "view" && selectedTaller && (
+        <TallerDetailModal
+          taller={selectedTaller}
+          onClose={closeDialog}
+        />
+      )}
 
-      <TallerDetailDialog
-        isOpen={dialogMode === "view"}
-        taller={selectedTaller}
-        onClose={closeDialog}
-      />
-
-      <SuspenderDialog
-        isOpen={dialogMode === "delete"}
-        taller={selectedTaller}
-        onClose={closeDialog}
-        onSuccess={loadData}
-      />
+      {dialogMode === "delete" && selectedTaller && (
+        <TallerSuspendModal
+          taller={selectedTaller}
+          onClose={closeDialog}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   );
 }

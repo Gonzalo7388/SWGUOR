@@ -2,8 +2,14 @@ export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt, stringifyBigInts } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+
+const REPORTES_ROLES: any = ['administrador', 'gerente'];
 
 export async function GET(req: Request) {
+  const auth = await requireServerRole(REPORTES_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const { searchParams } = new URL(req.url);
 

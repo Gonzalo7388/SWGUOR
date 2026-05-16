@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { crearAlmacenSchema, type CrearAlmacen as AlmacenInput } from '@/lib/schemas/almacenesSchema';
 import { z } from 'zod';
+import { toast } from 'sonner';
 
 interface Props {
-  almacen:  any | null;
-  isSaving: boolean;
+  almacen?:  any | null;
   onClose:  () => void;
-  onSave:   (data: AlmacenInput) => void;
+  onSuccess:   () => void;
 }
 
 const EMPTY = {
@@ -25,9 +25,10 @@ const EMPTY = {
   estado:           'activo',
 };
 
-export default function AlmacenFormModal({ almacen, isSaving, onClose, onSave }: Props) {
+export default function AlmacenFormModal({ almacen, onClose, onSuccess }: Props) {
   const [form, setForm]     = useState(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (almacen) {
@@ -50,11 +51,28 @@ export default function AlmacenFormModal({ almacen, isSaving, onClose, onSave }:
     setErrors(prev => { const c = { ...prev }; delete c[field]; return c; });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const validated = crearAlmacenSchema.parse(form);
-      onSave(validated);
+      setIsSaving(true);
+      
+      const method = almacen ? 'PUT' : 'POST';
+      const url = almacen
+        ? `/api/admin/almacenes/${almacen.id}`
+        : '/api/admin/almacenes';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validated),
+      });
+
+      if (!res.ok) throw new Error('Error al guardar');
+
+      toast.success(almacen ? 'Almacén actualizado' : 'Almacén creado');
+      onSuccess();
+      onClose();
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const zodErrors: Record<string, string> = {};
@@ -62,7 +80,11 @@ export default function AlmacenFormModal({ almacen, isSaving, onClose, onSave }:
           if (!zodErrors[String(err.path[0])]) zodErrors[String(err.path[0])] = err.message;
         });
         setErrors(zodErrors);
+      } else {
+        toast.error('Error al guardar almacén');
       }
+    } finally {
+      setIsSaving(false);
     }
   };
 

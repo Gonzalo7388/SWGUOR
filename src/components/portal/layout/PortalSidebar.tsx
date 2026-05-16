@@ -26,10 +26,11 @@ const MENU_GROUPS = [
     ],
   },
   {
-    group: 'Logística & Tracking',
+    group: 'Logística & Despachos',
     items: [
-      { href: '/portal/despachos', label: 'Envíos', icon: PackageOpen },
       { href: '/portal/seguimiento-pedido', label: 'Trazabilidad', icon: Truck },
+      { href: '/portal/despachos', label: 'Envíos', icon: PackageOpen },
+
     ],
   },
   {

@@ -3,16 +3,17 @@
 // GUOR PRO Modal Design — Categorías
 import { Loader2, ShieldOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Categoria } from '@/lib/services/categorias.service';
 
 // ─────────────────────────────────────────────────────────────
 // DELETE / ARCHIVE MODAL
 // ─────────────────────────────────────────────────────────────
 
 interface ArchiveProps {
-  categoria:  any;
+  categoria: Categoria | null;
   isArchiving: boolean;
-  onClose:    () => void;
-  onConfirm:  () => void;
+  onClose: () => void;
+  onConfirm: () => void;
 }
 
 export function CategoriaArchiveModal({ categoria, isArchiving, onClose, onConfirm }: ArchiveProps) {

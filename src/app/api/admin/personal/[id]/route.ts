@@ -1,4 +1,4 @@
-import { PersonalInternoService } from "@/lib/services/personal-interno-services";
+import { PersonalInternoService } from "@/lib/services/personal-interno.service";
 import { NextResponse } from "next/server";
 
 // PATCH /api/admin/personal/[id]/estado

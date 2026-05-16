@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const pago_id = url.searchParams.get('pago_id') ?? undefined;
     const data = await asientosContablesService.listar({
       pedido_id: pedido_id ? Number(pedido_id) : undefined,
-      pago_id: pago_id ? Number(pago_id) : undefined,
+      pago_id: pago_id ? String(pago_id) : undefined,
     });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
@@ -38,7 +38,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const validated = asientosContablesSchema.parse(body);
-    const data = await asientosContablesService.crear(validated);
+    const data = await asientosContablesService.crear({
+      ...validated,
+      pago_id: validated.pago_id != null ? String(validated.pago_id) : null,
+    });
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {

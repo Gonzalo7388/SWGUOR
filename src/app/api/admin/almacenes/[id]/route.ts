@@ -45,13 +45,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await prisma.almacenes.delete({
+    await prisma.almacenes.update({
       where: { id: parseInt(id) },
+      data: { estado: 'inactivo' },
     });
 
-    return NextResponse.json({ message: 'Almacén eliminado' });
+    return NextResponse.json({ message: 'Almacén desactivado correctamente' });
   } catch (error) {
-    console.error('Error deleting almacen:', error);
+    console.error('Error deactivating almacen:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

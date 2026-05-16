@@ -1,52 +1,58 @@
 export const runtime = 'nodejs';
-import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { obtenerAuditoriaSchema as auditoriaQuerySchema } from '@/lib/schemas/auditoriaSchema';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { ZodError } from 'zod';
+import { requireAdmin } from '@/lib/auth/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: Request) {
+  const auth = await requireAdmin();
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
-    const { searchParams } = new URL(request.url);
-    const result = auditoriaQuerySchema.safeParse({
-      filtro: {
-        usuario_id: searchParams.get('usuario_id') ? parseInt(searchParams.get('usuario_id')!) : undefined,
-        tabla: searchParams.get('tabla') ?? undefined,
-        accion: searchParams.get('accion') ?? undefined,
-        desde: searchParams.get('desde') ? new Date(searchParams.get('desde')!) : undefined,
-        hasta: searchParams.get('hasta') ? new Date(searchParams.get('hasta')!) : undefined,
-      },
-    });
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const action = searchParams.get('action');
+    const table = searchParams.get('table');
+    const userId = searchParams.get('userId');
 
-    if (!result.success) {
-      return NextResponse.json({ error: 'Filtros inválidos', details: result.error.issues }, { status: 400 });
-    }
-
-    const { filtro } = result.data;
-    const { usuario_id, tabla, accion, desde, hasta } = filtro || {};
     const where: any = {};
+    if (action) where.accion = action;
+    if (table) where.tabla = table;
+    if (userId) where.usuario_id = BigInt(userId);
 
-    if (usuario_id) where.usuario_id = BigInt(usuario_id);
-    if (tabla) where.tabla = tabla;
-    if (accion) where.accion = accion;
-    if (desde || hasta) {
-      where.created_at = {};
-      if (desde) where.created_at.gte = new Date(desde);
-      if (hasta) where.created_at.lte = new Date(hasta);
-    }
+    const [registros, total] = await Promise.all([
+      prisma.auditoria.findMany({
+        where,
+        include: {
+          usuarios: {
+            select: {
+              email: true,
+              personal_interno: {
+                select: { nombre_completo: true }
+              }
+            }
+          }
+        },
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.auditoria.count({ where }),
+    ]);
 
-    const auditorias = await prisma.auditoria.findMany({
-      where,
-      include: { usuarios: { select: { id: true, email: true } } },
-      orderBy: { created_at: 'desc' },
-    });
+    return NextResponse.json(serializeBigInt({
+      data: registros,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      }
+    }));
 
-    return NextResponse.json(serializeBigInt(auditorias));
   } catch (error: any) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Filtros inválidos', details: error.issues }, { status: 400 });
-    }
-    console.error('[GET /auditoria]', error);
+    console.error('[API_AUDITORIA] Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

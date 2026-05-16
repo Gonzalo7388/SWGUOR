@@ -1,9 +1,10 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { CotizacionesService } from '@/lib/services/cotizaciones-services';
+import { CotizacionesService } from '@/lib/services/cotizaciones.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
+import { auditoriaService } from '@/lib/services/auditoria.service';
 
 const COTIZACIONES_ESTADO_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista'];
 
@@ -16,7 +17,7 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   try {
-    const { id }           = await params;
+    const { id } = await params;
     const { estado, motivo } = await req.json();
 
     if (!estado) {
@@ -27,6 +28,14 @@ export async function PATCH(req: Request, { params }: Params) {
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 422 });
     }
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'ACTUALIZAR',
+      tabla: 'cotizaciones',
+      registro_id: BigInt(id),
+      datos_despues: { estado, motivo },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

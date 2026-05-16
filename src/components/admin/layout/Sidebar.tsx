@@ -9,7 +9,7 @@ import {
   LogOut, Boxes, Scissors, Building,
   Bell, BarChart3, LucideIcon, ChevronDown,
   Settings, Truck, Package, Grid3x3, DollarSign, FileText,
-  Building2, ShieldCheck, UserSquare, Briefcase, MessageSquare,
+  Building2, ShieldCheck, UserSquare, Briefcase, MessageSquare, History,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { usuarios } from '@prisma/client';
@@ -121,6 +121,7 @@ export default function Sidebar({ }: { usuario: usuarios }) {
         { title: 'Usuarios',          href: '/admin/Panel-Administrativo/usuarios',         icon: ShieldCheck,  resource: 'usuarios' as RecursoKey },
         { title: 'Personal Interno',  href: '/admin/Panel-Administrativo/personal',         icon: UserSquare,   resource: 'personal' as RecursoKey },
         { title: 'Clientes',          href: '/admin/Panel-Administrativo/clientes',         icon: Briefcase,    resource: 'clientes' as RecursoKey },
+        { title: 'Auditoría',         href: '/admin/Panel-Administrativo/auditoria',        icon: History,      resource: 'usuarios' as RecursoKey },
         { title: 'Feedback Clientes', href: '/admin/Panel-Administrativo/feedback-cliente', icon: MessageSquare,resource: 'feedback_cliente' as RecursoKey },
       ],
     },

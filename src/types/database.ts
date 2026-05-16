@@ -670,6 +670,33 @@ export type Database = {
         }
         Relationships: []
       }
+      costo_envio: {
+        Row: {
+          activo: boolean
+          costo: number
+          created_at: string
+          id: number
+          updated_at: string
+          zona: Database["public"]["Enums"]["ZonaEnvio"]
+        }
+        Insert: {
+          activo?: boolean
+          costo: number
+          created_at?: string
+          id?: number
+          updated_at?: string
+          zona: Database["public"]["Enums"]["ZonaEnvio"]
+        }
+        Update: {
+          activo?: boolean
+          costo?: number
+          created_at?: string
+          id?: number
+          updated_at?: string
+          zona?: Database["public"]["Enums"]["ZonaEnvio"]
+        }
+        Relationships: []
+      }
       cotizacion_items: {
         Row: {
           cantidad: number
@@ -813,6 +840,7 @@ export type Database = {
           total: number | null
           updated_at: string | null
           valida_hasta: string
+          zona_envio_id: number | null
         }
         Insert: {
           aprobacion_automatica?: boolean | null
@@ -836,6 +864,7 @@ export type Database = {
           total?: number | null
           updated_at?: string | null
           valida_hasta: string
+          zona_envio_id?: number | null
         }
         Update: {
           aprobacion_automatica?: boolean | null
@@ -859,6 +888,7 @@ export type Database = {
           total?: number | null
           updated_at?: string | null
           valida_hasta?: string
+          zona_envio_id?: number | null
         }
         Relationships: [
           {
@@ -866,6 +896,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_zona_envio_id_fkey"
+            columns: ["zona_envio_id"]
+            isOneToOne: false
+            referencedRelation: "costo_envio"
             referencedColumns: ["id"]
           },
           {
@@ -3193,6 +3230,7 @@ export type Database = {
           total_estimado: number | null
           total_unidades: number
           updated_at: string | null
+          zona_envio_id: number | null
         }
         Insert: {
           cliente_id?: number | null
@@ -3218,6 +3256,7 @@ export type Database = {
           total_estimado?: number | null
           total_unidades?: number
           updated_at?: string | null
+          zona_envio_id?: number | null
         }
         Update: {
           cliente_id?: number | null
@@ -3243,6 +3282,7 @@ export type Database = {
           total_estimado?: number | null
           total_unidades?: number
           updated_at?: string | null
+          zona_envio_id?: number | null
         }
         Relationships: [
           {
@@ -3272,6 +3312,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ventas_mensuales_por_usuario"
             referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "pedidos_zona_envio_id_fkey"
+            columns: ["zona_envio_id"]
+            isOneToOne: false
+            referencedRelation: "costo_envio"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5475,6 +5522,7 @@ export type Database = {
       | "kilogramos"
       | "set"
       | "millares"
+      ZonaEnvio: "Cercana a SJL" | "Zona media" | "Zona lejana"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5918,6 +5966,7 @@ export const Constants = {
         "set",
         "millares",
       ],
+      ZonaEnvio: ["Cercana a SJL", "Zona media", "Zona lejana"],
     },
   },
 } as const

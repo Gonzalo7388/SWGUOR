@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { OrdenesProduccionService } from '@/lib/services/ordenes-produccion-services';
+import { OrdenesProduccionService } from '@/lib/services/ordenes-produccion.service';
 import { NextResponse } from 'next/server';
 
 // GET /api/admin/ordenes-produccion?producto_id=xxx (opcional)
@@ -8,10 +8,10 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const result = await OrdenesProduccionService.listar({
       producto_id: searchParams.get('producto_id') ?? undefined,
-      search:      searchParams.get('search')      ?? undefined,
-      etapa:       searchParams.get('etapa')       ?? undefined,
-      page:        searchParams.has('page') ? Number(searchParams.get('page')) : 1,
-      limit:       searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
+      search: searchParams.get('search') ?? undefined,
+      etapa: searchParams.get('etapa') ?? undefined,
+      page: searchParams.has('page') ? Number(searchParams.get('page')) : 1,
+      limit: searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
     });
     return NextResponse.json({ success: true, ...result });
   } catch (error: any) {

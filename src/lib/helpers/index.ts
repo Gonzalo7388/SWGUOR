@@ -1,6 +1,6 @@
 // Helpers
 export { notificacionesHelpers } from './notificacionesHelpers';
-export { almacenesHelpers } from './almacenesHelpers';
+export { almacenesHelpers } from './almacenes.helper';
 export { reservaStockHelpers } from './reservaStockHelpers';
 export { precioHistoricoHelpers } from './precioHistoricoHelpers';
 export { pagosTalleresHelpers } from './pagosTalleresHelpers';

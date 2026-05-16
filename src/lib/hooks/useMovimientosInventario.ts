@@ -10,14 +10,13 @@ interface RegistroMovimientoParams {
   referencia_tipo: "ORDEN" | "COMPRA" | "VENTA" | "AJUSTE";
   motivo: string;
   costo_unitario?: number;
-  referencia_id?: string;
 }
 
 export function useMovimientosInventario() {
   const registrarMovimiento = useCallback(
     async (params: RegistroMovimientoParams) => {
       try {
-        const response = await fetch("/api/admin/inventario/movimientos", {
+        const response = await fetch("/api/admin/movimientos-inventario", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -59,7 +58,6 @@ export function useMovimientosInventario() {
         referencia_tipo: "COMPRA",
         motivo: params.motivo || "Compra a proveedor",
         costo_unitario: params.costo_unitario,
-        referencia_id: params.orden_compra_id,
       });
     },
     [registrarMovimiento]
@@ -82,7 +80,6 @@ export function useMovimientosInventario() {
         referencia_tipo: "COMPRA",
         motivo: `Devolución a proveedor: ${params.motivo}`,
         costo_unitario: params.costo_unitario,
-        referencia_id: params.devolucion_id,
       });
     },
     [registrarMovimiento]
@@ -101,7 +98,6 @@ export function useMovimientosInventario() {
         tipo_movimiento: "salida",
         referencia_tipo: "VENTA",
         motivo: params.motivo || "Venta de producto",
-        referencia_id: params.pedido_id,
       });
     },
     [registrarMovimiento]
@@ -120,7 +116,6 @@ export function useMovimientosInventario() {
         tipo_movimiento: "entrada",
         referencia_tipo: "VENTA",
         motivo: `Devolución de cliente: ${params.motivo}`,
-        referencia_id: params.devolucion_id,
       });
     },
     [registrarMovimiento]
@@ -141,7 +136,6 @@ export function useMovimientosInventario() {
         tipo_movimiento: "salida",
         referencia_tipo: "AJUSTE",
         motivo: params.motivo || "Consumo en fabricación",
-        referencia_id: params.confeccion_id,
       });
     },
     [registrarMovimiento]
@@ -185,7 +179,6 @@ export function useMovimientosInventario() {
         tipo_movimiento: "salida",
         referencia_tipo: "AJUSTE",
         motivo: `Incidencia: ${params.motivo}`,
-        referencia_id: params.incidencia_id,
       });
     },
     [registrarMovimiento]

@@ -1,25 +1,25 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle, X, Upload, ChevronDown, CheckCircle2,
 } from 'lucide-react';
-import type { TipoIncidenciaCliente, SeveridadIncidencia, DespachoFlat } from '@/lib/services/despachosServices';
+import type { TipoIncidenciaCliente, SeveridadIncidencia, DespachoFlat } from '@/lib/services/despachos.service';
 import { TIPO_LABELS, SEVERIDAD_CONFIG } from '@/lib/constants/estados';
 import { useIncidencia } from '@/lib/hooks/useDespachos';
 
 interface ModalIncidenciaProps {
   despacho: DespachoFlat;
-  onClose:  () => void;
+  onClose: () => void;
 }
 
 export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaProps) {
-  const [tipo,        setTipo]        = useState<TipoIncidenciaCliente>('defecto_confeccion');
-  const [severidad,   setSeveridad]   = useState<SeveridadIncidencia>('media');
+  const [tipo, setTipo] = useState<TipoIncidenciaCliente>('defecto_confeccion');
+  const [severidad, setSeveridad] = useState<SeveridadIncidencia>('media');
   const [descripcion, setDescripcion] = useState('');
-  const [foto,        setFoto]        = useState<File | null>(null);
+  const [foto, setFoto] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
-  const [localError,  setLocalError]  = useState('');
+  const [localError, setLocalError] = useState('');
 
   const fileRef = useRef<HTMLInputElement>(null);
   const { status, errorMsg, submit, reset } = useIncidencia();
@@ -52,7 +52,8 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
       return;
     }
     setLocalError('');
-    await submit(despacho.pedido_id, { tipo, severidad, descripcion, foto });
+    // ✓ pedido_ids[0] en lugar de pedido_id
+    await submit(despacho.pedido_ids[0], { tipo, severidad, descripcion, foto });
   }
 
   const displayError = localError || errorMsg;
@@ -72,10 +73,14 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
             </div>
             <div>
               <h3 className="text-sm font-bold text-[#3A2A2A]">Reportar incidencia</h3>
+              {/* ✓ eliminado pedido_codigo, reemplazado por pedido_ids */}
               <p className="text-xs text-[#8A7676]">
                 Despacho{' '}
                 <span className="font-semibold text-[#B8962D]">{despacho.codigo}</span>
-                {' · '}{despacho.pedido_codigo ?? '—'}
+                {despacho.pedido_ids.length === 1
+                  ? <>{' · '}Pedido <span className="font-semibold">#{despacho.pedido_ids[0]}</span></>
+                  : <>{' · '}{despacho.pedido_ids.length} pedidos agrupados</>
+                }
               </p>
             </div>
           </div>
@@ -142,7 +147,7 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all"
                         style={{
                           borderColor: severidad === v ? cfg.border : '#E7D7D7',
-                          background:  severidad === v ? cfg.bg     : 'white',
+                          background: severidad === v ? cfg.bg : 'white',
                         }}
                       >
                         <div

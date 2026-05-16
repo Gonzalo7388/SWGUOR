@@ -7,37 +7,35 @@ import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { EstadoPersonal } from "@prisma/client";
 
-import PersonalTable          from "@/components/admin/personal/PersonalTable";
-import type { PersonalRow }   from "@/lib/services/personal-interno-services";
+import PersonalTable from "@/components/admin/personal/PersonalTable";
+import type { PersonalRow } from "@/lib/services/personal-interno.service";
 import PersonalFilters, {
   PersonalFiltrosState,
   EMPTY_PERSONAL_FILTERS,
-}                             from "@/components/admin/personal/FiltersPersonal";
-import StatsPersonal          from "@/components/admin/personal/StatsPersonal";
-import CreatePersonalDialog   from "@/components/admin/personal/CreatePersonalDialog";
-import EditPersonalDialog     from "@/components/admin/personal/EditPersonalDialog";
-import SuspenderPersonalDialog from "@/components/admin/personal/SuspenderPersonalDialog";
-import DetallePersonalDialog  from "@/components/admin/personal/DetallePersonalDialog";
+} from "@/components/admin/personal/FiltersPersonal";
+import StatsPersonal from "@/components/admin/personal/StatsPersonal";
+import PersonalFormModal from "@/components/admin/personal/PersonalFormModal";
+import { PersonalSuspendModal, PersonalDetailModal } from "@/components/admin/personal/PersonalModals";
 
 export default function PersonalPage() {
   const { can } = usePermissions();
 
-  const [personal,     setPersonal]     = useState<PersonalRow[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [filters,      setFilters]      = useState<PersonalFiltrosState>(EMPTY_PERSONAL_FILTERS);
+  const [personal, setPersonal] = useState<PersonalRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<PersonalFiltrosState>(EMPTY_PERSONAL_FILTERS);
 
   const [statusFilter, setStatusFilter] = useState<EstadoPersonal | null>(null);
 
-  const [createOpen,      setCreateOpen]      = useState(false);
-  const [editTarget,      setEditTarget]      = useState<PersonalRow | null>(null);
-  const [suspenderTarget, setSuspenderTarget] = useState<PersonalRow | null>(null); 
-  const [detalleTarget,   setDetalleTarget]   = useState<PersonalRow | null>(null);
+  // Modal states
+  const [formTarget, setFormTarget] = useState<PersonalRow | null | undefined>(undefined);
+  const [suspenderTarget, setSuspenderTarget] = useState<PersonalRow | null>(null);
+  const [detalleTarget, setDetalleTarget] = useState<PersonalRow | null>(null);
 
   // ── Fetch ─────────────────────────────────────────────────────
   const fetchPersonal = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch("/api/admin/personal");
+      const res = await fetch("/api/admin/personal");
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Error al cargar personal");
       setPersonal(body.data ?? []);
@@ -110,7 +108,7 @@ export default function PersonalPage() {
           {can("create", "personal") && (
             <Button
               size="sm"
-              onClick={() => setCreateOpen(true)}
+              onClick={() => setFormTarget(null)}
               className="gap-2 bg-teal-600 hover:bg-teal-700 text-white shadow-sm shadow-teal-100"
             >
               <UserPlus className="w-4 h-4" /> Nuevo Personal
@@ -119,15 +117,12 @@ export default function PersonalPage() {
         </div>
       </div>
 
-      {/* Stats — recibe el enum para destacar la card activa */}
+      {/* Stats */}
       <StatsPersonal
         personal={personal}
         loading={loading}
         statusFilter={statusFilter}
-        onFilterChange={(estado) =>
-          // Toggle: si ya estaba seleccionado el mismo, lo deselecciona
-          setStatusFilter(prev => prev === estado ? null : estado)
-        }
+        onFilterChange={(estado) => setStatusFilter(prev => prev === estado ? null : estado)}
       />
 
       {/* Filtros */}
@@ -142,42 +137,35 @@ export default function PersonalPage() {
         <PersonalTable
           data={filtered}
           loading={loading}
-          onEdit={can("edit", "personal") ? setEditTarget : undefined}
+          onEdit={can("edit", "personal") ? setFormTarget : undefined}
           onDetalle={setDetalleTarget}
-          onSuspender={
-            can("archive", "personal")
-              ? (p) => setSuspenderTarget(p)
-              : undefined
-          }
+          onSuspender={can("archive", "personal") ? setSuspenderTarget : undefined}
         />
       </div>
 
-      {/* Dialogs */}
-      <CreatePersonalDialog
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSuccess={fetchPersonal}
-      />
+      {/* Modales */}
+      {formTarget !== undefined && (
+        <PersonalFormModal
+          personal={formTarget}
+          onClose={() => setFormTarget(undefined)}
+          onSuccess={fetchPersonal}
+        />
+      )}
 
-      <EditPersonalDialog
-        isOpen={!!editTarget}
-        onClose={() => setEditTarget(null)}
-        onSuccess={fetchPersonal}
-        personal={editTarget}
-      />
+      {suspenderTarget && (
+        <PersonalSuspendModal
+          personal={suspenderTarget}
+          onClose={() => setSuspenderTarget(null)}
+          onSuccess={fetchPersonal}
+        />
+      )}
 
-      <SuspenderPersonalDialog
-        isOpen={!!suspenderTarget}
-        onClose={() => setSuspenderTarget(null)}
-        onSuccess={fetchPersonal}
-        personal={suspenderTarget}
-      />
-
-      <DetallePersonalDialog
-        isOpen={!!detalleTarget}
-        onClose={() => setDetalleTarget(null)}
-        personal={detalleTarget}
-      />
+      {detalleTarget && (
+        <PersonalDetailModal
+          personal={detalleTarget}
+          onClose={() => setDetalleTarget(null)}
+        />
+      )}
 
     </div>
   );

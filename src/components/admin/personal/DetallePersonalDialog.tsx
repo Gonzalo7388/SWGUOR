@@ -3,43 +3,43 @@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Badge }  from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   User, Hash, Phone, Briefcase, Calendar, Mail,
   ShieldCheck, Clock, AlertCircle,
 } from "lucide-react";
-import type { PersonalRow } from "@/lib/services/personal-interno-services";
+import type { PersonalRow } from "@/lib/services/personal-interno.service";
 
 // ─── Helpers ──────────────────────────────────────────────────
 const CARGO_LABELS: Record<string, string> = {
-  gerente:              "Gerente",
-  administrador:        "Administrador",
-  disenador:            "Diseñador",
-  cortador:             "Cortador",
-  recepcionista:        "Recepcionista",
-  ayudante:             "Ayudante",
+  gerente: "Gerente",
+  administrador: "Administrador",
+  disenador: "Diseñador",
+  cortador: "Cortador",
+  recepcionista: "Recepcionista",
+  ayudante: "Ayudante",
   representante_taller: "Rep. Taller",
 };
 
 const CARGO_COLORS: Record<string, string> = {
-  gerente:              "bg-pink-50 text-pink-700 border-pink-200",
-  administrador:        "bg-purple-50 text-purple-700 border-purple-200",
-  disenador:            "bg-teal-50 text-teal-700 border-teal-200",
-  cortador:             "bg-slate-100 text-slate-600 border-slate-200",
-  recepcionista:        "bg-blue-50 text-blue-700 border-blue-200",
-  ayudante:             "bg-amber-50 text-amber-700 border-amber-200",
+  gerente: "bg-pink-50 text-pink-700 border-pink-200",
+  administrador: "bg-purple-50 text-purple-700 border-purple-200",
+  disenador: "bg-teal-50 text-teal-700 border-teal-200",
+  cortador: "bg-slate-100 text-slate-600 border-slate-200",
+  recepcionista: "bg-blue-50 text-blue-700 border-blue-200",
+  ayudante: "bg-amber-50 text-amber-700 border-amber-200",
   representante_taller: "bg-orange-50 text-orange-700 border-orange-200",
 };
 
 const ROL_COLORS: Record<string, string> = {
-  gerente:              "bg-violet-50 text-violet-700 border-violet-200",
-  administrador:        "bg-sky-50 text-sky-700 border-sky-200",
-  recepcionista:        "bg-pink-50 text-pink-700 border-pink-200",
-  disenador:            "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
-  cortador:             "bg-orange-50 text-orange-600 border-orange-200",
+  gerente: "bg-violet-50 text-violet-700 border-violet-200",
+  administrador: "bg-sky-50 text-sky-700 border-sky-200",
+  recepcionista: "bg-pink-50 text-pink-700 border-pink-200",
+  disenador: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  cortador: "bg-orange-50 text-orange-600 border-orange-200",
   representante_taller: "bg-lime-50 text-lime-700 border-lime-200",
-  ayudante:             "bg-teal-50 text-teal-700 border-teal-200",
+  ayudante: "bg-teal-50 text-teal-700 border-teal-200",
 };
 
 function formatDate(d: string | null | undefined) {
@@ -53,10 +53,10 @@ function timeAgo(d: string | null | undefined) {
   if (!d) return null;
   const diff = Date.now() - new Date(d).getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1)  return "Hace un momento";
+  if (mins < 1) return "Hace un momento";
   if (mins < 60) return `Hace ${mins} min`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `Hace ${hrs}h`;
+  if (hrs < 24) return `Hace ${hrs}h`;
   const days = Math.floor(hrs / 24);
   if (days < 30) return `Hace ${days} días`;
   return formatDate(d);
@@ -64,7 +64,7 @@ function timeAgo(d: string | null | undefined) {
 
 // ─── Props ────────────────────────────────────────────────────
 interface Props {
-  isOpen:  boolean;
+  isOpen: boolean;
   onClose: () => void;
   personal: PersonalRow | null;
 }
@@ -73,7 +73,7 @@ interface Props {
 export default function DetallePersonalDialog({ isOpen, onClose, personal }: Props) {
   if (!personal) return null;
 
-  const cargo    = personal.cargo ?? "";
+  const cargo = personal.cargo ?? "";
   const iniciales = (personal.nombre_completo ?? personal.usuarios?.email ?? "??")
     .trim()
     .split(" ")
@@ -87,7 +87,7 @@ export default function DetallePersonalDialog({ isOpen, onClose, personal }: Pro
 
   // Detectar desincronización: personal activo pero cuenta inactiva o viceversa
   const personalActivo = personal.estado?.toLowerCase() === "activo";
-const desincronizado = personalActivo !== cuentaActiva;
+  const desincronizado = personalActivo !== cuentaActiva;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -105,11 +105,10 @@ const desincronizado = personalActivo !== cuentaActiva;
 
           <div className="flex items-center gap-4">
             {/* Avatar con color según estado */}
-            <div className={`h-14 w-14 rounded-2xl border-2 flex items-center justify-center font-black text-lg uppercase shrink-0 shadow-sm ${
-              cuentaActiva
+            <div className={`h-14 w-14 rounded-2xl border-2 flex items-center justify-center font-black text-lg uppercase shrink-0 shadow-sm ${cuentaActiva
                 ? "bg-teal-50 border-teal-100 text-teal-600"
                 : "bg-slate-100 border-slate-200 text-slate-400"
-            }`}>
+              }`}>
               {iniciales}
             </div>
 
@@ -126,20 +125,18 @@ const desincronizado = personalActivo !== cuentaActiva;
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 {/* Badge cargo */}
                 {cargo && (
-                  <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                    CARGO_COLORS[cargo] ?? "bg-slate-100 text-slate-600 border-slate-200"
-                  }`}>
+                  <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${CARGO_COLORS[cargo] ?? "bg-slate-100 text-slate-600 border-slate-200"
+                    }`}>
                     <Briefcase size={9} className="mr-1" />
                     {CARGO_LABELS[cargo] ?? cargo}
                   </Badge>
                 )}
 
                 {/* Badge estado cuenta — única fuente de verdad */}
-                <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                  cuentaActiva
+                <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${cuentaActiva
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : "bg-orange-50 text-orange-600 border-orange-200"
-                }`}>
+                  }`}>
                   {cuentaActiva ? "Activo" : "Suspendido"}
                 </Badge>
               </div>
@@ -162,9 +159,9 @@ const desincronizado = personalActivo !== cuentaActiva;
 
           {/* ── Datos personales ── */}
           <Section label="Datos Personales">
-            <InfoRow icon={<Hash size={13} />}     label="DNI"
+            <InfoRow icon={<Hash size={13} />} label="DNI"
               value={personal.dni ?? null} mono />
-            <InfoRow icon={<Phone size={13} />}    label="Teléfono"
+            <InfoRow icon={<Phone size={13} />} label="Teléfono"
               value={personal.telefono ?? null} />
             <InfoRow icon={<Calendar size={13} />} label="Fecha ingreso"
               value={formatDate(personal.fecha_ingreso)} />
@@ -173,14 +170,13 @@ const desincronizado = personalActivo !== cuentaActiva;
           {/* ── Acceso al sistema ── */}
           {personal.usuarios ? (
             <Section label="Acceso al Sistema">
-              <InfoRow icon={<Mail size={13} />}  label="Email"
+              <InfoRow icon={<Mail size={13} />} label="Email"
                 value={personal.usuarios.email} />
 
               <InfoRow icon={<ShieldCheck size={13} />} label="Rol">
                 {personal.usuarios.rol ? (
-                  <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
-                    ROL_COLORS[personal.usuarios.rol] ?? "bg-slate-100 text-slate-600 border-slate-200"
-                  }`}>
+                  <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${ROL_COLORS[personal.usuarios.rol] ?? "bg-slate-100 text-slate-600 border-slate-200"
+                    }`}>
                     {personal.usuarios.rol.replace(/_/g, " ")}
                   </Badge>
                 ) : (
@@ -188,12 +184,11 @@ const desincronizado = personalActivo !== cuentaActiva;
                 )}
               </InfoRow>
 
-              <InfoRow icon={<User size={13} />}  label="Estado cuenta">
-                <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
-                  cuentaActiva
+              <InfoRow icon={<User size={13} />} label="Estado cuenta">
+                <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${cuentaActiva
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : "bg-orange-50 text-orange-600 border-orange-200"
-                }`}>
+                  }`}>
                   {personal.usuarios.estado ?? "—"}
                 </Badge>
               </InfoRow>
@@ -242,10 +237,10 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 function InfoRow({ icon, label, value, mono, children }: {
-  icon:      React.ReactNode;
-  label:     string;
-  value?:    string | null;
-  mono?:     boolean;
+  icon: React.ReactNode;
+  label: string;
+  value?: string | null;
+  mono?: boolean;
   children?: React.ReactNode;
 }) {
   return (
@@ -253,9 +248,8 @@ function InfoRow({ icon, label, value, mono, children }: {
       <span className="text-slate-300 shrink-0">{icon}</span>
       <span className="text-[11px] font-bold text-slate-400 w-28 shrink-0">{label}</span>
       {children ?? (
-        <span className={`text-xs flex-1 min-w-0 truncate ${
-          value ? `text-slate-700 ${mono ? "font-mono" : ""}` : "text-slate-300"
-        }`}>
+        <span className={`text-xs flex-1 min-w-0 truncate ${value ? `text-slate-700 ${mono ? "font-mono" : ""}` : "text-slate-300"
+          }`}>
           {value ?? "—"}
         </span>
       )}

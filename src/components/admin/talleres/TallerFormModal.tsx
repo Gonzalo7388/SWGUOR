@@ -33,10 +33,9 @@ interface TallerForm {
 }
 
 interface Props {
-  taller:    any | null;
-  isSaving:  boolean;
+  taller?:    any | null;
   onClose:   () => void;
-  onSave:    (data: TallerForm) => void;
+  onSuccess: () => void;
 }
 
 const EMPTY: TallerForm = {
@@ -44,9 +43,11 @@ const EMPTY: TallerForm = {
   email: '', direccion: '', especialidad: '', estado: 'activo',
 };
 
-export default function TallerFormModal({ taller, isSaving, onClose, onSave }: Props) {
+export default function TallerFormModal({ taller, onClose, onSuccess }: Props) {
   const [form, setForm] = useState<TallerForm>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const supabase = getSupabaseBrowserClient();
 
   useEffect(() => {
     if (taller) {
@@ -83,19 +84,39 @@ export default function TallerFormModal({ taller, isSaving, onClose, onSave }: P
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    setIsSaving(true);
 
-    // Si es nuevo, verificar RUC duplicado
-    if (!taller) {
-      const supabase = getSupabaseBrowserClient();
-      const { data: existing } = await supabase
-        .from('talleres').select('ruc').eq('ruc', form.ruc).maybeSingle();
-      if (existing) {
-        setErrors({ ruc: `El RUC ${form.ruc} ya está registrado` });
-        return;
+    try {
+      const payload = {
+        ...form,
+        especialidad: form.especialidad === '' ? null : form.especialidad
+      };
+
+      if (!taller) {
+        const { data: existing } = await supabase
+          .from('talleres').select('ruc').eq('ruc', form.ruc).maybeSingle();
+        if (existing) {
+          setErrors({ ruc: `El RUC ${form.ruc} ya está registrado` });
+          setIsSaving(false);
+          return;
+        }
+
+        const { error } = await supabase.from('talleres').insert([payload]);
+        if (error) throw error;
+        toast.success('Taller registrado exitosamente');
+      } else {
+        const { error } = await supabase.from('talleres').update(payload).eq('id', taller.id);
+        if (error) throw error;
+        toast.success('Datos del taller actualizados');
       }
+      
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error('Error al guardar el taller');
+    } finally {
+      setIsSaving(false);
     }
-
-    onSave(form);
   };
 
   return (

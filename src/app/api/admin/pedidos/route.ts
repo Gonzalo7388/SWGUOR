@@ -1,8 +1,10 @@
 export const runtime = 'nodejs';
-import { PedidosService } from '@/lib/services/pedidos-services';
+import { PedidosService } from '@/lib/services/pedidos.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { NextResponse } from 'next/server';
+
+import { auditoriaService } from '@/lib/services/auditoria.service';
 
 const PEDIDOS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller'];
 
@@ -38,9 +40,9 @@ export async function PUT(req: Request) {
     }
 
     const data = {
-      ...(estado        !== undefined && { estado }),
-      ...(prioridad     !== undefined && { prioridad }),
-      ...(notas_pedido  !== undefined && { notas_pedido }),
+      ...(estado !== undefined && { estado }),
+      ...(prioridad !== undefined && { prioridad }),
+      ...(notas_pedido !== undefined && { notas_pedido }),
       ...(notas_cliente !== undefined && { notas_cliente }),
     };
 
@@ -52,6 +54,15 @@ export async function PUT(req: Request) {
     }
 
     const pedido = await PedidosService.actualizar(id, data);
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'ACTUALIZAR',
+      tabla: 'pedidos',
+      registro_id: BigInt(id),
+      datos_despues: pedido,
+    });
+
     return NextResponse.json({ success: true, data: pedido });
   } catch (error: any) {
     console.error('[PUT /pedidos]', error);

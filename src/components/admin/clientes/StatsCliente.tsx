@@ -2,12 +2,12 @@
 
 import StatCard from "../common/StatCard";
 import { Building2, ShieldCheck, ShieldOff, ShoppingBag } from "lucide-react";
-import type { ClienteListItem } from "@/lib/services/clientes-services";
+import type { ClienteListItem } from "@/lib/services/clientes.service";
 
 interface Props {
-  clientes:       ClienteListItem[];
-  loading?:       boolean;
-  statusFilter?:  "activo" | "inactivo" | "conPedidos" | null;
+  clientes: ClienteListItem[];
+  loading?: boolean;
+  statusFilter?: "activo" | "inactivo" | "conPedidos" | null;
   onFilterChange?: (f: "activo" | "inactivo" | "conPedidos" | null) => void;
 }
 
@@ -17,9 +17,9 @@ function tienePedidoReciente(c: ClienteListItem): boolean {
 }
 
 export default function StatsClientes({ clientes, loading, statusFilter = null, onFilterChange }: Props) {
-  const total      = clientes.length;
-  const activos    = clientes.filter((c) => c.activo === "activo").length;
-  const inactivos  = clientes.filter((c) => c.activo !== "activo").length;
+  const total = clientes.length;
+  const activos = clientes.filter((c) => c.activo === "activo").length;
+  const inactivos = clientes.filter((c) => c.activo !== "activo").length;
   const conPedidos = clientes.filter(tienePedidoReciente).length;
 
   return (

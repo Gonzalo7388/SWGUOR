@@ -1,9 +1,9 @@
 export const runtime = 'nodejs';
-import { ConfeccionesService } from "@/lib/services/confecciones-services";
+import { ConfeccionesService } from "@/lib/services/confecciones.service";
 import { NextResponse } from "next/server";
 
 export async function POST(
-  req: Request, 
+  req: Request,
   { params }: { params: Promise<any> }
 ) {
   try {
@@ -12,7 +12,7 @@ export async function POST(
     // Validaciones básicas
     if (!body.confeccion_id || !body.estado_nuevo) {
       return NextResponse.json(
-        { error: 'confeccion_id y estado_nuevo requeridos' }, 
+        { error: 'confeccion_id y estado_nuevo requeridos' },
         { status: 400 }
       );
     }
@@ -21,30 +21,30 @@ export async function POST(
      * IMPORTANTE: 'usuario_id' no puede ser un argumento de la función POST.
      * Debe venir en el body del JSON o extraerse de la sesión/headers.
      */
-    const usuario_id = body.usuario_id; 
+    const usuario_id = body.usuario_id;
 
     if (!usuario_id) {
       return NextResponse.json(
-        { error: 'usuario_id es requerido para registrar el seguimiento' }, 
+        { error: 'usuario_id es requerido para registrar el seguimiento' },
         { status: 400 }
       );
     }
 
     // Llamada al servicio con los datos corregidos
-    const seg = await ConfeccionesService.registrarSeguimiento({ 
-      ...body, 
-      usuario_id 
+    const seg = await ConfeccionesService.registrarSeguimiento({
+      ...body,
+      usuario_id
     });
 
     return NextResponse.json(
-      { success: true, data: seg }, 
+      { success: true, data: seg },
       { status: 201 }
     );
 
   } catch (error: any) {
     console.error("[API_SEGUIMIENTOS] Error:", error);
     return NextResponse.json(
-      { error: error.message || 'Error interno' }, 
+      { error: error.message || 'Error interno' },
       { status: 500 }
     );
   }

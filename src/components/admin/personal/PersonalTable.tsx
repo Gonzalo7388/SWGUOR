@@ -2,50 +2,50 @@
 
 import { memo } from "react";
 import { Edit, ShieldOff, Eye, User, Briefcase } from "lucide-react";
-import { Badge }    from "@/components/ui/badge";
-import { Button }   from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import type { PersonalRow } from "@/lib/services/personal-interno-services";
+import type { PersonalRow } from "@/lib/services/personal-interno.service";
 
 interface Props {
-  data:         PersonalRow[];
-  loading?:     boolean;
-  onEdit?:      (p: PersonalRow) => void;
+  data: PersonalRow[];
+  loading?: boolean;
+  onEdit?: (p: PersonalRow) => void;
   onSuspender?: (p: PersonalRow) => void;
-  onDetalle?:   (p: PersonalRow) => void;
+  onDetalle?: (p: PersonalRow) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
 const CARGO_LABELS: Record<string, string> = {
-  gerente:              "Gerente",
-  disenador:            "Diseñador",
-  cortador:             "Cortador",
-  recepcionista:        "Recepcionista",
-  administrador:        "Administrador",
-  ayudante:             "Ayudante",
+  gerente: "Gerente",
+  disenador: "Diseñador",
+  cortador: "Cortador",
+  recepcionista: "Recepcionista",
+  administrador: "Administrador",
+  ayudante: "Ayudante",
   representante_taller: "Rep. Taller",
 };
 
 const CARGO_COLORS: Record<string, string> = {
-  gerente:              "bg-pink-50 text-pink-700 border-pink-200",
-  administrador:        "bg-purple-50 text-purple-700 border-purple-200",
-  disenador:            "bg-teal-50 text-teal-700 border-teal-200",
-  cortador:             "bg-slate-100 text-slate-600 border-slate-200",
-  recepcionista:        "bg-blue-50 text-blue-700 border-blue-200",
-  ayudante:             "bg-amber-50 text-amber-700 border-amber-200",
+  gerente: "bg-pink-50 text-pink-700 border-pink-200",
+  administrador: "bg-purple-50 text-purple-700 border-purple-200",
+  disenador: "bg-teal-50 text-teal-700 border-teal-200",
+  cortador: "bg-slate-100 text-slate-600 border-slate-200",
+  recepcionista: "bg-blue-50 text-blue-700 border-blue-200",
+  ayudante: "bg-amber-50 text-amber-700 border-amber-200",
   representante_taller: "bg-orange-50 text-orange-700 border-orange-200",
 };
 
 // ─── Componente ───────────────────────────────────────────────
 function PersonalTable({ data, loading, onEdit, onSuspender, onDetalle }: Props) {
-  const router      = useRouter();
+  const router = useRouter();
   const showActions = !!onEdit || !!onSuspender;
-  const colSpan     = 5 + (showActions ? 1 : 0);
+  const colSpan = 5 + (showActions ? 1 : 0);
 
   return (
     <Table>
@@ -108,8 +108,8 @@ function PersonalTable({ data, loading, onEdit, onSuspender, onDetalle }: Props)
         {!loading && data.map((p) => {
           const iniciales = (p.nombre_completo ?? p.usuarios?.email ?? "??")
             .substring(0, 2).toUpperCase();
-          const activo  = p.estado;
-          const cargo   = p.cargo ?? "";
+          const activo = p.estado;
+          const cargo = p.cargo ?? "";
 
           return (
             <TableRow key={p.id} className={`${rowCls} group`}>
@@ -136,9 +136,8 @@ function PersonalTable({ data, loading, onEdit, onSuspender, onDetalle }: Props)
               {/* Cargo */}
               <TableCell className="text-center">
                 <Badge variant="outline"
-                  className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                    CARGO_COLORS[cargo] ?? "bg-slate-100 text-slate-600 border-slate-200"
-                  }`}>
+                  className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${CARGO_COLORS[cargo] ?? "bg-slate-100 text-slate-600 border-slate-200"
+                    }`}>
                   <Briefcase size={9} className="mr-1" />
                   {CARGO_LABELS[cargo] ?? cargo ?? "—"}
                 </Badge>
@@ -161,11 +160,10 @@ function PersonalTable({ data, loading, onEdit, onSuspender, onDetalle }: Props)
               {/* Estado */}
               <TableCell className="text-center">
                 <Badge variant="outline"
-                  className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase border ${
-                    activo
+                  className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase border ${activo
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                       : "bg-orange-50 text-orange-600 border-orange-200"
-                  }`}>
+                    }`}>
                   {activo ? "Activo" : "Inactivo"}
                 </Badge>
               </TableCell>
@@ -205,10 +203,10 @@ function PersonalTable({ data, loading, onEdit, onSuspender, onDetalle }: Props)
 // ─── Micro-componente botón ───────────────────────────────────
 type ColorKey = "pink" | "emerald" | "amber" | "blue";
 const COLOR_MAP: Record<ColorKey, string> = {
-  pink:    "hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50",
+  pink: "hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50",
   emerald: "hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50",
-  amber:   "hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50",
-  blue:    "hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50",
+  amber: "hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50",
+  blue: "hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50",
 };
 
 function ActionBtn({ children, onClick, title, color }: {
@@ -222,7 +220,7 @@ function ActionBtn({ children, onClick, title, color }: {
   );
 }
 
-const thCls  = "font-bold text-[10px] tracking-widest text-slate-400 uppercase py-3 px-4";
+const thCls = "font-bold text-[10px] tracking-widest text-slate-400 uppercase py-3 px-4";
 const rowCls = "bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-150";
 
 export default memo(PersonalTable);

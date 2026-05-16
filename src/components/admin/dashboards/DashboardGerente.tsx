@@ -1,17 +1,17 @@
 "use client";
 
 import React from 'react';
-import { 
-  TrendingUp, DollarSign, Users, Activity, 
-  ArrowUpRight, ArrowDownRight, Briefcase, 
-  Target, Award, PieChart as PieIcon 
+import {
+  TrendingUp, DollarSign, Users, Activity,
+  ArrowUpRight, ArrowDownRight, Briefcase,
+  Target, Award, PieChart as PieIcon
 } from 'lucide-react';
 import { DashboardSection } from './DashboardSection';
 import { SparkKpiCard, VentasMensualesChart, RankingProductos } from './widgets/DashboardWidgets';
 import { ROLE_PALETTES } from "./widgets/DashboardUtils";
 import DashboardCharts from './DashboardCharts';
 import type { pedidos } from '@prisma/client';
-import type { VentaMensual, DashboardKpis } from '@/lib/services/dashboard-service';
+import type { VentaMensual, DashboardKpis } from '@/lib/services/dashboard.service';
 
 interface GerenteData {
   kpis: DashboardKpis;
@@ -50,46 +50,46 @@ export default function GerenteDashboard() {
   const b = data?.balanceData ?? [];
 
   return (
-    <DashboardSection 
-      title="Panel de Gerencia" 
-      role="gerente" 
+    <DashboardSection
+      title="Panel de Gerencia"
+      role="gerente"
       subtitle="Visibilidad estratégica, métricas de rentabilidad y salud financiera"
     >
       <div className="space-y-6">
-        
+
         {/* 1. KPIs de Alto Nivel */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <SparkKpiCard 
-            label="Ingresos Totales" 
-            value={`S/ ${Number(k?.facturacion ?? 0).toLocaleString()}`} 
-            delta={12} 
-            icon={DollarSign} 
-            accentColor={G.accent} 
-            sparkData={data?.sparklines?.facturacion ?? []} 
+          <SparkKpiCard
+            label="Ingresos Totales"
+            value={`S/ ${Number(k?.facturacion ?? 0).toLocaleString()}`}
+            delta={12}
+            icon={DollarSign}
+            accentColor={G.accent}
+            sparkData={data?.sparklines?.facturacion ?? []}
           />
-          <SparkKpiCard 
-            label="Nuevos Clientes" 
-            value={k?.clientesB2B ?? 0} 
-            delta={5} 
-            icon={Users} 
-            accentColor={G.accent} 
-            sparkData={data?.sparklines?.clientes ?? []} 
+          <SparkKpiCard
+            label="Nuevos Clientes"
+            value={k?.clientesB2B ?? 0}
+            delta={5}
+            icon={Users}
+            accentColor={G.accent}
+            sparkData={data?.sparklines?.clientes ?? []}
           />
-          <SparkKpiCard 
-            label="Pedidos Activos" 
-            value={k?.pedidosActivos ?? 0} 
-            delta={2} 
-            icon={Activity} 
-            accentColor={G.accent} 
-            sparkData={data?.sparklines?.pedidos ?? []} 
+          <SparkKpiCard
+            label="Pedidos Activos"
+            value={k?.pedidosActivos ?? 0}
+            delta={2}
+            icon={Activity}
+            accentColor={G.accent}
+            sparkData={data?.sparklines?.pedidos ?? []}
           />
-          <SparkKpiCard 
-            label="Cotiz. Pendientes" 
-            value={k?.cotizacionesPend ?? 0} 
-            delta={4} 
-            icon={TrendingUp} 
-            accentColor={G.accent} 
-            sparkData={data?.sparklines?.cotizaciones ?? []} 
+          <SparkKpiCard
+            label="Cotiz. Pendientes"
+            value={k?.cotizacionesPend ?? 0}
+            delta={4}
+            icon={TrendingUp}
+            accentColor={G.accent}
+            sparkData={data?.sparklines?.cotizaciones ?? []}
           />
         </div>
 
@@ -112,20 +112,20 @@ export default function GerenteDashboard() {
                 </div>
               </div>
             ))}
-            
+
             {/* Widget de Meta Mensual */}
             <div className="mt-2 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[32px] p-6 text-white relative overflow-hidden">
-               <div className="relative z-10">
-                  <h4 className="text-[10px] font-bold text-violet-200 uppercase tracking-[0.2em] mb-4">Meta Mensual</h4>
-                  <div className="flex items-end gap-2 mb-2">
-                    <span className="text-3xl font-black">82%</span>
-                    <span className="text-xs font-bold text-violet-200 mb-1">S/ {Math.round((k?.facturacion ?? 0) / 1000)}k de S/ 55k</span>
-                  </div>
-                  <div className="h-2 w-full bg-white/20 rounded-full">
-                    <div className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: '82%' }}></div>
-                  </div>
-               </div>
-               <PieIcon className="absolute -bottom-6 -right-6 text-white/10" size={120} />
+              <div className="relative z-10">
+                <h4 className="text-[10px] font-bold text-violet-200 uppercase tracking-[0.2em] mb-4">Meta Mensual</h4>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black">82%</span>
+                  <span className="text-xs font-bold text-violet-200 mb-1">S/ {Math.round((k?.facturacion ?? 0) / 1000)}k de S/ 55k</span>
+                </div>
+                <div className="h-2 w-full bg-white/20 rounded-full">
+                  <div className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: '82%' }}></div>
+                </div>
+              </div>
+              <PieIcon className="absolute -bottom-6 -right-6 text-white/10" size={120} />
             </div>
           </div>
         </div>
@@ -134,27 +134,27 @@ export default function GerenteDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="bg-white border border-violet-100 rounded-[32px] p-8">
-               <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Flujo de Caja Mensual</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Comparativa Ingresos vs Egresos</p>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Flujo de Caja Mensual</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Comparativa Ingresos vs Egresos</p>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-violet-600">
+                    <div className="w-2 h-2 rounded-full bg-violet-600"></div> Ingresos
                   </div>
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-violet-600">
-                      <div className="w-2 h-2 rounded-full bg-violet-600"></div> Ingresos
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-300">
-                      <div className="w-2 h-2 rounded-full bg-slate-300"></div> Proyectado
-                    </div>
+                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-300">
+                    <div className="w-2 h-2 rounded-full bg-slate-300"></div> Proyectado
                   </div>
-               </div>
-               <VentasMensualesChart data={data?.ventasMensuales ?? []} accentColor={G.accent} />
+                </div>
+              </div>
+              <VentasMensualesChart data={data?.ventasMensuales ?? []} accentColor={G.accent} />
             </div>
           </div>
 
           <div className="space-y-6">
             <RankingProductos data={data?.rankingProductos ?? []} accentColor={G.accent} />
-            
+
             {/* Resumen Ejecutivo de Clientes */}
             <div className="bg-slate-900 rounded-[32px] p-7 text-white">
               <h4 className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-4">Top Clientes (LTV)</h4>

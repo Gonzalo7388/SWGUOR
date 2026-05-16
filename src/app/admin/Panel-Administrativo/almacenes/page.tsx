@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { toast } from 'sonner';
 import AlmacenesTable, { Almacen } from '@/components/admin/almacenes/AlmacenesTable';
-import AlmacenDialog from '@/components/admin/almacenes/AlmacenDialog';
+import AlmacenFormModal from '@/components/admin/almacenes/AlmacenFormModal';
+import { AlmacenDeleteModal } from '@/components/admin/almacenes/AlmacenModals';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
 import AlmacenesToolbar from '@/components/admin/almacenes/AlmacenesToolbar';
@@ -16,6 +17,7 @@ export default function AlmacenesPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAlmacen, setEditingAlmacen] = useState<Almacen | null>(null);
+  const [deleteAlmacen, setDeleteAlmacen] = useState<Almacen | null>(null);
   
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +97,10 @@ export default function AlmacenesPage() {
     }
   };
 
+  const handleDelete = (almacen: Almacen) => {
+    setDeleteAlmacen(almacen);
+  };
+
   if (!can('view', 'almacenes')) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center">
@@ -163,15 +169,25 @@ export default function AlmacenesPage() {
           data={filteredAlmacenes}
           isLoading={loading}
           onEdit={can('edit', 'almacenes') ? handleEdit : undefined}
+          onDelete={can('archive', 'almacenes') ? handleDelete : undefined}
         />
       </div>
 
-      <AlmacenDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSave={handleSave}
-        almacen={editingAlmacen}
-      />
+      {dialogOpen && (
+        <AlmacenFormModal
+          almacen={editingAlmacen}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={loadAlmacenes}
+        />
+      )}
+
+      {deleteAlmacen && (
+        <AlmacenDeleteModal
+          almacen={deleteAlmacen}
+          onClose={() => setDeleteAlmacen(null)}
+          onSuccess={loadAlmacenes}
+        />
+      )}
     </div>
   );
 }

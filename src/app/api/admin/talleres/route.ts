@@ -1,9 +1,16 @@
 export const runtime = 'nodejs';
-import { TalleresService } from '@/lib/services/talleres-services';
+import { TalleresService } from '@/lib/services/talleres.service';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+import { auditoriaService } from '@/lib/services/auditoria.service';
+
+const TALLERES_ROLES: any = ['administrador', 'gerente'];
 
 // GET /api/admin/talleres
 export async function GET() {
+  const auth = await requireServerRole(TALLERES_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const data = await TalleresService.listar();
     return NextResponse.json({ success: true, data });
@@ -15,6 +22,9 @@ export async function GET() {
 
 // POST /api/admin/talleres
 export async function POST(req: Request) {
+  const auth = await requireServerRole(TALLERES_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await req.json();
 
@@ -23,6 +33,15 @@ export async function POST(req: Request) {
     }
 
     const taller = await TalleresService.crear(body);
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'CREAR',
+      tabla: 'talleres',
+      registro_id: BigInt(taller.id),
+      datos_despues: taller,
+    });
+
     return NextResponse.json({ success: true, data: taller }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /talleres]', error);
@@ -35,6 +54,9 @@ export async function POST(req: Request) {
 
 // PUT /api/admin/talleres
 export async function PUT(req: Request) {
+  const auth = await requireServerRole(TALLERES_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await req.json();
     // incidencias se excluye: es relación de solo lectura, no se actualiza directamente
@@ -48,6 +70,15 @@ export async function PUT(req: Request) {
     }
 
     const taller = await TalleresService.actualizar(id, data);
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'ACTUALIZAR',
+      tabla: 'talleres',
+      registro_id: BigInt(id),
+      datos_despues: taller,
+    });
+
     return NextResponse.json({ success: true, data: taller });
   } catch (error: any) {
     console.error('[PUT /talleres]', error);
@@ -60,6 +91,9 @@ export async function PUT(req: Request) {
 
 // DELETE /api/admin/talleres?id=xxx — soft delete
 export async function DELETE(req: Request) {
+  const auth = await requireServerRole(TALLERES_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const id = new URL(req.url).searchParams.get('id');
 
@@ -68,6 +102,14 @@ export async function DELETE(req: Request) {
     }
 
     const taller = await TalleresService.desactivar(id);
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'ELIMINAR',
+      tabla: 'talleres',
+      registro_id: BigInt(id),
+    });
+
     return NextResponse.json({ success: true, message: 'Taller desactivado', data: taller });
   } catch (error: any) {
     console.error('[DELETE /talleres]', error);

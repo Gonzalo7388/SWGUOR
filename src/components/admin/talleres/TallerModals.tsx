@@ -1,21 +1,48 @@
 'use client';
 
+import { useState } from 'react';
+
 // GUOR PRO Modal Design — Talleres
 import { Factory, Loader2, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { toast } from 'sonner';
+
 // ─────────────────────────────────────────────────────────────
-// DELETE MODAL
+// SUSPEND MODAL
 // ─────────────────────────────────────────────────────────────
 
-interface DeleteProps {
+interface SuspendProps {
   taller:     any;
-  isDeleting: boolean;
   onClose:    () => void;
-  onConfirm:  () => void;
+  onSuccess:  () => void;
 }
 
-export function TallerDeleteModal({ taller, isDeleting, onClose, onConfirm }: DeleteProps) {
+export function TallerSuspendModal({ taller, onClose, onSuccess }: SuspendProps) {
+  const [isSuspending, setIsSuspending] = useState(false);
+  const supabase = getSupabaseBrowserClient();
+
+  const handleSuspend = async () => {
+    if (!taller?.id) return;
+    setIsSuspending(true);
+    try {
+      const { error } = await supabase
+        .from('talleres')
+        .update({ estado: 'suspendido' })
+        .eq('id', taller.id);
+
+      if (error) throw error;
+      toast.success(`Taller "${taller.nombre}" suspendido correctamente`);
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast.error('No se pudo suspender el taller en este momento.');
+    } finally {
+      setIsSuspending(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -32,18 +59,18 @@ export function TallerDeleteModal({ taller, isDeleting, onClose, onConfirm }: De
         <p className="text-sm text-gray-500 mt-2">
           ¿Estás seguro de suspender a{' '}
           <span className="font-semibold text-gray-900">{taller?.nombre}</span>?
-          Esta acción es reversible y se puede revertir.
+          Esta acción evitará que el taller reciba nuevas órdenes.
         </p>
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" onClick={onClose} className="flex-1 h-11" disabled={isDeleting}>
+          <Button variant="outline" onClick={onClose} className="flex-1 h-11" disabled={isSuspending}>
             Cancelar
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={handleSuspend}
             className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white"
-            disabled={isDeleting}
+            disabled={isSuspending}
           >
-            {isDeleting
+            {isSuspending
               ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Suspendiendo...</>
               : 'Suspender'
             }

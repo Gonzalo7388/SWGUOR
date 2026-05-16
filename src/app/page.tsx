@@ -5,6 +5,7 @@ import Footer from "@/components/landing/Footer";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import Testimonials from "@/components/landing/Testimonials";
 
 export default function LandingPage() {
   return (
@@ -189,6 +190,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      
+      {/* TESTIMONIOS */}
+      <Testimonials />
+
       <Footer />
     </div>
   );

@@ -9,29 +9,29 @@ import {
   getPedidosActivos,
   type PedidoConSeguimiento,
   type EstadoPedido,
-} from '@/lib/services/seguimiento-pedido-services';
+} from '@/lib/services/seguimiento-pedido.service';
 import { usePortal } from '../_contexts/PortalContext';
 
 // ─── Config de Etapas ─────────────────────────────────────────────────────────
 
 type EtapaConfig = {
-  id:    EstadoPedido;
-  icon:  React.ElementType;
+  id: EstadoPedido;
+  icon: React.ElementType;
   label: string;
 };
 
 const ETAPAS: EtapaConfig[] = [
-  { id: 'pendiente',           icon: ClipboardCheck, label: 'Confirmado' },
-  { id: 'en_produccion',       icon: Factory,        label: 'En Confección' },
-  { id: 'listo_para_despacho', icon: ShieldCheck,    label: 'Control Calidad' },
-  { id: 'entregado',           icon: Truck,          label: 'Despachado' },
+  { id: 'pendiente', icon: ClipboardCheck, label: 'Confirmado' },
+  { id: 'en_produccion', icon: Factory, label: 'En Confección' },
+  { id: 'listo_para_despacho', icon: ShieldCheck, label: 'Control Calidad' },
+  { id: 'entregado', icon: Truck, label: 'Despachado' },
 ];
 
 const ESTADO_INDICE: Partial<Record<EstadoPedido, number>> = {
-  pendiente:           0,
-  en_produccion:       1,
+  pendiente: 0,
+  en_produccion: 1,
   listo_para_despacho: 2,
-  entregado:           3,
+  entregado: 3,
 };
 
 // ─── Componentes ──────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ function TimelineSimple({ estadoActual }: { estadoActual: EstadoPedido }) {
     <div className="relative w-full max-w-4xl mx-auto py-12 px-4">
       {/* Línea de fondo */}
       <div className="absolute top-[3.75rem] left-10 right-10 h-0.5 bg-slate-100 hidden md:block" />
-      
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative gap-8 md:gap-0">
         {ETAPAS.map((etapa, index) => {
           const Icon = etapa.icon;
@@ -54,13 +54,12 @@ function TimelineSimple({ estadoActual }: { estadoActual: EstadoPedido }) {
             <div key={etapa.id} className="flex md:flex-col items-center gap-4 md:gap-3 flex-1 relative z-10">
               {/* Círculo / Icono */}
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
-                  isCompleted
-                    ? 'bg-[#d4af37] border-[#d4af37] text-white shadow-lg shadow-[#d4af37]/20'
-                    : isActive
+                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isCompleted
+                  ? 'bg-[#d4af37] border-[#d4af37] text-white shadow-lg shadow-[#d4af37]/20'
+                  : isActive
                     ? 'bg-white border-[#d4af37] text-[#d4af37] ring-4 ring-[#d4af37]/10'
                     : 'bg-white border-slate-200 text-slate-300'
-                }`}
+                  }`}
               >
                 {isCompleted ? <CheckCircle2 size={24} /> : <Icon size={20} />}
               </div>
@@ -68,9 +67,8 @@ function TimelineSimple({ estadoActual }: { estadoActual: EstadoPedido }) {
               {/* Etiqueta */}
               <div className="flex flex-col md:items-center">
                 <span
-                  className={`text-sm font-bold uppercase tracking-wider ${
-                    isCompleted || isActive ? 'text-slate-900' : 'text-slate-400'
-                  }`}
+                  className={`text-sm font-bold uppercase tracking-wider ${isCompleted || isActive ? 'text-slate-900' : 'text-slate-400'
+                    }`}
                 >
                   {etapa.label}
                 </span>
@@ -173,14 +171,14 @@ export default function SeguimientoPedidoPage() {
               </div>
 
               <div className="px-8 py-4 bg-white flex items-center justify-between">
-                 <p className="text-[10px] font-bold text-slate-400 uppercase">Estado: <span className="text-slate-900">{pedido.estado.replace('_', ' ')}</span></p>
-                 <a 
-                   href={`https://wa.me/51908801912?text=Hola, quisiera consultar sobre mi pedido ${pedido.codigo}`}
-                   target="_blank"
-                   className="text-[10px] font-black uppercase text-[#d4af37] hover:underline"
-                 >
-                   Consultar con asesor
-                 </a>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Estado: <span className="text-slate-900">{pedido.estado.replace('_', ' ')}</span></p>
+                <a
+                  href={`https://wa.me/51908801912?text=Hola, quisiera consultar sobre mi pedido ${pedido.codigo}`}
+                  target="_blank"
+                  className="text-[10px] font-black uppercase text-[#d4af37] hover:underline"
+                >
+                  Consultar con asesor
+                </a>
               </div>
             </div>
           ))

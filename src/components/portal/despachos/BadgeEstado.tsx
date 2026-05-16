@@ -1,4 +1,4 @@
-import type { EstadoDespacho } from '@/lib/services/despachosServices';
+import type { EstadoDespacho } from '@/lib/services/despachos.service';
 import { ESTADO_CONFIG } from '@/lib/constants/estados';
 
 interface BadgeEstadoProps {

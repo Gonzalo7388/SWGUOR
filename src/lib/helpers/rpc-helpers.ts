@@ -4,13 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { 
-  Prisma,
-  fichas_tecnicas,
-  ordenes_compra_items,
-  devoluciones_cliente,
-  incidencias 
-} from "@prisma/client";
+import type { TipoMovimiento, ReferenciaMovimiento } from "@prisma/client";
 
 // ============================================================================
 // TIPOS DE PARÁMETROS Y RESPUESTAS PARA RPC
@@ -18,11 +12,6 @@ import {
 
 export interface CalcularCostoFichaParams {
   fichaId: number;
-}
-
-export interface CalcularCostoFichaResult {
-  status: string;
-  costo_total: number;
 }
 
 export interface CrearReservaStockParams {
@@ -56,15 +45,20 @@ export interface ActualizarPrecioResult {
   message?: string;
 }
 
+// FIX 1: tipoMovimiento usa el enum completo TipoMovimiento de Prisma.
+//         Antes era "entrada" | "salida" | "ajuste" (subset incompleto).
+// FIX 2: referenciaId es opcional — no todos los movimientos tienen documento origen.
+// FIX 3: se agrega almacenId, necesario para fn_actualizar_almacen_stock.
 export interface InsertarMovimientoParams {
-  tipoMovimiento: "entrada" | "salida" | "ajuste";
-  referenciaType: "COMPRA" | "VENTA" | "AJUSTE" | "ORDEN" | "PRODUCCION";
-  referenciaId: number;
+  tipoMovimiento: TipoMovimiento;
+  referenciaType: ReferenciaMovimiento;
+  referenciaId?: number;      // opcional: ajustes manuales no tienen referencia
   cantidad: number;
   motivo: string;
   productoId?: number;
   insumoId?: number;
   materialId?: number;
+  almacenId?: number;
   costoUnitario?: number;
   usuarioId?: number;
 }
@@ -73,16 +67,11 @@ export interface InsertarMovimientoParams {
 // LLAMADAS A RPC
 // ============================================================================
 
-/**
- * Calcula el costo estimado de una ficha técnica
- * Suma costos de materiales (con desperdicio) e insumos
- */
 export async function calcularCostoFicha(params: CalcularCostoFichaParams): Promise<number> {
   try {
     const result = await prisma.$queryRaw<{ calcular_costo_ficha: number }[]>`
       SELECT calcular_costo_ficha(${params.fichaId}::bigint) as calcular_costo_ficha
     `;
-    
     return result[0]?.calcular_costo_ficha || 0;
   } catch (error) {
     console.error("Error en calcularCostoFicha:", error);
@@ -90,24 +79,19 @@ export async function calcularCostoFicha(params: CalcularCostoFichaParams): Prom
   }
 }
 
-/**
- * Crea una reserva de stock con validación de disponibilidad
- * Retorna error si no hay stock disponible
- */
 export async function crearReservaStock(
   params: CrearReservaStockParams
 ): Promise<CrearReservaStockResult> {
   try {
     const result = await prisma.$queryRaw<{ fn_crear_reserva_stock: any }[]>`
-      SELECT fn_crear_reserva_stock(
-        ${params.productoId}::uuid,
-        ${params.almacenId}::uuid,
+      SELECT public.fn_crear_reserva_stock(
+        ${params.productoId}::bigint,
+        ${params.almacenId}::bigint,
         ${params.cantidadAReservar}::integer,
         ${params.motivo}::text,
-        ${params.pedidoId}::uuid
+        ${params.pedidoId}::bigint
       ) as fn_crear_reserva_stock
     `;
-
     return result[0]?.fn_crear_reserva_stock || { status: "error" };
   } catch (error) {
     console.error("Error en crearReservaStock:", error);
@@ -115,24 +99,20 @@ export async function crearReservaStock(
   }
 }
 
-/**
- * Actualiza precio de producto con histórico de cambios
- */
 export async function actualizarPrecioConHistorico(
   params: ActualizarPrecioParams
 ): Promise<ActualizarPrecioResult> {
   try {
     const result = await prisma.$queryRaw<{ fn_actualizar_precio_con_historico: any }[]>`
-      SELECT fn_actualizar_precio_con_historico(
-        ${params.productoId}::uuid,
+      SELECT public.fn_actualizar_precio_con_historico(
+        ${params.productoId}::bigint,
         ${params.precioNuevo}::numeric,
         ${params.razonCambio}::text,
         ${params.tipoProducto}::text,
         ${params.moneda}::"Moneda",
-        ${params.usuarioId}::uuid
+        ${params.usuarioId}::bigint
       ) as fn_actualizar_precio_con_historico
     `;
-
     return result[0]?.fn_actualizar_precio_con_historico || { status: "error" };
   } catch (error) {
     console.error("Error en actualizarPrecioConHistorico:", error);
@@ -141,74 +121,72 @@ export async function actualizarPrecioConHistorico(
 }
 
 /**
- * Inserta un movimiento de inventario
- * Se usa en triggers pero también puede llamarse manualmente
+ * Inserta un movimiento de inventario vía RPC.
+ * El trigger tr_procesar_movimiento_insumo ya maneja la lógica de stock en insumo.
+ * El trigger trg_actualizar_almacen_stock actualiza almacen_stock por almacenId.
+ * referenciaId es opcional: NULL si no hay documento de referencia (ej. ajuste manual).
  */
 export async function insertarMovimiento(
   params: InsertarMovimientoParams
 ): Promise<void> {
   try {
     await prisma.$executeRaw`
-      PERFORM fn_insertar_movimiento(
+      SELECT public.fn_insertar_movimiento(
         ${params.tipoMovimiento}::"TipoMovimiento",
         ${params.referenciaType}::"ReferenciaMovimiento",
-        ${params.referenciaId}::bigint,
+        ${params.referenciaId ?? null}::bigint,
         ${params.cantidad}::double precision,
         ${params.motivo}::text,
-        ${params.productoId}::bigint,
-        ${params.insumoId}::bigint,
-        ${params.materialId}::bigint,
-        ${params.costoUnitario}::numeric,
-        ${params.usuarioId}::bigint
+        ${params.productoId ?? null}::bigint,
+        ${params.insumoId ?? null}::bigint,
+        ${params.materialId ?? null}::bigint,
+        ${params.costoUnitario ?? null}::numeric,
+        ${params.usuarioId ?? null}::bigint
       )
     `;
   } catch (error) {
-    console.error("Error en insertarMovimiento:", error);
-    throw new Error("No se pudo registrar el movimiento de inventario");
+    console.error("Error en insertarMovimiento RPC:", error);
+    throw new Error("No se pudo registrar el movimiento de inventario vía RPC");
   }
 }
 
-/**
- * Obtiene stock disponible considerando reservas activas
- * Usado para validaciones antes de operaciones
- */
+export async function recalcularDescuentoCotizacion(cotizacionId: number): Promise<void> {
+  try {
+    await prisma.$executeRaw`
+      SELECT public.fn_recalcular_descuento_cotizacion(${cotizacionId}::bigint)
+    `;
+  } catch (error) {
+    console.error("Error en recalcularDescuentoCotizacion RPC:", error);
+    throw new Error("No se pudo recalcular el descuento de la cotización");
+  }
+}
+
 export async function obtenerStockDisponible(
   productoId: number,
   almacenId: number
-): Promise<{
-  stock_actual: number;
-  reservas_activas: number;
-  disponible: number;
-}> {
+): Promise<{ stock_actual: number; reservas_activas: number; disponible: number }> {
   try {
     const resultado = await prisma.$queryRaw<{
       stock_actual: number;
       reservas_activas: number;
       disponible: number;
     }[]>`
-      SELECT 
-        COALESCE((SELECT cantidad FROM public.almacen_stock 
-                  WHERE producto_id = ${productoId}::bigint 
-                  AND almacen_id = ${almacenId}::bigint), 0)::integer as stock_actual,
-        0::integer as reservas_activas,
-        0::integer as disponible
+      SELECT
+        COALESCE((
+          SELECT cantidad FROM public.almacen_stock
+          WHERE producto_id = ${productoId}::bigint
+            AND almacen_id  = ${almacenId}::bigint
+        ), 0)::integer AS stock_actual,
+        0::integer AS reservas_activas,
+        0::integer AS disponible
     `;
-
-    if (resultado[0]) {
-      return resultado[0];
-    }
-
-    return { stock_actual: 0, reservas_activas: 0, disponible: 0 };
+    return resultado[0] ?? { stock_actual: 0, reservas_activas: 0, disponible: 0 };
   } catch (error) {
     console.error("Error en obtenerStockDisponible:", error);
     throw new Error("No se pudo obtener el stock disponible");
   }
 }
 
-/**
- * Registra un cambio de estado en confección
- * Mantiene histórico de transiciones de estado
- */
 export async function registrarCambioEstadoConfeccion(
   confeccionId: number,
   estadoAnterior: string,
@@ -230,35 +208,18 @@ export async function registrarCambioEstadoConfeccion(
   }
 }
 
-/**
- * Obtiene información de auditoria para una tabla/registro
- */
-export async function obtenerAuditoriaRegistro(
-  tabla: string,
-  registroId: number
-): Promise<any[]> {
+export async function obtenerAuditoriaRegistro(tabla: string, registroId: number): Promise<any[]> {
   try {
-    const auditorias = await prisma.auditoria.findMany({
-      where: {
-        tabla,
-        registro_id: registroId,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
+    return await prisma.auditoria.findMany({
+      where: { tabla, registro_id: registroId },
+      orderBy: { created_at: "desc" },
     });
-
-    return auditorias;
   } catch (error) {
     console.error("Error en obtenerAuditoriaRegistro:", error);
     throw new Error("No se pudo obtener el histórico de auditoría");
   }
 }
 
-/**
- * Crea una notificación para un usuario
- * Usado por los triggers de notificación
- */
 export async function crearNotificacion(data: {
   usuarioId: number;
   tipo: string;
@@ -276,7 +237,6 @@ export async function crearNotificacion(data: {
         titulo: data.titulo,
         mensaje: data.mensaje,
         referencia_tipo: data.referenciaType,
-        referencia_id: data.referenciaId,
         url_destino: data.urlDestino,
       },
     });
@@ -286,19 +246,11 @@ export async function crearNotificacion(data: {
   }
 }
 
-/**
- * Obtiene notificaciones no leídas de un usuario
- */
 export async function obtenerNotificacionesNoLeidas(usuarioId: number): Promise<any[]> {
   try {
     return await prisma.notificaciones.findMany({
-      where: {
-        usuario_id: usuarioId,
-        leido: false,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
+      where: { usuario_id: usuarioId, leido: false },
+      orderBy: { created_at: "desc" },
     });
   } catch (error) {
     console.error("Error en obtenerNotificacionesNoLeidas:", error);
@@ -306,9 +258,6 @@ export async function obtenerNotificacionesNoLeidas(usuarioId: number): Promise<
   }
 }
 
-/**
- * Marca notificaciones como leídas
- */
 export async function marcarNotificacionesComoLeidas(
   usuarioId: number,
   notificacionesIds?: number[]
@@ -317,13 +266,9 @@ export async function marcarNotificacionesComoLeidas(
     const whereClause = notificacionesIds?.length
       ? { usuario_id: usuarioId, id: { in: notificacionesIds } }
       : { usuario_id: usuarioId };
-
     await prisma.notificaciones.updateMany({
       where: whereClause,
-      data: {
-        leido: true,
-        leido_at: new Date(),
-      },
+      data: { leido: true, leido_at: new Date() },
     });
   } catch (error) {
     console.error("Error en marcarNotificacionesComoLeidas:", error);
@@ -331,9 +276,6 @@ export async function marcarNotificacionesComoLeidas(
   }
 }
 
-/**
- * Obtiene histórico completo de precios de un producto
- */
 export async function obtenerHistoricoPrecio(productoId: number): Promise<any[]> {
   try {
     return await prisma.$queryRaw`
@@ -347,9 +289,6 @@ export async function obtenerHistoricoPrecio(productoId: number): Promise<any[]>
   }
 }
 
-/**
- * Valida si hay suficiente stock para una venta
- */
 export async function validarStockSuficiente(
   productoId: number,
   cantidad: number
@@ -359,7 +298,6 @@ export async function validarStockSuficiente(
       where: { id: productoId },
       select: { stock: true },
     });
-
     return (resultado?.stock || 0) >= cantidad;
   } catch (error) {
     console.error("Error en validarStockSuficiente:", error);
@@ -367,26 +305,12 @@ export async function validarStockSuficiente(
   }
 }
 
-/**
- * Obtiene transacciones recientes de auditoria
- */
-export async function obtenerAuditoriaReciente(
-  limit: number = 50
-): Promise<any[]> {
+export async function obtenerAuditoriaReciente(limit = 50): Promise<any[]> {
   try {
     return await prisma.auditoria.findMany({
       take: limit,
-      orderBy: {
-        created_at: "desc",
-      },
-      include: {
-        usuarios: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-      },
+      orderBy: { created_at: "desc" },
+      include: { usuarios: { select: { id: true, email: true } } },
     });
   } catch (error) {
     console.error("Error en obtenerAuditoriaReciente:", error);
@@ -408,4 +332,5 @@ export default {
   obtenerHistoricoPrecio,
   validarStockSuficiente,
   obtenerAuditoriaReciente,
+  recalcularDescuentoCotizacion,
 };

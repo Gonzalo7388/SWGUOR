@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { UsuariosService } from '@/lib/services/usuarios-services';
+import { UsuariosService } from '@/lib/services/usuarios.service';
 import { NextResponse } from 'next/server';
 
 // GET /api/admin/usuarios/[id]

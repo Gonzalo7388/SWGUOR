@@ -34,9 +34,9 @@ export interface ProductoConRelaciones {
   estado: string;
   imagen?: string | null;
   categoria_id?: bigint | number | null;
-  
+
   // Relaciones según tu modelo Prisma:
-  categorias?: Categoria; 
+  categorias?: Categoria;
   ficha_tecnica_rel?: FichaTecnica | null;
   variantes_producto?: {
     id: bigint | number;
@@ -44,8 +44,8 @@ export interface ProductoConRelaciones {
     talla: string;
     stock: number;
   }[];
-  
+
   // Otros campos opcionales que vi en tu modelo
-  colores_disponibles?: any; 
-  tallas_disponibles?: any;
+  colores_disponibles?: string[];
+  tallas_disponibles?: string[];
 }

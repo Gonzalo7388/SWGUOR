@@ -4,8 +4,15 @@ import { prisma } from '@/lib/prisma';
 import { reservaStockBaseSchema as reservasStockSchema } from '@/lib/schemas/reservaStockSchema';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
+import { requireServerRole } from '@/lib/auth/server';
+import { auditoriaService } from '@/lib/services/auditoria.service';
+
+const RESERVA_ROLES: any = ['administrador', 'gerente', 'almacenero', 'vendedor'];
 
 export async function GET() {
+  const auth = await requireServerRole(RESERVA_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const reservas = await prisma.reservas_stock.findMany({
       orderBy: { id: 'desc' },
@@ -19,6 +26,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireServerRole(RESERVA_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await request.json();
     const validated = reservasStockSchema.parse(body);
@@ -31,6 +41,14 @@ export async function POST(request: NextRequest) {
         estado: validated.estado,
       },
       include: { pedidos: true },
+    });
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'CREAR',
+      tabla: 'reservas_stock',
+      registro_id: BigInt(reserva.id),
+      datos_despues: reserva,
     });
 
     return NextResponse.json(serializeBigInt(reserva), { status: 201 });

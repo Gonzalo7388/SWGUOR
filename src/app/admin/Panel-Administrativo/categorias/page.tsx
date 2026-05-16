@@ -8,60 +8,73 @@ import {
   CheckCircle2, XCircle, ChevronLeft, ChevronRight, FileText
 } from "lucide-react";
 import { exportToExcel, exportCategoriasToPDF } from "@/lib/utils/export-utils";
-import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
 
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import type { Categoria } from "@/types/categoria";
+import CategoriaFormModal from "@/components/admin/categorias/CategoriaFormModal";
+import { CategoriaArchiveModal } from "@/components/admin/categorias/CategoriaModals";
 
-// Lazy loading de componentes
 const CategoriasTable = dynamic(() => import("@/components/admin/categorias/CategoriasTable"));
-const CreateCategoriaDialog = dynamic(() => import("@/components/admin/categorias/CreateCategoriaDialog"));
-const EditCategoriaDialog = dynamic(() => import("@/components/admin/categorias/EditCategoriaDialog"));
-const DeleteCategoriaDialog = dynamic(() => import("@/components/admin/categorias/ArchiveCategoriaDialog"));
+
+// ── Tipos locales ─────────────────────────────────────────────────────────────
+
+interface CategoriaForm {
+  nombre: string;
+  descripcion: string;
+  activo: boolean;
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CategoriasPage() {
   const { can, isLoading: authLoading } = usePermissions();
-  const [categorias, setCategorias] = useState<any[]>([]);
+
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedCategoria, setSelectedCategoria] = useState<any | null>(null);
-  const [dialogMode, setDialogMode] = useState<"edit" | "delete" | null>(null);
-
-  const [currentPage, setCurrentPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<boolean | null>(null);
-  const pageSize = 10;
+  const [currentPage, setCurrentPage] = useState(0);
   const [stats, setStats] = useState({ total: 0, activas: 0, inactivas: 0 });
 
-  // Permisos
+  const [formModal, setFormModal] = useState<{ open: boolean; categoria: Categoria | null }>({ open: false, categoria: null });
+  const [archiveModal, setArchiveModal] = useState<{ open: boolean; categoria: Categoria | null }>({ open: false, categoria: null });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  const pageSize = 10;
+
   const canView = can('view', 'categorias');
   const canCreate = can('create', 'categorias');
   const canEdit = can('edit', 'categorias');
   const canDelete = can('archive', 'categorias');
   const canExport = can('export', 'categorias');
 
-  // CARGA DE DATOS DESDE LA API
+  // ── Carga ───────────────────────────────────────────────────────────────────
+
   const loadCategorias = useCallback(async () => {
     if (!canView) {
       toast.error("No tienes permisos para ver categorías");
       setLoading(false);
       return;
     }
-
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/categorias');
-      const data = await response.json();
-
+      const res = await fetch('/api/admin/categorias');
+      const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const results = data || [];
-      setCategorias(results);
+      const results: Categoria[] = (data ?? []).map((c: any) => ({
+        ...c,
+        id: Number(c.id), // normaliza bigint serializado como string/number
+      }));
 
+      setCategorias(results);
       setStats({
         total: results.length,
-        activas: results.filter((c: any) => c.activo).length,
-        inactivas: results.filter((c: any) => !c.activo).length
+        activas: results.filter(c => c.activo).length,
+        inactivas: results.filter(c => !c.activo).length,
       });
     } catch (err: any) {
       toast.error(err.message || "Error al sincronizar categorías");
@@ -71,15 +84,16 @@ export default function CategoriasPage() {
   }, [canView]);
 
   useEffect(() => {
-    if (!authLoading) {
-      loadCategorias();
-    }
+    if (!authLoading) loadCategorias();
   }, [loadCategorias, authLoading]);
 
+  // ── Filtrado y paginación ───────────────────────────────────────────────────
+
   const filteredCategorias = useMemo(() => {
-    return categorias.filter((c: any) => {
-      const matchSearch = c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.descripcion && c.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
+    return categorias.filter(c => {
+      const matchSearch =
+        c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
       const matchStatus = statusFilter === null || c.activo === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -88,72 +102,115 @@ export default function CategoriasPage() {
   const totalPages = Math.ceil(filteredCategorias.length / pageSize);
   const paginatedData = filteredCategorias.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-  const handleExportExcel = () => {
-    if (!canExport) {
-      toast.error("No tienes permisos para exportar");
-      return;
+  // ── Handlers de modales ─────────────────────────────────────────────────────
+
+  const handleCreateClick = () => {
+    if (!canCreate) return toast.error("No tienes permisos para crear categorías");
+    setFormModal({ open: true, categoria: null });
+  };
+
+  const handleEdit = (c: Categoria) => {
+    if (!canEdit) return toast.error("No tienes permisos para editar categorías");
+    setFormModal({ open: true, categoria: c });
+  };
+
+  const handleDelete = (c: Categoria) => {
+    if (!canDelete) return toast.error("No tienes permisos para archivar categorías");
+    setArchiveModal({ open: true, categoria: c });
+  };
+
+  const closeFormModal = () => setFormModal({ open: false, categoria: null });
+  const closeArchiveModal = () => setArchiveModal({ open: false, categoria: null });
+
+  // ── Guardar ─────────────────────────────────────────────────────────────────
+
+  const handleSave = async (data: CategoriaForm) => {
+    setIsSaving(true);
+    const isEdit = !!formModal.categoria;
+    const url = isEdit ? `/api/admin/categorias/${formModal.categoria!.id}` : '/api/admin/categorias';
+    const method = isEdit ? 'PATCH' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al guardar');
+      }
+      toast.success(isEdit ? "Categoría actualizada correctamente" : "Categoría creada correctamente");
+      closeFormModal();
+      await loadCategorias();
+    } catch (err: any) {
+      toast.error(err.message || "Error al guardar la categoría");
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  // ── Archivar ────────────────────────────────────────────────────────────────
+
+  const handleConfirmArchive = async () => {
+    if (!archiveModal.categoria) return;
+    setIsArchiving(true);
+    try {
+      const res = await fetch(`/api/admin/categorias/${archiveModal.categoria.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: false }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al descontinuar');
+      }
+      toast.success(`"${archiveModal.categoria.nombre}" ha sido descontinuada`);
+      closeArchiveModal();
+      await loadCategorias();
+    } catch (err: any) {
+      toast.error(err.message || "Error al descontinuar la categoría");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  // ── Exportaciones ───────────────────────────────────────────────────────────
+
+  const handleExportExcel = () => {
+    if (!canExport) return toast.error("No tienes permisos para exportar");
     if (filteredCategorias.length === 0) return toast.error("No hay datos para exportar");
-    const dataToExport = filteredCategorias.map((c: any) => ({
-      Categoría: c.nombre,
-      Descripción: c.descripcion || "Sin descripción",
-      Tipo: c.tipo_categoria || "No especificado",
-      Estado: c.activo ? "Activa" : "Inactiva",
-      "Fecha Creación": new Date(c.created_at).toLocaleDateString()
-    }));
-    exportToExcel(dataToExport, { filename: `Categorias_ModasGUOR_${new Date().toISOString().split('T')[0]}` });
+
+    exportToExcel(
+      filteredCategorias.map(c => ({
+        Categoría: c.nombre,
+        Descripción: c.descripcion || "Sin descripción",
+        Estado: c.activo ? "Activa" : "Inactiva",
+        "Fecha Creación": c.created_at ? new Date(c.created_at).toLocaleDateString() : '-',
+      })),
+      { filename: `Categorias_ModasGUOR_${new Date().toISOString().split('T')[0]}` }
+    );
     toast.success("Excel generado correctamente");
   };
 
-  // El handler para exportar a PDF, que utiliza la función exportCategoriasToPDF del archivo export-utils.tsx
   const handleExportPDF = async () => {
-    if (!canExport) {
-      toast.error("No tienes permisos para exportar");
-      return;
-    }
+    if (!canExport) return toast.error("No tienes permisos para exportar");
     if (filteredCategorias.length === 0) return toast.error("No hay datos para exportar");
 
     const toastId = toast.loading("Preparando reporte PDF...");
-
     try {
       await exportCategoriasToPDF(filteredCategorias, {
         title: "REPORTE DE CATEGORÍAS",
-        filename: `Categorias_GUOR_${new Date().toISOString().split('T')[0]}`
+        filename: `Categorias_GUOR_${new Date().toISOString().split('T')[0]}`,
       });
       toast.success("PDF generado correctamente", { id: toastId });
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("Error al generar el PDF", { id: toastId });
     }
   };
 
-  const handleCreateClick = () => {
-    if (!canCreate) {
-      toast.error("No tienes permisos para crear categorías");
-      return;
-    }
-    setIsCreateOpen(true);
-  };
+  // ── Guards ──────────────────────────────────────────────────────────────────
 
-  const handleEdit = (c: any) => {
-    if (!canEdit) {
-      toast.error("No tienes permisos para editar categorías");
-      return;
-    }
-    setSelectedCategoria(c);
-    setDialogMode("edit");
-  };
-
-  const handleDelete = (c: any) => {
-    if (!canDelete) {
-      toast.error("No tienes permisos para eliminar categorías");
-      return;
-    }
-    setSelectedCategoria(c);
-    setDialogMode("delete");
-  };
-
-  // Mientras se cargan los permisos
   if (authLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -163,7 +220,6 @@ export default function CategoriasPage() {
     );
   }
 
-  // Sin permisos de visualización
   if (!canView) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -174,6 +230,8 @@ export default function CategoriasPage() {
     );
   }
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -181,35 +239,22 @@ export default function CategoriasPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Directorio de Categorías
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Directorio de Categorías</h1>
             <p className="text-gray-500 text-sm">Gestión de líneas de productos de Modas y Estilos GUOR</p>
           </div>
-
           <div className="flex items-center gap-3">
             {canExport && (
               <>
-                <Button
-                  onClick={handleExportPDF}
-                  variant="outline"
-                  className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95"
-                >
+                <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95">
                   <FileText className="w-5 h-5" />
                   <span className="hidden sm:inline">Exportar PDF</span>
                 </Button>
-
-                <Button
-                  onClick={handleExportExcel}
-                  variant="outline"
-                  className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95"
-                >
+                <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
                   <FileSpreadsheet className="w-5 h-5" />
                   <span className="hidden sm:inline">Exportar Excel</span>
                 </Button>
               </>
             )}
-
             {canCreate && (
               <Button onClick={handleCreateClick} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95">
                 <Plus className="w-5 h-5" /> Nueva Categoría
@@ -218,32 +263,11 @@ export default function CategoriasPage() {
           </div>
         </div>
 
-        {/* Stats (Filtros rápidos) */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            title="TOTAL GENERAL"
-            value={stats.total}
-            icon={<Layers className="w-6 h-6" />}
-            isActive={statusFilter === null}
-            color="pink"
-            onClick={() => { setStatusFilter(null); setCurrentPage(0); }}
-          />
-          <StatCard
-            title="ACTIVAS"
-            value={stats.activas}
-            icon={<CheckCircle2 className="w-6 h-6" />}
-            isActive={statusFilter === true}
-            color="emerald"
-            onClick={() => { setStatusFilter(true); setCurrentPage(0); }}
-          />
-          <StatCard
-            title="INACTIVAS"
-            value={stats.inactivas}
-            icon={<XCircle className="w-6 h-6" />}
-            isActive={statusFilter === false}
-            color="orange"
-            onClick={() => { setStatusFilter(false); setCurrentPage(0); }}
-          />
+          <StatCard title="TOTAL GENERAL" value={stats.total} icon={<Layers className="w-6 h-6" />} isActive={statusFilter === null} color="pink" onClick={() => { setStatusFilter(null); setCurrentPage(0); }} />
+          <StatCard title="ACTIVAS" value={stats.activas} icon={<CheckCircle2 className="w-6 h-6" />} isActive={statusFilter === true} color="emerald" onClick={() => { setStatusFilter(true); setCurrentPage(0); }} />
+          <StatCard title="INACTIVAS" value={stats.inactivas} icon={<XCircle className="w-6 h-6" />} isActive={statusFilter === false} color="orange" onClick={() => { setStatusFilter(false); setCurrentPage(0); }} />
         </div>
 
         {/* Buscador */}
@@ -254,11 +278,11 @@ export default function CategoriasPage() {
               placeholder="Buscar por nombre o descripción de categoría..."
               className="pl-10 h-11 border-gray-200 focus:ring-pink-500"
               value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(0); }}
+              onChange={e => { setSearchTerm(e.target.value); setCurrentPage(0); }}
             />
           </div>
           <Button variant="outline" className="h-11 border-gray-200" onClick={loadCategorias}>
-            <RefreshCw className={`w-4 h-4 ${loading && 'animate-spin'}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
@@ -275,11 +299,10 @@ export default function CategoriasPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
-
-            {/* Paginación */}
             <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
               <p className="text-xs text-gray-500">
-                Mostrando <span className="font-bold text-gray-900">{paginatedData.length}</span> de <span className="font-bold text-gray-900">{filteredCategorias.length}</span>
+                Mostrando <span className="font-bold text-gray-900">{paginatedData.length}</span> de{' '}
+                <span className="font-bold text-gray-900">{filteredCategorias.length}</span>
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>
@@ -298,48 +321,53 @@ export default function CategoriasPage() {
       </div>
 
       {/* Modales */}
-      {canCreate && (
-        <CreateCategoriaDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={loadCategorias} />
+      {formModal.open && (
+        <CategoriaFormModal
+          categoria={formModal.categoria}
+          isSaving={isSaving}
+          onClose={closeFormModal}
+          onSave={handleSave}
+        />
       )}
-      {canEdit && selectedCategoria && dialogMode === "edit" && (
-        <EditCategoriaDialog isOpen={true} categoria={selectedCategoria} onClose={() => { setDialogMode(null); setSelectedCategoria(null); }} onSuccess={loadCategorias} />
-      )}
-      {canDelete && selectedCategoria && dialogMode === "delete" && (
-        <DeleteCategoriaDialog isOpen={true} categoria={selectedCategoria} onClose={() => { setDialogMode(null); setSelectedCategoria(null); }} onSuccess={loadCategorias} />
+      {archiveModal.open && (
+        <CategoriaArchiveModal
+          categoria={archiveModal.categoria}
+          isArchiving={isArchiving}
+          onClose={closeArchiveModal}
+          onConfirm={handleConfirmArchive}
+        />
       )}
     </div>
   );
 }
 
-function StatCard({ title, value, icon, isActive, color, onClick }: any) {
-  const styles: any = {
-    pink: {
-      active: "border-pink-500 ring-pink-50 bg-white",
-      iconActive: "bg-pink-600 text-white",
-      textActive: "text-pink-600"
-    },
-    emerald: {
-      active: "border-emerald-500 ring-emerald-50 bg-white",
-      iconActive: "bg-emerald-600 text-white",
-      textActive: "text-emerald-600"
-    },
-    orange: {
-      active: "border-orange-500 ring-orange-50 bg-white",
-      iconActive: "bg-orange-600 text-white",
-      textActive: "text-orange-600"
-    }
-  };
+// ── StatCard ──────────────────────────────────────────────────────────────────
 
-  const currentStyle = styles[color];
+function StatCard({ title, value, icon, isActive, color, onClick }: {
+  title: string; value: number; icon: React.ReactNode;
+  isActive: boolean; color: 'pink' | 'emerald' | 'orange'; onClick: () => void;
+}) {
+  const styles = {
+    pink: { active: "border-pink-500 ring-pink-50 bg-white", iconActive: "bg-pink-600 text-white", textActive: "text-pink-600" },
+    emerald: { active: "border-emerald-500 ring-emerald-50 bg-white", iconActive: "bg-emerald-600 text-white", textActive: "text-emerald-600" },
+    orange: { active: "border-orange-500 ring-orange-50 bg-white", iconActive: "bg-orange-600 text-white", textActive: "text-orange-600" },
+  };
+  const s = styles[color];
 
   return (
-    <button onClick={onClick} className={`group p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 cursor-pointer ${isActive ? `ring-4 shadow-xl scale-[1.02] z-10 ${currentStyle.active}` : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'}`}>
-      <div className={`p-3 rounded-lg transition-all duration-300 ${isActive ? `${currentStyle.iconActive} rotate-3` : 'bg-gray-100 text-gray-600 group-hover:rotate-3'}`}>
+    <button
+      onClick={onClick}
+      className={`group p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 cursor-pointer ${isActive
+        ? `ring-4 shadow-xl scale-[1.02] z-10 ${s.active}`
+        : 'bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95'
+        }`}
+    >
+      <div className={`p-3 rounded-lg transition-all duration-300 ${isActive ? `${s.iconActive} rotate-3` : 'bg-gray-100 text-gray-600 group-hover:rotate-3'}`}>
         {icon}
       </div>
       <div className="text-left">
         <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{title}</p>
-        <p className={`text-2xl font-black tracking-tight ${isActive ? currentStyle.textActive : 'text-gray-800'}`}>{value}</p>
+        <p className={`text-2xl font-black tracking-tight ${isActive ? s.textActive : 'text-gray-800'}`}>{value}</p>
       </div>
     </button>
   );

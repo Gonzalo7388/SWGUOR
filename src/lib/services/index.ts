@@ -1,22 +1,22 @@
 // ── Servicios de dominio ─────────────────────────────────────────────────────
-export { notificacionesService } from './notificacionesService';
-export { almacenesService }      from './almacenesService';
-export { reservaStockService }   from './reservaStockService';
-export { precioHistoricoService } from './precioHistoricoService';
-export { pagosTalleresService }  from './pagosTalleresService';
-export { tarifaTalleresService } from './tarifaTalleresService';
-export { guiasRemisionService }  from './guiasRemisionService';
-export { ordenesCompraService }  from './ordenesCompraService';
-export { incidenciasService }    from './incidenciasService';
-export { asientosContablesService } from './asientosContablesService';
-export { auditoriaService }      from './auditoriaService';
-export { comprobantesService }   from './comprobantesService';
-export { pagosService }          from './pagosService';
+export { notificacionesService } from './notificaciones.service';
+export { almacenesService } from './almacenes.service';
+export { reservaStockService } from './reserva-stock.service';
+export { precioHistoricoService } from './precio-historico.service';
+export { pagosTalleresService } from './pagos-talleres.service';
+export { tarifaTalleresService } from './tarifa-talleres.service';
+export { guiasRemisionService } from './guias-remision.service';
+export { ordenesCompraService } from './ordenes-compra.service';
+export { incidenciasService } from './incidencias.service';
+export { asientosContablesService } from './asientos-contables.service';
+export { auditoriaService } from './auditoria.service';
+export { comprobantesService } from './comprobantes.service';
+export { pagosService } from './pagos.service';
 
 // ── Servicios que usan Prisma directamente (sin RPC) ─────────────────────────
-export { FichasTecnicasService } from './fichas-tecnicas-services';
-export { InventarioService }     from './inventario-services';
-export { ProductosService }      from './productos-services';
+export { FichasTecnicasService } from './fichas-tecnicas.service';
+export { InventarioService } from './inventario.service';
+export { ProductosService } from './productos.service';
 
 // ── RPC unificado ─────────────────────────────────────────────────────────────
 // Todo lo que antes estaba en:
@@ -64,4 +64,4 @@ export {
   NotificacionesRPC,
   FichasTecnicasRPC,
   InventarioRPC,
-} from './rpc-service';
+} from './rpc.service';

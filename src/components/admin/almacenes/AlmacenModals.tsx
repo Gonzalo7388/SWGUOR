@@ -4,18 +4,42 @@
 import { Warehouse, Loader2, Trash2, X, Package, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 // ─────────────────────────────────────────────────────────────
 // DELETE MODAL
 // ─────────────────────────────────────────────────────────────
 
 interface DeleteProps {
   almacen:    any;
-  isDeleting: boolean;
   onClose:    () => void;
-  onConfirm:  () => void;
+  onSuccess:  () => void;
 }
 
-export function AlmacenDeleteModal({ almacen, isDeleting, onClose, onConfirm }: DeleteProps) {
+export function AlmacenDeleteModal({ almacen, onClose, onSuccess }: DeleteProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleDeactivate = async () => {
+    if (!almacen?.id) return;
+    setIsProcessing(true);
+    try {
+      const res = await fetch(`/api/admin/almacenes/${almacen.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'inactivo' }),
+      });
+      if (!res.ok) throw new Error('Error al desactivar almacén');
+      toast.success(`Almacén "${almacen.nombre}" desactivado correctamente`);
+      onSuccess();
+      onClose();
+    } catch (error) {
+      toast.error('No se pudo desactivar el almacén');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -25,26 +49,26 @@ export function AlmacenDeleteModal({ almacen, isDeleting, onClose, onConfirm }: 
         className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"
         onClick={e => e.stopPropagation()}
       >
-        <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Trash2 className="w-7 h-7 text-red-500" />
+        <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Trash2 className="w-7 h-7 text-amber-500" />
         </div>
         <h3 className="text-lg font-bold text-gray-900">Desactivar Almacén</h3>
         <p className="text-sm text-gray-500 mt-2">
           ¿Estás seguro de desactivar{' '}
           <span className="font-semibold text-gray-900">{almacen?.nombre}</span>?
-          Esta acción es un borrado lógico y se puede revertir.
+          El almacén ya no aparecerá en las operaciones activas.
         </p>
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" onClick={onClose} className="flex-1 h-11" disabled={isDeleting}>
+          <Button variant="outline" onClick={onClose} className="flex-1 h-11" disabled={isProcessing}>
             Cancelar
           </Button>
           <Button
-            onClick={onConfirm}
-            className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white"
-            disabled={isDeleting}
+            onClick={handleDeactivate}
+            className="flex-1 h-11 bg-amber-600 hover:bg-amber-700 text-white"
+            disabled={isProcessing}
           >
-            {isDeleting
-              ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Desactivando...</>
+            {isProcessing
+              ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Procesando...</>
               : 'Desactivar'
             }
           </Button>

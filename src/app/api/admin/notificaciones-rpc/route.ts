@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
         titulo: body.titulo,
         mensaje: body.mensaje,
         referencia_tipo: body.referenciaType ?? null,
-        referencia_id: body.referenciaId ?? null,
         url_destino: body.urlDestino ?? null,
         leido: false,
       },

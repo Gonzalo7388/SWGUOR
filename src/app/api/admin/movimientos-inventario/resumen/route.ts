@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario-services';
+import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario.service';
 import { NextResponse } from 'next/server';
 
 /**
