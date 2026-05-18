@@ -37,7 +37,7 @@ const CHIP_CLASS: Record<string, string> = {
   cargo_recepcionista: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
   cargo_ayudante: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
   cargo_representante_taller: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
-  cargo_almacenero: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+  cargo_almacenero: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100",
   q: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
 };
 

@@ -11,36 +11,38 @@ import type { Rol, EstadoUsuario } from "@prisma/client";
 
 // ─── Arrays locales ───────────────────────────────────────────
 const ESTADOS: { value: EstadoUsuario; label: string }[] = [
-  { value: "activo",     label: "Activo"     },
-  { value: "inactivo",   label: "Inactivo"   },
+  { value: "activo", label: "Activo" },
+  { value: "inactivo", label: "Inactivo" },
   { value: "suspendido", label: "Suspendido" },
 ];
 
 const ROLES: { value: Rol; label: string }[] = [
-  { value: "gerente",              label: "Gerente"                 },
-  { value: "administrador",        label: "Administrador"           },
-  { value: "disenador",            label: "Diseñador"               },
-  { value: "cortador",             label: "Cortador"                },
-  { value: "ayudante",             label: "Ayudante"                },
-  { value: "recepcionista",        label: "Recepcionista"           },
-  { value: "representante_taller", label: "Rep. de Taller"          },
-  { value: "cliente",              label: "Cliente"                 },
+  { value: "gerente", label: "Gerente" },
+  { value: "administrador", label: "Administrador" },
+  { value: "disenador", label: "Diseñador" },
+  { value: "cortador", label: "Cortador" },
+  { value: "ayudante", label: "Ayudante" },
+  { value: "recepcionista", label: "Recepcionista" },
+  { value: "representante_taller", label: "Rep. de Taller" },
+  { value: "cliente", label: "Cliente" },
+  { value: "almacenero", label: "Almacenero" }
 ];
 
 // ─── Chips ────────────────────────────────────────────────────
 const CHIP_CLASS: Record<string, string> = {
-  estado_activo:              "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-  estado_inactivo:            "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
-  estado_suspendido:          "bg-red-50 text-red-600 border-red-200 hover:bg-red-100",
-  rol_gerente:                "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100",
-  rol_administrador:          "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100",
-  rol_recepcionista:          "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
-  rol_disenador:              "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100",
-  rol_cortador:               "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100",
-  rol_representante_taller:   "bg-lime-50 text-lime-700 border-lime-200 hover:bg-lime-100",
-  rol_ayudante:               "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
-  rol_cliente:                "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-  q:                          "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  estado_activo: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+  estado_inactivo: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  estado_suspendido: "bg-red-50 text-red-600 border-red-200 hover:bg-red-100",
+  rol_gerente: "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100",
+  rol_administrador: "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100",
+  rol_recepcionista: "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
+  rol_disenador: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100",
+  rol_cortador: "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100",
+  rol_representante_taller: "bg-lime-50 text-lime-700 border-lime-200 hover:bg-lime-100",
+  rol_ayudante: "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
+  rol_cliente: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+  rol_almacenero: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100",
+  q: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
 };
 
 function getChipClass(field: string, value: string): string {
@@ -49,9 +51,9 @@ function getChipClass(field: string, value: string): string {
 
 // ─── Tipos ────────────────────────────────────────────────────
 export interface UsuarioFiltrosState {
-  q:      string;
+  q: string;
   estado: string;
-  rol:    string;
+  rol: string;
 }
 
 export const EMPTY_FILTERS: UsuarioFiltrosState = {
@@ -59,10 +61,10 @@ export const EMPTY_FILTERS: UsuarioFiltrosState = {
 };
 
 interface UsuarioFiltersProps {
-  filters:       UsuarioFiltrosState;
-  onChange:      (filters: UsuarioFiltrosState) => void;
-  totalCount:    number;
-  onRefresh?:    () => void;
+  filters: UsuarioFiltrosState;
+  onChange: (filters: UsuarioFiltrosState) => void;
+  totalCount: number;
+  onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
@@ -100,11 +102,11 @@ export default function UsuarioFilters({
   }[] = [];
 
   if (filters.q)
-    activeChips.push({ key: "q",      label: `"${filters.q}"`,                  chipClass: CHIP_CLASS.q });
+    activeChips.push({ key: "q", label: `"${filters.q}"`, chipClass: CHIP_CLASS.q });
   if (filters.estado)
     activeChips.push({ key: "estado", label: getLabel("estado", filters.estado), chipClass: getChipClass("estado", filters.estado) });
   if (filters.rol)
-    activeChips.push({ key: "rol",    label: getLabel("rol",    filters.rol),    chipClass: getChipClass("rol",    filters.rol) });
+    activeChips.push({ key: "rol", label: getLabel("rol", filters.rol), chipClass: getChipClass("rol", filters.rol) });
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
