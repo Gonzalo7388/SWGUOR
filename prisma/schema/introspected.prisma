@@ -1976,6 +1976,7 @@ enum Cargo {
   ayudante
   representante_taller
   gerente
+  almacenero
 
   @@schema("public")
 }
