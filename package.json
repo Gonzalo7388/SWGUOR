@@ -65,12 +65,8 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-<<<<<<< HEAD
-    "@prisma/client": "^7.8.0",
-=======
     "@prisma/client": "^7.7.0",
     "@types/leaflet": "^1.9.21",
->>>>>>> main
     "@types/node": "^20.19.39",
     "@types/nodemailer": "^7.0.4",
     "@types/pg": "^8.20.0",
