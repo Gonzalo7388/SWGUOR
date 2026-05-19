@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas-services';
+import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas.service';
 import { NextResponse } from 'next/server';
 
 // POST /api/admin/fichas-tecnicas/medidas — reemplaza todas las medidas de una ficha

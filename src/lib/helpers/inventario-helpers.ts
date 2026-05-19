@@ -82,7 +82,7 @@ export async function ajustarStock(id: string, data: any) {
   else if (data.operacion === "restar") payload.stock_delta = -data.cantidad;
   else payload.stock_actual = data.cantidad;
 
-  const res = await fetch(`/api/admin/inventario/movimientos`, {
+  const res = await fetch(`/api/admin/movimientos-inventario`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -104,7 +104,7 @@ export async function fetchMovimientos(params?: {
   if (params?.hasta)    query.set("hasta",     params.hasta);
   if (params?.limite)   query.set("limite",    String(params.limite));
 
-  const res = await fetch(`${API}/movimientos?${query.toString()}`, {
+  const res = await fetch(`/api/admin/movimientos-inventario?${query.toString()}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Error al cargar movimientos");

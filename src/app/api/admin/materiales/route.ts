@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { MaterialesService } from '@/lib/services/material-services';
+import { MaterialesService } from '@/lib/services/material.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 
@@ -17,8 +17,8 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const data = await MaterialesService.listar({
-      tipo:      searchParams.get('tipo')      ?? undefined,
-      busqueda:  searchParams.get('busqueda')  ?? undefined,
+      tipo: searchParams.get('tipo') ?? undefined,
+      busqueda: searchParams.get('busqueda') ?? undefined,
       bajo_stock: searchParams.get('stockBajo') === 'true',
     });
 

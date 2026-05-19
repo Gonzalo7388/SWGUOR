@@ -69,7 +69,6 @@ export function ProfileForm({
             className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 cursor-not-allowed text-gray-500"
             placeholder="Sin DNI registrado"
           />
-          <p className="text-xs text-gray-500 mt-1">El DNI solo puede ser modificado por un administrador.</p>
         </div>
 
         <div>

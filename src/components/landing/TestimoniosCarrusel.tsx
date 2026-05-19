@@ -1,0 +1,200 @@
+'use client';
+
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface Testimonio {
+  id: number;
+  puntuacion: number;
+  comentario: string;
+  created_at: string;
+  clientes: { nombre_comercial: string } | null;
+}
+
+function StarRow({ puntuacion }: { puntuacion: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={14}
+          className={i <= puntuacion ? 'fill-[#e4c28a] text-[#b5854b]' : 'fill-transparent text-[#e4c28a]/30'}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TestimonioCard({ item, active }: { item: Testimonio; active: boolean }) {
+  return (
+    <div
+      className={cn(
+        'flex-shrink-0 w-full transition-all duration-500',
+        active ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none',
+      )}
+    >
+      <div className="bg-white rounded-2xl shadow-md border border-[#e4c28a]/20 p-7 md:p-9 mx-auto max-w-2xl relative">
+        {/* Comilla decorativa */}
+        <Quote
+          size={48}
+          className="absolute top-5 right-6 text-[#e4c28a]/20 fill-[#e4c28a]/10"
+        />
+
+        <div className="space-y-4">
+          <StarRow puntuacion={item.puntuacion} />
+
+          <p className="text-[#231e1d]/80 text-base md:text-lg leading-relaxed italic">
+            "{item.comentario}"
+          </p>
+
+          <div className="flex items-center gap-3 pt-2 border-t border-[#e4c28a]/20">
+            {/* Avatar inicial */}
+            <div className="w-9 h-9 rounded-full bg-[#e4c28a]/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-[#b5854b] font-bold text-sm">
+                {item.clientes?.nombre_comercial?.[0]?.toUpperCase() ?? '?'}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#231e1d]">
+                {item.clientes?.nombre_comercial ?? 'Cliente'}
+              </p>
+              <p className="text-xs text-[#b5854b]/50">
+                {new Date(item.created_at).toLocaleDateString('es-PE', {
+                  month: 'long', year: 'numeric',
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function TestimoniosCarrusel() {
+  const [items, setItems]       = useState<Testimonio[]>([]);
+  const [current, setCurrent]   = useState(0);
+  const [loading, setLoading]   = useState(true);
+  const [paused, setPaused]     = useState(false);
+  const intervalRef             = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    fetch('/api/landing/testimonios')
+      .then((r) => r.json())
+      .then((data) => { setItems(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const next = useCallback(() => {
+    setCurrent((c) => (c + 1) % (items.length || 1));
+  }, []);
+
+  const prev = useCallback(() => {
+    setCurrent((c) => (c - 1 + (items.length || 1)) % (items.length || 1));
+  }, []);
+
+  // Auto-play cada 5 segundos
+  useEffect(() => {
+    if (items.length <= 1 || paused) return;
+    intervalRef.current = setInterval(() => {
+      setCurrent((c) => (c + 1) % items.length);
+    }, 5000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [items.length, paused]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <div className="w-6 h-6 border-2 border-[#b5854b] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <section className="py-16 md:py-24 bg-[#fff4e2]">
+      <div className="max-w-4xl mx-auto px-4 md:px-8">
+
+        {/* Encabezado */}
+        <div className="text-center mb-12 space-y-2">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#b5854b]">
+            Testimonios
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#231e1d]">
+            Lo que dicen nuestros clientes
+          </h2>
+          <div className="w-12 h-0.5 bg-[#e4c28a] mx-auto mt-3" />
+        </div>
+
+        {/* Carrusel */}
+        <div
+          className="relative"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {/* Cards (stack, solo una visible) */}
+          <div className="relative overflow-hidden">
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${current * 100}%)` }}
+            >
+              {items.map((item, idx) => (
+                <div key={item.id} className="flex-shrink-0 w-full px-2">
+                  <TestimonioCard item={item} active={idx === current} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Controles */}
+          {items.length > 1 && (
+            <>
+              <button
+                onClick={prev}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6
+                           w-10 h-10 rounded-full bg-white border border-[#e4c28a]/40 shadow
+                           flex items-center justify-center text-[#b5854b]
+                           hover:bg-[#e4c28a]/10 transition-colors"
+                aria-label="Anterior"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={next}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6
+                           w-10 h-10 rounded-full bg-white border border-[#e4c28a]/40 shadow
+                           flex items-center justify-center text-[#b5854b]
+                           hover:bg-[#e4c28a]/10 transition-colors"
+                aria-label="Siguiente"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </>
+          )}
+
+          {/* Dots */}
+          {items.length > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              {items.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrent(idx)}
+                  className={cn(
+                    'rounded-full transition-all duration-300',
+                    idx === current
+                      ? 'w-6 h-2 bg-[#b5854b]'
+                      : 'w-2 h-2 bg-[#e4c28a]/50 hover:bg-[#e4c28a]',
+                  )}
+                  aria-label={`Ir al testimonio ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </section>
+  );
+}

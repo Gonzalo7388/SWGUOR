@@ -34,9 +34,10 @@ export async function GET(req: Request) {
   }
 }
 
-// ── POST: Registrar cambio de estado ─────────────────────────────────────
+// ── POST: Registrar cambio de estado (Corregido) ─────────────────────────────────────
 export async function POST(req: Request) {
   const auth = await requireServerRole(SEGUIMIENTO_CONFECCION_ROLES);
+  
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -45,26 +46,40 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { confeccion_id, estado_anterior, estado_nuevo, notas } = body;
 
+    // Validación estricta de campos
     if (!confeccion_id || !estado_nuevo) {
-      return NextResponse.json({ error: 'confeccion_id y estado_nuevo requeridos' }, { status: 400 });
+      return NextResponse.json({ error: 'Faltan datos obligatorios (ID o Estado)' }, { status: 400 });
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Registrar en seguimiento
+      // 1. Verificar que la confección exista antes de operar
+      const confeccionExiste = await tx.confecciones.findUnique({
+        where: { id: BigInt(confeccion_id) }
+      });
+
+      if (!confeccionExiste) {
+        throw new Error("La orden de confección no existe");
+      }
+
+      // 2. Registrar en historial de seguimiento
       const seg = await tx.seguimiento_confeccion.create({
         data: {
           confeccion_id:   BigInt(confeccion_id),
-          estado_anterior: estado_anterior ?? null,
-          estado_nuevo,
-          notas:           notas ?? null,
-          responsable_id: auth.user.id,
+          estado_anterior: estado_anterior || null,
+          estado_nuevo:    estado_nuevo,
+          notas:           notas || null,
+          // Convertimos el ID del responsable a BigInt por seguridad
+          responsable_id:  BigInt(auth.user.id), 
         },
       });
 
-      // Actualizar estado en confecciones
+      // 3. Actualizar la tabla maestra de confecciones
       await tx.confecciones.update({
         where: { id: BigInt(confeccion_id) },
-        data:  { estado: estado_nuevo, updated_at: new Date() },
+        data:  { 
+          estado: estado_nuevo, 
+          updated_at: new Date() 
+        },
       });
 
       return seg;
@@ -72,6 +87,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: serializeBigInt(result) }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Error en seguimiento:", error.message);
+    return NextResponse.json({ 
+      error: error.message || "Error interno al procesar el seguimiento" 
+    }, { status: 500 });
   }
 }

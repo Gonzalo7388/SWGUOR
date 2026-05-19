@@ -40,16 +40,26 @@ export function usePedidos() {
     onError: () => toast.error('Error de conexión'),
   });
 
+  // ── Array.isArray en lugar de ?? [] ────────────────────────────────────────
+  // ?? [] falla cuando query.data es un objeto truthy (ej: { success, data })
+  // Array.isArray garantiza que siempre sea un array operable
+  const rawData = query.data;
+  const pedidos = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray((rawData as any)?.data)
+      ? (rawData as any).data   // fallback si el helper devuelve { data: [] }
+      : [];
+
   return {
-    pedidos:    query.data ?? [],
+    pedidos,
     isLoading:  query.isLoading,
     refetch:    query.refetch,
 
-    update:              (id: string, data: any)                    => updateMutation.mutate({ id, data }),
+    update: (id: string, data: any) => updateMutation.mutate({ id, data }),
     registrarSeguimiento: (data: { pedido_id: string; status: string; notas?: string }) =>
       seguimientoMutation.mutate(data),
 
-    isUpdating:  updateMutation.isPending,
+    isUpdating:    updateMutation.isPending,
     isRegistrando: seguimientoMutation.isPending,
   };
 }

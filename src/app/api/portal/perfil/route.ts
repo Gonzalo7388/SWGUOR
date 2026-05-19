@@ -57,10 +57,9 @@ export async function GET() {
         stats: { cotizaciones: cotizacionesCount, pedidos: pedidosCount },
       },
     });
-  } catch (error: any) {
+  } catch (error: any) {  
     console.error('[Portal] Error en GET perfil:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+  }  return NextResponse.json({ success: false, error: 'Error interno del servidor' }, { status: 500 });
 }
 
 // PATCH: Actualizar datos del perfil del cliente

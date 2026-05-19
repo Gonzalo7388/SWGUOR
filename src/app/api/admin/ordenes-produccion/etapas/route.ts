@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { OrdenesProduccionService } from '@/lib/services/ordenes-produccion-services';
+import { OrdenesProduccionService } from '@/lib/services/ordenes-produccion.service';
 import { NextResponse } from 'next/server';
 
 // POST /api/admin/ordenes-produccion/etapa

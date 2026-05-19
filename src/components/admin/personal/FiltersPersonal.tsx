@@ -11,32 +11,34 @@ import type { Cargo, EstadoUsuario } from "@prisma/client";
 
 // ─── Arrays locales tipados ───────────────────────────────────
 const CARGOS: { value: Cargo; label: string }[] = [
-  { value: "gerente",              label: "Gerente" },
-  { value: "disenador",            label: "Diseñador" },
-  { value: "cortador",             label: "Cortador" },
-  { value: "recepcionista",        label: "Recepcionista" },
-  { value: "administrador",        label: "Administrador" },
-  { value: "ayudante",             label: "Ayudante" },
+  { value: "gerente", label: "Gerente" },
+  { value: "disenador", label: "Diseñador" },
+  { value: "cortador", label: "Cortador" },
+  { value: "recepcionista", label: "Recepcionista" },
+  { value: "administrador", label: "Administrador" },
+  { value: "ayudante", label: "Ayudante" },
   { value: "representante_taller", label: "Rep. de Taller" },
+  { value: "almacenero", label: "Almacenero" }
 ];
 
 const ESTADOS: { value: EstadoUsuario; label: string }[] = [
-  { value: "activo",   label: "Activo" },
+  { value: "activo", label: "Activo" },
   { value: "inactivo", label: "Inactivo" },
 ];
 
 // ─── Chips ────────────────────────────────────────────────────
 const CHIP_CLASS: Record<string, string> = {
-  estado_activo:              "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-  estado_inactivo:            "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
-  cargo_gerente:              "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
-  cargo_administrador:        "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
-  cargo_disenador:            "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
-  cargo_cortador:             "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
-  cargo_recepcionista:        "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-  cargo_ayudante:             "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+  estado_activo: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+  estado_inactivo: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  cargo_gerente: "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
+  cargo_administrador: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
+  cargo_disenador: "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
+  cargo_cortador: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  cargo_recepcionista: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
+  cargo_ayudante: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
   cargo_representante_taller: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
-  q:                          "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
+  cargo_almacenero: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100",
+  q: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
 };
 
 function getChipClass(field: string, value: string): string {
@@ -45,8 +47,8 @@ function getChipClass(field: string, value: string): string {
 
 // ─── Tipos ────────────────────────────────────────────────────
 export interface PersonalFiltrosState {
-  q:      string;
-  cargo:  string;
+  q: string;
+  cargo: string;
   estado: string;
 }
 
@@ -55,8 +57,8 @@ export const EMPTY_PERSONAL_FILTERS: PersonalFiltrosState = {
 };
 
 interface PersonalFiltersProps {
-  filters:    PersonalFiltrosState;
-  onChange:   (f: PersonalFiltrosState) => void;
+  filters: PersonalFiltrosState;
+  onChange: (f: PersonalFiltrosState) => void;
   totalCount: number;
 }
 
@@ -75,12 +77,12 @@ export default function PersonalFilters({ filters, onChange, totalCount }: Perso
     (key: keyof PersonalFiltrosState, value: string) => onChange({ ...filters, [key]: value }),
     [filters, onChange],
   );
-  const clear  = (key: keyof PersonalFiltrosState) => onChange({ ...filters, [key]: "" });
-  const reset  = () => onChange(EMPTY_PERSONAL_FILTERS);
+  const clear = (key: keyof PersonalFiltrosState) => onChange({ ...filters, [key]: "" });
+  const reset = () => onChange(EMPTY_PERSONAL_FILTERS);
 
   const chips: { key: keyof PersonalFiltrosState; label: string; chipClass: string }[] = [];
-  if (filters.q)      chips.push({ key: "q",      label: `"${filters.q}"`,                 chipClass: CHIP_CLASS.q });
-  if (filters.cargo)  chips.push({ key: "cargo",  label: getLabel("cargo",  filters.cargo), chipClass: getChipClass("cargo",  filters.cargo) });
+  if (filters.q) chips.push({ key: "q", label: `"${filters.q}"`, chipClass: CHIP_CLASS.q });
+  if (filters.cargo) chips.push({ key: "cargo", label: getLabel("cargo", filters.cargo), chipClass: getChipClass("cargo", filters.cargo) });
   if (filters.estado) chips.push({ key: "estado", label: getLabel("estado", filters.estado), chipClass: getChipClass("estado", filters.estado) });
 
   return (

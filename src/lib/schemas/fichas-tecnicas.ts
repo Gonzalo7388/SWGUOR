@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const ESTADO_FICHA = [
   "borrador",
+  "en_revision",
   "aprobada",
   "obsoleta",
 ] as const;
@@ -30,9 +31,10 @@ export const fichaMedidaSchema = z.object({
 export type FichaMedidaFormValues = z.infer<typeof fichaMedidaSchema>;
 
 export const ESTADO_FICHA_LABELS: Record<typeof ESTADO_FICHA[number], string> = {
-  borrador: "Borrador",
-  aprobada: "Aprobada",
-  obsoleta: "Obsoleta",
+  borrador:   "Borrador",
+  en_revision: "En Revisión",
+  aprobada:   "Aprobada",
+  obsoleta:   "Obsoleta",
 };
 
 export interface Medida {

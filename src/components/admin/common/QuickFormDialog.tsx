@@ -8,24 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-/**
- * Componente patrón para diálogos de formularios rápidos (sin íconos en header)
- * 
- * Uso:
- * <QuickFormDialog
- *   isOpen={true}
- *   onClose={() => {}}
- *   title="Nuevo Usuario"
- *   description="Crea una nueva cuenta"
- *   primaryColor="pink"
- *   onSubmit={handleSubmit}
- *   submitLabel="Crear"
- *   isLoading={false}
- * >
- *   <FormField ... />
- * </QuickFormDialog>
- */
-
 interface QuickFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,11 +27,11 @@ const COLOR_CONFIG: Record<string, {
   submit: string;
   label: string;
 }> = {
-  pink:    { gradient: "bg-gradient-to-r from-pink-500 via-pink-600 to-rose-600",    submit: "bg-pink-600 hover:bg-pink-700",    label: "text-pink-600" },
-  blue:    { gradient: "bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-600",    submit: "bg-blue-600 hover:bg-blue-700",    label: "text-blue-600" },
+  pink: { gradient: "bg-gradient-to-r from-pink-500 via-pink-600 to-rose-600", submit: "bg-pink-600 hover:bg-pink-700", label: "text-pink-600" },
+  blue: { gradient: "bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-600", submit: "bg-blue-600 hover:bg-blue-700", label: "text-blue-600" },
   emerald: { gradient: "bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600", submit: "bg-emerald-600 hover:bg-emerald-700", label: "text-emerald-600" },
-  amber:   { gradient: "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600",  submit: "bg-amber-600 hover:bg-amber-700",  label: "text-amber-600" },
-  slate:   { gradient: "bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800",   submit: "bg-slate-700 hover:bg-slate-800",  label: "text-slate-600" },
+  amber: { gradient: "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600", submit: "bg-amber-600 hover:bg-amber-700", label: "text-amber-600" },
+  slate: { gradient: "bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800", submit: "bg-slate-700 hover:bg-slate-800", label: "text-slate-600" },
 };
 
 export default function QuickFormDialog({
@@ -76,11 +58,11 @@ export default function QuickFormDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[440px] border-none shadow-2xl bg-white p-0 overflow-hidden [&>button]:hidden">
 
-        {/* Franja superior coloreada */}
-        <div className={`h-1.5 ${colors.gradient} w-full`} />
+        {/* Franja superior coloreada - Borde Visual */}
+        <div className={`h-2 ${colors.gradient} w-full`} />
 
         {/* Header (SIN ICONOS) */}
-        <div className="px-6 pt-5 pb-0 flex items-start justify-between">
+        <div className="px-6 pt-6 pb-0 flex items-start justify-between">
           <div>
             <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
               {title}

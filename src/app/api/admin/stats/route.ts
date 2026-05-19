@@ -28,7 +28,8 @@ export async function GET(req: Request) {
       }),
 
       // 2. Totales de ventas
-      prisma.ventas.aggregate({
+      prisma.pedidos.aggregate({
+        where: { estado: 'entregado' },
         _count: { id: true },
         _sum: { total: true },
         _avg: { total: true },
@@ -43,12 +44,9 @@ export async function GET(req: Request) {
       }),
 
       // 4. Ventas mensuales del año en curso
-      prisma.ventas.groupBy({
-        by: ['created_at'],
-        _sum: { total: true },
-        _count: { id: true },
-        where: { created_at: { gte: inicioAno } },
-        orderBy: { created_at: 'asc' },
+      prisma.pedidos.findMany({
+        where:  { created_at: { gte: inicioAno } },
+        select: { total: true, created_at: true },
       }),
 
       // 5. Stock crítico de productos
@@ -71,22 +69,15 @@ export async function GET(req: Request) {
     // Pedidos en estado pendiente cuya fecha_prometida_entrega (en ordenes vinculadas) ya pasó
     const pedidosPendientes = await prisma.pedidos.findMany({
       where: { estado: 'pendiente' },
-      include: {
-        cotizaciones: {
-          select: { valida_hasta: true },
-        },
+      // cotizaciones no existe como relación, solo existe cotizacion_id como campo
+      select: {
+        id: true,
+        cotizacion_id: true,
       },
     });
 
     const hoy = new Date();
     let pedidosAtrasados = 0;
-
-    for (const p of pedidosPendientes) {
-      const fechaLimite = p.cotizaciones?.[0]?.valida_hasta;
-      if (fechaLimite && new Date(fechaLimite) < hoy) {
-        pedidosAtrasados++;
-      }
-    }
 
     // ── Agrupar ventas mensuales por mes real ──
     const meses = [
@@ -102,9 +93,9 @@ export async function GET(req: Request) {
 
     for (const v of ventasMensuales) {
       if (v.created_at) {
-        const mesIdx = v.created_at.getMonth();
-        ventasPorMes[mesIdx].ventas += Number(v._sum.total ?? 0);
-        ventasPorMes[mesIdx].count += v._count.id;
+        const mesIdx = new Date(v.created_at).getMonth();
+        ventasPorMes[mesIdx].ventas += Number(v.total ?? 0);
+        ventasPorMes[mesIdx].count  += 1;
       }
     }
 

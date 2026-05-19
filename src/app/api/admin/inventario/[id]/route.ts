@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
-import { NextResponse }      from 'next/server';
-import { InventarioService } from '@/lib/services/inventario-services';
+import { NextResponse } from 'next/server';
+import { InventarioService } from '@/lib/services/inventario.service';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,17 +24,16 @@ export async function GET(_req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   try {
     const { id } = await params;
-    const body   = await req.json();
+    const body = await req.json();
 
     if (body.stock_delta !== undefined || body.stock_actual !== undefined) {
       const insumo = await InventarioService.ajustarStock(id, {
-        stock_delta:     body.stock_delta,
-        stock_actual:    body.stock_actual,
-        motivo:          body.motivo,
-        usuario_id:      body.usuario_id,
-        costo_unitario:  body.costo_unitario,
+        stock_delta: body.stock_delta,
+        stock_actual: body.stock_actual,
+        motivo: body.motivo,
+        usuario_id: body.usuario_id,
+        costo_unitario: body.costo_unitario,
         referencia_tipo: body.referencia_tipo,
-        referencia_id:   body.referencia_id,
         precio_unitario: body.precio_unitario,
       });
       return NextResponse.json(insumo);

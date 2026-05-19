@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, memo } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Edit2, Trash2, Package, Tag, Lock, 
-  FileText, CheckCircle2 
+  FileText, CheckCircle2, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,12 +15,11 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 interface ProductoRowProps {
   p: ProductoConRelaciones;
   categorias: Categoria[];
-  onDelete: (p: ProductoConRelaciones) => void;
-  onFicha: (p: ProductoConRelaciones) => void;
+  onArchive: (p: ProductoConRelaciones) => void;
   onEdit: (p: ProductoConRelaciones) => void;
   onStatusChange?: (p: ProductoConRelaciones) => void;
   canEdit: boolean;
-  canDelete: boolean;
+  canArchive: boolean;
 }
 
 const normalizeId = (id: any) => String(id).replace(/[^0-9]/g, '');
@@ -27,14 +27,14 @@ const normalizeId = (id: any) => String(id).replace(/[^0-9]/g, '');
 const ProductoRow = memo(({
   p,
   categorias,
-  onDelete,
-  onFicha,
+  onArchive,
   onEdit,
   onStatusChange,
 }: ProductoRowProps) => {
+  const router = useRouter();
   const { can } = usePermissions();
-  const canEdit   = can('edit',   'productos');
-  const canDelete = can('archive', 'productos');
+  const canEdit    = can('edit',    'productos');
+  const canArchive = can('archive', 'productos');
 
   const rawImage  = String(p.imagen || "").trim();
   const fileName  = rawImage.split('/').pop();
@@ -57,47 +57,47 @@ const ProductoRow = memo(({
   return (
     <tr className="group transition-all duration-200">
       {/* ── Detalle ── */}
-      <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md group-hover:bg-slate-50 transition-all">
+      <td className="bg-guor-cream border-y border-l border-guor-peach/50 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md group-hover:bg-guor-cream/60 transition-all">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 relative bg-slate-50 rounded-xl border border-slate-100 shrink-0 overflow-hidden">
+          <div className="w-14 h-14 relative bg-guor-cream/60 rounded-xl border border-guor-peach/50 shrink-0 overflow-hidden">
             {publicUrl ? (
               <img src={publicUrl} alt={p.nombre} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Package className="w-6 h-6 text-slate-300" />
+                <Package className="w-6 h-6 text-guor-gold/40" />
               </div>
             )}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none">
+              <span className="font-black text-guor-dark text-sm tracking-tight uppercase leading-none">
                 {p.nombre}
               </span>
               {hasFicha && <CheckCircle2 size={14} className="text-emerald-500" />}
             </div>
-            <div className="text-slate-500 text-[13px] font-medium mt-1 truncate max-w-[200px]">SKU: {p.sku}</div>
-            <div className="text-pink-600 font-black text-sm mt-1">S/ {Number(p.precio).toFixed(2)}</div>
+            <div className="text-guor-gold text-[13px] font-medium mt-1 truncate max-w-[200px]">SKU: {p.sku}</div>
+            <div className="text-guor-brown font-black text-sm mt-1">S/ {Number(p.precio).toFixed(2)}</div>
           </div>
         </div>
       </td>
 
       {/* ── Categoría ── */}
-      <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
-        <div className="inline-flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tight">
+      <td className="bg-guor-cream border-y border-guor-peach/50 text-center shadow-sm group-hover:bg-guor-cream/60 transition-all">
+        <div className="inline-flex items-center gap-1.5 bg-guor-cream/60 px-3 py-1 rounded-lg border border-guor-peach/50 text-guor-brown/70 text-[10px] font-black uppercase tracking-tight">
           <Tag size={10} /> {categoriaNombre}
         </div>
       </td>
 
       {/* ── Stock ── */}
-      <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
+      <td className="bg-guor-cream border-y border-guor-peach/50 text-center shadow-sm group-hover:bg-guor-cream/60 transition-all">
         <div className="flex flex-col items-center">
-          <span className="text-lg font-black text-slate-900">{p.stock}</span>
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Unidades</span>
+          <span className="text-lg font-black text-guor-dark">{p.stock}</span>
+          <span className="text-[9px] font-black text-guor-gold/70 uppercase tracking-widest">Unidades</span>
         </div>
       </td>
 
       {/* ── Estado ── */}
-      <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
+      <td className="bg-guor-cream border-y border-guor-peach/50 text-center shadow-sm group-hover:bg-guor-cream/60 transition-all">
         <button onClick={() => onStatusChange?.(p)} className="group/status relative">
           <Badge
             className={`rounded-full px-3 py-1 text-[9px] font-black border-2 uppercase transition-all duration-300 ${
@@ -113,22 +113,24 @@ const ProductoRow = memo(({
       </td>
 
       {/* ── Acciones ── */}
-      <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm group-hover:bg-slate-50 transition-all">
+      <td className="bg-guor-cream border-y border-r border-guor-peach/50 px-6 rounded-r-2xl text-right shadow-sm group-hover:bg-guor-cream/60 transition-all">
         <div className="flex justify-end items-center gap-2">
           <TooltipProvider>
+
+            {/* Ver detalle */}
             <Button
               variant="outline" size="icon"
-              onClick={() => onFicha(p)}
-              className="h-9 w-9 rounded-xl border-slate-200"
+              onClick={() => router.push(`/admin/Panel-Administrativo/productos/${p.id}`)}
+              className="h-9 w-9 rounded-xl border-guor-peach text-guor-gold/70 hover:text-sky-600 hover:bg-sky-50 hover:border-sky-200"
             >
-              <FileText size={16} className={hasFicha ? 'text-emerald-500' : 'text-slate-400'} />
+              <Eye size={16} />
             </Button>
 
             {canEdit ? (
               <Button
                 variant="outline" size="icon"
                 onClick={() => onEdit(p)}
-                className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-pink-600 hover:bg-pink-50"
+                className="h-9 w-9 rounded-xl border-guor-peach text-guor-gold/70 hover:text-guor-brown hover:bg-guor-peach/50"
               >
                 <Edit2 size={16} />
               </Button>
@@ -138,11 +140,11 @@ const ProductoRow = memo(({
               </Button>
             )}
 
-            {canDelete && (
+            {canArchive && (
               <Button
                 variant="outline" size="icon"
-                onClick={() => onDelete(p)}
-                className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                onClick={() => onArchive(p)}
+                className="h-9 w-9 rounded-xl border-guor-peach text-guor-gold/70 hover:text-rose-600 hover:bg-rose-50"
               >
                 <Trash2 size={16} />
               </Button>

@@ -21,8 +21,8 @@ export async function GET(req: Request) {
       pagosMetodo,
     ] = await Promise.all([
       // 1. FLUJO DE VENTAS (agrupado por fecha)
-      prisma.ventas.findMany({
-        where: { created_at: { gte: startDate } },
+      prisma.pedidos.findMany({
+        where: { created_at: { gte: startDate }, estado: 'entregado' },
         select: { total: true, created_at: true },
         orderBy: { created_at: 'asc' },
       }),
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       prisma.pedido_items.groupBy({
         by: ['producto_id'],
         _sum: { cantidad: true },
-        _count: { id: true },
+        _count: true,
         orderBy: { _sum: { cantidad: 'desc' } },
         take: 8,
       }),
@@ -51,15 +51,15 @@ export async function GET(req: Request) {
       // 4. ÓRDENES POR ESTADO
       prisma.ordenes_produccion.groupBy({
         by: ['estado'],
-        _count: { id: true },
+        _count: true,
         orderBy: { _count: { id: 'desc' } },
       }),
 
       // 5. INGRESOS DEL PERIODO
-      prisma.ventas.aggregate({
-        where: { created_at: { gte: startDate } },
-        _sum: { total: true, impuestos: true },
-        _count: { id: true },
+      prisma.pedidos.aggregate({
+        where: { created_at: { gte: startDate }, estado: 'entregado' },
+        _sum: { total: true },
+        _count: true,
       }),
 
       // 6. STOCK BAJO
@@ -73,16 +73,15 @@ export async function GET(req: Request) {
       // 7. COTIZACIONES DEL PERIODO (tendencia de conversión)
       prisma.cotizaciones.groupBy({
         by: ['estado'],
-        _count: { id: true },
+        _count: true,
         where: { created_at: { gte: startDate } },
       }),
 
-      // 8. PAGOS POR MÉTODO
-      prisma.pagos_orden.groupBy({
+      prisma.pagos.groupBy({
         by: ['metodo_pago'],
         _sum: { monto: true },
-        _count: { id: true },
-        orderBy: { _sum: { monto: 'desc' } },
+        _count: true,
+        where: { created_at: { gte: startDate } },
       }),
     ]);
 
@@ -112,7 +111,7 @@ export async function GET(req: Request) {
         ? productosMap.get(p.producto_id.toString())?.sku ?? null
         : null,
       cantidad_total: p._sum.cantidad ?? 0,
-      pedidos_count: p._count.id,
+      pedidos_count: p._count,
     }));
 
     // ── Procesar: Stock levels agrupados por categoría ──
@@ -152,13 +151,13 @@ export async function GET(req: Request) {
 
     const ordenesEstado = ordenesPorEstado.map((o) => ({
       name: estadoColorMap[o.estado ?? '']?.name ?? o.estado,
-      value: o._count.id,
+      value: o._count,
       color: estadoColorMap[o.estado ?? '']?.color ?? '#6b7280',
     }));
 
     // ── Procesar: Comparativa Ingresos vs Gastos ──
-    const totalIngresos = Number(ingresosVsGastos._sum.total ?? 0);
-    const totalImpuestos = Number(ingresosVsGastos._sum.impuestos ?? 0);
+    const totalIngresos = Number(ingresosVsGastos._sum?.total ?? 0);
+    const totalImpuestos = 0; // IGV calculado en el total
     const margenEstimado = 0.35; // 35% costo estimado
 
     const comparativaData = [
@@ -176,24 +175,24 @@ export async function GET(req: Request) {
 
     // ── Procesar: Tendencia de cotizaciones ──
     const cotizacionesTrendMap = cotizacionesTrend.reduce<Record<string, number>>((acc, c) => {
-      acc[c.estado ?? 'borrador'] = c._count.id;
+      acc[c.estado ?? 'borrador'] = c._count;
       return acc;
     }, {});
 
     // ── Procesar: Pagos por método ──
     const pagosPorMetodo = pagosMetodo.map((p) => ({
       metodo: p.metodo_pago,
-      monto_total: Number(p._sum.monto ?? 0),
-      count: p._count.id,
+      monto_total: Number(p._sum?.monto ?? 0),
+      count: (p._count as any)?.id ?? 0,
     }));
 
     // ── Stats resumen ──
     const stats = {
       totalVentas: totalIngresos,
-      totalOrdenes: ordenesPorEstado.reduce((sum, o) => sum + o._count.id, 0),
-      totalCotizaciones: cotizacionesTrend.reduce((sum, c) => sum + c._count.id, 0),
+      totalOrdenes: ordenesPorEstado.reduce((sum, o) => sum + o._count, 0),
+      totalCotizaciones: cotizacionesTrend.reduce((sum, c) => sum + c._count, 0),
       stockBajo: stockBajoFiltrado.length,
-      ventasCount: ingresosVsGastos._count.id,
+      ventasCount: typeof ingresosVsGastos._count === 'number' ? ingresosVsGastos._count : 0,
     };
 
     return NextResponse.json(

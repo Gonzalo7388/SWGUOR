@@ -1,6 +1,7 @@
 'use client';
 
-import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2, Check, AlertCircle } from "lucide-react";
+import { useMemo } from "react";
 import type { ProfileState, ProfileAction } from './types';
 
 interface PasswordFormProps {
@@ -10,75 +11,117 @@ interface PasswordFormProps {
   onSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
-/**
- * Valida que la contraseña cumpla con los requisitos:
- * - Mínimo 8 caracteres
- * - Al menos una mayúscula
- * - Al menos una minúscula
- * - Al menos un número
- * - Al menos un símbolo especial
- */
-const validatePassword = (password: string): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
+// ─── Password checks ──────────────────────────────────────────────────────────
 
-  if (password.length < 8) {
-    errors.push('Mínimo 8 caracteres');
-  }
-  if (!/[A-Z]/.test(password)) {
-    errors.push('Al menos una mayúscula');
-  }
-  if (!/[a-z]/.test(password)) {
-    errors.push('Al menos una minúscula');
-  }
-  if (!/\d/.test(password)) {
-    errors.push('Al menos un número');
-  }
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push('Al menos un símbolo especial (!@#$%^&* etc)');
-  }
+interface PasswordChecks {
+  length: boolean;
+  uppercase: boolean;
+  lowercase: boolean;
+  number: boolean;
+  symbol: boolean;
+}
 
+function getPasswordChecks(password: string): PasswordChecks {
   return {
-    valid: errors.length === 0,
-    errors,
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
   };
+}
+
+// ─── Strength levels ──────────────────────────────────────────────────────────
+
+interface StrengthInfo {
+  score: number;
+  label: string;
+  segmentColor: string;
+  textColor: string;
+  filledSegments: number;
+}
+
+function getStrengthInfo(password: string, checks: PasswordChecks): StrengthInfo {
+  if (!password) {
+    return { score: 0, label: '', segmentColor: 'bg-gray-200', textColor: 'text-gray-400', filledSegments: 0 };
+  }
+
+  const score = Object.values(checks).filter(Boolean).length; // 0-5
+
+  switch (score) {
+    case 1: return { score, label: 'Muy débil', segmentColor: 'bg-red-600', textColor: 'text-red-600', filledSegments: 1 };
+    case 2: return { score, label: 'Débil', segmentColor: 'bg-orange-500', textColor: 'text-orange-500', filledSegments: 2 };
+    case 3: return { score, label: 'Intermedio', segmentColor: 'bg-amber-400', textColor: 'text-amber-500', filledSegments: 3 };
+    case 4: return { score, label: 'Fuerte', segmentColor: 'bg-lime-500', textColor: 'text-lime-600', filledSegments: 4 };
+    case 5: return { score, label: 'Muy fuerte', segmentColor: 'bg-green-500', textColor: 'text-green-600', filledSegments: 5 };
+    default: return { score, label: 'Muy débil', segmentColor: 'bg-red-600', textColor: 'text-red-600', filledSegments: 1 };
+  }
+}
+
+// ─── Validation (used by parent via submit) ───────────────────────────────────
+
+export const validatePassword = (password: string): { valid: boolean; errors: string[] } => {
+  const checks = getPasswordChecks(password);
+  const errors: string[] = [];
+  if (!checks.length) errors.push('Mínimo 8 caracteres');
+  if (!checks.uppercase) errors.push('Al menos una mayúscula');
+  if (!checks.lowercase) errors.push('Al menos una minúscula');
+  if (!checks.number) errors.push('Al menos un número');
+  if (!checks.symbol) errors.push('Al menos un símbolo especial (!@#$%^&* etc)');
+  return { valid: errors.length === 0, errors };
 };
 
-function PasswordRequirements({ password }: { password: string }) {
-  const validation = validatePassword(password);
-  const requirements = [
-    { text: 'Mínimo 8 caracteres', met: password.length >= 8 },
-    { text: 'Una mayúscula (A-Z)', met: /[A-Z]/.test(password) },
-    { text: 'Una minúscula (a-z)', met: /[a-z]/.test(password) },
-    { text: 'Un número (0-9)', met: /\d/.test(password) },
-    { text: 'Un símbolo (!@#$%^&* etc)', met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
-  ];
+// ─── Requirement row ──────────────────────────────────────────────────────────
+
+function RequirementRow({ met, label }: { met: boolean; label: string }) {
+  return (
+    <span className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors duration-200 ${met ? 'text-green-600' : 'text-gray-400'}`}>
+      {met
+        ? <Check className="w-3 h-3 text-green-500 shrink-0" />
+        : <AlertCircle className="w-3 h-3 text-gray-300 shrink-0" />
+      }
+      {label}
+    </span>
+  );
+}
+
+// ─── Strength block ───────────────────────────────────────────────────────────
+
+function PasswordStrength({ password }: { password: string }) {
+  const checks = useMemo(() => getPasswordChecks(password), [password]);
+  const strength = useMemo(() => getStrengthInfo(password, checks), [password, checks]);
 
   return (
-    <div className="mt-3 space-y-2 p-3 bg-gray-50 rounded-lg">
-      {requirements.map((req, idx) => (
-        <div key={idx} className="flex items-center gap-2">
-          <div className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${
-            req.met 
-              ? 'bg-green-100 border-green-300 text-green-600' 
-              : 'bg-gray-100 border-gray-300'
-          }`}>
-            {req.met && '✓'}
-          </div>
-          <span className={`text-xs ${req.met ? 'text-gray-700' : 'text-gray-500'}`}>
-            {req.text}
-          </span>
-        </div>
-      ))}
+    <div className="mt-3 space-y-2.5 p-3 bg-gray-50 rounded-lg">
+      {/* Bar */}
+      <div className="flex items-center gap-1.5">
+        {[1, 2, 3, 4, 5].map((seg) => (
+          <div
+            key={seg}
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${seg <= strength.filledSegments ? strength.segmentColor : 'bg-gray-200'
+              }`}
+          />
+        ))}
+        <span className={`text-[11px] font-semibold ml-1 w-20 shrink-0 ${strength.textColor}`}>
+          {strength.label}
+        </span>
+      </div>
+
+      {/* Checklist */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-0.5">
+        <RequirementRow met={checks.length} label="Mínimo 8 caracteres" />
+        <RequirementRow met={checks.uppercase} label="Una mayúscula (A-Z)" />
+        <RequirementRow met={checks.lowercase} label="Una minúscula (a-z)" />
+        <RequirementRow met={checks.number} label="Un número (0-9)" />
+        <RequirementRow met={checks.symbol} label="Un símbolo (@, #, !…)" />
+      </div>
     </div>
   );
 }
 
-export function PasswordForm({
-  state,
-  dispatch,
-  isSaving,
-  onSubmit,
-}: PasswordFormProps) {
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function PasswordForm({ state, dispatch, isSaving, onSubmit }: PasswordFormProps) {
   const passwordValidation = state.newPassword ? validatePassword(state.newPassword) : null;
 
   return (
@@ -106,6 +149,7 @@ export function PasswordForm({
           </button>
         ) : (
           <form onSubmit={onSubmit} className="space-y-5">
+
             {/* Current Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -115,9 +159,7 @@ export function PasswordForm({
                 <input
                   type={state.showCurrentPassword ? 'text' : 'password'}
                   value={state.currentPassword}
-                  onChange={(e) =>
-                    dispatch({ type: 'SET_FIELD', field: 'currentPassword', value: e.target.value })
-                  }
+                  onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'currentPassword', value: e.target.value })}
                   required
                   disabled={isSaving}
                   className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
@@ -125,13 +167,7 @@ export function PasswordForm({
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    dispatch({
-                      type: 'SET_FIELD',
-                      field: 'showCurrentPassword',
-                      value: !state.showCurrentPassword,
-                    })
-                  }
+                  onClick={() => dispatch({ type: 'SET_FIELD', field: 'showCurrentPassword', value: !state.showCurrentPassword })}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {state.showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -148,9 +184,7 @@ export function PasswordForm({
                 <input
                   type={state.showNewPassword ? 'text' : 'password'}
                   value={state.newPassword}
-                  onChange={(e) =>
-                    dispatch({ type: 'SET_FIELD', field: 'newPassword', value: e.target.value })
-                  }
+                  onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'newPassword', value: e.target.value })}
                   required
                   disabled={isSaving}
                   className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
@@ -158,19 +192,15 @@ export function PasswordForm({
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    dispatch({
-                      type: 'SET_FIELD',
-                      field: 'showNewPassword',
-                      value: !state.showNewPassword,
-                    })
-                  }
+                  onClick={() => dispatch({ type: 'SET_FIELD', field: 'showNewPassword', value: !state.showNewPassword })}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {state.showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {state.newPassword && <PasswordRequirements password={state.newPassword} />}
+
+              {/* Strength bar + checklist */}
+              {state.newPassword && <PasswordStrength password={state.newPassword} />}
             </div>
 
             {/* Confirm Password */}
@@ -182,9 +212,7 @@ export function PasswordForm({
                 <input
                   type={state.showConfirmPassword ? 'text' : 'password'}
                   value={state.confirmPassword}
-                  onChange={(e) =>
-                    dispatch({ type: 'SET_FIELD', field: 'confirmPassword', value: e.target.value })
-                  }
+                  onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'confirmPassword', value: e.target.value })}
                   required
                   disabled={isSaving}
                   className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
@@ -192,13 +220,7 @@ export function PasswordForm({
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    dispatch({
-                      type: 'SET_FIELD',
-                      field: 'showConfirmPassword',
-                      value: !state.showConfirmPassword,
-                    })
-                  }
+                  onClick={() => dispatch({ type: 'SET_FIELD', field: 'showConfirmPassword', value: !state.showConfirmPassword })}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {state.showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -209,6 +231,7 @@ export function PasswordForm({
               )}
             </div>
 
+            {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"

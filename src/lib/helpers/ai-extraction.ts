@@ -108,33 +108,37 @@ export async function extraerFichaTecnica(
   const mimeType   = getMimeType(imagePath);
 
   const prompt = `
-Eres un experto en fichas técnicas de confección textil.
-Analiza esta imagen geometral de una prenda y extrae en JSON:
+Eres un experto en patronaje y fichas técnicas de confección textil.
+Analiza detenidamente esta imagen geometral (dibujo técnico) de una prenda.
+Tu objetivo principal es extraer TODA la tabla de medidas o las cotas indicadas en el dibujo.
 
+Extrae la información en el siguiente formato JSON:
 {
   "medidas": [
     {
-      "punto_medida": "nombre del punto visible en la imagen (ej: Length HPS to Hem, Chest Width, Neck Drop, Shoulder Width, Armhole Drop)",
-      "talla": "talla si aparece en la imagen, si no coloca 'M' como base",
-      "valor_cm": número estimado en cm según proporciones visibles o 0 si no se puede determinar,
-      "tolerancia": número o null
+      "punto_medida": "Descripción clara del punto (ej: Ancho de Pecho, Largo Total, Caída de Hombro)",
+      "talla": "Talla especificada o 'M' por defecto",
+      "valor_cm": número (solo el valor numérico en cm),
+      "tolerancia": número o null (ej: 0.5 si indica ±0.5)
     }
   ],
   "materiales": [
     {
-      "nombre": "nombre del material si aparece en la imagen",
-      "composicion": "composición si aparece",
+      "nombre": "Nombre del material",
+      "composicion": "Composición (ej: 100% Algodón)",
       "porcentaje": número o null
     }
   ],
-  "sam_total": número si aparece en la imagen o null,
-  "costo_estimado": número si aparece en la imagen o null,
-  "descripcion": "descripción breve de la prenda basada en lo que ves en la imagen"
+  "sam_total": número (minutos de manufactura si están presentes),
+  "costo_estimado": número (si está presente),
+  "descripcion": "Descripción técnica breve del modelo"
 }
 
-Extrae TODOS los puntos de medida visibles con sus etiquetas.
-Si no hay tabla de medidas explícita, infiere los puntos desde las flechas y etiquetas de la imagen.
-Responde SOLO el JSON sin explicaciones adicionales.
+INSTRUCCIONES CRÍTICAS:
+1. Si ves flechas con números sobre la prenda, asocia cada número a un punto de medida.
+2. Si hay una tabla de medidas de texto en la imagen, procésala completa.
+3. Asegúrate de que "valor_cm" sea siempre un número. Si ves una fracción como 1/2, conviértela a decimal.
+4. Responde ÚNICAMENTE con el objeto JSON.
 `;
 
   try {

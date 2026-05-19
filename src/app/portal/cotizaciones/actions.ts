@@ -24,7 +24,7 @@ export async function getPortalCotizaciones(clienteId: number) {
           },
         },
       },
-      clientes: true,
+      cliente: true,
     },
     orderBy: { created_at: 'desc' },
   });
@@ -35,7 +35,7 @@ export async function getPortalCotizaciones(clienteId: number) {
   const mapped = rows.map((row) => {
     const validaHasta = new Date(row.valida_hasta);
     validaHasta.setHours(0, 0, 0, 0);
-    
+
     const estaExpirada = row.estado === EstadoCotizacion.borrador && today > validaHasta;
 
     return {
@@ -45,6 +45,7 @@ export async function getPortalCotizaciones(clienteId: number) {
       estado: estaExpirada ? 'expirada' : (row.estado ?? 'borrador'),
       subtotal: Number(row.subtotal ?? 0),
       igv: Number(row.igv ?? 0),
+      costo_envio: Number(row.costo_envio ?? 0),
       total: Number(row.total ?? 0),
       valida_hasta: row.valida_hasta.toISOString(),
       created_at: row.created_at?.toISOString() ?? '',
@@ -58,10 +59,10 @@ export async function getPortalCotizaciones(clienteId: number) {
         subtotal: Number(item.subtotal),
         producto: item.productos
           ? {
-              nombre: item.productos.nombre,
-              sku: item.productos.sku,
-              imagen: item.productos.imagen,
-            }
+            nombre: item.productos.nombre,
+            sku: item.productos.sku,
+            imagen: item.productos.imagen,
+          }
           : null,
       })),
     };
@@ -91,7 +92,7 @@ export async function getPortalCotizacionDetalle(cotizacionId: number, clienteId
           },
         },
       },
-      clientes: true,
+      cliente: true,
     },
   });
 
@@ -103,17 +104,18 @@ export async function getPortalCotizacionDetalle(cotizacionId: number, clienteId
   today.setHours(0, 0, 0, 0);
   const validaHasta = new Date(row.valida_hasta);
   validaHasta.setHours(0, 0, 0, 0);
-  
+
   const estaExpirada = row.estado === EstadoCotizacion.borrador && today > validaHasta;
 
   return serializePrismaPayload({
     id: Number(row.id),
     numero: row.numero,
     cliente_id: Number(row.cliente_id),
-    cliente: row.clientes?.razon_social,
+    cliente: row.cliente?.razon_social,
     estado: estaExpirada ? 'expirada' : (row.estado ?? 'borrador'),
     subtotal: Number(row.subtotal ?? 0),
     igv: Number(row.igv ?? 0),
+    costo_envio: Number(row.costo_envio ?? 0),
     total: Number(row.total ?? 0),
     valida_hasta: row.valida_hasta.toISOString(),
     created_at: row.created_at?.toISOString() ?? '',
@@ -128,10 +130,10 @@ export async function getPortalCotizacionDetalle(cotizacionId: number, clienteId
       subtotal: Number(item.subtotal),
       producto: item.productos
         ? {
-            nombre: item.productos.nombre,
-            sku: item.productos.sku,
-            imagen: item.productos.imagen,
-          }
+          nombre: item.productos.nombre,
+          sku: item.productos.sku,
+          imagen: item.productos.imagen,
+        }
         : null,
     })),
   });

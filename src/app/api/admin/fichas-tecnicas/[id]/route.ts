@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas-services';
+import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas.service';
 
 // GET /api/admin/fichas-tecnicas/[id]
 export async function GET(
@@ -82,10 +82,10 @@ export async function PATCH(
 // Actualización completa
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });

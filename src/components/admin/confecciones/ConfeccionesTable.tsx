@@ -9,7 +9,7 @@ import ConfeccionRow from "@/components/admin/confecciones/ConfeccionesRow";
 export type ConfeccionRow_T = {
   id:             number;
   pedido_id:      number;
-  pedido?:        { id: number; numero_orden: string } | null;
+  pedido?:        { id: number; } | null;
   taller?:        { id: number; nombre: string } | null;
   prenda:         string;
   cantidad:       number;

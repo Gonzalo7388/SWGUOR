@@ -1,15 +1,15 @@
 export const runtime = 'nodejs';
 
-import { NextResponse }      from 'next/server';
-import { MaterialesService } from '@/lib/services/material-services';
+import { NextResponse } from 'next/server';
+import { MaterialesService } from '@/lib/services/material.service';
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id }  = await params;
-    const body    = await req.json();
+    const { id } = await params;
+    const body = await req.json();
     const { operacion, cantidad, motivo } = body;
 
     if (!operacion || cantidad === undefined) {

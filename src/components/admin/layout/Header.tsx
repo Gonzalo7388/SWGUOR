@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import type { usuarios, personal_interno, clientes } from "@prisma/client";
@@ -40,7 +40,7 @@ export default function AdminHeader({ usuario }: AdminHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white/80 backdrop-blur-md px-4 lg:px-8 shadow-sm">
+    <header className="admin-topbar sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white/80 backdrop-blur-md px-4 lg:px-8 shadow-sm">
       <div className="flex flex-1 items-center justify-between">
 
         {/* Breadcrumbs */}
@@ -61,20 +61,20 @@ export default function AdminHeader({ usuario }: AdminHeaderProps) {
 
           <Link
             href="/admin/Panel-Administrativo/perfil"
-            className="group flex items-center gap-3 p-1 pr-2 rounded-xl transition-all duration-200 hover:bg-rose-50 cursor-pointer"
+            className="admin-user-link group flex items-center gap-3 p-1 pr-2 rounded-xl transition-all duration-200 hover:bg-amber-50 cursor-pointer"
           >
             <div className="hidden sm:flex flex-col items-end transition-transform group-hover:-translate-x-1">
-              <span className="text-sm font-bold text-gray-800 leading-none group-hover:text-rose-600 transition-colors">
+              <span className="admin-user-name text-sm font-bold text-gray-800 leading-none group-hover:text-black transition-colors">
                 {nombreDisplay}
               </span>
-              <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter group-hover:text-rose-400 transition-colors">
+              <span className="admin-user-role text-[10px] font-medium text-gray-400 uppercase tracking-tighter group-hover:text-black/70 transition-colors">
                 {usuario.rol?.replace('_', ' ')}
               </span>
             </div>
 
-            <div className="relative w-9 h-9 rounded-xl bg-rose-500 overflow-hidden shadow-md">
+            <div className="admin-user-avatar relative w-9 h-9 rounded-xl bg-rose-500 overflow-hidden shadow-md">
               <span className="flex items-center justify-center h-full text-white font-bold">
-                {nombreDisplay?.charAt(0)?.toUpperCase()}
+                <User className="w-4 h-4" />
               </span>
               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
             </div>

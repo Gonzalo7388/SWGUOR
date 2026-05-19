@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas-services';
+import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas.service';
 import { NextResponse } from 'next/server';
 
 // GET /api/admin/fichas-tecnicas?estado=xxx&busqueda=xxx (listar todas con filtros)

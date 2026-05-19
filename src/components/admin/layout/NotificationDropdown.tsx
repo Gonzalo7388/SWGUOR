@@ -7,16 +7,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 // --- INTERFACES ---
 interface NotificationItem {
   id: string;
   titulo: string;
   descripcion: string;
-  tipo: 'inventario' | 'produccion' | 'sistema';
+  tipo: 'inventario' | 'orden' | 'urgente' | 'pago';
   importante: boolean;
   leido: boolean;
-  creado_en: string;
+  fecha: string;
+  url_destino?: string;
 }
 
 interface NotificationResponse {
@@ -40,12 +42,13 @@ const markAsRead = async (id: string): Promise<void> => {
 
 export function NotificationDropdown() {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Gestión de estado con React Query
   const { data, isLoading, error } = useQuery({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
-    refetchInterval: 60000, // Mantener polling ligero o migrar a WS
+    refetchInterval: 30000, // Polling cada 30 segundos para mayor sensación de tiempo real
   });
 
   const mutation = useMutation({
@@ -124,10 +127,18 @@ export function NotificationDropdown() {
               <div 
                 key={n.id} 
                 className={cn(
-                  "p-4 transition-colors flex items-start gap-4 group relative",
+                  "p-4 transition-colors flex items-start gap-4 group relative cursor-pointer",
                   n.leido ? 'bg-white' : 'bg-rose-50/50',
                   'hover:bg-slate-50'
                 )}
+                onClick={() => {
+                  if (n.url_destino) {
+                    router.push(n.url_destino);
+                  }
+                  if (!n.leido) {
+                    mutation.mutate(n.id);
+                  }
+                }}
               >
                 {/* Icono Tipo */}
                 <div className={cn(
@@ -153,8 +164,8 @@ export function NotificationDropdown() {
                   <p className="text-xs text-slate-600 leading-normal mt-0.5">
                     {n.descripcion}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                    {new Date(n.creado_en).toLocaleTimeString('es-PE', {hour: '2-digit', minute:'2-digit'})}
+                  <p className="text-[10px] text-slate-400 mt-1.5 font-bold uppercase tracking-wider">
+                    {new Date(n.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })} • {new Date(n.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
 

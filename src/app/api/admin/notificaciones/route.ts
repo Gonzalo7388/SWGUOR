@@ -3,30 +3,32 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
+import { requireServerAuth } from '@/lib/auth/server';
+
 export async function GET(req: Request) {
+  const auth = await requireServerAuth();
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
-    // Consultas en paralelo para rendimiento
-    const [insumosBajoStock, pedidosPendientes, despachosAtrasados, ordenesSinPago] =
+    // 1. Sincronizamos
+    const [insumosBajoStock, pedidosPendientes, despachosAtrasados, ordenesVencidas] =
       await Promise.all([
-        // 1. Alertas de stock — insumos bajo mínimo
         prisma.insumo.findMany({
-          where: {},
-          select: { id: true, nombre: true, stock_actual: true, stock_minimo: true, categoria_insumo: true },
+          where: { stock_actual: { lte: prisma.insumo.fields.stock_minimo } },
+          select: { id: true, nombre: true, stock_actual: true, stock_minimo: true, created_at: true },
           orderBy: { stock_actual: 'asc' },
           take: 20,
         }),
 
-        // 2. Pedidos pendientes de gestión
         prisma.pedidos.findMany({
           where: { estado: 'pendiente' },
           include: {
             clientes: { select: { razon_social: true } },
           },
-          orderBy: { created_at: 'asc' },
+          orderBy: { created_at: 'desc' },
           take: 20,
         }),
 
-        // 3. Despachos atrasados (fecha_despacho pasada y no entregado)
         prisma.despachos.findMany({
           where: {
             fecha_despacho: { lt: new Date() },
@@ -36,66 +38,59 @@ export async function GET(req: Request) {
           take: 20,
         }),
 
-        // 4. Órdenes con saldo pendiente vencido (más de 7 días sin pagar)
         prisma.ordenes_compra.findMany({
           where: {
             saldo_pendiente: { gt: 0 },
-            created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+            created_at: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
           },
           include: {
-            proveedores: { select: { razon_social: true } },
+            proveedores: { select: { razon_social: true } }
           },
-          orderBy: { created_at: 'asc' },
           take: 20,
-        }),
-      ])
+        })
+      ]);
 
-    // Filtrar insumos con stock bajo (Prisma no soporta field refs directos en where)
-    const insumosAlerta = insumosBajoStock.filter(
-      (i) => i.stock_actual <= i.stock_minimo
-    );
-
-    // ── Construir notificaciones ──
+    // 2. Construir notificaciones unificadas
     const notificaciones: Notificacion[] = [
-      // Alertas de Stock
-      ...insumosAlerta.map((i) => ({
+      ...insumosBajoStock.map((i) => ({
         id: `stock-${i.id.toString()}`,
         tipo: 'inventario' as const,
         titulo: 'ALERTA DE STOCK',
-        descripcion: `${i.nombre} está por debajo del mínimo (Actual: ${i.stock_actual} / Mín: ${i.stock_minimo}). Categoría: ${i.categoria_insumo}.`,
-        importante: true as const,
-        fecha: new Date().toISOString(),
+        descripcion: `${i.nombre} está por debajo del mínimo (${i.stock_actual}/${i.stock_minimo}).`,
+        importante: true,
+        fecha: i.created_at?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/inventario',
       })),
 
-      // Pedidos Pendientes
       ...pedidosPendientes.map((p) => ({
         id: `ped-${p.id.toString()}`,
         tipo: 'orden' as const,
         titulo: 'PEDIDO PENDIENTE',
-        descripcion: `Pedido de ${p.clientes?.razon_social ?? 'Cliente'} esperando gestión. Prioridad: ${p.prioridad ?? 'normal'}.`,
-        importante: (p.prioridad === 'urgente' || p.prioridad === 'alta') as boolean,
+        descripcion: `Pedido de ${p.clientes?.razon_social ?? 'Cliente'} esperando gestión.`,
+        importante: p.prioridad === 'urgente' || p.prioridad === 'alta',
         fecha: p.created_at?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/pedidos',
       })),
 
-      // Despachos Atrasados
       ...despachosAtrasados.map((d) => ({
         id: `desp-${d.id.toString()}`,
         tipo: 'urgente' as const,
         titulo: 'DESPACHO ATRASADO',
-        descripcion: `El despacho para el pedido #${d.pedido_id.toString()} ha superado la fecha límite (${new Date(d.fecha_despacho).toLocaleDateString()}).`,
-        importante: true as const,
-        fecha: new Date().toISOString(),
+        descripcion: `Envío atrasado para el pedido #${d.pedido_id.toString()}.`,
+        importante: true,
+        fecha: d.fecha_despacho?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/despachos',
       })),
 
-      // Órdenes con pago vencido
-      ...ordenesSinPago.map((o) => ({
+      ...ordenesVencidas.map((o) => ({
         id: `pago-${o.id.toString()}`,
         tipo: 'pago' as const,
-        titulo: 'PAGO PENDIENTE',
-        descripcion: `Orden de ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente de ${Number(o.saldo_pendiente ?? 0).toFixed(2)}.`,
-        importante: Number(o.saldo_pendiente ?? 0) > 1000,
+        titulo: 'PAGO VENCIDO A PROVEEDOR',
+        descripcion: `Compra a ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente.`,
+        importante: Number(o.saldo_pendiente) > 1000,
         fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
-      })),
+        url_destino: '/admin/Panel-Administrativo/cotizaciones-proveedor',
+      }))
     ];
 
     // Ordenar por importancia y fecha
@@ -104,7 +99,7 @@ export async function GET(req: Request) {
       return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
     });
 
-    // KPIs de notificaciones
+    // 3. KPIs para el Dashboard
     const kpis = {
       sinLeer: notificaciones.length,
       total: notificaciones.length,
@@ -124,21 +119,12 @@ export async function GET(req: Request) {
         count: notificaciones.length,
       })
     );
+
   } catch (error: any) {
     console.error('[API_NOTIF] Error:', error);
-    return NextResponse.json(
-      {
-        error: error.message,
-        data: [],
-        kpis: { sinLeer: 0, total: 0, urgentes: 0, porTipo: {} },
-        count: 0,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message, data: [] }, { status: 500 });
   }
 }
-
-// ─── Types ─────────────────────────────────────────────────────────────────
 
 type Notificacion = {
   id: string;
@@ -147,4 +133,5 @@ type Notificacion = {
   descripcion: string;
   importante: boolean;
   fecha: string;
+  url_destino?: string;
 };

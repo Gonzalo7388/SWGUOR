@@ -12,6 +12,7 @@ const DashboardDisenador     = dynamic(() => import('@/components/admin/dashboar
 const DashboardRecepcionista = dynamic(() => import('@/components/admin/dashboards/DashboardRecepcionista'));
 const DashboardRepresentante = dynamic(() => import('@/components/admin/dashboards/DashboardRepresentante'));
 const DashboardGerente       = dynamic(() => import('@/components/admin/dashboards/DashboardGerente'));
+const DashboardAlmacenero    = dynamic(() => import('@/components/admin/dashboards/DashboardAlmacenero'));
 const RoleDashboardTabs      = dynamic(() => import('@/components/admin/dashboards/RoleDashboardTab'));
 
 const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
@@ -22,6 +23,7 @@ const DASHBOARDS_MAP: Record<string, React.ComponentType<any>> = {
   recepcionista:        DashboardRecepcionista,
   representante_taller: DashboardRepresentante,
   gerente:              DashboardGerente,
+  almacenero:           DashboardAlmacenero,
 };
 
 // Etiquetas legibles por rol
@@ -33,6 +35,7 @@ const ROL_LABELS: Record<string, string> = {
   recepcionista:        'Recepcionista',
   representante_taller: 'Rep. de Taller',
   gerente:              'Gerente',
+  almacenero:           'Almacenero',
 };
 
 export default function DashboardPage() {

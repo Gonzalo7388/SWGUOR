@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const TIPO_CLIENTE   = ["corporativo", "retail"] as const;
-export const ESTADO_CLIENTE = ["activo", "inactivo"]    as const;
+export const TIPO_CLIENTE   = ["corporativo", "minorista", "distribuidor"] as const;
+export const ESTADO_CLIENTE = ["activo", "inactivo", "suspendido", "potencial"] as const;
 
 export const clienteSchema = z.object({
   ruc:              z.string().regex(/^\d{11}$/, "RUC debe tener 11 dígitos"),
@@ -28,13 +28,16 @@ export type ClienteFormValues  = z.infer<typeof clienteSchema>;
 export type CreateClienteInput = z.infer<typeof createClienteSchema>;
 
 export const TIPO_CLIENTE_LABELS: Record<typeof TIPO_CLIENTE[number], string> = {
-  corporativo: "Corporativo",
-  retail:      "Retail",
+  corporativo:  "Corporativo",
+  minorista:    "Minorista",
+  distribuidor: "Distribuidor",
 };
 
 export const ESTADO_CLIENTE_LABELS: Record<typeof ESTADO_CLIENTE[number], string> = {
-  activo:   "Activo",
-  inactivo: "Inactivo",
+  activo:     "Activo",
+  inactivo:   "Inactivo",
+  suspendido: "Suspendido",
+  potencial:  "Potencial",
 };
 
 export interface ApiResponse<T = any> {

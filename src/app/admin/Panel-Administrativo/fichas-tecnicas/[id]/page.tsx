@@ -112,10 +112,13 @@ export default function FichaTecnicaDetallePage() {
 
       // 2. Guardar medidas en ficha_medidas
       if (datosExtraidos.medidas?.length > 0) {
-        await fetch(`/api/admin/fichas-tecnicas/${id}/medidas/bulk`, {
+        await fetch('/api/admin/fichas-tecnicas/medidas', {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ medidas: datosExtraidos.medidas }),
+          body:    JSON.stringify({ 
+            ficha_id: id, 
+            medidas: datosExtraidos.medidas 
+          }),
         });
       }
 

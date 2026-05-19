@@ -81,7 +81,7 @@ const ConfeccionRow = memo(({ orden, onEstadoChange }: ConfeccionRowProps) => {
             <div className="text-slate-400 text-[11px] font-medium mt-1">
               #{orden.id}
               {orden.pedido && (
-                <span className="ml-1.5">· Pedido {orden.pedido.numero_orden}</span>
+                <span className="ml-1.5">· Pedido #{orden.pedido.id}</span>
               )}
             </div>
             {orden.costo_unitario != null && (
@@ -185,12 +185,12 @@ const ConfeccionRow = memo(({ orden, onEstadoChange }: ConfeccionRowProps) => {
           ))}
 
          {/* Cancelar: Solo si no está completada/cancelada y tiene permiso */}
-         {puedeActualizar && !["completado", "cancelado"].includes(orden.estado) && (
+         {puedeActualizar && !["completada", "cancelada"].includes(orden.estado) && (
             <Button
             variant="outline" size="icon"
             onClick={() => {
                 if(confirm("¿Estás seguro de cancelar esta orden?")) {
-                onEstadoChange(orden.id, "cancelado");
+                onEstadoChange(orden.id, "cancelada");
                 }
             }}
             className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50"

@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { PedidosService } from '@/lib/services/pedidos-services';
+import { PedidosService } from '@/lib/services/pedidos.service';
 import { NextResponse } from 'next/server';
 
 // GET /api/admin/pedidos/seguimiento?pedido_id=xxx

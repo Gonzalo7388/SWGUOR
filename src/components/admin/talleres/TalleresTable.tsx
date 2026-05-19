@@ -1,48 +1,33 @@
 "use client";
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { 
-  Edit, 
-  Trash2, 
-  Eye, 
-  MoreHorizontal, 
-  Phone, 
-  MapPin 
-} from "lucide-react";
+import { Edit, Trash2, Eye, MoreHorizontal, Phone, MapPin } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
 
 interface TalleresTableProps {
   data: any[];
   canEdit: boolean;
   canDelete: boolean;
   onDelete: (taller: any) => void;
-  onEdit: (t: any) => void;
-
+  onEdit: (taller: any) => void;
+  onView: (taller: any) => void;
 }
 
-export default function TalleresTable({ data, canEdit, canDelete, onDelete, onEdit }: TalleresTableProps) {
-  const router = useRouter();
+export default function TalleresTable({
+  data, canEdit, canDelete, onDelete, onEdit, onView
+}: TalleresTableProps) {
 
   const statusStyles: any = {
-    activo: "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-    inactivo: "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100",
+    activo:     "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+    inactivo:   "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100",
     suspendido: "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100",
   };
 
@@ -106,28 +91,26 @@ export default function TalleresTable({ data, canEdit, canDelete, onDelete, onEd
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => router.push(`/admin/Panel-Administrativo/talleres/${taller.id}`)}>
-                      <Eye className="mr-2 h-4 w-4" /> Ver taller
+
+                    <DropdownMenuItem onClick={() => onView(taller)}>
+                      <Eye className="mr-2 h-4 w-4" /> Ver detalle
                     </DropdownMenuItem>
-                    
+
                     {canEdit && (
-                      <DropdownMenuItem onClick={() => router.push(`/admin/Panel-Administrativo/talleres/${taller.id}/edit`)}>
+                      <DropdownMenuItem onClick={() => onEdit(taller)}>
                         <Edit className="mr-2 h-4 w-4" /> Editar
                       </DropdownMenuItem>
                     )}
-                    
+
                     <DropdownMenuSeparator />
-                    
+
                     {canDelete && (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => onDelete(taller)}
                         className="text-red-600 focus:text-red-600 focus:bg-red-50"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                        <Trash2 className="mr-2 h-4 w-4" /> Suspender
                       </DropdownMenuItem>
-                    )}
-                    {onEdit && (
-                      <Button onClick={() => onEdit(taller)}>Editar</Button>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

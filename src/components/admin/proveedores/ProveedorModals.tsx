@@ -9,10 +9,10 @@ import type { Proveedor } from '@/lib/schemas/proveedor';
 // ─────────────────────────────────────────────────────────────
 
 interface DeleteProps {
-  proveedor:   Proveedor;
-  isDeleting:  boolean;
-  onClose:     () => void;
-  onConfirm:   () => void;
+  proveedor: Proveedor;
+  isDeleting: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
 }
 
 export function ProveedorDeleteModal({ proveedor, isDeleting, onClose, onConfirm }: DeleteProps) {
@@ -60,19 +60,19 @@ export function ProveedorDeleteModal({ proveedor, isDeleting, onClose, onConfirm
 
 interface DetailProps {
   proveedor: Proveedor;
-  onClose:   () => void;
+  onClose: () => void;
 }
 
 export function ProveedorDetailModal({ proveedor, onClose }: DetailProps) {
   const fields = [
-    { label: 'RUC',               value: proveedor.ruc },
-    { label: 'Razón Social',      value: proveedor.razon_social },
-    { label: 'Contacto',          value: proveedor.contacto },
-    { label: 'Teléfono',          value: proveedor.telefono },
-    { label: 'Email',             value: proveedor.email },
-    { label: 'Dirección',         value: proveedor.direccion },
-    { label: 'Categoría',         value: proveedor.categoria_suministro },
-    { label: 'Estado',            value: proveedor.estado === 'activo' ? 'Activo' : 'Inactivo' },
+    { label: 'RUC', value: proveedor.ruc },
+    { label: 'Razón Social', value: proveedor.razon_social },
+    { label: 'Contacto', value: proveedor.contacto },
+    { label: 'Teléfono', value: proveedor.telefono },
+    { label: 'Email', value: proveedor.email },
+    { label: 'Dirección', value: proveedor.direccion },
+    { label: 'Categoría', value: proveedor.categoria_suministro },
+    { label: 'Estado', value: proveedor.estado === 'activo' ? 'Activo' : 'Inactivo' },
     { label: 'Insumos asociados', value: String(proveedor._count?.insumos ?? 0) },
     { label: 'Órdenes de compra', value: String(proveedor._count?.ordenes_compra ?? 0) },
   ];
@@ -89,7 +89,6 @@ export function ProveedorDetailModal({ proveedor, onClose }: DetailProps) {
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-rose-50 rounded-xl">
-              <Building2 className="w-5 h-5 text-rose-600" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">{proveedor.razon_social}</h3>
