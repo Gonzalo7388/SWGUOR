@@ -12,11 +12,11 @@ import {
   fetchProductosCotizacion,
   fetchClientesCotizacion,
 } from '@/lib/helpers/cotizaciones-helpers';
-import type { CrearCotizacionInput } from '@/lib/services/cotizaciones-services';
+import type { CrearCotizacionInput } from '@/lib/services/cotizaciones.service';
 
 export const COTIZACIONES_KEY = 'cotizaciones';
 export const PRODUCTOS_COT_KEY = 'cotizaciones_productos';
-export const CLIENTES_COT_KEY  = 'cotizaciones_clientes';
+export const CLIENTES_COT_KEY = 'cotizaciones_clientes';
 
 // ── Lista de cotizaciones ──────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ export function useCotizaciones(estado?: string) {
 
   const query = useQuery({
     queryKey: [COTIZACIONES_KEY, estado],
-    queryFn:  () => fetchCotizaciones(estado),
+    queryFn: () => fetchCotizaciones(estado),
     refetchOnWindowFocus: false,
   });
 
@@ -81,21 +81,21 @@ export function useCotizaciones(estado?: string) {
   return {
     // Datos
     cotizaciones: query.data ?? [],
-    isLoading:    query.isLoading,
-    refetch:      query.refetch,
-    error:        query.error,
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    error: query.error,
 
     // Acciones
-    crear:            (data: CrearCotizacionInput) => createMutation.mutateAsync(data),
-    aprobar:          (id: string)                 => aprobarMutation.mutateAsync(id),
-    rechazar:         (id: string, motivo?: string) => rechazarMutation.mutateAsync({ id, motivo }),
+    crear: (data: CrearCotizacionInput) => createMutation.mutateAsync(data),
+    aprobar: (id: string) => aprobarMutation.mutateAsync(id),
+    rechazar: (id: string, motivo?: string) => rechazarMutation.mutateAsync({ id, motivo }),
     actualizarEstado: (id: string, estado: string, motivo?: string) =>
       estadoMutation.mutateAsync({ id, estado, motivo }),
 
     // Estados de mutación
-    isCreando:          createMutation.isPending,
-    isAprobando:        aprobarMutation.isPending,
-    isRechazando:       rechazarMutation.isPending,
+    isCreando: createMutation.isPending,
+    isAprobando: aprobarMutation.isPending,
+    isRechazando: rechazarMutation.isPending,
     isActualizandoEstado: estadoMutation.isPending,
   };
 }
@@ -105,8 +105,8 @@ export function useCotizaciones(estado?: string) {
 export function useCotizacion(id: string) {
   return useQuery({
     queryKey: [COTIZACIONES_KEY, id],
-    queryFn:  () => fetchCotizacionById(id),
-    enabled:  !!id,
+    queryFn: () => fetchCotizacionById(id),
+    enabled: !!id,
     refetchOnWindowFocus: false,
   });
 }
@@ -116,7 +116,7 @@ export function useCotizacion(id: string) {
 export function useProductosCotizacion() {
   return useQuery({
     queryKey: [PRODUCTOS_COT_KEY],
-    queryFn:  fetchProductosCotizacion,
+    queryFn: fetchProductosCotizacion,
     staleTime: 5 * 60 * 1000, // 5 min — los productos no cambian tan seguido
     refetchOnWindowFocus: false,
   });
@@ -125,7 +125,7 @@ export function useProductosCotizacion() {
 export function useClientesCotizacion() {
   return useQuery({
     queryKey: [CLIENTES_COT_KEY],
-    queryFn:  fetchClientesCotizacion,
+    queryFn: fetchClientesCotizacion,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

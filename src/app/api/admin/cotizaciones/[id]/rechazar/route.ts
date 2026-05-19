@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { CotizacionesService } from '@/lib/services/cotizaciones-services';
+import { CotizacionesService } from '@/lib/services/cotizaciones.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 
@@ -16,9 +16,9 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   try {
-    const { id }     = await params;
+    const { id } = await params;
     const { motivo } = await req.json().catch(() => ({}));
-    const result     = await CotizacionesService.rechazar(id, motivo);
+    const result = await CotizacionesService.rechazar(id, motivo);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 422 });

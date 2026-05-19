@@ -1,12 +1,19 @@
 export const runtime = 'nodejs';
-import { PedidosService } from '@/lib/services/pedidos-services';
+import { PedidosService } from '@/lib/services/pedidos.service';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+import { auditoriaService } from '@/lib/services/auditoria.service';
+
+const PEDIDOS_ROLES: any = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller'];
 
 // GET /api/admin/pedidos/[id]
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireServerRole(PEDIDOS_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const { id } = await params;
 
@@ -27,20 +34,22 @@ export async function GET(
 }
 
 // PUT /api/admin/pedidos/[id]
-// actualizar() solo acepta: estado, prioridad, notas_pedido, notas_cliente
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireServerRole(PEDIDOS_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const { id } = await params;
     const body = await req.json();
 
     const { estado, prioridad, notas_pedido, notas_cliente } = body;
     const data = {
-      ...(estado        !== undefined && { estado }),
-      ...(prioridad     !== undefined && { prioridad }),
-      ...(notas_pedido  !== undefined && { notas_pedido }),
+      ...(estado !== undefined && { estado }),
+      ...(prioridad !== undefined && { prioridad }),
+      ...(notas_pedido !== undefined && { notas_pedido }),
       ...(notas_cliente !== undefined && { notas_cliente }),
     };
 
@@ -52,6 +61,15 @@ export async function PUT(
     }
 
     const pedido = await PedidosService.actualizar(id, data);
+
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'ACTUALIZAR',
+      tabla: 'pedidos',
+      registro_id: BigInt(id),
+      datos_despues: pedido,
+    });
+
     return NextResponse.json({ success: true, data: pedido });
   } catch (error: any) {
     console.error('[PUT /pedidos/:id]', error);

@@ -4,82 +4,129 @@
 
 @layer base {
   :root {
-    /* Formato HSL: H S% L% (sin la función hsl() envolviéndolos) */
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
+    --background: 43 100% 94%;
+    --foreground: 14 14% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card: 43 100% 94%;
+    --card-foreground: 14 14% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
+    --popover-foreground: 14 14% 12%;
 
-    /* Estos valores se conectarán con tu archivo tailwind.config.ts */
-    --primary: 26 62% 59%; /* Aproximación al dorado de tu logo */
-    --primary-foreground: 0 0% 100%;
+    --primary: 31 44% 50%;
+    --primary-foreground: 43 100% 94%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 20 80% 91%;
+    --secondary-foreground: 14 14% 12%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 20 80% 91%;
+    --muted-foreground: 35 47% 54%;
 
-    --accent: 343 78% 93%; /* Aproximación al rosa de tu logo */
-    --accent-foreground: 343 78% 30%;
+    --accent: 38 65% 72%;
+    --accent-foreground: 14 14% 12%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 43 100% 94%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 26 62% 59%;
+    --border: 20 80% 91%;
+    --input: 20 80% 91%;
+    --ring: 31 44% 50%;
 
     --radius: 0.625rem;
   }
 
   .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-
-    --primary: 210 20% 98%;
-    --primary-foreground: 224.3 76.3% 4.8%;
-
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-
+    --background: 14 14% 12%;
+    --foreground: 43 100% 94%;
+    --card: 14 14% 12%;
+    --card-foreground: 43 100% 94%;
+    --popover: 14 14% 12%;
+    --popover-foreground: 43 100% 94%;
+    --primary: 38 65% 72%;
+    --primary-foreground: 14 14% 12%;
+    --secondary: 31 44% 30%;
+    --secondary-foreground: 43 100% 94%;
+    --muted: 31 44% 20%;
+    --muted-foreground: 38 65% 72%;
+    --accent: 31 44% 30%;
+    --accent-foreground: 43 100% 94%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 216 12.2% 83.9%;
+    --destructive-foreground: 43 100% 94%;
+    --border: 31 44% 25%;
+    --input: 31 44% 25%;
+    --ring: 38 65% 72%;
   }
 }
 
 @layer base {
-  :root {
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    
-  }
-  * {
-    @apply border-border;
-  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  .admin-shell {
+    --admin-bg: 36 58% 93%;
+    --admin-surface: 38 100% 96%;
+    --admin-line: 34 45% 82%;
+    --admin-ink: 25 19% 12%;
+    --admin-ink-soft: 33 19% 41%;
+    --admin-avatar: 28 22% 14%;
+
+    --background: var(--admin-bg);
+    --foreground: var(--admin-ink);
+    --card: var(--admin-surface);
+    --card-foreground: var(--admin-ink);
+    --popover: var(--admin-surface);
+    --popover-foreground: var(--admin-ink);
+    --muted: 35 70% 91%;
+    --muted-foreground: var(--admin-ink-soft);
+    --border: var(--admin-line);
+    --input: var(--admin-line);
+
+    color: hsl(var(--admin-ink));
+    background:
+      radial-gradient(circle at 8% 2%, rgb(255 255 255 / 0.6) 0%, transparent 30%),
+      linear-gradient(135deg, #fffaf2 0%, #f7ead8 58%, #f1dfc7 100%);
+  }
+
+  .admin-shell main {
+    color: hsl(var(--admin-ink));
+  }
+}
+
+@layer components {
+  .admin-shell .admin-topbar {
+    background-color: hsl(var(--admin-surface)) !important;
+    border-color: hsl(var(--admin-line)) !important;
+    box-shadow: 0 10px 30px -20px rgb(77 52 30 / 0.45);
+  }
+
+  .admin-shell .admin-user-name {
+    color: hsl(var(--admin-ink)) !important;
+  }
+
+  .admin-shell .admin-user-role {
+    color: hsl(var(--admin-ink-soft)) !important;
+  }
+
+  .admin-shell .admin-user-avatar {
+    background-color: hsl(var(--admin-avatar)) !important;
+    color: white !important;
+  }
+
+  .admin-shell .admin-card,
+  .admin-shell :is(.bg-white, .bg-gray-50, .bg-slate-50, .bg-slate-50\/50, .bg-white\/80) {
+    background-color: hsl(var(--admin-surface));
+    border-color: hsl(var(--admin-line));
+    color: hsl(var(--admin-ink));
+  }
+
+  .admin-shell :is(.text-slate-900, .text-slate-800, .text-slate-700, .text-gray-900, .text-gray-800) {
+    color: hsl(var(--admin-ink));
+  }
+
+  .admin-shell :is(.text-slate-600, .text-slate-500, .text-gray-600, .text-gray-500, .text-gray-400) {
+    color: hsl(var(--admin-ink-soft));
   }
 }
 
@@ -87,11 +134,15 @@
   z-index: 9999 !important;
 }
 
-[data-radix-select-content], 
+[data-radix-select-content],
 .SelectContent {
   background-color: white !important;
   opacity: 1 !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #fbddd3 !important;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
-  border-radius: 0.75rem; /* rounded-xl para mantener tu estilo */
+  border-radius: 0.75rem;
+}
+
+[role="dialog"] > button[aria-label="Close"] {
+  display: none;
 }

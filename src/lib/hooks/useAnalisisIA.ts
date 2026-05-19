@@ -18,27 +18,17 @@ export function useAnalisisIA() {
     setLoading(true);
 
     try {
-      // Aquí conectarías con tu API Route que llama a Gemini/OpenAI
-      // Por ahora, simulamos la lógica de negocio B2B:
-      await new Promise(res => setTimeout(res, 1800));
+      const res = await fetch('/api/portal/analizar-cotizacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, resumen }),
+      });
 
-      const totalUnidades = resumen.total_unidades;
-      
-      // Lógica de recomendación estratégica para la Tesis:
-      if (totalUnidades > 0 && totalUnidades < 500) {
-        setInsight({
-          mensaje: "Tu pedido actual está en el nivel base de precios.",
-          sugerencia: `Si incrementas ${500 - totalUnidades} unidades más, desbloqueas el 'Nivel Mayorista Bronze' con un 5% de descuento adicional en todo el carrito.`,
-          tipo: 'ahorro',
-          impacto: '-S/ 240.00 aprox.'
-        });
-      } else {
-        setInsight({
-          mensaje: "Optimización de Mix de Productos detectada.",
-          sugerencia: "Has cubierto bien las tallas M y L, pero según la tendencia de reposición de tu zona, la talla S suele agotarse un 20% más rápido. ¿Deseas equilibrar el stock?",
-          tipo: 'estrategico',
-          impacto: 'Evitar quiebre de stock'
-        });
+      if (!res.ok) throw new Error('Error en el análisis');
+
+      const data = await res.json();
+      if (data.success) {
+        setInsight(data.insight);
       }
     } catch (error) {
       console.error("Error en IA:", error);

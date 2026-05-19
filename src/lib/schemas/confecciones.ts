@@ -4,11 +4,10 @@ import { z } from "zod";
 
 export const ESTADO_CONFECCION = [
   "pendiente",
-  "en_corte",
-  "en_costura",
-  "acabados",
-  "completado",
-  "cancelado",
+  "en_proceso",
+  "completada",
+  "rechazada",
+  "cancelada",
 ] as const;
 
 export const PRIORIDAD_CONFECCION = ["baja", "media", "alta", "urgente"] as const;
@@ -46,11 +45,10 @@ export type ConfeccionOutput = z.infer<typeof confeccionOutputSchema>;
 
 export const ESTADO_LABELS: Record<typeof ESTADO_CONFECCION[number], string> = {
   pendiente:   "Pendiente",
-  en_corte:    "En Corte",
-  en_costura:  "En Costura",
-  acabados:    "Acabados",
-  completado:  "Completado",
-  cancelado:   "Cancelado",
+  en_proceso:  "En Proceso",
+  completada:  "Completada",
+  rechazada:   "Rechazada",
+  cancelada:   "Cancelada",
 };
 
 export const PRIORIDAD_LABELS: Record<typeof PRIORIDAD_CONFECCION[number], string> = {

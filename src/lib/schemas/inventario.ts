@@ -17,7 +17,6 @@ export const movimientoSchema = z.object({
     .enum(["ORDEN", "COMPRA", "AJUSTE", "VENTA"])
     .optional()
     .nullable(),
-  referencia_id: z.number().optional().nullable(),
 });
 
 // ── 2. SCHEMA PRINCIPAL ───────────────────────────────────────────────────────
@@ -50,7 +49,6 @@ export const ajusteStockSchema = z
       .enum(["ORDEN", "COMPRA", "AJUSTE", "VENTA"])
       .optional()
       .nullable(),
-    referencia_id: z.number().optional().nullable(),
   })
   .refine(
     (d) => !(d.operacion === "absoluto" && d.cantidad < 0),

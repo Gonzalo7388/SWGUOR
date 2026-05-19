@@ -1,111 +1,189 @@
-import Link from 'next/link';
-import { ClipboardCheck, Clock3, Factory, ShieldCheck, Truck, CircleHelp } from 'lucide-react';
+'use client';
 
-const etapas = [
-  {
-    icon: ClipboardCheck,
-    title: 'Orden confirmada',
-    detail: 'Registramos tu orden mayorista y validamos cantidades, tallas y datos de entrega.',
-    eta: '24 horas',
-  },
-  {
-    icon: Factory,
-    title: 'Produccion',
-    detail: 'Tu pedido ingresa a confeccion y control interno de calidad por lote.',
-    eta: 'Segun programacion',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Control de calidad',
-    detail: 'Verificamos acabados, tallaje y empaque para asegurar estandar comercial.',
-    eta: '1 a 2 dias',
-  },
-  {
-    icon: Truck,
-    title: 'Despacho',
-    detail: 'Coordinamos envio con operador logístico y compartimos datos de salida.',
-    eta: 'Entrega nacional',
-  },
+import { useEffect, useState, useCallback } from 'react';
+import {
+  ClipboardCheck, Factory, ShieldCheck, Truck,
+  CheckCircle2, Package, RefreshCw, AlertCircle,
+} from 'lucide-react';
+import {
+  getPedidosActivos,
+  type PedidoConSeguimiento,
+  type EstadoPedido,
+} from '@/lib/services/seguimiento-pedido.service';
+import { usePortal } from '../_contexts/PortalContext';
+
+// ─── Config de Etapas ─────────────────────────────────────────────────────────
+
+type EtapaConfig = {
+  id: EstadoPedido;
+  icon: React.ElementType;
+  label: string;
+};
+
+const ETAPAS: EtapaConfig[] = [
+  { id: 'pendiente', icon: ClipboardCheck, label: 'Confirmado' },
+  { id: 'en_produccion', icon: Factory, label: 'En Confección' },
+  { id: 'listo_para_despacho', icon: ShieldCheck, label: 'Control Calidad' },
+  { id: 'entregado', icon: Truck, label: 'Despachado' },
 ];
 
-export default function PaginaSeguimientoPedido() {
+const ESTADO_INDICE: Partial<Record<EstadoPedido, number>> = {
+  pendiente: 0,
+  en_produccion: 1,
+  listo_para_despacho: 2,
+  entregado: 3,
+};
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
+function TimelineSimple({ estadoActual }: { estadoActual: EstadoPedido }) {
+  const currentIdx = ESTADO_INDICE[estadoActual] ?? 0;
+
   return (
-    <div className="min-h-screen bg-[#FCF7F7] text-[#4A3737]">
-      <section className="border-b border-[#D4AF37]/20 bg-[#F5EBEB]">
-        <div className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-[#8A7676] mb-4">Atencion VIP</p>
-          <h1 className="text-3xl md:text-5xl font-serif leading-tight">
-            Seguimiento de <span className="text-[#B8962D] italic">Pedido</span>
-          </h1>
-          <p className="mt-5 max-w-3xl text-sm md:text-base text-[#6D5A5A] leading-relaxed">
-            Mantenemos una comunicacion clara durante todo el proceso de produccion y despacho para que tu
-            operacion comercial avance con seguridad.
-          </p>
-        </div>
-      </section>
+    <div className="relative w-full max-w-4xl mx-auto py-12 px-4">
+      {/* Línea de fondo */}
+      <div className="absolute top-[3.75rem] left-10 right-10 h-0.5 bg-slate-100 hidden md:block" />
 
-      <main className="max-w-6xl mx-auto px-4 py-12 md:py-16 space-y-8">
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {etapas.map((etapa) => {
-            const Icon = etapa.icon;
-            return (
-              <article
-                key={etapa.title}
-                className="bg-white border border-[#E7D7D7] rounded-2xl p-6 shadow-[0_8px_28px_rgba(74,55,55,0.06)]"
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative gap-8 md:gap-0">
+        {ETAPAS.map((etapa, index) => {
+          const Icon = etapa.icon;
+          const isCompleted = index < currentIdx;
+          const isActive = index === currentIdx;
+
+          return (
+            <div key={etapa.id} className="flex md:flex-col items-center gap-4 md:gap-3 flex-1 relative z-10">
+              {/* Círculo / Icono */}
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isCompleted
+                  ? 'bg-[#d4af37] border-[#d4af37] text-white shadow-lg shadow-[#d4af37]/20'
+                  : isActive
+                    ? 'bg-white border-[#d4af37] text-[#d4af37] ring-4 ring-[#d4af37]/10'
+                    : 'bg-white border-slate-200 text-slate-300'
+                  }`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-11 h-11 rounded-full bg-[#F5EBEB] border border-[#D4AF37]/30 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-[#B8962D]" />
-                  </div>
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-[#8A7676]">{etapa.eta}</span>
+                {isCompleted ? <CheckCircle2 size={24} /> : <Icon size={20} />}
+              </div>
+
+              {/* Etiqueta */}
+              <div className="flex flex-col md:items-center">
+                <span
+                  className={`text-sm font-bold uppercase tracking-wider ${isCompleted || isActive ? 'text-slate-900' : 'text-slate-400'
+                    }`}
+                >
+                  {etapa.label}
+                </span>
+                {isActive && (
+                  <span className="text-[10px] text-[#d4af37] font-black uppercase tracking-tighter animate-pulse">
+                    En curso
+                  </span>
+                )}
+              </div>
+
+              {/* Línea vertical para mobile */}
+              {index < ETAPAS.length - 1 && (
+                <div className="absolute top-12 left-6 w-0.5 h-8 bg-slate-100 md:hidden" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function SeguimientoPedidoPage() {
+  const { cliente } = usePortal();
+  const [pedidos, setPedidos] = useState<PedidoConSeguimiento[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargar = useCallback(async () => {
+    if (!cliente?.id) return;
+    setCargando(true);
+    setError(null);
+    try {
+      const data = await getPedidosActivos(cliente.id);
+      setPedidos(data);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar pedidos');
+    } finally {
+      setCargando(false);
+    }
+  }, [cliente?.id]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-12 pb-24">
+      {/* Header Minimalista */}
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">
+          Seguimiento de <span className="text-[#d4af37]">Pedidos</span>
+        </h1>
+        <p className="text-slate-500 font-medium">Monitoreo en tiempo real de su producción</p>
+      </div>
+
+      {/* Lista de Pedidos */}
+      <div className="space-y-8">
+        {cargando ? (
+          <div className="flex flex-col items-center py-20 gap-4">
+            <RefreshCw className="animate-spin text-[#d4af37]" size={32} />
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Sincronizando...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-100 p-8 rounded-3xl text-center">
+            <AlertCircle className="mx-auto text-red-400 mb-2" size={32} />
+            <p className="text-red-600 font-bold">{error}</p>
+            <button onClick={cargar} className="mt-4 text-xs font-black uppercase text-red-400 hover:underline">Reintentar</button>
+          </div>
+        ) : pedidos.length === 0 ? (
+          <div className="bg-white border border-slate-100 p-20 rounded-[3rem] text-center shadow-sm">
+            <Package className="mx-auto text-slate-200 mb-4" size={48} />
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No tiene pedidos activos</p>
+          </div>
+        ) : (
+          pedidos.map((pedido) => (
+            <div key={pedido.id} className="bg-white border border-slate-100 rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden">
+              <div className="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-6">
+                <div>
+                  <span className="text-[10px] font-black text-[#d4af37] bg-[#d4af37]/5 px-3 py-1 rounded-full uppercase tracking-widest border border-[#d4af37]/20">
+                    {pedido.codigo}
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 mt-2">{pedido.cliente}</h3>
                 </div>
-                <h2 className="text-lg font-serif mb-2">{etapa.title}</h2>
-                <p className="text-sm text-[#6D5A5A] leading-relaxed">{etapa.detail}</p>
-              </article>
-            );
-          })}
-        </section>
+                <div className="flex gap-8">
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unidades</p>
+                    <p className="text-lg font-black text-slate-900">{pedido.total_unidades}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fecha Pedido</p>
+                    <p className="text-lg font-black text-slate-900">
+                      {new Date(pedido.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-        <section className="bg-white border border-[#E7D7D7] rounded-2xl p-6 md:p-8 shadow-[0_8px_28px_rgba(74,55,55,0.06)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Clock3 className="w-5 h-5 text-[#D4AF37]" />
-            <h3 className="font-serif text-xl">Canales de actualizacion</h3>
-          </div>
-          <p className="text-sm text-[#6D5A5A] leading-relaxed mb-6">
-            Compartimos avances por WhatsApp y correo en los hitos principales de tu pedido. Si tu equipo
-            requiere reportes semanales, podemos coordinar un formato ejecutivo durante la atencion comercial.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="https://wa.me/51908801912"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 rounded-full bg-[#D4AF37] hover:bg-[#B8962D] text-white text-xs uppercase tracking-[0.2em] font-semibold transition-colors"
-            >
-              WhatsApp de seguimiento
-            </a>
-            <a
-              href="mailto:modasyestilosguor@gmail.com"
-              className="px-5 py-2.5 rounded-full border border-[#D4AF37]/40 text-[#4A3737] hover:border-[#B8962D] hover:text-[#B8962D] text-xs uppercase tracking-[0.2em] font-semibold transition-colors"
-            >
-              Correo comercial
-            </a>
-          </div>
-        </section>
+              {/* La Línea de Tiempo es lo principal */}
+              <div className="bg-slate-50/30">
+                <TimelineSimple estadoActual={pedido.estado} />
+              </div>
 
-        <section className="bg-[#F5EBEB] border border-[#EAD7D7] rounded-2xl p-6 md:p-8">
-          <div className="flex items-start gap-3">
-            <CircleHelp className="w-5 h-5 text-[#B8962D] mt-0.5" />
-            <p className="text-sm text-[#6D5A5A] leading-relaxed">
-              Si deseas una consulta puntual de estado, incluye en tu mensaje el nombre del cliente, fecha de
-              orden y modelo solicitado para brindarte una respuesta mas rapida.
-            </p>
-          </div>
-          <Link href="/ecommerce/preguntas-frecuentes" className="inline-block mt-5 text-xs uppercase tracking-[0.2em] font-semibold text-[#4A3737] hover:text-[#B8962D] transition-colors">
-            Ver preguntas frecuentes
-          </Link>
-        </section>
-      </main>
+              <div className="px-8 py-4 bg-white flex items-center justify-between">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Estado: <span className="text-slate-900">{pedido.estado.replace('_', ' ')}</span></p>
+                <a
+                  href={`https://wa.me/51908801912?text=Hola, quisiera consultar sobre mi pedido ${pedido.codigo}`}
+                  target="_blank"
+                  className="text-[10px] font-black uppercase text-[#d4af37] hover:underline"
+                >
+                  Consultar con asesor
+                </a>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

@@ -10,16 +10,20 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/productos': ['administrador', 'disenador', 'gerente', 'recepcionista', 'representante_taller'],
   '/admin/Panel-Administrativo/fichas-tecnicas': ['administrador', 'gerente', 'disenador', 'cortador'],
   '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador', 'gerente', 'cortador', 'ayudante', 'representante_taller'],
-  '/admin/Panel-Administrativo/produccion': ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'],
-  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente', 'cortador'],
+  '/admin/Panel-Administrativo/movimientos': ['administrador', 'gerente', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
+  '/admin/Panel-Administrativo/ordenes-produccion': ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'],
+  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente'],
   '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista', 'gerente'],
   '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador', 'gerente'],
   '/admin/Panel-Administrativo/talleres': ['administrador', 'gerente', 'representante_taller'],
   '/admin/Panel-Administrativo/proveedores': ['administrador', 'gerente'],
-  '/admin/Panel-Administrativo/ventas': ['administrador', 'recepcionista', 'gerente'],
   '/admin/Panel-Administrativo/despachos': ['administrador', 'recepcionista', 'gerente', 'ayudante', 'representante_taller'],
   '/admin/Panel-Administrativo/pagos': ['administrador', 'gerente'],
+  '/admin/Panel-Administrativo/feedback-cliente': ['administrador', 'gerente'],
   '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
+  '/admin/Panel-Administrativo/almacenes': ['administrador', 'gerente'],
+  '/admin/Panel-Administrativo/incidencias-taller': ['administrador', 'gerente', 'representante_taller'],
+  '/admin/Panel-Administrativo/incidencias-clientes': ['administrador', 'gerente', 'representante_taller'],
   '/portal/dashboard': ['cliente'],
 };
 
@@ -28,12 +32,10 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   // 1. RUTAS PÚBLICAS
-// Agregamos '/' para que la Landing Page sea accesible para todos
-const publicPaths = ['/', '/auth/login', '/auth/signup', '/admin/acceso-denegado'];
-
-if (publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'))) {
-  return response;
-}
+  const publicPaths = ['/auth/login', '/auth/signup', '/admin/acceso-denegado'];
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,7 +80,7 @@ if (publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'
   if (pathname.startsWith('/admin') && userRole === 'cliente') {
     return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
   }
-  
+
   if (pathname.startsWith('/portal') && userRole !== 'cliente') {
     return NextResponse.redirect(new URL('/admin/Panel-Administrativo/dashboard', request.url));
   }
@@ -90,7 +92,7 @@ if (publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'
   if (matchedRoute) {
     const rolesPermitidos = routePermissions[matchedRoute];
     const esSuperUsuario = userRole === 'gerente' || userRole === 'administrador';
-    
+
     // Normalizamos roles permitidos a minúsculas por seguridad
     const rolesPermitidosLower = rolesPermitidos.map(r => r.toLowerCase());
 

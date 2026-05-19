@@ -128,14 +128,14 @@ export default function ProveedoresPage() {
           />
           <ProveedorStatCard
             label="ACTIVOS"
-            value={proveedores.filter((p) => p.estado === 'activo').length}
+            value={proveedores.filter((p: Proveedor) => p.estado === 'activo').length}
             color="emerald"
             isActive={estadoFilter === 'activo'}
             onClick={() => { setEstadoFilter('activo'); setPage(1); }}
           />
           <ProveedorStatCard
             label="INACTIVOS"
-            value={proveedores.filter((p) => p.estado === 'inactivo').length}
+            value={proveedores.filter((p: Proveedor) => p.estado === 'inactivo').length}
             color="orange"
             isActive={estadoFilter === 'inactivo'}
             onClick={() => { setEstadoFilter('inactivo'); setPage(1); }}

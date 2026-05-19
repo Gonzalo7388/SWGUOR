@@ -10,13 +10,13 @@ import {
   TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import type { ClienteListItem } from "@/lib/services/clientes-services";
+import type { ClienteListItem } from "@/lib/services/clientes.service";
 
 // ─── Props ────────────────────────────────────────────────────
 interface Props {
-  clientes:     ClienteListItem[];
-  loading?:     boolean;
-  onEdit?:      (user: ClienteListItem) => void;
+  clientes: ClienteListItem[];
+  loading?: boolean;
+  onEdit?: (user: ClienteListItem) => void;
   onSuspender?: (user: ClienteListItem) => void;
 }
 
@@ -26,11 +26,10 @@ function EstadoBadge({ estado }: { estado: string }) {
   return (
     <Badge
       variant="outline"
-      className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase border ${
-        activo
+      className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase border ${activo
           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
           : "bg-orange-50 text-orange-600 border-orange-200"
-      }`}
+        }`}
     >
       {estado}
     </Badge>
@@ -39,9 +38,9 @@ function EstadoBadge({ estado }: { estado: string }) {
 
 // ─── Componente ───────────────────────────────────────────────
 function ClientesTable({ clientes, loading, onEdit, onSuspender }: Props) {
-  const router      = useRouter();
+  const router = useRouter();
   const showActions = !!onEdit || !!onSuspender;
-  const colSpan     = 4 + (showActions ? 1 : 0);
+  const colSpan = 4 + (showActions ? 1 : 0);
 
   return (
     <Table>
@@ -147,7 +146,7 @@ function ClientesTable({ clientes, loading, onEdit, onSuspender }: Props) {
               {/* Direccion Fiscal */}
               <TableCell className="text-center">
                 <span className="text-xs text-slate-600 flex items-center justify-center gap-1.5">
-                  <MapPin size={11} className="text-slate-300 shrink-0"/>
+                  <MapPin size={11} className="text-slate-300 shrink-0" />
                   {c.direccion_fiscal || <span className="text-slate-300">No registrada</span>}
                 </span>
               </TableCell>
@@ -201,10 +200,10 @@ function ClientesTable({ clientes, loading, onEdit, onSuspender }: Props) {
 type ColorKey = "pink" | "emerald" | "amber" | "blue";
 
 const COLOR_MAP: Record<ColorKey, string> = {
-  pink:    "hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50",
+  pink: "hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50",
   emerald: "hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50",
-  amber:   "hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50",
-  blue:    "hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50",
+  amber: "hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50",
+  blue: "hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50",
 };
 
 function ActionBtn({ children, onClick, title, color }: {
@@ -226,7 +225,7 @@ function ActionBtn({ children, onClick, title, color }: {
   );
 }
 
-const thCls  = "font-bold text-[10px] tracking-widest text-slate-400 uppercase py-3 px-4";
+const thCls = "font-bold text-[10px] tracking-widest text-slate-400 uppercase py-3 px-4";
 const rowCls = "bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-150";
 
 export default memo(ClientesTable);

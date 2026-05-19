@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { FichasTecnicasDetalleService } from '@/lib/services/fichas-tecnicas-detalle-services';
+import { FichasTecnicasDetalleService } from '@/lib/services/fichas-tecnicas-detalle.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 

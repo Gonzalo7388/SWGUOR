@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { toast } from "sonner";
-import { Save, Loader2, ArrowLeft } from "lucide-react";
+import { Save, Loader2, ArrowLeft, Package, Layers, ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useVarianteStockResumen } from '@/lib/hooks/useStockResumen';
 import { GeneralInfoSection } from "./sections/GeneralInfoSection";
 import { VariantsSection } from "./sections/VariantsSection";
+import { ImageUploadSection } from "./sections/ImageUploadSection";
 import { generateSKU, generateVariantSKU } from "@/lib/utils/producto-utils";
 
 interface ProductFormProps {
@@ -19,40 +20,49 @@ interface ProductFormProps {
   nextId?: number;
 }
 
-export default function ProductForm({
-  mode,
-  initialData,
-  categorias,
-  nextId,
-}: ProductFormProps) {
+export default function ProductForm({ mode, initialData, categorias, nextId }: ProductFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
-  // Hook para obtener stocks actualizados si es necesario
+
   const { data: variantesDB } = useVarianteStockResumen(
     initialData?.id ? Number(initialData.id) : undefined
   );
 
+  // ── Mapeo normalizado: siempre { sku, color, talla, stock } ──
+  const stockResumen: { sku: string; color: string; talla: string; stock: number }[] =
+    (variantesDB ?? initialData?.variantes_producto ?? []).map((v: any) => ({
+      sku: v.sku ?? "",
+      color: v.color ?? "",
+      textura: v.textura ?? "",
+      talla: v.talla ?? "",
+      stock: v.stock ?? v.stock_actual ?? 0,
+    }));
+
   const methods = useForm({
     defaultValues: initialData
       ? {
-          ...initialData,
-          variantes: initialData.variantes_producto?.map((v: any) => ({
-            id: v.id,
-            color: v.color,
-            talla: v.talla,
-            sku: v.sku,
-            stock: v.stock,
-          })) ?? [],
-        }
+        ...initialData,
+        categoria_id: initialData.categoria_id != null ? String(initialData.categoria_id) : "",
+        estado: initialData.estado || "activo",
+        imagen: initialData.imagen ?? null,
+        variantes: initialData.variantes_producto?.map((v: any) => ({
+          id: v.id,
+          color: v.color,
+          talla: v.talla,
+          sku: v.sku,
+          stock: v.stock ?? v.stock_actual ?? 0,
+        })) ?? [],
+      }
       : {
-          nombre: "",
-          precio: "",
-          categoria_id: "",
-          sku: "",
-          estado: "activo",
-          variantes: [{ color: "", talla: "", stock: 0, sku: "" }],
-        },
+        nombre: "",
+        precio: "",
+        categoria_id: "",
+        categoria_nombre: "",
+        sku: "",
+        estado: "activo",
+        imagen: null,
+        variantes: [{ color: "", talla: "", stock: 0, sku: "" }],
+      },
   });
 
   const onSubmit = async (data: any) => {
@@ -63,10 +73,8 @@ export default function ProductForm({
         ? "/api/admin/productos"
         : `/api/admin/productos/${initialData.id}`;
 
-      const categoria = categorias.find(
-        c => c.id.toString() === data.categoria_id.toString()
-      );
-      const catNombre = categoria ? categoria.nombre : "GEN";
+      const categoria = categorias.find((c) => c.id.toString() === data.categoria_id.toString());
+      const catNombre = categoria?.nombre ?? "GEN";
       const skuProducto = data.sku || generateSKU(data.nombre, catNombre, nextId || 0);
 
       const bodyParaAPI = {
@@ -76,20 +84,21 @@ export default function ProductForm({
           categoria_id: parseInt(data.categoria_id),
           sku: skuProducto,
           estado: data.estado || "activo",
+          imagen: data.imagen || null,
           reglas_descuento: data.reglas_descuento || null,
           fichas_tecnicas_id: data.fichas_tecnicas_id || null,
         },
         variantes: (data.variantes || []).map((v: any) => ({
-          id: v.id, // Importante enviar el ID para actualizar en lugar de duplicar
+          id: v.id,
           color: v.color,
           talla: v.talla,
           sku: generateVariantSKU(skuProducto, v.color, v.talla),
-          stock: parseInt(v.stock_adicional) || 0,
+          stock: parseInt(v.stock) || 0,
           estado: "activo",
         })),
         nueva_ficha_relacional: data.ficha_tecnica ? {
           version: data.ficha_tecnica.version || "1.0",
-          descripcion_detallada: data.ficha_tecnica.descripcion_detallada || "Sin descripción",
+          descripcion_detallada: data.ficha_tecnica.version_detallada || "Sin descripción",
           sam_total: parseFloat(data.ficha_tecnica.sam_total) || 0,
           costo_estimado: parseFloat(data.ficha_tecnica.costo_estimado) || 0,
           estado: "Borrador",
@@ -108,7 +117,6 @@ export default function ProductForm({
       toast.success("Producto guardado correctamente");
       router.push("/admin/Panel-Administrativo/productos");
       router.refresh();
-
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -116,57 +124,73 @@ export default function ProductForm({
     }
   };
 
+  const isEdit = mode === "edit";
+
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)} className="max-w-5xl mx-auto space-y-8 pb-20">
-        
-        {/* Barra de acciones superior */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="max-w-5xl mx-auto pb-24">
+
+        {/* ── Cabecera ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <Link
               href="/admin/Panel-Administrativo/productos"
-              className="inline-flex items-center gap-1.5 text-pink-600 hover:text-pink-700 text-xs font-bold uppercase tracking-widest mb-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-slate-400 hover:text-slate-700 text-[11px] font-black uppercase tracking-widest mb-2 transition-colors"
             >
-              <ArrowLeft size={13} />
+              <ArrowLeft size={12} />
               Volver al Inventario
             </Link>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {mode === "create" ? "Nuevo Producto" : "Editar Producto"}
-            </h2>
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-7 bg-teal-500 rounded-full" />
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                {isEdit ? "Editar Producto" : "Nuevo Producto"}
+              </h2>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="h-10 px-5 font-semibold border-gray-200 text-gray-600"
+              className="h-10 px-5 text-xs font-bold border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-pink-600 hover:bg-pink-700 text-white h-10 px-6 font-bold gap-2"
+              className="h-10 px-6 text-xs font-black bg-teal-600 hover:bg-teal-700 text-white rounded-xl gap-2 shadow-sm shadow-teal-200"
             >
-              {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save size={16} />}
-              {mode === "create" ? "Guardar Producto" : "Guardar Cambios"}
+              {loading ? (
+                <Loader2 className="animate-spin w-4 h-4" />
+              ) : (
+                <Save size={14} />
+              )}
+              {isEdit ? "Guardar Cambios" : "Crear Producto"}
             </Button>
           </div>
         </div>
 
-        {/* Layout Centralizado de una sola columna para mejor lectura */}
-        <div className="space-y-6">
-          <SectionCard title="Información General">
-            <GeneralInfoSection
-              categorias={categorias}
-              isEdit={mode === "edit"}
-              nextId={nextId}
-            />
-          </SectionCard>
+        <div className="space-y-5">
+          {/* ── Fila superior: imagen + info general ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
+            <SectionCard title="Imagen del Producto" icon={<ImageIcon size={12} />}>
+              <ImageUploadSection />
+            </SectionCard>
 
-          <SectionCard title="Gestión de Variantes y Stock">
-            <VariantsSection stockResumen={variantesDB || initialData?.variantes_producto} mode={mode} />
+            <SectionCard title="Información General" icon={<Package size={12} />}>
+              <GeneralInfoSection
+                categorias={categorias}
+                isEdit={isEdit}
+                nextId={nextId}
+              />
+            </SectionCard>
+          </div>
+
+          {/* ── Variantes ── */}
+          <SectionCard title="Variantes e Inventario" icon={<Layers size={12} />}>
+            <VariantsSection stockResumen={stockResumen} mode={mode} />
           </SectionCard>
         </div>
       </form>
@@ -174,11 +198,22 @@ export default function ProductForm({
   );
 }
 
-function SectionCard({ children, title }: { children: React.ReactNode, title: string }) {
+function SectionCard({
+  children,
+  title,
+  icon,
+}: {
+  children: React.ReactNode;
+  title: string;
+  icon?: React.ReactNode;
+}) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">{title}</h3>
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-6 py-3.5 border-b border-slate-100 bg-slate-50/60">
+        {icon && <span className="text-teal-500">{icon}</span>}
+        <h3 className="text-[10px] font-black text-teal-600 uppercase tracking-widest">
+          {title}
+        </h3>
       </div>
       <div className="p-6">{children}</div>
     </div>

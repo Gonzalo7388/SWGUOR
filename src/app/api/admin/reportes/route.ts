@@ -2,8 +2,14 @@ export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt, stringifyBigInts } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+
+const REPORTES_ROLES: any = ['administrador', 'gerente'];
 
 export async function GET(req: Request) {
+  const auth = await requireServerRole(REPORTES_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const { searchParams } = new URL(req.url);
 
@@ -41,8 +47,8 @@ export async function GET(req: Request) {
           _count: { id: true },
           _sum:   { total_orden: true },
         }),
-        prisma.ventas.aggregate({
-          where: { created_at: whereFecha },
+        prisma.pedidos.aggregate({
+          where: { created_at: whereFecha, estado: 'entregado' },
           _count: { id: true },
           _sum:   { total: true },
         }),
@@ -51,9 +57,9 @@ export async function GET(req: Request) {
       ]),
 
       // 1. DETALLE DE VENTAS
-      prisma.ventas.findMany({
-        where:   { created_at: whereFecha },
-        include: { usuarios: { select: { email: true } } },
+      prisma.pedidos.findMany({
+          where:   { created_at: whereFecha, estado: 'entregado' },
+        include: { clientes: { select: { email: true } } },
         orderBy: { created_at: 'desc' },
         take:    200,
       }),
@@ -79,7 +85,7 @@ export async function GET(req: Request) {
       // ✅ total_estimado pertenece a pedidos, no a ordenes_compra
       prisma.pedidos.groupBy({
         by:      ['cliente_id'],
-        _count:  { id: true },
+        _count:  true,
         _sum:    { total_estimado: true },
         where:   { created_at: whereFecha, cliente_id: { not: null } },
         orderBy: { _sum: { total_estimado: 'desc' } },
@@ -90,23 +96,23 @@ export async function GET(req: Request) {
       prisma.pedido_items.groupBy({
         by:      ['producto_id'],
         _sum:    { cantidad: true },
-        _count:  { id: true },
+        _count:  true,
         orderBy: { _sum: { cantidad: 'desc' } },
         take:    15,
       }),
 
       // 6. VENTAS AGRUPADAS POR TIEMPO
-      prisma.ventas.findMany({
-        where:   { created_at: whereFecha },
+      prisma.pedidos.findMany({
+        where:   { created_at: whereFecha, estado: 'entregado' },
         select:  { total: true, created_at: true },
         orderBy: { created_at: 'asc' },
       }),
 
       // 7. DETALLE DE PAGOS
-      prisma.pagos_orden.groupBy({
+      prisma.pagos.groupBy({
         by:      ['metodo_pago'],
         _sum:    { monto: true },
-        _count:  { id: true },
+        _count:  true,
         where:   { fecha_pago: whereFecha },
         orderBy: { _sum: { monto: 'desc' } },
       }),
@@ -142,7 +148,7 @@ export async function GET(req: Request) {
       cliente_id:      c.cliente_id?.toString() ?? null,
       razon_social:    c.cliente_id ? clientesMap.get(c.cliente_id.toString())?.razon_social ?? 'N/A' : 'N/A',
       ruc:             c.cliente_id ? clientesMap.get(c.cliente_id.toString())?.ruc ?? null : null,
-      total_ordenes:   c._count.id,
+      total_ordenes:   c._count,
       total_comprado:  Number(c._sum.total_estimado ?? 0),
     }));
 
@@ -167,7 +173,7 @@ export async function GET(req: Request) {
         nombre:         prod?.nombre              ?? 'N/A',
         categoria:      prod?.categorias?.nombre  ?? 'Sin categoría',
         cantidad_total: Number(p._sum?.cantidad   ?? 0),
-        pedidos_count:  p._count?.id              ?? 0,
+        pedidos_count:  p._count              ?? 0,
       };
     });
 
@@ -188,7 +194,7 @@ export async function GET(req: Request) {
         metrics: {
           total_ventas:        totalVentas,
           total_ordenes_compra: totalOrdenesComp,
-          ventas_count:        ventasAgg._count?.id   ?? 0,
+          ventas_count:        ventasAgg._count   ?? 0,
           nuevos_clientes:     nuevosClientes,
           nuevos_pedidos:      nuevosPedidos,
           crecimiento_pct:     Math.round(crecimiento),
@@ -206,7 +212,7 @@ export async function GET(req: Request) {
         pagosPorMetodo:    pagosDetalle.map((p) => ({
           metodo:       p.metodo_pago,
           monto_total:  Number(p._sum?.monto ?? 0),
-          count:        p._count?.id         ?? 0,
+          count:        p._count         ?? 0,
         })),
       })
     );

@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
-import { useRouter }        from 'next/navigation';
-import { Search, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { usePortal, MOQ_MINIMO } from '../../_contexts/PortalContext';
-import { useProductosPortal }    from '@/lib/hooks/useProductosPortal';
-import { CotizadorPanel }        from '@/components/portal/CotizacionPanel';
-import { cn }                    from '@/lib/utils';
-import { toast }                 from 'sonner';
-import { Producto } from '../../../../components/portal/ProductoCard';
+import { useState, useEffect, useTransition } from 'react';
+import { AlertTriangle, CheckCircle, Loader2, Minus, Plus } from 'lucide-react';
+import { usePortal, MOQ_MINIMO, MAX_UNIDADES } from '../../_contexts/PortalContext';
+import { CotizadorPanel } from '@/components/portal/cotizaciones/CotizacionPanel';
+import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
-
-const TALLAS_ORDEN = ['XS','S','M','L','XL','XXL','28','30','32','34'];
-
-
-
-
+// ── Brand colors ──────────────────────────────────────────────────
+const BRAND = {
+  ocre: '#b5854b',
+  ocreDark: '#9a6e3a',
+  ocreLight: '#fff4e2',
+  negro: '#231e1d',
+  negroHover: '#3a3330',
+};
 
 type Variante = {
   id: number;
@@ -25,88 +25,69 @@ type Variante = {
 };
 
 export default function NuevaCotizacionPage() {
-  const router  = useRouter();
-  const { cliente, items, resumen, agregarAlBorrador, actualizarItem, limpiarBorrador } = usePortal();
+  const { cliente, items, resumen, zonaEnvio, actualizarItem, limpiarBorrador } = usePortal();
+  const router = useRouter();
 
-  // Búsqueda de productos
-  const [busqueda,      setBusqueda]      = useState('');
-  const [categoriaId,   setCategoriaId]   = useState<number | undefined>();
-  const [tallaFiltro,   setTallaFiltro]   = useState('');
-  const { productos, loading: buscando }  = useProductosPortal({ busqueda, categoriaId, talla: tallaFiltro });
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [cotizacionId, setCotizacionId] = useState<string | null>(null);
 
-  // Estado por producto (talla/color/cantidad elegidos antes de agregar)
-  const [seleccion, setSeleccion] = useState<Record<number, {
-    variante_id: number; talla: string; color: string; cantidad: number;
-  }>>({});
-
-  const [isPending, startTransition] = useTransition();
-
-  // ── Helpers ──────────────────────────────────────────────────────
-  const getSeleccion = (productoId: number) => seleccion[productoId] ?? {
-    variante_id: 0, talla: '', color: '', cantidad: MOQ_MINIMO,
-  };
-
-  const updateSeleccion = (productoId: number, patch: Partial<typeof seleccion[number]>) => {
-    setSeleccion(prev => ({
-      ...prev,
-      [productoId]: { ...getSeleccion(productoId), ...patch },
-    }));
-  };
-
-  // Modal
+  // Modal editar variante
   const [itemDetalle, setItemDetalle] = useState<any>(null);
   const [colorSeleccionado, setColorSeleccionado] = useState('');
   const [tallaSeleccionada, setTallaSeleccionada] = useState('');
   const [itemEditando, setItemEditando] = useState<any>(null);
 
-  // ── ABRIR MODAL ─────────────────────────────────────────
+  const [isPending, startTransition] = useTransition();
+
+  // Redirect automático 3 s después de generar cotización
+  useEffect(() => {
+    if (!mostrarConfirmacion) return;
+    const timer = setTimeout(() => {
+      router.push('/portal/cotizaciones');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [mostrarConfirmacion, router]);
+
+  // ── Abrir modal de edición ───────────────────────────────────────
   const handleVerDetalles = (item: any) => {
     setItemDetalle(item);
-
     const variantes: Variante[] = item.variantes ?? [];
-
     const colores = [...new Set(variantes.map(v => v.color))];
     const colorInicial = colores[0] ?? '';
-
-    const tallas = variantes
-      .filter(v => v.color === colorInicial)
-      .map(v => v.talla);
-
+    const tallas = variantes.filter(v => v.color === colorInicial).map(v => v.talla);
     setColorSeleccionado(colorInicial);
     setTallaSeleccionada(tallas[0] ?? '');
   };
 
-  // ── DERIVADOS ───────────────────────────────────────────
+  // ── Derivados del modal ──────────────────────────────────────────
   const variantes: Variante[] = itemDetalle?.variantes ?? [];
-
-  const coloresDisponibles: string[] = [
-    ...new Set(variantes.map(v => v.color))
-  ];
-
+  const coloresDisponibles: string[] = [...new Set(variantes.map(v => v.color))];
   const tallasDisponibles: string[] = variantes
     .filter(v => v.color === colorSeleccionado)
     .map(v => v.talla)
     .filter((t, i, arr) => arr.indexOf(t) === i);
 
-    // ── AGREGAR DESDE MODAL ────────────────────────────────
+  // ── Cambiar cantidad ─────────────────────────────────────────────
+  const handleCambiarCantidad = (item: any, nuevaCantidad: number) => {
+    let cantidad = Math.max(1, nuevaCantidad);
+    if (cantidad > MAX_UNIDADES) {
+      cantidad = MAX_UNIDADES;
+      toast.error(`La cantidad máxima permitida es de ${MAX_UNIDADES.toLocaleString()} unidades`);
+    }
+    actualizarItem({ variante_id: item.variante_id, cantidad });
+  };
+
+  // ── Guardar variante desde modal ─────────────────────────────────
   const handleAgregarDesdeModal = () => {
     if (!itemDetalle || !itemEditando) return;
-
     if (!colorSeleccionado || !tallaSeleccionada) {
       toast.error('Selecciona color y talla');
       return;
     }
-
     const variante = variantes.find(
-      v => v.color === colorSeleccionado && v.talla === tallaSeleccionada
+      v => v.color === colorSeleccionado && v.talla === tallaSeleccionada,
     );
-
-    if (!variante) {
-      toast.error('Variante no encontrada');
-      return;
-    }
+    if (!variante) { toast.error('Variante no encontrada'); return; }
 
     actualizarItem({
       variante_id: itemEditando.variante_id,
@@ -114,18 +95,14 @@ export default function NuevaCotizacionPage() {
       talla: tallaSeleccionada,
       color: colorSeleccionado,
     });
-
     toast.success('Producto actualizado');
-
     setItemDetalle(null);
     setItemEditando(null);
   };
 
-  // ── Enviar cotización ─────────────────────────────────────────────
+  // ── Enviar / guardar borrador ────────────────────────────────────
   const handleEnviar = async (accion: 'borrador' | 'enviar') => {
-    
     if (!items.length) return;
-
     startTransition(async () => {
       try {
         const res = await fetch('/api/portal/cotizaciones', {
@@ -133,61 +110,54 @@ export default function NuevaCotizacionPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             cliente_id: cliente!.id,
-            estado:     accion === 'borrador' ? 'borrador' : 'enviada',
-           
-       items: items.map(i => ({
-  producto_id: i.producto_id,
-  variante_id: i.variante_id,
-  precio_unitario: i.precio_unitario, 
-  cantidad: i.cantidad,
-  color_snapshot: i.color,
-  talla_snapshot: i.talla,
-  subtotal: i.subtotal,
-})),
+            estado: accion === 'borrador' ? 'borrador' : 'enviada',
+            costo_envio: resumen.costo_envio,
+            zona_envio: zonaEnvio,
+            items: items.map(i => ({
+              producto_id: i.producto_id,
+              variante_id: i.variante_id,
+              precio_unitario: i.precio_unitario,
+              cantidad: i.cantidad,
+              color_snapshot: i.color,
+              talla_snapshot: i.talla,
+              subtotal: i.subtotal,
+            })),
           }),
         });
 
         if (!res.ok) {
           const err = await res.json();
-
           if (err.error === 'moq_insuficiente') {
             toast.error(`MOQ incumplido: ${err.detalle.join(', ')}`);
             return;
           }
-
           if (err.error === 'stock_insuficiente') {
             toast.error('Stock insuficiente para alguno de los productos');
             return;
           }
-
           throw new Error(err.error);
         }
 
         const { data } = await res.json();
         limpiarBorrador();
-
-        setCotizacionId(data.id);
-setMostrarConfirmacion(true);
-
+        setCotizacionId(data.numero);
+        setMostrarConfirmacion(true);
         toast.success(
-          accion === 'borrador'
-            ? 'Borrador guardado'
-            : 'Cotización enviada a GUOR'
+          accion === 'borrador' ? 'Borrador guardado' : 'Cotización generada correctamente',
         );
-
-       
       } catch (e: any) {
         toast.error(e.message ?? 'Error al guardar la cotización');
       }
     });
   };
 
-  // ── Render ────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen">
-      {/* Topbar */}
-      <div className="flex items-center justify-between px-6 h-14 bg-white border-b border-slate-200 shrink-0">
-        <h1 className="text-sm font-medium text-slate-900">
+    <div className="flex flex-col h-screen bg-slate-50">
+
+      {/* ── Topbar ── */}
+      <div className="flex items-center justify-between px-6 h-14 bg-white border-b border-slate-200 shrink-0 shadow-sm">
+        <h1 className="text-sm font-semibold text-slate-900">
           Nueva cotización
           {items.length > 0 && (
             <span className="ml-2 text-slate-400 font-normal">
@@ -196,258 +166,275 @@ setMostrarConfirmacion(true);
           )}
         </h1>
         <div className="flex items-center gap-2">
+
+          {/* Guardar borrador */}
           <button
             onClick={() => handleEnviar('borrador')}
             disabled={!items.length || isPending}
-            className="px-4 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 transition-colors"
+            className="px-4 py-1.5 text-xs font-semibold rounded-lg border transition-all disabled:opacity-40"
+            style={{ borderColor: BRAND.negro, color: BRAND.negro, backgroundColor: 'transparent' }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.negro;
+              (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.color = BRAND.negro;
+            }}
           >
             Guardar borrador
           </button>
 
+          {/* Generar cotización */}
           <button
             onClick={() => handleEnviar('enviar')}
             disabled={!items.length || isPending}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-all disabled:opacity-40 shadow-sm"
+            style={{ backgroundColor: BRAND.ocre }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocreDark}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocre}
           >
             {isPending && <Loader2 size={12} className="animate-spin" />}
-            Enviar cotización
+            Generar cotización
           </button>
 
         </div>
       </div>
 
-      {/*Layout de dos columnas*/}
+      {/* ── Layout dos columnas ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Panel izquierdo — búsqueda y resultados */}
-        <div className="flex-1 overflow-auto p-5">
+        {/* ── Panel izquierdo — lista del borrador ── */}
+        <div className="flex-1 overflow-auto p-5 space-y-4">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                <Plus size={24} className="opacity-20" />
+              </div>
+              <p className="text-sm font-medium">Aún no hay productos en la cotización</p>
+              <p className="text-xs mt-1">Busca productos en el catálogo y agrégalos al borrador</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
 
-    {/* Controles de búsqueda */}
-    <div className="flex gap-3 mb-4">
-      <div className="relative flex-1">
-        <Search
-          size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          type="text"
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre"
-          className="w-full pl-9 pr-4 h-9 border border-slate-200 rounded-md text-sm bg-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
-        />
-      </div>
-
-      <select
-        value={tallaFiltro}
-        onChange={e => setTallaFiltro(e.target.value)}
-        className="h-9 border border-slate-200 rounded-md text-sm px-3 bg-white text-slate-700 focus:outline-none focus:border-blue-400"
-      >
-        <option value="">Todas las tallas</option>
-        {TALLAS_ORDEN.map(t => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    {items.length === 0 ? (
-      <p className="text-sm text-slate-400 text-center py-16">
-        Aún no hay productos en la cotización
-      </p>
-    ) : (
-      <div className="space-y-2">
-
-        {/* Listado de productos agregados a la cotización */}
-        {items.map((item: any) => (
-          <div
-            key={`${item.producto_id}-${item.talla}-${item.color}`}
-            className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-3 px-4 py-3 bg-white border rounded-md items-center text-sm"
-          >
-            {/* Producto */}
-            {/* Imagen */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 bg-slate-100 rounded overflow-hidden">
-                {item.imagen && (
-                  <img src={item.imagen} className="w-full h-full object-cover" />
-                )}
+              {/* Cabecera */}
+              <div className="grid grid-cols-[2fr_1fr_1.4fr_1fr_auto] gap-3 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <span>Producto</span>
+                <span>Precio unit.</span>
+                <span>Cantidad</span>
+                <span>Subtotal</span>
+                <span />
               </div>
 
-              <div className="min-w-0">
-                <p className="font-medium text-slate-900 truncate">{item.nombre}</p>
-                <p className="text-xs text-slate-400">{item.sku}</p>
+              {items.map((item: any) => {
+                const subtotal = Number(item.precio_unitario) * Number(item.cantidad);
+                const moqOk = item.cantidad >= MOQ_MINIMO;
+                return (
+                  <div
+                    key={`${item.producto_id}-${item.talla}-${item.color}`}
+                    className={cn(
+                      'grid grid-cols-[2fr_1fr_1.4fr_1fr_auto] gap-3 px-4 py-3 bg-white border rounded-xl items-center text-sm shadow-sm transition-all',
+                      !moqOk ? 'border-amber-300 bg-amber-50/30' : 'border-slate-100',
+                    )}
+                  >
+                    {/* Producto */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 bg-slate-100 rounded-lg overflow-hidden shrink-0">
+                        {item.imagen && (
+                          <img src={item.imagen} className="w-full h-full object-cover" alt={item.nombre} />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">{item.nombre}</p>
+                        <p className="text-xs text-slate-400">
+                          {item.sku} · <span className="font-medium" style={{ color: BRAND.ocre }}>{item.talla}</span> · {item.color}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Precio */}
+                    <p className="font-semibold text-slate-700">
+                      S/ {Number(item.precio_unitario).toFixed(2)}
+                    </p>
+
+                    {/* Stepper */}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleCambiarCantidad(item, item.cantidad - 50)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.cantidad}
+                          onChange={e => handleCambiarCantidad(item, parseInt(e.target.value) || 1)}
+                          className="w-16 h-7 text-center text-sm font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
+                        />
+                        <button
+                          onClick={() => handleCambiarCantidad(item, item.cantidad + 50)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                      {!moqOk && (
+                        <p className="text-[10px] font-semibold text-amber-600 flex items-center gap-1">
+                          <AlertTriangle size={10} />
+                          Mín. {MOQ_MINIMO} uds
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Subtotal */}
+                    <p className="font-bold text-slate-900">S/ {subtotal.toFixed(2)}</p>
+
+                    {/* Acciones */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => { setItemEditando(item); handleVerDetalles(item); }}
+                        className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-all"
+                        style={{ backgroundColor: BRAND.ocre }}
+                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocreDark}
+                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocre}
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Modal editar variante ── */}
+        {itemDetalle && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+              <div className="px-5 py-4 border-b bg-slate-50 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-800">Editar variante</h2>
+                <button onClick={() => setItemDetalle(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+              </div>
+              <div className="p-5 space-y-4">
+                <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
+                  <thead className="bg-slate-50 text-slate-500">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-semibold">Característica</th>
+                      <th className="text-left px-3 py-2 font-semibold">Especificación</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-700">
+                    <tr className="border-t">
+                      <td className="px-3 py-2">Nombre</td>
+                      <td className="px-3 py-2 font-medium">{itemDetalle.nombre}</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">Precio unitario</td>
+                      <td className="px-3 py-2 font-medium">S/ {Number(itemDetalle.precio_unitario).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">Color</label>
+                  <select
+                    value={colorSeleccionado}
+                    onChange={e => {
+                      const color = e.target.value;
+                      setColorSeleccionado(color);
+                      const tallas = variantes.filter(v => v.color === color).map(v => v.talla);
+                      setTallaSeleccionada(tallas[0] ?? '');
+                    }}
+                    className="w-full h-9 border border-slate-200 rounded-lg text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  >
+                    {coloresDisponibles.map(color => (
+                      <option key={color} value={color}>{color}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">Talla</label>
+                  <select
+                    value={tallaSeleccionada}
+                    onChange={e => setTallaSeleccionada(e.target.value)}
+                    className="w-full h-9 border border-slate-200 rounded-lg text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  >
+                    {tallasDisponibles.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={handleAgregarDesdeModal}
+                    className="flex-1 py-2.5 text-white text-sm font-semibold rounded-xl transition-all"
+                    style={{ backgroundColor: BRAND.ocre }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocreDark}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.ocre}
+                  >
+                    Guardar cambios
+                  </button>
+                  <button
+                    onClick={() => setItemDetalle(null)}
+                    className="flex-1 py-2.5 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
+        )}
 
-            <p className="font-medium text-slate-900">
-              S/ {Number(item.precio_unitario).toFixed(2)}
+        {/* ── Panel derecho — resumen ── */}
+        <div className="w-72 shrink-0 border-l border-slate-200 bg-white overflow-auto">
+          <CotizadorPanel onEnviar={handleEnviar} isSending={isPending} />
+        </div>
+      </div>
+
+      {/* ── Modal confirmación ── */}
+      {mostrarConfirmacion && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-[90%] max-w-sm text-center space-y-6 animate-in fade-in zoom-in duration-300">
+            <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: BRAND.ocreLight }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: BRAND.ocre }}>
+                <CheckCircle size={20} />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-black" style={{ color: BRAND.ocre }}>¡Cotización Generada!</h2>
+              <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                Su cotización fue enviada a GUOR. La revisaremos y le notificaremos
+                el resultado por correo electrónico.
+              </p>
+            </div>
+            <div className="rounded-xl p-4" style={{ backgroundColor: BRAND.ocreLight }}>
+              <p className="text-xs text-slate-500 mb-1">Número de cotización</p>
+              <p className="text-lg font-black" style={{ color: BRAND.ocre }}>{cotizacionId}</p>
+            </div>
+            <p className="text-xs text-slate-400">
+              Redirigiendo al historial en 3 segundos...
             </p>
-
-
-            {/* boton detalles producto*/}  
             <button
               onClick={() => {
-                setItemEditando(item);
-                handleVerDetalles(item);
+                setMostrarConfirmacion(false);
+                router.push('/portal/cotizaciones');
               }}
-              className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-              Ver detalles
+              className="w-full py-2.5 text-sm font-semibold text-white rounded-xl transition-all"
+              style={{ backgroundColor: BRAND.negro }}
+              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.negroHover}
+              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND.negro}
+            >
+              Ver mis cotizaciones
             </button>
-
-          </div>
-        ))}
-
-      </div>
-     )}
-
-      </div>
-      {itemDetalle && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-md p-6 max-w-md w-full">
-
-            {/* Titulo */}
-            <div className="px-5 py-3 border-b bg-slate-50">
-              <h2 className="text-sm font-semibold text-slate-700">
-                Detalles de la Prenda
-              </h2>
-            </div>
-
-            {/* Contenido */}
-            <div className="p-4 space-y-4">
-              {/* Información del producto */}
-              <table className="w-full text-xs border border-slate-200 rounded-md overflow-hidden">
-                <thead className="bg-slate-100 text-slate-600">
-                  <tr>
-                    <th className="text-left px-3 py-2 font-medium">Característica</th>
-                    <th className="text-left px-3 py-2 font-medium">Especificación</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-700">
-                  <tr className="border-t">
-                    <td className="px-3 py-2">Nombre</td>
-                    <td className="px-3 py-2">{itemDetalle.nombre}</td>
-                  </tr>
-                  <tr className="border-t">
-                    <td className="px-3 py-2">Precio Unitario</td>
-                    <td className="px-3 py-2">
-                      S/ {Number(itemDetalle.precio_unitario).toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Selección de talla */}
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Talla
-                </label>
-                <select
-                  value={tallaSeleccionada}
-                  onChange={e => setTallaSeleccionada(e.target.value)}
-                >
-                  {tallasDisponibles.map(t => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>  
-
-              {/* Selección de color */}
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Color
-                </label>
-                <select
-                  value={colorSeleccionado}
-                  onChange={e => {
-                    const color = e.target.value;
-                    setColorSeleccionado(color);
-
-                    const tallas = variantes
-                      .filter(v => v.color === color)
-                      .map(v => v.talla);
-
-                    setTallaSeleccionada(tallas[0] ?? '');
-                  }}
-                >
-                  {coloresDisponibles.map(color => (
-                    <option key={color} value={color}>
-                      {color}
-                    </option>
-                  ))}
-                </select>
-              </div>                   
-
-              {/* Botones */}
-              <div className="flex gap-2 pt-2">
-                <button 
-                  onClick={handleAgregarDesdeModal}
-                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors text-sm font-medium">
-                  Guardar
-                </button>
-
-                <button
-                  onClick={() => setItemDetalle(null)}
-                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors text-sm font-medium"
-                >
-                  Cerrar
-                </button>
-              </div>
-
-            </div>
           </div>
         </div>
       )}
- 
-      {/* Panel derecho — cotizador */}
-      <div className="w-72 shrink-0 border-l border-slate-200 bg-white overflow-auto">
-        <CotizadorPanel onEnviar={handleEnviar} isSending={isPending} />
-      </div>
     </div>
-      {mostrarConfirmacion && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-    <div className="bg-white rounded-3xl shadow-2xl p-8 w-[90%] max-w-sm text-center space-y-6">
-
-      {/* ICONO */}
-      <div className="w-16 h-16 mx-auto rounded-full bg-orange-200 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full bg-orange-400 flex items-center justify-center text-white text-xl">
-          
-        </div>
-      </div>
-
-      {/* TITULO */}
-      <div>
-        <h2 className="text-xl font-bold text-orange-500">
-          ¡Pedido Confirmado!
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Gracias por comprar en
-        </p>
-        <p className="font-semibold text-orange-400">
-          Modas y Estilos GUOR
-        </p>
-      </div>
-
-      {/* CODIGO */}
-      <div className="bg-orange-100 rounded-xl p-4">
-        <p className="text-xs text-slate-500 mb-1">
-          Número de Pedido
-        </p>
-        <p className="text-lg font-bold text-orange-500">
-          {cotizacionId}
-        </p>
-      </div>
-
-    </div>
-
-  </div>
-
-      )}  
-</div>
-);
+  );
 }
-

@@ -1,8 +1,9 @@
 export const runtime = 'nodejs';
-import { ClientesService } from '@/lib/services/clientes-services';
+import { ClientesService } from '@/lib/services/clientes.service';
 import { requireServerRole } from '@/lib/auth/server';
+import { auditoriaService } from '@/lib/services/auditoria.service';
 import type { RolUsuario } from '@/lib/constants/roles';
-import { NextResponse }    from 'next/server';
+import { NextResponse } from 'next/server';
 
 const CLIENTES_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista'];
 
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const data = await ClientesService.listar({
       busqueda: searchParams.get('busqueda') ?? undefined,
-      estado:   searchParams.get('estado')   ?? undefined,
+      estado: searchParams.get('estado') ?? undefined,
     });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
@@ -36,11 +37,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { ruc, email, password } = body;
 
-    if (!ruc)      return NextResponse.json({ error: 'ruc requerido' },      { status: 400 });
-    if (!email)    return NextResponse.json({ error: 'email requerido' },    { status: 400 });
+    if (!ruc) return NextResponse.json({ error: 'ruc requerido' }, { status: 400 });
+    if (!email) return NextResponse.json({ error: 'email requerido' }, { status: 400 });
     if (!password) return NextResponse.json({ error: 'password requerido' }, { status: 400 });
 
     const cliente = await ClientesService.crear(body);
+
+    if (!cliente) {
+      return NextResponse.json({ error: 'No se pudo crear el cliente' }, { status: 500 });
+    }
+
+    // Registro en auditoría
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'CREAR',
+      tabla: 'clientes',
+      registro_id: BigInt(cliente.id),
+      datos_despues: cliente,
+    });
+
     return NextResponse.json({ success: true, data: cliente }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /clientes]', error);
@@ -68,6 +83,20 @@ export async function PUT(req: Request) {
     }
 
     const cliente = await ClientesService.actualizar(id, data);
+
+    if (!cliente) {
+      return NextResponse.json({ error: 'No se pudo actualizar el cliente' }, { status: 500 });
+    }
+
+    // Registro en auditoría
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: 'ACTUALIZAR',
+      tabla: 'clientes',
+      registro_id: BigInt(id),
+      datos_despues: cliente,
+    });
+
     return NextResponse.json({ success: true, data: cliente });
   } catch (error: any) {
     console.error('[PUT /clientes]', error);

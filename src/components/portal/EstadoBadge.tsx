@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { getEstadoInfo } from '@/lib/constants/estados';
 
-type TipoEstado = 'cotizacion' | 'orden' | 'despacho' | 'cliente' | 'pago';
+type TipoEstado = 'cotizacion' | 'pedido' | 'despacho' | 'cliente' | 'pago';
 
 interface EstadoBadgeProps {
   estado: string;

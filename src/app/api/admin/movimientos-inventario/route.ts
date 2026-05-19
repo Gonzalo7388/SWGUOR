@@ -1,5 +1,6 @@
 export const runtime = 'nodejs';
-import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario-services';
+import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario.service';
+import { requireServerRole } from '@/lib/auth/server';
 import { NextResponse } from 'next/server';
 
 /**
@@ -80,6 +81,11 @@ export async function GET(req: Request) {
  * Registrar un nuevo movimiento
  */
 export async function POST(req: Request) {
+  const auth = await requireServerRole(['administrador', 'gerente', 'almacenero']);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
   try {
     const body = await req.json();
 
@@ -112,7 +118,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const movimiento = await MovimientosInventarioService.registrar(body);
+    // Sobrescribimos el usuario_id con el del usuario autenticado para seguridad y auditoría
+    const movimiento = await MovimientosInventarioService.registrar({
+      ...body,
+      usuario_id: auth.user.id
+    });
+
     return NextResponse.json(
       { success: true, data: movimiento },
       { status: 201 }

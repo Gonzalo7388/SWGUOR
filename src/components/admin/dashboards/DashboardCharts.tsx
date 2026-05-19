@@ -13,9 +13,10 @@ import { COMPANY_PALETTE, type RolPaleta } from './widgets/DashboardUtils';
 interface DashboardChartsProps {
   minimal?: boolean;
   rol?: RolPaleta; 
+  data?: any[];
 }
 
-export default function DashboardCharts({ minimal = false, rol }: DashboardChartsProps) {
+export default function DashboardCharts({ minimal = false, rol, data: externalData }: DashboardChartsProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ventasData, setVentasData] = useState<any[]>([]);
@@ -25,6 +26,11 @@ export default function DashboardCharts({ minimal = false, rol }: DashboardChart
   }, []);
 
   const fetchData = useCallback(async () => {
+    if (externalData) {
+      setVentasData(externalData);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const response = await fetch(`/api/admin/charts?days=30`);
@@ -35,7 +41,7 @@ export default function DashboardCharts({ minimal = false, rol }: DashboardChart
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [externalData]);
 
   useEffect(() => { 
     if (isMounted) fetchData(); 

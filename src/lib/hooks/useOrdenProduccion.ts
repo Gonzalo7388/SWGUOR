@@ -11,12 +11,18 @@ import {
 
 export const ORDENES_KEY = 'ordenes-produccion';
 
-export function useOrdenesProduccion(producto_id?: string) {
+export function useOrdenesProduccion(params?: {
+  producto_id?: string;
+  search?: string;
+  etapa?: string;
+  page?: number;
+  limit?: number;
+}) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: [ORDENES_KEY, producto_id],
-    queryFn:  () => fetchOrdenesProduccion(producto_id),
+    queryKey: [ORDENES_KEY, params],
+    queryFn:  () => fetchOrdenesProduccion(params),
     refetchOnWindowFocus: false,
   });
 
@@ -51,7 +57,8 @@ export function useOrdenesProduccion(producto_id?: string) {
   });
 
   return {
-    ordenes:   query.data ?? [],
+    ordenes:   query.data?.data ?? [],
+    meta:      query.data?.meta ?? { total: 0, page: 1, limit: 10, totalPages: 1 },
     isLoading: query.isLoading,
     refetch:   query.refetch,
 

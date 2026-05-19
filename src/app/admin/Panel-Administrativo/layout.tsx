@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
 import RealtimeLayoutWrapper from '@/components/admin/layout/RealtimeLayoutWrapper';
 import ReactQueryProvider from '@/components/admin/provider/ReactQueryProvider';
+import { PermissionsProvider } from '@/components/providers/PermissionsProvider';
 
 export const metadata: Metadata = {
   title: "Sistema GUOR - Gestión de Modas",
@@ -15,18 +17,17 @@ async function getValidatedUser(supabase: any) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (!user || authError) return { error: 'no_auth' };
 
-  const { data: usuario, error: usuarioError } = await supabase
-    .from('usuarios')
-    .select(`
-      *,
-      personal_interno (
-        nombre_completo
-      )
-    `)
-    .eq('auth_id', user.id)
-    .single();
+  // Usar Prisma para una consulta directa a la base de datos (más rápido que Supabase HTTP)
+  const usuario = await prisma.usuarios.findUnique({
+    where: { auth_id: user.id },
+    include: {
+      personal_interno: {
+        select: { nombre_completo: true }
+      }
+    }
+  });
 
-  if (usuarioError || !usuario) return { error: 'no_profile' };
+  if (!usuario) return { error: 'no_profile' };
   if (usuario.rol?.toLowerCase() === 'cliente') return { error: 'is_client' };
   if (usuario.estado?.toUpperCase() !== 'ACTIVO') return { error: 'inactive' };
 
@@ -78,11 +79,13 @@ export default async function PanelAdministrativoLayout({
 
   return (
     <ReactQueryProvider>
-      <RealtimeLayoutWrapper initialUsuario={usuario}>
-        <div className="min-h-screen bg-slate-50/50">
-          {children}
-        </div>
-      </RealtimeLayoutWrapper>
+      <PermissionsProvider usuario={usuario as any}>
+        <RealtimeLayoutWrapper initialUsuario={usuario as any}>
+          <div className="admin-card min-h-screen bg-slate-50/50">
+            {children}
+          </div>
+        </RealtimeLayoutWrapper>
+      </PermissionsProvider>
     </ReactQueryProvider>
   );
 }

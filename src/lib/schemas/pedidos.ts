@@ -8,7 +8,7 @@ export const ESTADO_PEDIDO = [
   "cancelado",
 ] as const;
 
-export const PRIORIDAD_PEDIDO = ["baja", "normal"] as const;
+export const PRIORIDAD_PEDIDO = ["baja", "normal", "alta", "urgente"] as const;
 
 export const pedidoSchema = z.object({
   cliente_id:    z.number().min(1, "Cliente requerido"),
@@ -32,8 +32,10 @@ export const ESTADO_PEDIDO_LABELS: Record<typeof ESTADO_PEDIDO[number], string> 
 };
 
 export const PRIORIDAD_PEDIDO_LABELS: Record<typeof PRIORIDAD_PEDIDO[number], string> = {
-  baja:   "Baja",
-  normal: "Normal",
+  baja:    "Baja",
+  normal:  "Normal",
+  alta:    "Alta",
+  urgente: "Urgente",
 };
 
 export interface ApiResponse<T = any> {

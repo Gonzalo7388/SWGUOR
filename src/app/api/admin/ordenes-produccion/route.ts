@@ -1,29 +1,40 @@
 export const runtime = 'nodejs';
-import { OrdenesProduccionService } from '@/lib/services/ordenes-produccion-services';
+import { OrdenesProduccionService } from '@/lib/services/ordenes-produccion.service';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-// GET /api/admin/ordenes-produccion?producto_id=xxx (opcional)
+const ROLES_LECTURA = ['administrador', 'gerente', 'representante_taller'] as RolUsuario[];
+const ROLES_ESCRITURA = ['administrador', 'gerente'] as RolUsuario[];
+
 export async function GET(req: Request) {
+  const auth = await requireServerRole(ROLES_LECTURA);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const { searchParams } = new URL(req.url);
-    const data = await OrdenesProduccionService.listar(
-      searchParams.get('producto_id') ?? undefined
-    );
-    return NextResponse.json({ success: true, data });
+    const result = await OrdenesProduccionService.listar({
+      producto_id: searchParams.get('producto_id') ?? '',
+      taller_id: searchParams.get('taller_id') ?? '',
+      estado: searchParams.get('estado') ?? '',
+      search: searchParams.get('search') ?? '',
+      page: searchParams.has('page') ? Number(searchParams.get('page')) : 1,
+      limit: searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
+    });
+    return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     console.error('[GET /ordenes-produccion]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST /api/admin/ordenes-produccion
-// CORREGIDO: el segundo parámetro de un Route Handler en App Router es siempre
-// { params } (para rutas dinámicas) o se omite. Nunca es un string suelto.
-// usuario_id debe venir en el body o extraerse de la sesión/auth.
 export async function POST(req: Request) {
+  const auth = await requireServerRole(ROLES_ESCRITURA);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await req.json();
-    const { producto_id, taller_id, ficha_id, cantidad_solicitada, pedido_id, creado_por } = body;
+    const { producto_id, taller_id, ficha_id, cantidad_solicitada, pedido_id, fecha_entrega, notas } = body;
 
     if (!producto_id || !taller_id || !ficha_id || !cantidad_solicitada || !pedido_id) {
       return NextResponse.json(
@@ -32,14 +43,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // El servicio crea la Orden, el Seguimiento 'corte' y pone el Producto 'en_produccion'
     const orden = await OrdenesProduccionService.crear({
       producto_id,
       taller_id,
       ficha_id,
       cantidad_solicitada,
       pedido_id,
-      creado_por: creado_por ?? null, // Idealmente extraer de sesión: getServerSession(req)
+      fecha_entrega: fecha_entrega ?? null,
+      notas: notas ?? null,
+      creado_por: auth.user.id,
     });
 
     return NextResponse.json({ success: true, data: orden }, { status: 201 });
@@ -49,8 +61,10 @@ export async function POST(req: Request) {
   }
 }
 
-// PUT /api/admin/ordenes-produccion
 export async function PUT(req: Request) {
+  const auth = await requireServerRole(ROLES_ESCRITURA);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await req.json();
     const { id, ...data } = body;
@@ -62,7 +76,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 });
     }
 
-    const orden = await OrdenesProduccionService.actualizar(id, data);
+    const orden = await OrdenesProduccionService.actualizar(id.toString(), data);
     return NextResponse.json({ success: true, data: orden });
   } catch (error: any) {
     console.error('[PUT /ordenes-produccion]', error);

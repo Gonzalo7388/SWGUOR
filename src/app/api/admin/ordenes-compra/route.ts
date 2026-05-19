@@ -1,12 +1,22 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
-import type { EstadoOrden } from '@prisma/client';
 import type { RolUsuario } from '@/lib/constants/roles';
+// ↑ eliminado: import type { EstadoOrdenCompra } from '@prisma/client';
 
-const ORDENES_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller'];
+// Tipo local — la tabla "ordenes" en Supabase usa estos estados,
+// distintos del enum EstadoOrdenCompra de Prisma (que es para ordenes_compra)
+type EstadoOrden =
+  | 'solicitado'
+  | 'cotizado'
+  | 'aprobado'
+  | 'pagado'
+  | 'en_proceso'
+  | 'finalizado'
+  | 'cancelado';
 
-// Estados válidos según el schema
+const ORDENES_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller', 'ayudante'];
+
 const ESTADOS_VALIDOS: EstadoOrden[] = [
   'solicitado', 'cotizado', 'aprobado', 'pagado', 'en_proceso', 'finalizado', 'cancelado'
 ];

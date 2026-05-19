@@ -3,29 +3,32 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
+import { requireServerAuth } from '@/lib/auth/server';
+
 export async function GET(req: Request) {
+  const auth = await requireServerAuth();
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
-    // 1. Sincronizamos: 4 variables para 4 consultas
+    // 1. Sincronizamos
     const [insumosBajoStock, pedidosPendientes, despachosAtrasados, ordenesVencidas] =
       await Promise.all([
-        // Consulta 0: Alertas de stock
         prisma.insumo.findMany({
-          select: { id: true, nombre: true, stock_actual: true, stock_minimo: true, categoria_insumo: true },
+          where: { stock_actual: { lte: prisma.insumo.fields.stock_minimo } },
+          select: { id: true, nombre: true, stock_actual: true, stock_minimo: true, created_at: true },
           orderBy: { stock_actual: 'asc' },
           take: 20,
         }),
 
-        // Consulta 1: Pedidos pendientes
         prisma.pedidos.findMany({
           where: { estado: 'pendiente' },
           include: {
             clientes: { select: { razon_social: true } },
           },
-          orderBy: { created_at: 'asc' },
+          orderBy: { created_at: 'desc' },
           take: 20,
         }),
 
-        // Consulta 2: Despachos atrasados
         prisma.despachos.findMany({
           where: {
             fecha_despacho: { lt: new Date() },
@@ -35,7 +38,6 @@ export async function GET(req: Request) {
           take: 20,
         }),
 
-        // Consulta 3: Órdenes con pago vencido (Aquí está el núcleo de tu idea)
         prisma.ordenes_compra.findMany({
           where: {
             saldo_pendiente: { gt: 0 },
@@ -48,24 +50,18 @@ export async function GET(req: Request) {
         })
       ]);
 
-    // Filtrar insumos con stock bajo
-    const insumosAlerta = insumosBajoStock.filter(
-      (i) => Number(i.stock_actual) <= Number(i.stock_minimo)
-    );
-
     // 2. Construir notificaciones unificadas
     const notificaciones: Notificacion[] = [
-      // Alertas de Stock
-      ...insumosAlerta.map((i) => ({
+      ...insumosBajoStock.map((i) => ({
         id: `stock-${i.id.toString()}`,
         tipo: 'inventario' as const,
         titulo: 'ALERTA DE STOCK',
-        descripcion: `${i.nombre} está por debajo del mínimo.`,
+        descripcion: `${i.nombre} está por debajo del mínimo (${i.stock_actual}/${i.stock_minimo}).`,
         importante: true,
-        fecha: new Date().toISOString(),
+        fecha: i.created_at?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/inventario',
       })),
 
-      // Pedidos Pendientes
       ...pedidosPendientes.map((p) => ({
         id: `ped-${p.id.toString()}`,
         tipo: 'orden' as const,
@@ -73,26 +69,27 @@ export async function GET(req: Request) {
         descripcion: `Pedido de ${p.clientes?.razon_social ?? 'Cliente'} esperando gestión.`,
         importante: p.prioridad === 'urgente' || p.prioridad === 'alta',
         fecha: p.created_at?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/pedidos',
       })),
 
-      // Despachos Atrasados
       ...despachosAtrasados.map((d) => ({
         id: `desp-${d.id.toString()}`,
         tipo: 'urgente' as const,
         titulo: 'DESPACHO ATRASADO',
         descripcion: `Envío atrasado para el pedido #${d.pedido_id.toString()}.`,
         importante: true,
-        fecha: new Date().toISOString(),
+        fecha: d.fecha_despacho?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/despachos',
       })),
 
-      // Órdenes Vencidas (La variable que ahora sí tiene datos)
       ...ordenesVencidas.map((o) => ({
         id: `pago-${o.id.toString()}`,
         tipo: 'pago' as const,
         titulo: 'PAGO VENCIDO A PROVEEDOR',
-        descripcion: `Compra a ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo de ${Number(o.saldo_pendiente).toFixed(2)}.`,
+        descripcion: `Compra a ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente.`,
         importante: Number(o.saldo_pendiente) > 1000,
         fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
+        url_destino: '/admin/Panel-Administrativo/cotizaciones-proveedor',
       }))
     ];
 
@@ -136,4 +133,5 @@ type Notificacion = {
   descripcion: string;
   importante: boolean;
   fecha: string;
+  url_destino?: string;
 };

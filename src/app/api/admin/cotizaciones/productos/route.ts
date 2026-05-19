@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
-import { NextResponse }        from 'next/server';
-import { CotizacionesService } from '@/lib/services/cotizaciones-services';
+import { NextResponse } from 'next/server';
+import { CotizacionesService } from '@/lib/services/cotizaciones.service';
 
 export async function GET() {
   try {

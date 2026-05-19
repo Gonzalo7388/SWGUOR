@@ -6,7 +6,7 @@ import {
   upsertProveedor,
   getHistorialOrdenes,
   getProveedorById,
-} from '@/lib/services/proveedor-services';
+} from '@/lib/services/proveedor.service';
 import { requireAdmin } from '@/lib/auth/server';
 import { NextResponse } from 'next/server';
 
