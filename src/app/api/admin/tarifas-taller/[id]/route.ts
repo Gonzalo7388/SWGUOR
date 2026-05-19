@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { tarifaTallerBaseSchema as tarifasTallerUpdateSchema } from '@/lib/schemas/tarifaTalleresSchema';
+import { tarifaTallerBaseSchema as tarifasTallerUpdateSchema } from '@/lib/schemas/tarifa-talleres';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 
@@ -28,7 +28,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
     const validated = tarifasTallerUpdateSchema.parse(body);
 
-      const tarifa = await prisma.tarifas_taller.update({
+    const tarifa = await prisma.tarifas_taller.update({
       where: { id: BigInt(id) },
       data: {
         ...(validated.tallerId ? { taller_id: BigInt(validated.tallerId) as any } : {}),

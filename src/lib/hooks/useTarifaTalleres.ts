@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearTarifaTaller, TarifaTaller, ActualizarTarifaTaller } from '@/lib/schemas/tarifaTalleresSchema';
+import { CrearTarifaTaller, TarifaTaller, ActualizarTarifaTaller } from '@/lib/schemas/tarifa-talleres';
 
 export function useTarifaTalleres() {
   const [tarifas, setTarifas] = useState<TarifaTaller[]>([]);
@@ -13,7 +13,7 @@ export function useTarifaTalleres() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/tarifas-talleres?${params}`);
       if (!response.ok) throw new Error('Error al obtener tarifas');
-      
+
       const data: TarifaTaller[] = await response.json();
       setTarifas(data);
       return data;
@@ -33,7 +33,7 @@ export function useTarifaTalleres() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear tarifa');
-      
+
       const nuevaTarifa: TarifaTaller = await response.json();
       setTarifas(prev => [...prev, nuevaTarifa]);
       return nuevaTarifa;
@@ -51,7 +51,7 @@ export function useTarifaTalleres() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al actualizar tarifa');
-      
+
       const tarifaActualizada: TarifaTaller = await response.json();
       setTarifas(prev => prev.map(t => t.id === id ? tarifaActualizada : t));
       return tarifaActualizada;

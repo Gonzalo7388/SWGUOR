@@ -1,10 +1,10 @@
-import { Notificacion, TipoNotificacion } from '@/lib/schemas/notificacionesSchema';
+import { Notificacion, TipoNotificacion } from '@/lib/schemas/notificaciones';
 
 export const notificacionesHelpers = {
-  filtrarPorEstatus: (notificaciones: Notificacion[], leido: boolean) => 
+  filtrarPorEstatus: (notificaciones: Notificacion[], leido: boolean) =>
     notificaciones.filter(n => n.leido === leido),
 
-  filtrarPorTipo: (notificaciones: Notificacion[], tipo: TipoNotificacion) => 
+  filtrarPorTipo: (notificaciones: Notificacion[], tipo: TipoNotificacion) =>
     notificaciones.filter(n => n.tipo === tipo),
 
   agruparPorTipo: (notificaciones: Notificacion[]) =>
@@ -18,7 +18,7 @@ export const notificacionesHelpers = {
     notificaciones.filter(n => !n.leido),
 
   marcarMultiplesComoLeidas: (notificaciones: Notificacion[], ids: number[]) =>
-    notificaciones.map(n => 
+    notificaciones.map(n =>
       ids.includes(n.id) ? { ...n, leido: true } : n
     ),
 

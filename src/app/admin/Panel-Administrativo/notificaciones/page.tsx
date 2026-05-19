@@ -7,13 +7,13 @@ import NotificacionesTable from '@/components/admin/notificaciones/Notificacione
 import NotificacionDialog from '@/components/admin/notificaciones/NotificacionDialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import type { Notificacion } from '@/lib/schemas/notificacionesSchema';
+import type { Notificacion } from '@/lib/schemas/notificaciones';
 
 export default function NotificacionesPage() {
   const { can } = usePermissions();
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [dialogOpen, setDialogOpen]         = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const loadNotificaciones = async () => {
     try {
@@ -24,17 +24,17 @@ export default function NotificacionesPage() {
       const raw: any[] = Array.isArray(response.data) ? response.data : [];
 
       const normalized: Notificacion[] = raw.map((n) => ({
-        id:              Number(n.id),       // bigint → number
-        usuario_id:      Number(n.usuario_id),
-        tipo:            n.tipo,
-        titulo:          n.titulo,
-        mensaje:         n.mensaje,
-        leido:           n.leido ?? false,
-        leido_at:        n.leido_at ? new Date(n.leido_at) : null,
+        id: Number(n.id),       // bigint → number
+        usuario_id: Number(n.usuario_id),
+        tipo: n.tipo,
+        titulo: n.titulo,
+        mensaje: n.mensaje,
+        leido: n.leido ?? false,
+        leido_at: n.leido_at ? new Date(n.leido_at) : null,
         referencia_tipo: n.referencia_tipo ?? null,
-        referencia_id:   n.referencia_id != null ? Number(n.referencia_id) : null,
-        url_destino:     n.url_destino ?? null,
-        created_at:      new Date(n.created_at),
+        referencia_id: n.referencia_id != null ? Number(n.referencia_id) : null,
+        url_destino: n.url_destino ?? null,
+        created_at: new Date(n.created_at),
       }));
 
       setNotificaciones(normalized);
@@ -58,9 +58,9 @@ export default function NotificacionesPage() {
   const handleSave = async (data: unknown) => {
     try {
       const res = await fetch('/api/admin/notificaciones', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(data),
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error('Error al guardar');
 

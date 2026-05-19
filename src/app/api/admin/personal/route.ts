@@ -44,3 +44,32 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// POST /api/admin/personal — crea nuevo personal con usuario
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { usuario_id, nombre_completo, cargo, dni, telefono, fecha_ingreso } = body;
+
+    if (!usuario_id || !nombre_completo || !cargo) {
+      return NextResponse.json({ message: 'Faltan campos requeridos' }, { status: 400 });
+    }
+
+    const personal = await PersonalInternoService.crear({
+      usuario_id,
+      nombre_completo,
+      cargo,
+      ...(dni && { dni }),
+      ...(telefono && { telefono }),
+      ...(fecha_ingreso && { fecha_ingreso }),
+    });
+
+    return NextResponse.json({ success: true, data: personal }, { status: 201 });
+  } catch (error: any) {
+    console.error('[POST /personal]', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json({ message: 'Este usuario ya tiene un perfil asignado' }, { status: 409 });
+    }
+    return NextResponse.json({ message: error.message ?? 'Error al crear el personal' }, { status: 500 });
+  }
+}

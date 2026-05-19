@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Notificacion } from '@/lib/schemas/notificacionesSchema';
+import type { Notificacion } from '@/lib/schemas/notificaciones';
 
 export function useNotifications(userId?: number) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [unreadCount, setUnreadCount]       = useState(0);
-  const [loading, setLoading]               = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
@@ -19,8 +19,8 @@ export function useNotifications(userId?: number) {
 
       const response = await res.json();
       const raw: any[] = Array.isArray(response.data) ? response.data
-                        : Array.isArray(response)      ? response
-                        : [];
+        : Array.isArray(response) ? response
+          : [];
 
       const normalized: Notificacion[] = raw.map((n) => ({
         ...n,
@@ -46,9 +46,9 @@ export function useNotifications(userId?: number) {
   const markAsRead = async (id: number) => {
     try {
       await fetch(`/api/admin/notificaciones/${id}`, {
-        method:  'PUT',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ leido: true }),  // leido, no leida
+        body: JSON.stringify({ leido: true }),  // leido, no leida
       });
       setNotificaciones((prev) =>
         prev.map((n) => n.id === Number(id) ? { ...n, leido: true, leido_at: new Date() } : n)

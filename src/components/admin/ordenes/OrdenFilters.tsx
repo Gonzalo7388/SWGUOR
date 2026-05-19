@@ -1,14 +1,14 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
-import { ETAPA_PRODUCCION, ETAPA_LABELS } from "@/lib/schemas/ordenes-produccion";
+import { ETAPAS_PRODUCCION, ETAPA_LABELS } from "@/lib/schemas/ordenes-produccion";
 import { Search, Filter, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -54,9 +54,9 @@ export default function OrdenFilters({
               <SelectItem value="all" className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Todos los estados
               </SelectItem>
-              {ETAPA_PRODUCCION.map((etapa) => (
-                <SelectItem 
-                  key={etapa} 
+              {ETAPAS_PRODUCCION.map((etapa) => (
+                <SelectItem
+                  key={etapa}
                   value={etapa}
                   className="text-xs font-medium focus:bg-rose-50 focus:text-rose-600 cursor-pointer"
                 >

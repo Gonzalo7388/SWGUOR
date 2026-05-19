@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { pagoTallerBaseSchema as pagosTallerSchema } from '@/lib/schemas/pagosTalleresSchema';
+import { pagoTallerBaseSchema as pagosTallerSchema } from '@/lib/schemas/pagos-talleres';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 

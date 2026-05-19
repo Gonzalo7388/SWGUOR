@@ -1,4 +1,4 @@
-import { Pago } from '@/lib/schemas/pagosSchema';
+import { Pago } from '@/lib/schemas/pagos';
 
 export const pagosHelpers = {
   estaCompletado: (pago: Pago): boolean =>

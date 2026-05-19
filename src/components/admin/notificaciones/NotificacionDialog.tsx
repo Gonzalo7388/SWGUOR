@@ -2,45 +2,45 @@
 
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button }   from '@/components/ui/button';
-import { Input }    from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label }    from '@/components/ui/label';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { notificacionBaseSchema as notificacionSchema, type Notificacion as NotificacionInput } from '@/lib/schemas/notificacionesSchema';
+import { notificacionBaseSchema as notificacionSchema, type Notificacion as NotificacionInput } from '@/lib/schemas/notificaciones';
 import { TipoNotificacion } from '@prisma/client';
 
 // Etiquetas legibles para cada valor del enum
 const TIPO_LABELS: Record<TipoNotificacion, string> = {
-  stock_bajo:            'Stock bajo',
-  pedido_vencido:        'Pedido vencido',
-  pago_pendiente:        'Pago pendiente',
-  cotizacion_expirada:   'Cotización expirada',
-  orden_produccion:      'Orden de producción',
+  stock_bajo: 'Stock bajo',
+  pedido_vencido: 'Pedido vencido',
+  pago_pendiente: 'Pago pendiente',
+  cotizacion_expirada: 'Cotización expirada',
+  orden_produccion: 'Orden de producción',
   confeccion_completada: 'Confección completada',
   devolucion_solicitada: 'Devolución solicitada',
-  sistema:               'Sistema',
+  sistema: 'Sistema',
 };
 
 const TIPOS = Object.values(TipoNotificacion) as TipoNotificacion[];
 
 const FORM_INICIAL: Partial<NotificacionInput> = {
   usuario_id: undefined,
-  titulo:     '',
-  mensaje:    '',
-  tipo:       'sistema',
-  leido:      false,
+  titulo: '',
+  mensaje: '',
+  tipo: 'sistema',
+  leido: false,
 };
 
 interface NotificacionDialogProps {
-  open:         boolean;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave:       (data: NotificacionInput) => void;
+  onSave: (data: NotificacionInput) => void;
 }
 
 export default function NotificacionDialog({ open, onOpenChange, onSave }: NotificacionDialogProps) {
   const [formData, setFormData] = useState<Partial<NotificacionInput>>(FORM_INICIAL);
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Resetea el form cada vez que se abre
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function NotificacionDialog({ open, onOpenChange, onSave }: Notif
 
     if (!result.success) {
       const zodErrors: Record<string, string> = {};
-       result.error.issues.forEach((issue) => {
+      result.error.issues.forEach((issue) => {
         if (issue.path[0]) zodErrors[String(issue.path[0])] = issue.message;
       });
       setErrors(zodErrors);

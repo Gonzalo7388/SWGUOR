@@ -37,7 +37,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'email, password y rol son requeridos' }, { status: 400 });
     }
 
-    const usuario = await UsuariosService.crear(body);
+    const usuario = await UsuariosService.crear({
+      ...body,
+      createdBy: auth.user.authId,
+    });
 
     if (!usuario) {
       return NextResponse.json({ error: 'No se pudo crear el usuario' }, { status: 500 });
@@ -79,7 +82,7 @@ export async function PATCH(req: Request) {
 
     // Toggle rápido de estado sin otros campos
     if (estado !== undefined && Object.keys(data).length === 0) {
-      const usuario = await UsuariosService.toggleEstado(id, estado);
+      const usuario = await UsuariosService.cambiarEstado(id, estado);
       return NextResponse.json({ success: true, data: usuario });
     }
 
@@ -116,28 +119,24 @@ export async function PATCH(req: Request) {
 // DELETE /api/admin/usuarios?id=xxx
 export async function DELETE(req: Request) {
   const auth = await requireServerRole(ADMIN_ROLES);
-  if (!auth.success) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
     const id = new URL(req.url).searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
 
-    if (!id) {
-      return NextResponse.json({ error: 'id requerido' }, { status: 400 });
-    }
+    // No se elimina — se suspende
+    const usuario = await UsuariosService.cambiarEstado(id, 'suspendido');
 
-    const data = await UsuariosService.eliminar(id);
-
-    // Registro en auditoría
     await auditoriaService.registrar({
       usuario_id: BigInt(auth.user.id),
-      accion: 'ELIMINAR',
+      accion: 'SUSPENDER',
       tabla: 'usuarios',
       registro_id: BigInt(id),
+      datos_despues: usuario,
     });
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: usuario });
   } catch (error: any) {
     console.error('[DELETE /usuarios]', error);
     if (error.code === 'P2025') {

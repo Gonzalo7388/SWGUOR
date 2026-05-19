@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { reservaStockBaseSchema as reservasStockSchema } from '@/lib/schemas/reservaStockSchema';
+import { reservaStockBaseSchema as reservasStockSchema } from '@/lib/schemas/reserva-stock';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 import { requireServerRole } from '@/lib/auth/server';

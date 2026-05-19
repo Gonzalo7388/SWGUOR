@@ -686,7 +686,6 @@ model comprobantes {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model confecciones {
   id                     BigInt                   @id @default(autoincrement())
-  pedido_id              BigInt
   taller_id              BigInt
   estado                 EstadoConfeccion         @default(pendiente)
   fecha_inicio           DateTime                 @db.Timestamptz(6)
@@ -702,14 +701,14 @@ model confecciones {
   prioridad              String                   @default("media")
   notas                  String?
   orden_produccion_id    BigInt?
-  pedidos                pedidos                  @relation(fields: [pedido_id], references: [id])
-  talleres               talleres                 @relation(fields: [taller_id], references: [id])
+  ordenes_produccion     ordenes_produccion?      @relation(fields: [orden_produccion_id], references: [id])
+  talleres               talleres?                @relation(fields: [taller_id], references: [id])
   usuarios               usuarios?                @relation(fields: [responsable_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_confecciones_responsable_id")
-  incidencias            incidencias[]
+  incidencias_taller     incidencias_taller[]
   pagos_taller           pagos_taller[]
   seguimiento_confeccion seguimiento_confeccion[]
 
-  @@index([pedido_id], map: "idx_confecciones_pedido")
+  @@index([orden_produccion_id], map: "idx_confecciones_pedido")
   @@index([responsable_id], map: "idx_confecciones_responsable")
   @@schema("public")
 }
@@ -1159,7 +1158,7 @@ model guias_remision_items {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model incidencias {
+model incidencias_taller {
   id                                           BigInt              @id(map: "incidencias_taller_pkey") @default(autoincrement())
   pedido_id                                    BigInt
   confeccion_id                                BigInt?
@@ -1453,7 +1452,7 @@ model ordenes_produccion {
   ordenes_produccion_items ordenes_produccion_items[]
   pagos_taller             pagos_taller[]
   seguimiento_produccion   seguimiento_produccion[]
-
+  confecciones             confecciones[]
   @@index([estado], map: "idx_ordenes_estado")
   @@index([producto_id], map: "idx_ordenes_producto")
   @@index([taller_id], map: "idx_ordenes_taller")
@@ -1582,21 +1581,20 @@ model pedidos {
   zona_envio_id           Int?
   asientos_contables      asientos_contables[]
   comprobantes            comprobantes[]
-  confecciones            confecciones[]
   despachos               despachos[]
   despachos_grupo_pedidos despachos_grupo_pedidos[]
   devoluciones_cliente    devoluciones_cliente[]
   feedback_cliente        feedback_cliente[]
   guias_remision          guias_remision[]
-  incidencias             incidencias[]
+  incidencias             incidencias_taller[]
   incidencias_cliente     incidencias_cliente[]
   ordenes_produccion      ordenes_produccion[]
   pagos                   pagos[]
   pedido_items            pedido_items[]
   clientes                clientes?                 @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   creado_por              usuarios?                 @relation(fields: [created_by], references: [id])
-  cotizacion              cotizaciones?               @relation("CotizacionPedidos", fields: [cotizacion_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  zona_envio              costo_envio?               @relation("PedidoEnvio", fields: [zona_envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cotizacion              cotizaciones?             @relation("CotizacionPedidos", fields: [cotizacion_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  zona_envio              costo_envio?              @relation("PedidoEnvio", fields: [zona_envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reservas_stock          reservas_stock[]
   seguimiento_pedido      seguimiento_pedido[]
 
@@ -1837,8 +1835,8 @@ model usuarios {
   devoluciones_proveedor                          devoluciones_proveedor[]
   fichas_tecnicas                                 fichas_tecnicas[]
   guias_remision                                  guias_remision[]
-  incidencias_asignado                            incidencias[]            @relation("incidencias_asignado_aTousuarios")
-  incidencias_reportado                           incidencias[]            @relation("incidencias_reportado_porTousuarios")
+  incidencias_asignado                            incidencias_taller[]     @relation("incidencias_asignado_aTousuarios")
+  incidencias_reportado                           incidencias_taller[]     @relation("incidencias_reportado_porTousuarios")
   movimientos_inventario                          movimientos_inventario[]
   notificaciones                                  notificaciones[]
   pagos_usuario                                   pagos[]                  @relation("pagos_usuario_idTousuarios")

@@ -12,8 +12,8 @@ interface Props {
 
 export default function StatsPersonal({ personal, loading, statusFilter = null, onFilterChange }: Props) {
   const total = personal.length;
-  const activos = personal.filter((p) => p.estado).length;
-  const inactivos = personal.filter((p) => p.estado).length;
+  const activos = personal.filter((p) => p.estado === "activo").length;
+  const suspendidos = personal.filter((p) => p.estado === "suspendido").length;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -35,17 +35,17 @@ export default function StatsPersonal({ personal, loading, statusFilter = null, 
       />
       <StatCard
         title="SUSPENDIDOS"
-        value={inactivos}
+        value={suspendidos}
         icon={<ShieldOff className="w-6 h-6" />}
-        isActive={statusFilter === "inactivo"}
+        isActive={statusFilter === "suspendido"}
         color="orange"
-        onClick={() => onFilterChange?.("inactivo")}
+        onClick={() => onFilterChange?.("suspendido")}
       />
     </div>
   );
 }
 
-// ─── StatCard — mismo diseño que Inventario ───────────────────
+// ─── StatCard ─────────────────────────────────────────────────
 export function StatCard({ title, value, icon, isActive, color, onClick }: {
   title: string; value: number; icon: React.ReactNode;
   isActive: boolean; color: string; onClick: () => void;
@@ -60,11 +60,13 @@ export function StatCard({ title, value, icon, isActive, color, onClick }: {
   const s = styles[color] ?? styles.pink;
 
   return (
-    <button onClick={onClick}
+    <button
+      onClick={onClick}
       className={`group p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 cursor-pointer ${isActive
-          ? `ring-4 shadow-xl scale-[1.02] z-10 ${s.active}`
-          : "bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95"
-        }`}>
+        ? `ring-4 shadow-xl scale-[1.02] z-10 ${s.active}`
+        : "bg-white border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95"
+        }`}
+    >
       <div className={`p-3 rounded-lg transition-all duration-300 ${isActive ? `${s.iconActive} rotate-3` : "bg-gray-100 text-gray-600 group-hover:rotate-3"
         }`}>
         {icon}

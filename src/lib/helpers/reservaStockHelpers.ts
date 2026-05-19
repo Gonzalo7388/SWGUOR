@@ -1,4 +1,4 @@
-import { ReservaStock } from '@/lib/schemas/reservaStockSchema';
+import { ReservaStock } from '@/lib/schemas/reserva-stock';
 
 export const reservaStockHelpers = {
   estaActiva: (reserva: ReservaStock): boolean =>

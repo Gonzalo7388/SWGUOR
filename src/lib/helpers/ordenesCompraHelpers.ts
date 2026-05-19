@@ -1,4 +1,4 @@
-import { OrdenCompra } from '@/lib/schemas/ordenesCompraSchema';
+import { OrdenCompra } from '@/lib/schemas/ordenes-compra';
 
 export const ordenesCompraHelpers = {
   estaPendiente: (orden: OrdenCompra): boolean =>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearPagoTaller, PagoTaller } from '@/lib/schemas/pagosTalleresSchema';
+import { CrearPagoTaller, PagoTaller } from '@/lib/schemas/pagos-talleres';
 
 export function usePagosTalleres() {
   const [pagos, setPagos] = useState<PagoTaller[]>([]);
@@ -13,7 +13,7 @@ export function usePagosTalleres() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/pagos-talleres?${params}`);
       if (!response.ok) throw new Error('Error al obtener pagos');
-      
+
       const data: PagoTaller[] = await response.json();
       setPagos(data);
       return data;
@@ -33,7 +33,7 @@ export function usePagosTalleres() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear pago');
-      
+
       const nuevoPago: PagoTaller = await response.json();
       setPagos(prev => [...prev, nuevoPago]);
       return nuevoPago;
@@ -51,7 +51,7 @@ export function usePagosTalleres() {
         body: JSON.stringify({ monto, fecha, metodoPago, numeroComprobante }),
       });
       if (!response.ok) throw new Error('Error al registrar pago');
-      
+
       const pagoActualizado: PagoTaller = await response.json();
       setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;

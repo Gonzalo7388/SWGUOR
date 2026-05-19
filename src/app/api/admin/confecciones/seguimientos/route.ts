@@ -1,51 +1,40 @@
 export const runtime = 'nodejs';
-import { ConfeccionesService } from "@/lib/services/confecciones.service";
-import { NextResponse } from "next/server";
+import { ConfeccionesService } from '@/lib/services/confecciones.service';
+import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
+const ROLES: RolUsuario[] = ['administrador', 'gerente', 'representante_taller'];
+
+// POST /api/admin/confecciones/[id]/estado
 export async function POST(
   req: Request,
-  { params }: { params: Promise<any> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireServerRole(ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
+    const { id } = await params;
     const body = await req.json();
 
-    // Validaciones básicas
-    if (!body.confeccion_id || !body.estado_nuevo) {
+    if (!body.estado) {
       return NextResponse.json(
-        { error: 'confeccion_id y estado_nuevo requeridos' },
+        { error: 'El campo estado es requerido' },
         { status: 400 }
       );
     }
 
-    /**
-     * IMPORTANTE: 'usuario_id' no puede ser un argumento de la función POST.
-     * Debe venir en el body del JSON o extraerse de la sesión/headers.
-     */
-    const usuario_id = body.usuario_id;
-
-    if (!usuario_id) {
-      return NextResponse.json(
-        { error: 'usuario_id es requerido para registrar el seguimiento' },
-        { status: 400 }
-      );
-    }
-
-    // Llamada al servicio con los datos corregidos
-    const seg = await ConfeccionesService.registrarSeguimiento({
-      ...body,
-      usuario_id
+    const seg = await ConfeccionesService.actualizarEstado(id, {
+      estado: body.estado,
+      notas: body.notas ?? "",
+      responsable_id: auth.user.id?.toString(),
     });
 
-    return NextResponse.json(
-      { success: true, data: seg },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, data: seg }, { status: 200 });
 
   } catch (error: any) {
-    console.error("[API_SEGUIMIENTOS] Error:", error);
-    return NextResponse.json(
-      { error: error.message || 'Error interno' },
-      { status: 500 }
-    );
+    console.error('[POST /api/admin/confecciones/[id]/estado]', error);
+    return NextResponse.json({ error: error.message ?? 'Error interno' }, { status: 500 });
   }
 }

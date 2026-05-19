@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { reservaStockBaseSchema as reservasStockUpdateSchema } from '@/lib/schemas/reservaStockSchema';
+import { reservaStockBaseSchema as reservasStockUpdateSchema } from '@/lib/schemas/reserva-stock';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const reserva = await prisma.reservas_stock.findUnique({
-      where:   { id: BigInt(id) },
+      where: { id: BigInt(id) },
       include: { variantes_producto: true, cotizaciones: true, pedidos: true },
     });
     if (!reserva) {

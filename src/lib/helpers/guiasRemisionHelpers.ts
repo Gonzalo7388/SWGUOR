@@ -1,4 +1,4 @@
-import { GuiaRemision } from '@/lib/schemas/guiasRemisionSchema';
+import { GuiaRemision } from '@/lib/schemas/guias-remision';
 
 export const guiasRemisionHelpers = {
   estaEnTransito: (guia: GuiaRemision): boolean =>

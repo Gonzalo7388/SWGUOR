@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { X, Loader2, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { Rol, usuarios } from '@prisma/client';
 
 const ROLES: { value: Rol; label: string }[] = [
@@ -20,23 +19,23 @@ const ROLES: { value: Rol; label: string }[] = [
   { value: 'almacenero', label: 'Almacenero' },
 ];
 
-// ─── Password strength helpers ────────────────────────────────────────────────
+// ── Password helpers ──────────────────────────────────────────
 
 interface PasswordChecks {
-  length: boolean;      // ≥ 8 characters
-  uppercase: boolean;   // at least one A-Z
-  lowercase: boolean;   // at least one a-z
-  number: boolean;      // at least one 0-9
-  symbol: boolean;      // at least one special char
+  length: boolean;
+  uppercase: boolean;
+  lowercase: boolean;
+  number: boolean;
+  symbol: boolean;
 }
 
-function getPasswordChecks(password: string): PasswordChecks {
+function getPasswordChecks(p: string): PasswordChecks {
   return {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password),
+    length: p.length >= 8,
+    uppercase: /[A-Z]/.test(p),
+    lowercase: /[a-z]/.test(p),
+    number: /[0-9]/.test(p),
+    symbol: /[^A-Za-z0-9]/.test(p),
   };
 }
 
@@ -44,55 +43,43 @@ type StrengthLevel = 'empty' | 'very-weak' | 'weak' | 'medium' | 'strong' | 'ver
 
 interface StrengthInfo {
   level: StrengthLevel;
-  score: number;          // 0-5
   label: string;
-  segmentColor: string;   // Tailwind bg class applied to filled segments
-  textColor: string;      // Tailwind text class for the label
-  filledSegments: number; // how many of 5 bar segments to fill
+  segmentColor: string;
+  textColor: string;
+  filledSegments: number;
 }
 
-function getStrengthInfo(password: string, checks: PasswordChecks): StrengthInfo {
-  if (!password) {
-    return { level: 'empty', score: 0, label: '', segmentColor: 'bg-gray-200', textColor: 'text-gray-400', filledSegments: 0 };
-  }
-
-  const score = Object.values(checks).filter(Boolean).length; // 0-5
-
-  switch (score) {
-    case 1:
-      return { level: 'very-weak', score, label: 'Muy débil', segmentColor: 'bg-red-600', textColor: 'text-red-600', filledSegments: 1 };
-    case 2:
-      return { level: 'weak', score, label: 'Débil', segmentColor: 'bg-orange-500', textColor: 'text-orange-500', filledSegments: 2 };
-    case 3:
-      return { level: 'medium', score, label: 'Intermedio', segmentColor: 'bg-amber-400', textColor: 'text-amber-500', filledSegments: 3 };
-    case 4:
-      return { level: 'strong', score, label: 'Fuerte', segmentColor: 'bg-lime-500', textColor: 'text-lime-600', filledSegments: 4 };
-    case 5:
-      return { level: 'very-strong', score, label: 'Muy fuerte', segmentColor: 'bg-green-500', textColor: 'text-green-600', filledSegments: 5 };
-    default: // score === 0
-      return { level: 'very-weak', score, label: 'Muy débil', segmentColor: 'bg-red-600', textColor: 'text-red-600', filledSegments: 1 };
-  }
+function getStrengthInfo(p: string, c: PasswordChecks): StrengthInfo {
+  if (!p) return { level: 'empty', label: '', segmentColor: 'bg-gray-200', textColor: 'text-gray-400', filledSegments: 0 };
+  const score = Object.values(c).filter(Boolean).length;
+  const map: Record<number, StrengthInfo> = {
+    0: { level: 'very-weak', label: 'Muy débil', segmentColor: 'bg-red-600', textColor: 'text-red-600', filledSegments: 1 },
+    1: { level: 'very-weak', label: 'Muy débil', segmentColor: 'bg-red-600', textColor: 'text-red-600', filledSegments: 1 },
+    2: { level: 'weak', label: 'Débil', segmentColor: 'bg-orange-500', textColor: 'text-orange-500', filledSegments: 2 },
+    3: { level: 'medium', label: 'Intermedio', segmentColor: 'bg-amber-400', textColor: 'text-amber-500', filledSegments: 3 },
+    4: { level: 'strong', label: 'Fuerte', segmentColor: 'bg-lime-500', textColor: 'text-lime-600', filledSegments: 4 },
+    5: { level: 'very-strong', label: 'Muy fuerte', segmentColor: 'bg-green-500', textColor: 'text-green-600', filledSegments: 5 },
+  };
+  return map[score];
 }
-
-// ─── Requirement row sub-component ────────────────────────────────────────────
 
 function RequirementRow({ met, label }: { met: boolean; label: string }) {
   return (
     <span className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors duration-200 ${met ? 'text-green-600' : 'text-gray-400'}`}>
       {met
         ? <Check className="w-3 h-3 text-green-500 shrink-0" />
-        : <AlertCircle className="w-3 h-3 text-gray-300 shrink-0" />
+        : <AlertCircle className="w-3 h-3 text-gray-300  shrink-0" />
       }
       {label}
     </span>
   );
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────
 
 interface FormState {
   email: string;
-  password?: string;
+  password: string;
   rol: string;
 }
 
@@ -102,13 +89,12 @@ interface Props {
   onSuccess: () => void;
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────
 
 export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [puedeEditarEmail, setPuedeEditarEmail] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
 
   const [form, setForm] = useState<FormState>({
@@ -117,36 +103,12 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
     rol: usuario?.rol ?? '',
   });
 
-  // Derived password analysis (only relevant in create mode)
-  const passwordChecks = useMemo(() => getPasswordChecks(form.password ?? ''), [form.password]);
-  const strengthInfo = useMemo(() => getStrengthInfo(form.password ?? '', passwordChecks), [form.password, passwordChecks]);
-
-  useEffect(() => {
-    if (usuario) {
-      const fetchRolActual = async () => {
-        const supabase = getSupabaseBrowserClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) return;
-
-        const { data, error } = await supabase
-          .from('usuarios')
-          .select('rol')
-          .eq('auth_id', user.id)
-          .single();
-
-        if (!error && data?.rol === 'administrador') {
-          setPuedeEditarEmail(true);
-        }
-      };
-      fetchRolActual();
-    } else {
-      setPuedeEditarEmail(true);
-    }
-  }, [usuario]);
+  const passwordChecks = useMemo(() => getPasswordChecks(form.password), [form.password]);
+  const strengthInfo = useMemo(() => getStrengthInfo(form.password, passwordChecks), [form.password, passwordChecks]);
 
   const handleChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => { const copy = { ...prev }; delete copy[field]; return copy; });
+    setErrors((prev) => { const c = { ...prev }; delete c[field]; return c; });
     if (field === 'password') setPasswordTouched(true);
   };
 
@@ -154,19 +116,19 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
-    if (!form.email.trim() && puedeEditarEmail) newErrors.email = 'Requerido';
     if (!form.rol) newErrors.rol = 'Requerido';
 
     if (!usuario) {
+      if (!form.email.trim()) newErrors.email = 'Requerido';
       if (!form.password) {
         newErrors.password = 'Requerido';
       } else {
-        const checks = getPasswordChecks(form.password);
-        if (!checks.length) newErrors.password = 'Mínimo 8 caracteres';
-        else if (!checks.uppercase) newErrors.password = 'Debe incluir al menos una mayúscula';
-        else if (!checks.lowercase) newErrors.password = 'Debe incluir al menos una minúscula';
-        else if (!checks.number) newErrors.password = 'Debe incluir al menos un número';
-        else if (!checks.symbol) newErrors.password = 'Debe incluir al menos un símbolo (ej: @, #, !)';
+        const c = getPasswordChecks(form.password);
+        if (!c.length) newErrors.password = 'Mínimo 8 caracteres';
+        else if (!c.uppercase) newErrors.password = 'Debe incluir al menos una mayúscula';
+        else if (!c.lowercase) newErrors.password = 'Debe incluir al menos una minúscula';
+        else if (!c.number) newErrors.password = 'Debe incluir al menos un número';
+        else if (!c.symbol) newErrors.password = 'Debe incluir al menos un símbolo (ej: @, #, !)';
       }
     }
 
@@ -179,17 +141,16 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
     setLoading(true);
     try {
       if (usuario) {
-        const payloadUsuario: Record<string, unknown> = { id: usuario.id, rol: form.rol };
-        if (puedeEditarEmail) payloadUsuario.email = form.email.trim();
-
-        const res = await fetch('/api/admin/usuarios', {
+        // Edición: solo rol (email y estado se gestionan por separado)
+        const res = await fetch(`/api/admin/usuarios/${usuario.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadUsuario),
+          body: JSON.stringify({ rol: form.rol }),
         });
         if (!res.ok) throw new Error('Error actualizando usuario');
-        toast.success('Perfil sincronizado: Los privilegios han sido actualizados');
+        toast.success('Privilegios actualizados correctamente');
       } else {
+        // Creación: email + password + rol
         const res = await fetch('/api/admin/usuarios', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -197,7 +158,7 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body?.message ?? 'Error al crear usuario');
-        toast.success('Credenciales generadas: Usuario registrado en el sistema');
+        toast.success('Usuario registrado en el sistema');
       }
 
       onSuccess();
@@ -218,7 +179,6 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
@@ -226,7 +186,7 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
               {usuario
-                ? 'Actualiza los niveles de acceso del usuario'
+                ? 'Actualiza el rol de acceso del usuario'
                 : 'Genera nuevas credenciales para el sistema'}
             </p>
           </div>
@@ -235,42 +195,49 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="space-y-4">
 
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                Identificador de Acceso (Email) *
-              </label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                disabled={!puedeEditarEmail}
-                placeholder="ejemplo@guor.com"
-                className={[
-                  errors.email ? 'border-red-400' : '',
-                  !puedeEditarEmail ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : '',
-                ].join(' ')}
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-              {!puedeEditarEmail && usuario && (
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">
-                  Solo administradores pueden editar este campo
-                </p>
-              )}
-            </div>
+            {/* Email — solo en creación */}
+            {!usuario && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Correo electrónico *
+                </label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  placeholder="ejemplo@guor.com"
+                  className={errors.email ? 'border-red-400' : ''}
+                />
+                {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+              </div>
+            )}
 
-            {/* Password — only in create mode */}
+            {/* Email — solo lectura en edición */}
+            {usuario && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Correo electrónico
+                </label>
+                <Input
+                  value={form.email}
+                  disabled
+                  className="bg-gray-50 text-gray-500 cursor-not-allowed"
+                />
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">
+                  El correo no puede modificarse desde aquí
+                </p>
+              </div>
+            )}
+
+            {/* Password — solo en creación */}
             {!usuario && (
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                   Clave de Seguridad *
                 </label>
-
-                {/* Input */}
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
@@ -287,15 +254,11 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
 
-                {errors.password && (
-                  <p className="text-xs text-red-500">{errors.password}</p>
-                )}
-
-                {/* Strength bar — visible once the user starts typing */}
-                {passwordTouched && (form.password ?? '').length > 0 && (
+                {/* Barra de fortaleza — visible una vez que el usuario empieza a escribir */}
+                {passwordTouched && form.password.length > 0 && (
                   <div className="space-y-2 pt-1">
-                    {/* Five-segment bar */}
                     <div className="flex items-center gap-1.5">
                       {[1, 2, 3, 4, 5].map((seg) => (
                         <div
@@ -311,7 +274,6 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
                       </span>
                     </div>
 
-                    {/* Requirement checklist — 2-column grid */}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-0.5">
                       <RequirementRow met={passwordChecks.length} label="Mínimo 8 caracteres" />
                       <RequirementRow met={passwordChecks.uppercase} label="Una mayúscula (A-Z)" />
@@ -323,11 +285,10 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
                 )}
               </div>
             )}
-
-            {/* Role */}
+            {/* Rol */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                Privilegios y Permisos *
+                Rol *
               </label>
               <select
                 value={form.rol}
@@ -335,7 +296,7 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
                 className={`w-full h-10 px-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${errors.rol ? 'border-red-400' : 'border-gray-200'
                   }`}
               >
-                <option value="">Seleccionar nivel de acceso...</option>
+                <option value="">Seleccionar rol...</option>
                 {ROLES.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
@@ -344,15 +305,8 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-6 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1 h-11"
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-11" disabled={loading}>
               Cancelar
             </Button>
             <Button
@@ -362,7 +316,7 @@ export default function UsuarioFormModal({ usuario, onClose, onSuccess }: Props)
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Guardando...</>
-                : usuario ? 'Actualizar Privilegios' : 'Registrar Credenciales'
+                : usuario ? 'Actualizar Rol' : 'Registrar Usuario'
               }
             </Button>
           </div>

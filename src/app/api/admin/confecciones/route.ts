@@ -2,29 +2,30 @@ export const runtime = 'nodejs';
 import { ConfeccionesService } from '@/lib/services/confecciones.service';
 import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
 
-const CONFECCIONES_ROLES: any = ['administrador', 'gerente', 'disenador', 'almacenero'];
+const CONFECCIONES_ROLES = ['administrador', 'gerente', 'representante_taller'] as RolUsuario[];
 
-// GET /api/admin/confecciones
 export async function GET(req: Request) {
   const auth = await requireServerRole(CONFECCIONES_ROLES);
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
     const { searchParams } = new URL(req.url);
+
     const data = await ConfeccionesService.listar({
-      estado: searchParams.get('estado') ?? undefined,
-      taller_id: searchParams.get('taller_id') ?? undefined,
-      pedido_id: searchParams.get('pedido_id') ?? undefined,
-      search: searchParams.get('search') ?? undefined,
+      estado: searchParams.get('estado') ?? '',
+      taller_id: searchParams.get('taller_id') ?? '',
+      orden_produccion_id: searchParams.get('orden_produccion_id') ?? '',
+      prioridad: searchParams.get('prioridad') ?? '',
+      search: searchParams.get('search') ?? '',
       page: searchParams.has('page') ? Number(searchParams.get('page')) : 1,
       limit: searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
-      statusFilter: searchParams.get('statusFilter') ?? undefined,
     });
-    // El servicio ahora retorna { data, meta }
+
     return NextResponse.json({ success: true, ...data });
   } catch (error: any) {
-    console.error('[GET /confecciones]', error);
+    console.error('[GET /api/admin/confecciones]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

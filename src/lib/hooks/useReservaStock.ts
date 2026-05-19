@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearReserva, ReservaStock, ActualizarReserva } from '@/lib/schemas/reservaStockSchema';
+import { CrearReserva, ReservaStock, ActualizarReserva } from '@/lib/schemas/reserva-stock';
 
 export function useReservaStock() {
   const [reservas, setReservas] = useState<ReservaStock[]>([]);
@@ -13,7 +13,7 @@ export function useReservaStock() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/reservas-stock?${params}`);
       if (!response.ok) throw new Error('Error al obtener reservas');
-      
+
       const data: ReservaStock[] = await response.json();
       setReservas(data);
       return data;
@@ -33,7 +33,7 @@ export function useReservaStock() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear reserva');
-      
+
       const nuevaReserva: ReservaStock = await response.json();
       setReservas(prev => [...prev, nuevaReserva]);
       return nuevaReserva;
@@ -51,7 +51,7 @@ export function useReservaStock() {
         body: JSON.stringify({ cantidadUtilizada }),
       });
       if (!response.ok) throw new Error('Error al utilizar reserva');
-      
+
       const reservaActualizada: ReservaStock = await response.json();
       setReservas(prev => prev.map(r => r.id === reservaId ? reservaActualizada : r));
       return reservaActualizada;
@@ -69,7 +69,7 @@ export function useReservaStock() {
         body: JSON.stringify({ motivoCancelacion }),
       });
       if (!response.ok) throw new Error('Error al cancelar reserva');
-      
+
       setReservas(prev => prev.filter(r => r.id !== reservaId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

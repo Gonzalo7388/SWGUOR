@@ -41,10 +41,10 @@ export default function Sidebar({ }: { usuario: usuarios }) {
   const supabase = getSupabaseBrowserClient();
   const { can } = usePermissions();
 
-  const [isCollapsed, setIsCollapsed]   = useState(false);
-  const [openMenus, setOpenMenus]       = useState<string[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [notifOpen, setNotifOpen]       = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const navItems: NavItem[] = [
     {
@@ -66,8 +66,8 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: Package,
       roles: ['gerente', 'administrador', 'disenador', 'cortador'],
       subItems: [
-        { title: 'Productos',       href: '/admin/Panel-Administrativo/productos',       icon: Package,  resource: 'productos' as RecursoKey },
-        { title: 'Categorías',      href: '/admin/Panel-Administrativo/categorias',      icon: Grid3x3,  resource: 'categorias' as RecursoKey },
+        { title: 'Productos', href: '/admin/Panel-Administrativo/productos', icon: Package, resource: 'productos' as RecursoKey },
+        { title: 'Categorías', href: '/admin/Panel-Administrativo/categorias', icon: Grid3x3, resource: 'categorias' as RecursoKey },
         { title: 'Fichas Técnicas', href: '/admin/Panel-Administrativo/fichas-tecnicas', icon: FileText, resource: 'fichas_tecnicas' as RecursoKey },
       ],
     },
@@ -76,10 +76,10 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: ShoppingCart,
       roles: ['gerente', 'administrador', 'recepcionista', 'disenador'],
       subItems: [
-        { title: 'Pedidos',      href: '/admin/Panel-Administrativo/pedidos',              icon: ShoppingCart, resource: 'pedidos' as RecursoKey },
-        { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones',         icon: FileText,     resource: 'cotizaciones' as RecursoKey },
-        { title: 'Devoluciones', href: '/admin/Panel-Administrativo/devoluciones-cliente', icon: Truck,        resource: 'devoluciones_clientes' as RecursoKey },
-        { title: 'Pagos',        href: '/admin/Panel-Administrativo/pagos',                icon: DollarSign,   resource: 'pagos' as RecursoKey },
+        { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart, resource: 'pedidos' as RecursoKey },
+        { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones', icon: FileText, resource: 'cotizaciones' as RecursoKey },
+        { title: 'Devoluciones', href: '/admin/Panel-Administrativo/devoluciones-cliente', icon: Truck, resource: 'devoluciones_clientes' as RecursoKey },
+        { title: 'Pagos', href: '/admin/Panel-Administrativo/pagos', icon: DollarSign, resource: 'pagos' as RecursoKey },
       ],
     },
     {
@@ -87,10 +87,11 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: Scissors,
       roles: ['gerente', 'administrador', 'cortador', 'representante_taller', 'disenador'],
       subItems: [
-        { title: 'Órdenes Producción', href: '/admin/Panel-Administrativo/produccion',   icon: Package,  resource: 'produccion' as RecursoKey },
-        { title: 'Confecciones',       href: '/admin/Panel-Administrativo/confecciones', icon: Scissors, resource: 'confecciones' as RecursoKey },
-        { title: 'Talleres',           href: '/admin/Panel-Administrativo/talleres',     icon: Building, resource: 'talleres' as RecursoKey },
-        { title: 'Incidencias',        href: '/admin/Panel-Administrativo/incidencias',  icon: Bell,     resource: 'incidencias' as RecursoKey },
+        { title: 'Órdenes Producción', href: '/admin/Panel-Administrativo/produccion', icon: Package, resource: 'produccion' as RecursoKey },
+        { title: 'Confecciones', href: '/admin/Panel-Administrativo/confecciones', icon: Scissors, resource: 'confecciones' as RecursoKey },
+        { title: 'Talleres', href: '/admin/Panel-Administrativo/talleres', icon: Building, resource: 'talleres' as RecursoKey },
+        { title: 'Incidencias del Taller', href: '/admin/Panel-Administrativo/incidencias-taller', icon: Bell, resource: 'incidencias' as RecursoKey },
+        { title: 'Incidencias del Cliente', href: '/admin/Panel-Administrativo/incidencias-cliente', icon: Bell, resource: 'incidencias' as RecursoKey },
       ],
     },
     {
@@ -98,11 +99,11 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: Boxes,
       roles: ['gerente', 'administrador', 'cortador', 'ayudante'],
       subItems: [
-        { title: 'Almacenes',          href: '/admin/Panel-Administrativo/almacenes',              icon: Boxes,     resource: 'almacenes' as RecursoKey },
-        { title: 'Inventario',         href: '/admin/Panel-Administrativo/inventario',             icon: Boxes,     resource: 'inventario' as RecursoKey },
-        { title: 'Movimientos',        href: '/admin/Panel-Administrativo/movimientos',            icon: Grid3x3,   resource: 'movimiento_inventario' as RecursoKey },
-        { title: 'Proveedores',        href: '/admin/Panel-Administrativo/proveedores',            icon: Building2, resource: 'proveedores' as RecursoKey },
-        { title: 'Devoluciones Prov.', href: '/admin/Panel-Administrativo/devoluciones-proveedor', icon: Truck,     resource: 'devoluciones_proveedor' as RecursoKey },
+        { title: 'Almacenes', href: '/admin/Panel-Administrativo/almacenes', icon: Boxes, resource: 'almacenes' as RecursoKey },
+        { title: 'Inventario', href: '/admin/Panel-Administrativo/inventario', icon: Boxes, resource: 'inventario' as RecursoKey },
+        { title: 'Movimientos', href: '/admin/Panel-Administrativo/movimientos', icon: Grid3x3, resource: 'movimiento_inventario' as RecursoKey },
+        { title: 'Proveedores', href: '/admin/Panel-Administrativo/proveedores', icon: Building2, resource: 'proveedores' as RecursoKey },
+        { title: 'Devoluciones Prov.', href: '/admin/Panel-Administrativo/devoluciones-proveedor', icon: Truck, resource: 'devoluciones_proveedor' as RecursoKey },
       ],
     },
     {
@@ -118,11 +119,11 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: Users,
       roles: ['gerente', 'administrador', 'recepcionista'],
       subItems: [
-        { title: 'Usuarios',          href: '/admin/Panel-Administrativo/usuarios',         icon: ShieldCheck,  resource: 'usuarios' as RecursoKey },
-        { title: 'Personal Interno',  href: '/admin/Panel-Administrativo/personal',         icon: UserSquare,   resource: 'personal' as RecursoKey },
-        { title: 'Clientes',          href: '/admin/Panel-Administrativo/clientes',         icon: Briefcase,    resource: 'clientes' as RecursoKey },
-        { title: 'Auditoría',         href: '/admin/Panel-Administrativo/auditoria',        icon: History,      resource: 'usuarios' as RecursoKey },
-        { title: 'Feedback Clientes', href: '/admin/Panel-Administrativo/feedback-cliente', icon: MessageSquare,resource: 'feedback_cliente' as RecursoKey },
+        { title: 'Usuarios', href: '/admin/Panel-Administrativo/usuarios', icon: ShieldCheck, resource: 'usuarios' as RecursoKey },
+        { title: 'Personal Interno', href: '/admin/Panel-Administrativo/personal', icon: UserSquare, resource: 'personal' as RecursoKey },
+        { title: 'Clientes', href: '/admin/Panel-Administrativo/clientes', icon: Briefcase, resource: 'clientes' as RecursoKey },
+        { title: 'Auditoría', href: '/admin/Panel-Administrativo/auditoria', icon: History, resource: 'usuarios' as RecursoKey },
+        { title: 'Feedback Clientes', href: '/admin/Panel-Administrativo/feedback-cliente', icon: MessageSquare, resource: 'feedback_cliente' as RecursoKey },
       ],
     },
     {
@@ -241,7 +242,7 @@ export default function Sidebar({ }: { usuario: usuarios }) {
         >
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
-            const isOpen   = openMenus.includes(item.title);
+            const isOpen = openMenus.includes(item.title);
             const isActive = item.href === pathname || item.subItems?.some(s => s.href === pathname);
 
             return (

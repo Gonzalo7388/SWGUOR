@@ -39,35 +39,34 @@ export type PermissionKey =
   // Gestión de Insumos
   | 'ver_insumo' | 'crear_insumo' | 'editar_insumo' | 'descontinuar_insumo' | 'exportar_insumo'
   // Productos y Fichas
-  | 'ver_productos' | 'crear_productos' | 'editar_productos' | 'descontinuar_productos' | 'exportar_productos'
+  | 'ver_productos' | 'crear_productos' | 'editar_productos' | 'descontinuar_productos' | 'exportar_productos' | 'actualizar_estado_productos'
   | 'subir_ficha_tecnica' | 'subir_ficha_medidas'
   | 'ver_fichas_tecnicas' | 'crear_ficha_tecnica' | 'editar_ficha_tecnica' | 'ver_detalle_ficha_tecnica'
   | 'crear_ficha_medidas' | 'editar_ficha_medidas' | 'ver_detalle_ficha_medidas'
   // Clientes
   | 'ver_clientes' | 'editar_clientes' | 'ver_detalle_cliente' | 'suspender_clientes' | 'exportar_clientes'
   // Personal Interno
-  | 'ver_personal' | 'crear_personal' | 'editar_personal' | 'suspender_personal' | 'exportar_personal'
+  | 'ver_personal' | 'crear_personal' | 'editar_personal' | 'suspender_personal' | 'exportar_personal' | 'cambiar_estado_personal'
   // Inventario y Movimientos
-  | 'ver_inventario' | 'agotar_inventario'
+  | 'ver_inventario' | 'agotar_inventario' | 'cambiar_estado_inventario'
   | 'ver_movimiento_inventario' | 'ajustar_stock'
   // Seguimientos (Tracking)
   | 'ver_seguimiento_pedido'
   | 'ver_seguimiento_confeccion'
   | 'ver_seguimiento_produccion'
   // Órdenes de Producción
-  | 'ver_orden_produccion' | 'crear_orden_produccion' | 'editar_orden_produccion'
-  | 'asignar_orden_produccion' | 'ver_detalle_orden_produccion'
+  | 'ver_orden_produccion' | 'crear_orden_produccion' | 'editar_orden_produccion' | 'cancelar_orden_produccion' | 'finalizar_orden_produccion' | 'actualizar_etapas_produccion' | 'ver_detalle_orden_produccion'
   // Incidencias de Taller
-  | 'ver_incidencias_taller' | 'crear_incidencias_taller' | 'exportar_incidencias_taller'
+  | 'ver_incidencias_taller' | 'crear_incidencias_taller' | 'exportar_incidencias_taller' | 'cancelar_incidencias_taller' | 'finalizar_incidencias_taller' | 'editar_incidencias_taller' | 'asignar_incidencias_taller' | 'ver_detalle_incidencias_taller'
+  // Incidencias de Clientes
+  | 'ver_incidencias_clientes' | 'crear_incidencias_clientes' | 'exportar_incidencias_clientes' | 'cancelar_incidencias_clientes' | 'finalizar_incidencias_clientes' | 'editar_incidencias_clientes' | 'asignar_incidencias_clientes' | 'ver_detalle_incidencias_clientes'
   // Devoluciones
-  | 'ver_devoluciones_cliente' | 'crear_devoluciones_cliente' | 'exportar_devoluciones_cliente'
-  | 'ver_devoluciones_proveedor' | 'crear_devoluciones_proveedor' | 'exportar_devoluciones_proveedor'
-  // Órdenes
-  | 'ver_ordenes' | 'crear_ordenes' | 'editar_ordenes'
+  | 'ver_devoluciones_cliente' | 'crear_devoluciones_cliente' | 'exportar_devoluciones_cliente' | 'cancelar_devoluciones_cliente' | 'finalizar_devoluciones_cliente' | 'editar_devoluciones_cliente' | 'asignar_devoluciones_cliente' | 'ver_detalle_devoluciones_cliente'
+  | 'ver_devoluciones_proveedor' | 'crear_devoluciones_proveedor' | 'exportar_devoluciones_proveedor' | 'cancelar_devoluciones_proveedor' | 'finalizar_devoluciones_proveedor' | 'editar_devoluciones_proveedor' | 'asignar_devoluciones_proveedor' | 'ver_detalle_devoluciones_proveedor'
   // Pedidos
   | 'ver_pedidos' | 'crear_pedidos' | 'editar_pedidos' | 'cancelar_pedidos' | 'cambiar_estado_pedidos'
   // Variantes
-  | 'ver_variantes' | 'crear_variantes' | 'editar_variantes' | 'descontinuar_variantes' | 'exportar_variantes'
+  | 'ver_variantes' | 'crear_variantes' | 'editar_variantes' | 'exportar_variantes'
   // Categorías
   | 'ver_categorias' | 'crear_categorias' | 'editar_categorias' | 'descontinuar_categorias' | 'exportar_categorias'
   // Usuarios
@@ -77,12 +76,11 @@ export type PermissionKey =
   // Despachos
   | 'ver_despachos' | 'crear_despachos' | 'editar_despachos' | 'actualizar_estado_despachos' | 'exportar_despachos'
   // Confecciones
-  | 'ver_confecciones' | 'crear_confecciones' | 'editar_confecciones'
-  | 'actualizar_estado_confecciones' | 'exportar_confecciones' | 'asignar_ordenes_confecciones'
+  | 'ver_confecciones' | 'crear_confecciones' | 'editar_confecciones' | 'cancelar_confecciones' | 'finalizar_confecciones' | 'actualizar_estado_confecciones' | 'exportar_confecciones' | 'asignar_ordenes_confecciones'
   // Talleres
   | 'ver_talleres' | 'crear_talleres' | 'editar_talleres' | 'suspender_talleres' | 'exportar_talleres'
   // Pagos
-  | 'ver_pagos' | 'registrar_pagos' | 'realizar_pago'
+  | 'ver_pagos' | 'realizar_pago'
   // Cotizaciones
   | 'ver_cotizaciones' | 'editar_cotizaciones' | 'ver_historial_cotizaciones'
   | 'crear_cotizacion' | 'descargar_cotizacion' | 'aprobar_cotizaciones' | 'exportar_cotizaciones'
@@ -104,7 +102,12 @@ export type PermissionKey =
   // Almacenes
   | 'ver_almacenes' | 'crear_almacenes' | 'editar_almacenes' | 'exportar_almacenes'
   // Perfil
-  | 'ver_perfil' | 'editar_perfil';
+  | 'ver_perfil' | 'editar_perfil'
+  // Reservar Stock
+  | 'reservar_stock' | 'liberar_stock'
+  // Almacen
+  | 'ver_almacen' | 'crear_almacen' | 'editar_almacen' | 'exportar_almacen' | 'actualizar_stock_almacen';
+
 // ─────────────────────────────────────────────
 // TIPOS DE ACCIONES Y RECURSOS
 // ─────────────────────────────────────────────
@@ -174,7 +177,6 @@ const ACCION_MAP: Record<string, AccionRecurso> = {
 export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
   gerente: [
     'ver_dashboard', 'exportar_data',
-    'ver_ordenes',
     'ver_pedidos',
     'ver_inventario', 'ver_movimiento_inventario', 'ajustar_stock',
     'ver_productos', 'exportar_productos',
@@ -185,21 +187,25 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_reportes', 'filtrar_reportes', 'exportar_reportes',
     'ver_despachos', 'exportar_despachos',
     'ver_confecciones', 'exportar_confecciones',
+    'ver_orden_produccion', 'actualizar_etapas_produccion',
+    'reservar_stock', 'liberar_stock',
     'ver_talleres', 'exportar_talleres',
-    'ver_pagos', 'registrar_pagos',
+    'ver_pagos',
     'ver_cotizaciones', 'ver_historial_cotizaciones', 'aprobar_cotizaciones', 'exportar_cotizaciones',
     'ver_precio_historico', 'crear_precio_historico', 'editar_precio_historico',
     'ver_asientos_contables', 'crear_asientos_contables', 'editar_asientos_contables', 'exportar_asientos_contables',
     'ver_materiales', 'exportar_materiales',
     'ver_configuracion', 'editar_configuracion',
+    'ver_almacen', 'crear_almacen', 'editar_almacen', 'exportar_almacen', 'actualizar_stock_almacen',
     'ver_proveedores', 'exportar_proveedores',
-    'ver_feedback_cliente',
+    'ver_incidencias_taller', 'exportar_incidencias_taller', 'ver_detalle_incidencias_taller',
+    'ver_incidencias_clientes', 'exportar_incidencias_clientes', 'ver_detalle_incidencias_clientes',
+    'ver_feedback_cliente', 'exportar_feedback_cliente',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil', 'ver_feedback_cliente', 'exportar_feedback_cliente',
   ],
 
   administrador: [
     'ver_dashboard', 'exportar_data',
-    'ver_ordenes',
     'ver_pedidos',
     'ver_inventario', 'ver_movimiento_inventario', 'ajustar_stock',
     'ver_clientes', 'editar_clientes', 'ver_detalle_cliente', 'exportar_clientes',
@@ -212,9 +218,10 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_personal', 'crear_personal', 'editar_personal', 'suspender_personal', 'exportar_personal',
     'ver_reportes', 'filtrar_reportes', 'exportar_reportes',
     'ver_despachos', 'exportar_despachos',
-    'ver_confecciones', 'exportar_confecciones',
+    'ver_confecciones', 'exportar_confecciones', 'crear_confecciones',
+    'reservar_stock', 'liberar_stock',
     'ver_talleres', 'crear_talleres', 'editar_talleres', 'suspender_talleres', 'exportar_talleres',
-    'ver_pagos', 'registrar_pagos',
+    'ver_pagos',
     'ver_cotizaciones', 'editar_cotizaciones', 'ver_historial_cotizaciones', 'aprobar_cotizaciones', 'exportar_cotizaciones',
     'ver_precio_historico', 'crear_precio_historico', 'editar_precio_historico',
     'ver_asientos_contables', 'crear_asientos_contables', 'editar_asientos_contables', 'exportar_asientos_contables',
@@ -223,7 +230,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_devoluciones_proveedor', 'crear_devoluciones_proveedor', 'exportar_devoluciones_proveedor',
     'ver_devoluciones_cliente', 'exportar_devoluciones_cliente',
     'ver_proveedores', 'crear_proveedores', 'editar_proveedores', 'descontinuar_proveedores', 'exportar_proveedores',
-    'ver_incidencias_taller', 'exportar_incidencias_taller',
+    'ver_incidencias_taller', 'exportar_incidencias_taller', 'ver_detalle_incidencias_taller',
+    'ver_incidencias_clientes', 'exportar_incidencias_clientes', 'ver_detalle_incidencias_clientes',
     'ver_feedback_cliente', 'exportar_feedback_cliente',
     'ver_notificaciones', 'crear_notificaciones', 'exportar_notificaciones',
     'ver_almacenes', 'crear_almacenes', 'editar_almacenes', 'exportar_almacenes',
@@ -232,12 +240,11 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
 
   recepcionista: [
     'ver_dashboard',
-    'ver_ordenes', 'crear_ordenes', 'editar_ordenes',
     'ver_pedidos', 'crear_pedidos', 'editar_pedidos', 'cancelar_pedidos', 'cambiar_estado_pedidos',
     'ver_inventario',
     'ver_productos', 'exportar_productos',
     'ver_variantes', 'exportar_variantes',
-    'ver_pagos', 'registrar_pagos',
+    'ver_pagos',
     'ver_seguimiento_pedido',
     'ver_devoluciones_cliente', 'crear_devoluciones_cliente', 'exportar_devoluciones_cliente',
     'ver_cotizaciones', 'editar_cotizaciones', 'ver_historial_cotizaciones',
@@ -267,7 +274,7 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_dashboard',
     'ver_pedidos',
     'ver_inventario', 'ver_movimiento_inventario',
-    'ver_orden_produccion', 'ver_detalle_orden_produccion',
+    'ver_orden_produccion', 'ver_detalle_orden_produccion', 'actualizar_etapas_produccion',
     'ver_fichas_tecnicas', 'ver_detalle_ficha_tecnica',
     'ver_detalle_ficha_medidas', 'subir_ficha_medidas',
     'ver_insumo',
@@ -282,7 +289,8 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_dashboard',
     'ver_inventario', 'ver_insumo', 'ver_materiales', 'ver_movimiento_inventario',
     'ver_productos', 'ver_variantes',
-    'ver_seguimiento_confeccion',
+    'ver_orden_produccion', 'ver_detalle_orden_produccion', 'actualizar_etapas_produccion',
+    'ver_seguimiento_confeccion', 'ver_seguimiento_produccion',
     'ver_confecciones', 'ver_despachos',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],
@@ -291,13 +299,13 @@ export const PERMISOS_POR_ROL: Record<RolUsuario, PermissionKey[]> = {
     'ver_dashboard',
     'ver_pedidos',
     'ver_inventario',
-    'ver_orden_produccion', 'ver_detalle_orden_produccion', 'asignar_orden_produccion',
+    'ver_orden_produccion', 'ver_detalle_orden_produccion', 'actualizar_etapas_produccion',
     'ver_seguimiento_confeccion', 'ver_seguimiento_produccion',
     'ver_insumo',
+    'ver_incidencias_taller', 'crear_incidencias_taller',
     'ver_materiales',
     'ver_confecciones', 'actualizar_estado_confecciones', 'asignar_ordenes_confecciones',
     'ver_talleres', 'editar_talleres',
-    'ver_incidencias_taller', 'crear_incidencias_taller',
     'ver_despachos', 'ver_productos',
     'ver_notificaciones', 'ver_perfil', 'editar_perfil',
   ],

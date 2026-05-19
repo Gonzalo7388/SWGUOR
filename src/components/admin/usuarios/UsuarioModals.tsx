@@ -6,10 +6,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { usuarios } from '@prisma/client';
 
-// ─────────────────────────────────────────────────────────────
-// SUSPEND MODAL
-// ─────────────────────────────────────────────────────────────
-
 interface SuspendProps {
   usuario: usuarios;
   onClose: () => void;
@@ -18,25 +14,27 @@ interface SuspendProps {
 
 export function UsuarioSuspendModal({ usuario, onClose, onSuccess }: SuspendProps) {
   const [isSuspending, setIsSuspending] = useState(false);
-  const activo = usuario.estado === 'activo';
-  const accion = activo ? 'Suspender' : 'Reactivar';
-  
+
+  // inactivo y suspendido = bloqueado; cualquiera puede reactivarse
+  const bloqueado = usuario.estado !== 'activo';
+  const accion = bloqueado ? 'Reactivar' : 'Suspender';
+
   const handleConfirm = async () => {
     setIsSuspending(true);
     try {
-      const res = await fetch(`/api/admin/usuarios/${usuario.id}`, {
+      const res = await fetch(`/api/admin/usuarios/${usuario.id}/estado`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: activo ? 'suspendido' : 'activo' }),
+        body: JSON.stringify({ estado: bloqueado ? 'activo' : 'suspendido' }),
       });
 
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.message ?? body?.error ?? `Error al ${accion.toLowerCase()} usuario`);
 
       toast.success(
-        activo
-          ? `Acceso Revocado: ${usuario.email} ha sido suspendido`
-          : `Acceso Restaurado: ${usuario.email} está activo nuevamente`,
+        bloqueado
+          ? `Acceso Restaurado: ${usuario.email} está activo nuevamente`
+          : `Acceso Revocado: ${usuario.email} ha sido suspendido`,
       );
       onSuccess();
       onClose();
@@ -56,18 +54,20 @@ export function UsuarioSuspendModal({ usuario, onClose, onSuccess }: SuspendProp
         className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${activo ? 'bg-amber-50' : 'bg-emerald-50'}`}>
-          {activo ? (
-            <ShieldOff className="w-7 h-7 text-amber-500" />
-          ) : (
-            <ShieldCheck className="w-7 h-7 text-emerald-500" />
-          )}
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${bloqueado ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+          {bloqueado
+            ? <ShieldCheck className="w-7 h-7 text-emerald-500" />
+            : <ShieldOff className="w-7 h-7 text-amber-500" />
+          }
         </div>
         <h3 className="text-lg font-bold text-gray-900">{accion} Credenciales</h3>
         <p className="text-sm text-gray-500 mt-2">
           ¿Estás seguro de {accion.toLowerCase()} el acceso de{' '}
           <span className="font-semibold text-gray-900">{usuario.email}</span>?
-          {activo ? ' Esto bloqueará su acceso a los módulos administrativos.' : ' Se restaurará su acceso al sistema.'}
+          {bloqueado
+            ? ' Se restaurará su acceso al sistema.'
+            : ' Esto bloqueará su acceso a los módulos administrativos.'
+          }
         </p>
         <div className="flex gap-3 mt-6">
           <Button variant="outline" onClick={onClose} className="flex-1 h-11" disabled={isSuspending}>
@@ -75,7 +75,7 @@ export function UsuarioSuspendModal({ usuario, onClose, onSuccess }: SuspendProp
           </Button>
           <Button
             onClick={handleConfirm}
-            className={`flex-1 h-11 text-white ${activo ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+            className={`flex-1 h-11 text-white ${bloqueado ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}
             disabled={isSuspending}
           >
             {isSuspending

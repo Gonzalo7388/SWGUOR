@@ -18,34 +18,28 @@ export default async function PedidoDetallePage({ params }: PageProps) {
       include: {
         clientes: {
           select: {
-            id:               true,
-            ruc:              true,
-            razon_social:     true,
+            id: true,
+            ruc: true,
+            razon_social: true,
             nombre_comercial: true,
-            telefono:         true,
-            email:            true,
+            telefono: true,
+            email: true,
           },
         },
         pedido_items: {
           include: {
-            productos:          { select: { id: true, nombre: true, sku: true, imagen: true, fichas_tecnicas: true } },
+            productos: { select: { id: true, nombre: true, sku: true, imagen: true, fichas_tecnicas: true } },
             variantes_producto: { select: { id: true, color: true, talla: true, sku: true } },
           },
         },
         seguimiento_pedido: { orderBy: { created_at: 'desc' } },
-        confecciones: {
-          include: {
-            talleres: { select: { id: true, nombre: true, contacto: true, email: true } },
-          },
-          orderBy: { created_at: 'desc' },
-        },
         ordenes_produccion: {
           include: {
-            fichas_tecnicas:        { select: { id: true, version: true, estado: true } },
-            talleres:               { select: { id: true, nombre: true } },
+            fichas_tecnicas: { select: { id: true, version: true, estado: true } },
+            talleres: { select: { id: true, nombre: true } },
             seguimiento_produccion: {
-              where:   { activo: true },
-              take:    1,
+              where: { activo: true },
+              take: 1,
               orderBy: { created_at: 'desc' },
             },
           },
@@ -58,9 +52,9 @@ export default async function PedidoDetallePage({ params }: PageProps) {
 
     // Talleres activos para el modal
     const talleres = await prisma.talleres.findMany({
-      where:   { estado: 'activo' },
+      where: { estado: 'activo' },
       orderBy: { nombre: 'asc' },
-      select:  { id: true, nombre: true, especialidad: true, contacto: true, email: true },
+      select: { id: true, nombre: true, especialidad: true, contacto: true, email: true },
     });
 
     return (

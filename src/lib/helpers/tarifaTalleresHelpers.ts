@@ -1,4 +1,4 @@
-import { TarifaTaller } from '@/lib/schemas/tarifaTalleresSchema';
+import { TarifaTaller } from '@/lib/schemas/tarifa-talleres';
 
 export const tarifaTalleresHelpers = {
   estaVigente: (tarifa: TarifaTaller): boolean => {
@@ -41,7 +41,7 @@ export const tarifaTalleresHelpers = {
     if (!tarifa.tiempoEstimado) return null;
     const totalMinutos = tarifa.tiempoEstimado * cantidad;
     const unidad = tarifa.unidadTiempo || 'MINUTOS';
-    
+
     if (unidad === 'MINUTOS') {
       const horas = Math.floor(totalMinutos / 60);
       const minutos = totalMinutos % 60;

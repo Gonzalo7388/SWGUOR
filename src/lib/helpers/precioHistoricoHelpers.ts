@@ -1,4 +1,4 @@
-import { PrecioHistorico } from '@/lib/schemas/precioHistoricoSchema';
+import { PrecioHistorico } from '@/lib/schemas/precio-historico';
 
 const baseUrl = '/api/admin/precio-historico';
 

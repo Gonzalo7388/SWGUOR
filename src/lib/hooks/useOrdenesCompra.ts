@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearOrdenCompra, OrdenCompra, ActualizarOrdenCompra } from '@/lib/schemas/ordenesCompraSchema';
+import { CrearOrdenCompra, OrdenCompra, ActualizarOrdenCompra } from '@/lib/schemas/ordenes-compra';
 
 export function useOrdenesCompra() {
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
@@ -13,7 +13,7 @@ export function useOrdenesCompra() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/ordenes-compra?${params}`);
       if (!response.ok) throw new Error('Error al obtener órdenes');
-      
+
       const data: OrdenCompra[] = await response.json();
       setOrdenes(data);
       return data;
@@ -33,7 +33,7 @@ export function useOrdenesCompra() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear orden');
-      
+
       const nuevaOrden: OrdenCompra = await response.json();
       setOrdenes(prev => [...prev, nuevaOrden]);
       return nuevaOrden;
@@ -51,7 +51,7 @@ export function useOrdenesCompra() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al actualizar orden');
-      
+
       const ordenActualizada: OrdenCompra = await response.json();
       setOrdenes(prev => prev.map(o => o.id === Number(id) ? ordenActualizada : o));
       return ordenActualizada;
@@ -69,7 +69,7 @@ export function useOrdenesCompra() {
         body: JSON.stringify({ aprobadoPor, observaciones }),
       });
       if (!response.ok) throw new Error('Error al aprobar orden');
-      
+
       const ordenActualizada: OrdenCompra = await response.json();
       setOrdenes(prev => prev.map(o => o.id === Number(ordenId) ? ordenActualizada : o));
       return ordenActualizada;
@@ -87,7 +87,7 @@ export function useOrdenesCompra() {
         body: JSON.stringify({ cantidadRecibida, observacionesRecepcion }),
       });
       if (!response.ok) throw new Error('Error al recibir orden');
-      
+
       const ordenActualizada: OrdenCompra = await response.json();
       setOrdenes(prev => prev.map(o => o.id === Number(ordenId) ? ordenActualizada : o));
       return ordenActualizada;

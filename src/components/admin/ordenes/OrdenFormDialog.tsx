@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { DefaultValues, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ordenProduccionSchema, OrdenProduccionFormValues } from "@/lib/schemas/ordenes-produccion";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -9,28 +9,54 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOrdenesProduccion } from "@/lib/hooks/useOrdenProduccion";
 import { useEffect } from "react";
+import { OrdenProduccion } from "@/components/admin/ordenes/types";
 import { Factory, Hash, Layers, CalendarClock, AlignLeft, Loader2, Plus, Save } from "lucide-react";
 
-// ─── Estilos ERP consistentes ────────────────────────────────
 const ERP_LABEL = "text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2 mb-1.5";
 const ERP_INPUT = "bg-[#f1f5f9] border-none h-12 rounded-xl font-medium text-[#334155] focus-visible:ring-1 focus-visible:ring-pink-200 transition-all";
 const ERP_ERROR = "text-[11px] text-rose-500 font-semibold mt-1";
 
-export default function OrdenFormDialog({ open, onClose, initialData }: any) {
+interface OrdenFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  initialData: OrdenProduccion | null;
+}
+
+export default function OrdenFormDialog({ open, onClose, initialData }: OrdenFormDialogProps) {
   const { create, update, isCreating, isUpdating } = useOrdenesProduccion();
   const isEditing = !!initialData;
   const isLoading = isCreating || isUpdating;
 
+  // Helper para mapear la entidad de base de datos al formato exacto que espera el formulario
+  const mapearDatosIniciales = (data: OrdenProduccion | null): DefaultValues<OrdenProduccionFormValues> => {
+    if (!data) return { cantidad_solicitada: 1 };
+
+    return {
+      producto_id: data.producto_id,
+      taller_id: data.taller_id,
+      ficha_id: data.ficha_id,
+      pedido_id: data.pedido_id ?? undefined, // Convertimos null a undefined para Zod/React Hook Form
+      cantidad_solicitada: data.cantidad_solicitada,
+      fecha_entrega: data.fecha_entrega ?? undefined,
+      notas: data.notas ?? undefined,
+    };
+  };
+
+  // Pasamos explícitamente el genérico <OrdenProduccionFormValues> a useForm
   const { register, handleSubmit, reset, formState: { errors } } = useForm<OrdenProduccionFormValues>({
     resolver: zodResolver(ordenProduccionSchema),
-    defaultValues: initialData || { cantidad_solicitada: 1 },
+    defaultValues: mapearDatosIniciales(initialData),
   });
 
-  useEffect(() => { if (initialData) reset(initialData); }, [initialData, reset]);
+  // Escuchamos los cambios de initialData sanitizando el payload antes del reset
+  useEffect(() => {
+    reset(mapearDatosIniciales(initialData));
+  }, [initialData, reset]);
 
   const onSubmit = (data: OrdenProduccionFormValues) => {
-    if (isEditing) {
-      update(initialData.id, data);
+    if (isEditing && initialData) {
+      // Forzamos el ID numérico a string usando String() para satisfacer el hook
+      update(String(initialData.id), data);
     } else {
       create(data);
     }
@@ -58,6 +84,7 @@ export default function OrdenFormDialog({ open, onClose, initialData }: any) {
           </div>
         </div>
 
+        {/* El handleSubmit ahora infiere correctamente el tipo de la función onSubmit */}
         <form onSubmit={handleSubmit(onSubmit)} className="px-8 pb-8 space-y-5">
 
           {/* ── Fila 1: Producto + Taller ─────────────────── */}

@@ -1,17 +1,5 @@
 import { z } from 'zod';
 
-// Prisma: incidencias { id BigInt, pedido_id BigInt, confeccion_id BigInt?,
-// tipo TipoIncidencia, severidad SeveridadIncidencia @default(media),
-// descripcion String, reportado_por BigInt?, asignado_a BigInt?,
-// fecha_reporte DateTime @default(now()), fecha_resolucion DateTime?,
-// resuelto Boolean @default(false), solucion String?,
-// impacto_horas Float?, foto_url String? @db.VarChar(500),
-// created_at, updated_at? }
-
-// TipoIncidencia enum: averia_maquina | falta_material | error_diseno |
-//   defecto_corte | defecto_confeccion | retraso | otro
-// SeveridadIncidencia enum: baja | media | alta | critica
-
 export const TipoIncidenciaEnum = z.enum([
   'averia_maquina',
   'falta_material',

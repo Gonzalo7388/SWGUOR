@@ -7,7 +7,7 @@ export { pagosTalleresService } from './pagos-talleres.service';
 export { tarifaTalleresService } from './tarifa-talleres.service';
 export { guiasRemisionService } from './guias-remision.service';
 export { ordenesCompraService } from './ordenes-compra.service';
-export { incidenciasService } from './incidencias.service';
+export { IncidenciasTallerService } from './incidencias-taller.service';
 export { asientosContablesService } from './asientos-contables.service';
 export { auditoriaService } from './auditoria.service';
 export { comprobantesService } from './comprobantes.service';

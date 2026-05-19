@@ -1,4 +1,4 @@
-import { PagoTaller } from '@/lib/schemas/pagosTalleresSchema';
+import { PagoTaller } from '@/lib/schemas/pagos-talleres';
 
 export const pagosTalleresHelpers = {
   estaPendiente: (pago: PagoTaller): boolean =>

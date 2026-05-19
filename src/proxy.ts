@@ -11,8 +11,8 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/fichas-tecnicas': ['administrador', 'gerente', 'disenador', 'cortador'],
   '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador', 'gerente', 'cortador', 'ayudante', 'representante_taller'],
   '/admin/Panel-Administrativo/movimientos': ['administrador', 'gerente', 'disenador', 'cortador', 'ayudante', 'representante_taller'],
-  '/admin/Panel-Administrativo/produccion': ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'],
-  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente', 'cortador'],
+  '/admin/Panel-Administrativo/ordenes-produccion': ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'],
+  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente'],
   '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista', 'gerente'],
   '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador', 'gerente'],
   '/admin/Panel-Administrativo/talleres': ['administrador', 'gerente', 'representante_taller'],
@@ -22,6 +22,8 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/feedback-cliente': ['administrador', 'gerente'],
   '/admin/Panel-Administrativo/notificaciones': ['administrador', 'recepcionista', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'gerente'],
   '/admin/Panel-Administrativo/almacenes': ['administrador', 'gerente'],
+  '/admin/Panel-Administrativo/incidencias-taller': ['administrador', 'gerente', 'representante_taller'],
+  '/admin/Panel-Administrativo/incidencias-clientes': ['administrador', 'gerente', 'representante_taller'],
   '/portal/dashboard': ['cliente'],
 };
 
@@ -78,7 +80,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/admin') && userRole === 'cliente') {
     return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
   }
-  
+
   if (pathname.startsWith('/portal') && userRole !== 'cliente') {
     return NextResponse.redirect(new URL('/admin/Panel-Administrativo/dashboard', request.url));
   }
@@ -90,7 +92,7 @@ export async function proxy(request: NextRequest) {
   if (matchedRoute) {
     const rolesPermitidos = routePermissions[matchedRoute];
     const esSuperUsuario = userRole === 'gerente' || userRole === 'administrador';
-    
+
     // Normalizamos roles permitidos a minúsculas por seguridad
     const rolesPermitidosLower = rolesPermitidos.map(r => r.toLowerCase());
 

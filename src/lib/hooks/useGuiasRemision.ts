@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearGuiaRemision, GuiaRemision } from '@/lib/schemas/guiasRemisionSchema';
+import { CrearGuiaRemision, GuiaRemision } from '@/lib/schemas/guias-remision';
 
 export function useGuiasRemision() {
   const [guias, setGuias] = useState<GuiaRemision[]>([]);
@@ -13,7 +13,7 @@ export function useGuiasRemision() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/guias-remision?${params}`);
       if (!response.ok) throw new Error('Error al obtener guías');
-      
+
       const data: GuiaRemision[] = await response.json();
       setGuias(data);
       return data;
@@ -33,7 +33,7 @@ export function useGuiasRemision() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear guía');
-      
+
       const nuevaGuia: GuiaRemision = await response.json();
       setGuias(prev => [...prev, nuevaGuia]);
       return nuevaGuia;
@@ -51,7 +51,7 @@ export function useGuiasRemision() {
         body: JSON.stringify({ firmaDestino, observacionesEntrega }),
       });
       if (!response.ok) throw new Error('Error al entregar guía');
-      
+
       const guiaActualizada: GuiaRemision = await response.json();
       setGuias(prev => prev.map(g => g.id === Number(guiaId) ? guiaActualizada : g));
       return guiaActualizada;

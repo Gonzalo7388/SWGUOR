@@ -5,8 +5,9 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { useProductos } from "@/lib/hooks/useProductos";
 import { Button } from "@/components/ui/button";
 import {
-  FileSpreadsheet, FileText, ChevronLeft, ChevronRight,
-  ShieldAlert, Loader2, RefreshCw
+  ShieldAlert, RefreshCw, Download, Plus,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -14,7 +15,7 @@ import ProductFilters from "@/components/admin/productos/ProductsFilters";
 import ProductosTable from "@/components/admin/productos/ProductsTable";
 import { toast } from "sonner";
 import { useProductoStockResumen } from "@/lib/hooks/useStockResumen";
-
+import { cn } from "@/lib/utils";
 import AdminPageHeader from "@/components/admin/common/AdminPageHeader";
 import ProductosStats from "@/components/admin/productos/ProductosStats";
 
@@ -71,7 +72,7 @@ export default function ProductosPage() {
   }), [productos]);
 
   const totalPages = Math.ceil(productosProcesados.length / pageSize);
-  
+
   const paginatedData = productosProcesados
     .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
     .map((p: any) => ({
@@ -83,17 +84,33 @@ export default function ProductosPage() {
     setCurrentPage(0);
   }, [searchTerm, selectedCategoria, colorFilter, sizeFilter, sortOrder, statusFilter]);
 
-  const handleExportExcel = () => {
-    exportProductosToExcel(productosProcesados, stockResumen || [], "Inventario");
-    toast.success("Excel generado");
+  const handleExportExcel = async () => {
+    const toastId = toast.loading("Generando Excel...");
+    try {
+      await exportProductosToExcel(
+        productosProcesados,
+        stockResumen ?? [],
+        "Inventario"
+      );
+      toast.success("Excel descargado", { id: toastId });
+    } catch (e: any) {
+      console.error("[Excel export]", e);
+      toast.error(e?.message ?? "Error al generar Excel", { id: toastId });
+    }
   };
 
-  const handleExportPDF = () => {
-    exportInventarioToPDF(productosProcesados, categorias, {
-      filename: "Inventario",
-      title: "REPORTE DE INVENTARIO"
-    });
-    toast.success("PDF generado");
+  const handleExportPDF = async () => {
+    const toastId = toast.loading("Generando PDF...");
+    try {
+      await exportInventarioToPDF(productosProcesados, categorias, {
+        filename: "Inventario",
+        title: "REPORTE DE INVENTARIO",
+      });
+      toast.success("PDF descargado", { id: toastId });
+    } catch (e: any) {
+      console.error("[PDF export]", e);
+      toast.error(e?.message ?? "Error al generar PDF", { id: toastId });
+    }
   };
 
   if (authLoading) return <LoadingScreen />;
@@ -102,29 +119,25 @@ export default function ProductosPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         <AdminPageHeader
           title="Gestión de Inventario"
           description="Control centralizado de productos, SKU y existencias"
           actionLabel="Nuevo Producto"
-          onAction={can("create", "productos") ? undefined : undefined} // Link handled below
+          showAction={can("create", "productos")}
+          onAction={() => {
+            window.location.href = "/admin/Panel-Administrativo/productos/nuevo";
+          }}
         >
           <div className="flex gap-2">
             <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 rounded-xl shadow-sm">
-              <FileText className="w-5 h-5" />
+              <Download className="w-5 h-5" />
               <span className="hidden sm:inline">PDF</span>
             </Button>
             <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 rounded-xl shadow-sm">
-              <FileSpreadsheet className="w-5 h-5" />
+              <Download className="w-5 h-5" />
               <span className="hidden sm:inline">Excel</span>
             </Button>
-            {can("create", "productos") && (
-              <Link href="/admin/Panel-Administrativo/productos/nuevo">
-                <Button className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white rounded-xl active:scale-95 transition-all">
-                  <Plus className="w-5 h-5" /> Nuevo Producto
-                </Button>
-              </Link>
-            )}
           </div>
         </AdminPageHeader>
 
@@ -172,7 +185,7 @@ export default function ProductosPage() {
               loading={isLoading}
               onEdit={(p) => { setSelectedProducto(p); }}
               onArchive={(p) => { setSelectedProducto(p); setIsDeleteOpen(true); }}
-              onStatusChange={(p) => toggleEstado(p.id.toString(), p.estado === 'activo' ? 'inactivo' : 'activo' )}
+              onStatusChange={(p) => toggleEstado(p.id.toString(), p.estado === 'activo' ? 'inactivo' : 'activo')}
             />
 
             <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
@@ -201,7 +214,7 @@ export default function ProductosPage() {
           producto={selectedProducto}
           onClose={() => setIsDeleteOpen(false)}
           onSuccess={() => remove(selectedProducto?.id?.toString())}
-          rolUsuario={role} 
+          rolUsuario={role}
         />
       )}
     </div>
@@ -226,6 +239,3 @@ function AccessDenied() {
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";
-import { Plus } from "lucide-react";

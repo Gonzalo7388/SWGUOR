@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { tarifaTallerBaseSchema as tarifasTallerSchema } from '@/lib/schemas/tarifaTalleresSchema';
+import { tarifaTallerBaseSchema as tarifasTallerSchema } from '@/lib/schemas/tarifa-talleres';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ZodError } from 'zod';
 

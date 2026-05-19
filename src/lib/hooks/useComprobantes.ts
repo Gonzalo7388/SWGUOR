@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearComprobante, Comprobante } from '@/lib/schemas/comprobantesSchema';
+import { CrearComprobante, Comprobante } from '@/lib/schemas/comprobantes';
 
 export function useComprobantes() {
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([]);
@@ -13,7 +13,7 @@ export function useComprobantes() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/comprobantes?${params}`);
       if (!response.ok) throw new Error('Error al obtener comprobantes');
-      
+
       const data: Comprobante[] = await response.json();
       setComprobantes(data);
       return data;
@@ -33,7 +33,7 @@ export function useComprobantes() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear comprobante');
-      
+
       const nuevoComprobante: Comprobante = await response.json();
       setComprobantes(prev => [...prev, nuevoComprobante]);
       return nuevoComprobante;
@@ -51,7 +51,7 @@ export function useComprobantes() {
         body: JSON.stringify({ motivo }),
       });
       if (!response.ok) throw new Error('Error al anular comprobante');
-      
+
       const comprobanteActualizado: Comprobante = await response.json();
       setComprobantes(prev => prev.map(c => c.id === Number(comprobanteId) ? comprobanteActualizado : c));
       return comprobanteActualizado;

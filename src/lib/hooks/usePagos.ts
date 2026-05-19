@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearPago, Pago } from '@/lib/schemas/pagosSchema';
+import { CrearPago, Pago } from '@/lib/schemas/pagos';
 
 export function usePagos() {
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -13,7 +13,7 @@ export function usePagos() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/pagos?${params}`);
       if (!response.ok) throw new Error('Error al obtener pagos');
-      
+
       const data: Pago[] = await response.json();
       setPagos(data);
       return data;
@@ -33,7 +33,7 @@ export function usePagos() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear pago');
-      
+
       const nuevoPago: Pago = await response.json();
       setPagos(prev => [...prev, nuevoPago]);
       return nuevoPago;
@@ -51,7 +51,7 @@ export function usePagos() {
         body: JSON.stringify({ numeroTransaccion, referencia }),
       });
       if (!response.ok) throw new Error('Error al procesar pago');
-      
+
       const pagoActualizado: Pago = await response.json();
       setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
@@ -69,7 +69,7 @@ export function usePagos() {
         body: JSON.stringify({ motivo }),
       });
       if (!response.ok) throw new Error('Error al rechazar pago');
-      
+
       const pagoActualizado: Pago = await response.json();
       setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
@@ -87,7 +87,7 @@ export function usePagos() {
         body: JSON.stringify({ motivo, montoReembolso }),
       });
       if (!response.ok) throw new Error('Error al reembolsar pago');
-      
+
       const pagoActualizado: Pago = await response.json();
       setPagos(prev => prev.map(p => p.id === Number(pagoId) ? pagoActualizado : p));
       return pagoActualizado;
@@ -104,7 +104,7 @@ export function usePagos() {
         hasta: hasta.toISOString(),
         ...(metodoPago && { metodoPago }),
       });
-      
+
       const response = await fetch(`/api/pagos/reporte?${params}`);
       if (!response.ok) throw new Error('Error al generar reporte');
       return await response.json();

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearIncidencia, Incidencia } from '@/lib/schemas/incidenciasSchema';
+import { CrearIncidencia, Incidencia } from '@/lib/schemas/incidencias';
 
 export function useIncidencias() {
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
@@ -13,7 +13,7 @@ export function useIncidencias() {
       const params = new URLSearchParams(filtros || {});
       const response = await fetch(`/api/incidencias?${params}`);
       if (!response.ok) throw new Error('Error al obtener incidencias');
-      
+
       const data: Incidencia[] = await response.json();
       setIncidencias(data);
       return data;
@@ -33,7 +33,7 @@ export function useIncidencias() {
         body: JSON.stringify(datos),
       });
       if (!response.ok) throw new Error('Error al crear incidencia');
-      
+
       const nuevaIncidencia: Incidencia = await response.json();
       setIncidencias(prev => [...prev, nuevaIncidencia]);
       return nuevaIncidencia;
@@ -51,7 +51,7 @@ export function useIncidencias() {
         body: JSON.stringify({ resolucion, montoResolucion }),
       });
       if (!response.ok) throw new Error('Error al resolver incidencia');
-      
+
       const incidenciaActualizada: Incidencia = await response.json();
       setIncidencias(prev => prev.map(i => i.id === Number(incidenciaId) ? incidenciaActualizada : i));
       return incidenciaActualizada;
@@ -69,7 +69,7 @@ export function useIncidencias() {
         body: JSON.stringify({ asignadoA }),
       });
       if (!response.ok) throw new Error('Error al asignar incidencia');
-      
+
       const incidenciaActualizada: Incidencia = await response.json();
       setIncidencias(prev => prev.map(i => i.id === Number(incidenciaId) ? incidenciaActualizada : i));
       return incidenciaActualizada;

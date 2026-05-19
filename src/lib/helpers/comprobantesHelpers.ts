@@ -1,4 +1,4 @@
-import { Comprobante } from '@/lib/schemas/comprobantesSchema';
+import { Comprobante } from '@/lib/schemas/comprobantes';
 
 export const comprobantesHelpers = {
   estaAceptada: (comprobante: Comprobante): boolean =>

@@ -16,6 +16,7 @@ import PersonalFilters, {
 import StatsPersonal from "@/components/admin/personal/StatsPersonal";
 import PersonalFormModal from "@/components/admin/personal/PersonalFormModal";
 import { PersonalSuspendModal, PersonalDetailModal } from "@/components/admin/personal/PersonalModals";
+import { exportPersonalToExcel } from "@/lib/utils/export-utils";
 
 export default function PersonalPage() {
   const { can } = usePermissions();
@@ -30,7 +31,8 @@ export default function PersonalPage() {
   const [formTarget, setFormTarget] = useState<PersonalRow | null | undefined>(undefined);
   const [suspenderTarget, setSuspenderTarget] = useState<PersonalRow | null>(null);
   const [detalleTarget, setDetalleTarget] = useState<PersonalRow | null>(null);
-
+  const [isSuspending, setIsSuspending] = useState(false);
+  const selectedPersonal = suspenderTarget;
   // ── Fetch ─────────────────────────────────────────────────────
   const fetchPersonal = useCallback(async () => {
     setLoading(true);
@@ -47,6 +49,45 @@ export default function PersonalPage() {
   }, []);
 
   useEffect(() => { fetchPersonal(); }, [fetchPersonal]);
+
+  const handleExportExcel = async () => {
+    try {
+      await exportPersonalToExcel(filtered, {
+        filename: `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
+      });
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al exportar");
+    }
+  };
+
+  // ── Manejo de suspensión ─────────────────────────────────────
+  const handleSuspend = async (isSuspendido: boolean) => {
+    if (!selectedPersonal) return;
+
+    setIsSuspending(true);
+    try {
+      const res = await fetch(`/api/admin/personal/${selectedPersonal.id}/estado`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: isSuspendido ? 'suspendido' : 'activo' }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body?.error ?? 'Error al cambiar estado');
+      }
+
+      toast.success(
+        isSuspendido ? 'Colaborador suspendido' : 'Colaborador activado',
+      );
+      setSuspenderTarget(null);
+      fetchPersonal(); // recargar lista
+    } catch (error: any) {
+      toast.error(error.message ?? 'Error al actualizar estado');
+    } finally {
+      setIsSuspending(false);
+    }
+  };
 
   // ── Filtrado local ────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -101,6 +142,8 @@ export default function PersonalPage() {
               variant="outline"
               size="sm"
               className="gap-2 text-slate-600 border-slate-200 hover:bg-slate-50"
+              onClick={handleExportExcel}
+              disabled={loading || filtered.length === 0}
             >
               <Download className="w-4 h-4" /> Exportar
             </Button>
@@ -155,8 +198,9 @@ export default function PersonalPage() {
       {suspenderTarget && (
         <PersonalSuspendModal
           personal={suspenderTarget}
+          isSuspending={isSuspending}
           onClose={() => setSuspenderTarget(null)}
-          onSuccess={fetchPersonal}
+          onConfirm={() => handleSuspend(suspenderTarget.estado === 'suspendido')}
         />
       )}
 

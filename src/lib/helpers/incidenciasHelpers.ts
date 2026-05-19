@@ -1,4 +1,4 @@
-import { Incidencia } from '@/lib/schemas/incidenciasSchema';
+import { Incidencia } from '@/lib/schemas/incidencias';
 
 export const incidenciasHelpers = {
   estaAbierta: (incidencia: Incidencia): boolean =>

@@ -5,18 +5,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, Bell, Inbox } from 'lucide-react';
-import type { Notificacion } from '@/lib/schemas/notificacionesSchema';
+import type { Notificacion } from '@/lib/schemas/notificaciones';
 import { TipoNotificacion } from '@prisma/client';
 
 const TIPO_CONFIG: Record<TipoNotificacion, { label: string; color: string }> = {
-  stock_bajo:            { label: 'Stock bajo', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  pedido_vencido:        { label: 'Pedido vencido', color: 'bg-red-50 text-red-700 border-red-200' },
-  pago_pendiente:        { label: 'Pago pendiente', color: 'bg-rose-50 text-rose-700 border-rose-200' },
-  cotizacion_expirada:   { label: 'Cotización expirada', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-  orden_produccion:      { label: 'Orden producción', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  stock_bajo: { label: 'Stock bajo', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+  pedido_vencido: { label: 'Pedido vencido', color: 'bg-red-50 text-red-700 border-red-200' },
+  pago_pendiente: { label: 'Pago pendiente', color: 'bg-rose-50 text-rose-700 border-rose-200' },
+  cotizacion_expirada: { label: 'Cotización expirada', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  orden_produccion: { label: 'Orden producción', color: 'bg-blue-50 text-blue-700 border-blue-200' },
   confeccion_completada: { label: 'Confección completada', color: 'bg-green-50 text-green-700 border-green-200' },
   devolucion_solicitada: { label: 'Devolución solicitada', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  sistema:               { label: 'Sistema', color: 'bg-slate-50 text-slate-700 border-slate-200' },
+  sistema: { label: 'Sistema', color: 'bg-slate-50 text-slate-700 border-slate-200' },
 };
 
 export default function NotificacionesTable({ data = [] }: { data: Notificacion[] }) {

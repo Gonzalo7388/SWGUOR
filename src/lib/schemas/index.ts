@@ -1,11 +1,11 @@
 // Schemas
-export { 
+export {
   notificacionBaseSchema,
   crearNotificacionSchema,
   type Notificacion,
   type CrearNotificacion,
   type TipoNotificacion,
-} from './notificacionesSchema';
+} from './notificaciones';
 
 export {
   almacenBaseSchema,
@@ -19,49 +19,49 @@ export {
   crearReservaSchema,
   type ReservaStock,
   type CrearReserva,
-} from './reservaStockSchema';
+} from './reserva-stock';
 
 export {
   precioHistoricoBaseSchema,
   crearPrecioHistoricoSchema,
   type PrecioHistorico,
   type CrearPrecioHistorico,
-} from './precioHistoricoSchema';
+} from './precio-historico';
 
 export {
   pagoTallerBaseSchema,
   crearPagoTallerSchema,
   type PagoTaller,
   type CrearPagoTaller,
-} from './pagosTalleresSchema';
+} from './pagos-talleres';
 
 export {
   tarifaTallerBaseSchema,
   crearTarifaTallerSchema,
   type TarifaTaller,
   type CrearTarifaTaller,
-} from './tarifaTalleresSchema';
+} from './tarifa-talleres';
 
 export {
   guiaRemisionBaseSchema,
   crearGuiaRemisionSchema,
   type GuiaRemision,
   type CrearGuiaRemision,
-} from './guiasRemisionSchema';
+} from './guias-remision';
 
 export {
   ordenCompraBaseSchema,
   crearOrdenCompraSchema,
   type OrdenCompra,
   type CrearOrdenCompra,
-} from './ordenesCompraSchema';
+} from './ordenes-compra';
 
 export {
   incidenciaBaseSchema,
   crearIncidenciaSchema,
   type Incidencia,
   type CrearIncidencia,
-} from './incidenciasSchema';
+} from './incidencias';
 
 export {
   asientoContableBaseSchema,
@@ -81,14 +81,14 @@ export {
   crearComprobanteSchema,
   type Comprobante,
   type CrearComprobante,
-} from './comprobantesSchema';
+} from './comprobantes';
 
 export {
   pagoBaseSchema,
   crearPagoSchema,
   type Pago,
   type CrearPago,
-} from './pagosSchema';
+} from './pagos';
 
 // ── RPC Schemas (Validación para funciones PostgreSQL RPC)
 export {

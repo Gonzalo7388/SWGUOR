@@ -1,24 +1,22 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useOrdenesProduccion } from '@/lib/hooks/useOrdenProduccion';
 import { Button } from '@/components/ui/button';
-import {
-  Plus, RefreshCw, ClipboardList,
-  Timer, CheckCircle2, ChevronLeft, ChevronRight
-} from 'lucide-react';
+import { ClipboardList, Timer, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
-import OrdenFilters from '@/components/admin/produccion/OrdenFilters';
-import OrdenesSkeleton from '@/components/admin/produccion/OrdenSkeleton';
-import OrdenesTable from '@/components/admin/produccion/OrdenesTable';
+import OrdenFilters from '@/components/admin/ordenes/OrdenFilters';
+import OrdenesSkeleton from '@/components/admin/ordenes/OrdenSkeleton';
+import OrdenesTable from '@/components/admin/ordenes/OrdenesTable';
 
 // Imports Dinámicos
-const OrdenFormDialog = dynamic(() => import('@/components/admin/produccion/OrdenFormDialog'));
-const OrdenDetalleSheet = dynamic(() => import('@/components/admin/produccion/OrdenDetalleSheet'));
+const OrdenFormDialog = dynamic(() => import('@/components/admin/ordenes/OrdenFormDialog'));
 
 export default function OrdenesProduccionPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [etapaFilter, setEtapaFilter] = useState('all');
@@ -34,7 +32,7 @@ export default function OrdenesProduccionPage() {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { ordenes, meta, isLoading, refetch } = useOrdenesProduccion({
+  const { ordenes, meta, isLoading } = useOrdenesProduccion({
     search: debouncedSearch,
     etapa: etapaFilter,
     page,
@@ -42,7 +40,6 @@ export default function OrdenesProduccionPage() {
   });
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState<any>(null);
 
   const stats = useMemo(() => ({
@@ -51,6 +48,15 @@ export default function OrdenesProduccionPage() {
     completadas: etapaFilter === 'entrega' ? meta.total : (meta as any).completadas ?? 0,
   }), [meta, etapaFilter]);
 
+  // Manejadores de Rutas Dinámicas para Detalle y Etapas
+  const handleViewDetalle = (id: string | number) => {
+    router.push(`/admin/Panel-Administrativo/produccion/${id}`);
+  };
+
+  const handleViewEtapas = (id: string | number) => {
+    router.push(`/admin/Panel-Administrativo/produccion/${id}/etapas`);
+  };
+
   if (isLoading && ordenes.length === 0) {
     return <OrdenesSkeleton />;
   }
@@ -58,7 +64,7 @@ export default function OrdenesProduccionPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         <AdminPageHeader
           title="Producción"
           description="Seguimiento de fabricación y control de talleres en tiempo real"
@@ -109,10 +115,11 @@ export default function OrdenesProduccionPage() {
           />
         </div>
 
-        {/* Tabla */}
+        {/* Tabla — Soluciona el error de onEtapas */}
         <OrdenesTable
           data={ordenes}
-          onView={(orden) => { setSelectedOrden(orden); setIsSheetOpen(true); }}
+          onView={handleViewDetalle}
+          onEtapas={handleViewEtapas}
           onEdit={(orden) => { setSelectedOrden(orden); setIsFormOpen(true); }}
         />
 
@@ -148,12 +155,6 @@ export default function OrdenesProduccionPage() {
           open={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           initialData={selectedOrden}
-        />
-
-        <OrdenDetalleSheet
-          open={isSheetOpen}
-          onClose={() => setIsSheetOpen(false)}
-          orden={selectedOrden}
         />
       </div>
     </div>
