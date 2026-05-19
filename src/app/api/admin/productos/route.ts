@@ -1,11 +1,11 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { ProductosService } from '@/lib/services/productos.service';
+import { prisma } from '@/lib/prisma';
+import { ColorPrenda, TallaProductos, EstadoProducto } from '@prisma/client';
 import { requireServerRole } from '@/lib/auth/server';
-import type { RolUsuario } from '@/lib/constants/roles';
-
 import { auditoriaService } from '@/lib/services/auditoria.service';
+import type { RolUsuario } from '@/lib/constants/roles';
 
 const PRODUCTOS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador'];
 
@@ -15,15 +15,46 @@ export async function GET(req: Request) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const data = await ProductosService.listar({
-      categoriaId: searchParams.get('categoria_id') ?? undefined,
-      estado: searchParams.get('estado') ?? undefined,
-      busqueda: searchParams.get('busqueda') ?? undefined,
-      color: searchParams.get('color') ?? undefined,
-      talla: searchParams.get('talla') ?? undefined,
-    });
-    return NextResponse.json(data);
+    const categoriaId = searchParams.get('categoria_id');
+    const busqueda = searchParams.get('busqueda');
+    const estado = searchParams.get('estado');
+    const colorParam = searchParams.get('color');
+    const tallaParam = searchParams.get('talla');
+
+    const color = colorParam && colorParam in ColorPrenda
+      ? ColorPrenda[colorParam as keyof typeof ColorPrenda]
+      : undefined;
+
+    const talla = tallaParam && tallaParam in TallaProductos
+      ? TallaProductos[tallaParam as keyof typeof TallaProductos]
+      : undefined;
+
+    const [productos, categorias] = await Promise.all([
+      prisma.productos.findMany({
+        where: {
+          ...(estado && { estado: estado as keyof typeof EstadoProducto }),
+          ...(categoriaId && { categoria_id: parseInt(categoriaId) }),
+          ...(busqueda && { nombre: { contains: busqueda, mode: 'insensitive' } }),
+          ...(color && { variantes_producto: { some: { color } } }),
+          ...(talla && { variantes_producto: { some: { talla } } }),
+        },
+        include: {
+          categorias: true,
+          variantes_producto: true,
+          fichas_tecnicas: true,
+        },
+        orderBy: { nombre: 'asc' },
+      }),
+      prisma.categorias.findMany({ orderBy: { nombre: 'asc' } }),
+    ]);
+
+    return NextResponse.json(
+      JSON.parse(JSON.stringify({ productos, categorias }, (_, v) =>
+        typeof v === 'bigint' ? Number(v) : v
+      ))
+    );
   } catch (error: any) {
+    console.error('[GET /api/admin/productos]', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -34,10 +65,34 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const producto = await ProductosService.crear(body);
-    if (!producto) {
-      return NextResponse.json({ error: 'Error al crear el producto' }, { status: 500 });
-    }
+    const { producto: datos, variantes = [] } = body;
+
+    const producto = await prisma.productos.create({
+      data: {
+        nombre: datos.nombre,
+        precio: datos.precio,
+        sku: datos.sku,
+        estado: datos.estado ?? 'activo',
+        imagen: datos.imagen ?? null,
+        categoria_id: datos.categoria_id ?? null,
+        reglas_descuento: datos.reglas_descuento ?? null,
+        ...(datos.fichas_tecnicas_id && {
+          fichas_tecnicas: { connect: { id: datos.fichas_tecnicas_id } },
+        }),
+        ...(variantes.length > 0 && {
+          variantes_producto: {
+            create: variantes.map((v: any) => ({
+              color: v.color,
+              talla: v.talla,
+              sku: v.sku,
+              stock: v.stock ?? 0,
+              estado: v.estado ?? 'activo',
+            })),
+          },
+        }),
+      },
+      include: { variantes_producto: true },
+    });
 
     await auditoriaService.registrar({
       usuario_id: BigInt(auth.user.id),

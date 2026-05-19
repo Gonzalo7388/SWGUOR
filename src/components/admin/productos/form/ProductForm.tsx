@@ -38,7 +38,6 @@ export default function ProductForm({ mode, initialData, categorias, nextId }: P
       stock: v.stock ?? v.stock_actual ?? 0,
     }));
 
-  // ✔️ Normalización y limpieza total de estados iniciales
   const methods = useForm({
     defaultValues: initialData
       ? {
@@ -57,10 +56,10 @@ export default function ProductForm({ mode, initialData, categorias, nextId }: P
       : {
         nombre: "",
         precio: "",
-        categoria_id: "", // Se mantiene vacío pero controlado
-        categoria_nombre: "", // Campo clave inicializado explícitamente
+        categoria_id: "",
+        categoria_nombre: "",
         sku: "",
-        estado: "activo", // Estado por defecto idéntico al del Controller
+        estado: "activo",
         imagen: null,
         variantes: [{ color: "", talla: "", stock: 0, sku: "" }],
       },
@@ -74,9 +73,7 @@ export default function ProductForm({ mode, initialData, categorias, nextId }: P
         ? "/api/admin/productos"
         : `/api/admin/productos/${initialData.id}`;
 
-      const categoria = categorias.find(
-        (c) => c.id.toString() === data.categoria_id.toString()
-      );
+      const categoria = categorias.find((c) => c.id.toString() === data.categoria_id.toString());
       const catNombre = categoria?.nombre ?? "GEN";
       const skuProducto = data.sku || generateSKU(data.nombre, catNombre, nextId || 0);
 
@@ -138,14 +135,14 @@ export default function ProductForm({ mode, initialData, categorias, nextId }: P
           <div>
             <Link
               href="/admin/Panel-Administrativo/productos"
-              className="inline-flex items-center gap-1.5 text-guor-brown/60 hover:text-guor-brown text-[11px] font-black uppercase tracking-widest mb-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-slate-400 hover:text-slate-700 text-[11px] font-black uppercase tracking-widest mb-2 transition-colors"
             >
               <ArrowLeft size={12} />
               Volver al Inventario
             </Link>
             <div className="flex items-center gap-3">
-              <div className="w-1.5 h-7 bg-guor-gold rounded-full" />
-              <h2 className="text-2xl font-black text-guor-dark tracking-tight">
+              <div className="w-1.5 h-7 bg-teal-500 rounded-full" />
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                 {isEdit ? "Editar Producto" : "Nuevo Producto"}
               </h2>
             </div>
@@ -156,14 +153,14 @@ export default function ProductForm({ mode, initialData, categorias, nextId }: P
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="h-10 px-5 text-xs font-bold border-guor-peach text-guor-brown/60 hover:text-guor-brown hover:bg-guor-cream rounded-xl"
+              className="h-10 px-5 text-xs font-bold border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-10 px-6 text-xs font-black bg-guor-brown hover:bg-guor-brown/90 text-guor-cream rounded-xl gap-2 shadow-sm shadow-guor-brown/20"
+              className="h-10 px-6 text-xs font-black bg-teal-600 hover:bg-teal-700 text-white rounded-xl gap-2 shadow-sm shadow-teal-200"
             >
               {loading ? (
                 <Loader2 className="animate-spin w-4 h-4" />
@@ -178,7 +175,7 @@ export default function ProductForm({ mode, initialData, categorias, nextId }: P
         <div className="space-y-5">
           {/* ── Fila superior: imagen + info general ── */}
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
-            <SectionCard title="Imagen" icon={<ImageIcon size={12} />}>
+            <SectionCard title="Imagen del Producto" icon={<ImageIcon size={12} />}>
               <ImageUploadSection />
             </SectionCard>
 
@@ -211,10 +208,10 @@ function SectionCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-guor-peach/40 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 px-6 py-3.5 border-b border-guor-peach/30 bg-guor-cream/50">
-        {icon && <span className="text-guor-gold/60">{icon}</span>}
-        <h3 className="text-[10px] font-black text-guor-gold/60 uppercase tracking-widest">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-6 py-3.5 border-b border-slate-100 bg-slate-50/60">
+        {icon && <span className="text-teal-500">{icon}</span>}
+        <h3 className="text-[10px] font-black text-teal-600 uppercase tracking-widest">
           {title}
         </h3>
       </div>

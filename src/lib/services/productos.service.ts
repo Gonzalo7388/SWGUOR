@@ -62,7 +62,7 @@ export interface ProductosFiltros {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 export class ProductosService {
-  private static baseUrl = '/api/ecommerce/productos';
+  private static baseUrl = '/api/admin/productos';
 
   static async listar(filtros?: ProductosFiltros): Promise<ProductosListResponse> {
     try {

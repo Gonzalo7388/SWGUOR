@@ -1,4 +1,3 @@
-// src/components/admin/productos/VariantsSection.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -68,8 +67,8 @@ function ColorSwatch({ hex, border }: { hex: string; border?: boolean }) {
 function StockBadge({ value }: { value: number }) {
   const n = Number(value) || 0;
   const cls =
-    n === 0 ? "bg-rose-50 text-rose-500 border-rose-100"
-      : n < 50 ? "bg-amber-50 text-amber-600 border-amber-100"
+    n === 0 ? "bg-rose-50   text-rose-500   border-rose-100"
+      : n < 50 ? "bg-amber-50  text-amber-600  border-amber-100"
         : "bg-emerald-50 text-emerald-600 border-emerald-100";
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-black ${cls}`}>
@@ -96,7 +95,6 @@ function VariantBuilderPanel({
 
   const [coloresSel, setColoresSel] = useState<string[]>([]);
   const [tallasSel, setTallasSel] = useState<string[]>([]);
-  const [stockBase, setStockBase] = useState(0);
 
   const toggle = <T extends string>(
     list: T[], setList: (v: T[]) => void, item: T
@@ -105,12 +103,13 @@ function VariantBuilderPanel({
   const toggleAllTallas = () =>
     setTallasSel((p) => p.length === TALLAS.length ? [] : [...TALLAS]);
 
+  // ✅ Stock siempre 0 — se gestiona desde Inventario
   const preview = coloresSel.flatMap((color) =>
     tallasSel.map((talla) => ({
       color,
       talla,
       sku: generateVariantSKU(skuMaestro, color, talla),
-      stock: stockBase,
+      stock: 0,
       stock_adicional: 0,
     }))
   );
@@ -119,13 +118,13 @@ function VariantBuilderPanel({
     <div className="border-t border-gray-100 bg-gradient-to-b from-gray-50/80 to-white">
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-2">
-          <PackagePlus size={14} className="text-pink-500" />
+          <PackagePlus size={14} className="text-teal-500" />
           <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
             Generador de Variantes
           </span>
           <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase ml-2 ${tipoTallas === "pantalon"
             ? "bg-indigo-50 text-indigo-500"
-            : "bg-pink-50 text-pink-500"
+            : "bg-teal-50   text-teal-600"
             }`}>
             {tipoTallas === "pantalon"
               ? <><Scissors size={9} /> Tallas 28–34</>
@@ -133,8 +132,11 @@ function VariantBuilderPanel({
             }
           </span>
         </div>
-        <button type="button" onClick={onClose}
-          className="p-1.5 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors">
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+        >
           <X size={14} />
         </button>
       </div>
@@ -144,10 +146,10 @@ function VariantBuilderPanel({
         {/* Colores */}
         <div>
           <div className="flex items-center gap-1.5 mb-3">
-            <Palette size={11} className="text-pink-400" />
+            <Palette size={11} className="text-teal-400" />
             <span className={LABEL}>Colores</span>
             {coloresSel.length > 0 && (
-              <span className="ml-auto text-[9px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-[9px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
                 {coloresSel.length} seleccionados
               </span>
             )}
@@ -161,13 +163,13 @@ function VariantBuilderPanel({
                   type="button"
                   onClick={() => toggle(coloresSel, setColoresSel, nombre)}
                   className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-xs font-bold transition-all ${sel
-                    ? "border-pink-300 bg-pink-50 text-pink-700 shadow-sm"
+                    ? "border-teal-300 bg-teal-50 text-teal-700 shadow-sm"
                     : "border-gray-100 bg-white text-gray-500 hover:border-gray-200 hover:bg-gray-50"
                     }`}
                 >
                   <ColorSwatch hex={hex} border={sel} />
                   <span className="truncate capitalize text-[11px]">{labelColor(nombre)}</span>
-                  {sel && <Check size={10} className="text-pink-400 ml-auto shrink-0" />}
+                  {sel && <Check size={10} className="text-teal-400 ml-auto shrink-0" />}
                 </button>
               );
             })}
@@ -207,31 +209,20 @@ function VariantBuilderPanel({
           </div>
         </div>
 
-        {/* Stock base */}
-        <div className="flex items-end gap-6">
-          <div className="w-44">
-            <label className={LABEL}>
-              <Box size={9} className="inline mr-1" />Stock por variante
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={stockBase}
-              onChange={(e) => setStockBase(Math.max(0, parseInt(e.target.value) || 0))}
-              className="w-full h-10 bg-white border border-gray-200 rounded-xl px-3 text-sm font-black text-gray-700 text-center outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition"
-            />
+        {/* Resumen — sin input de stock */}
+        {preview.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-gray-400 py-1">
+            <span className="font-black text-gray-700 text-base">{preview.length}</span>
+            variantes
+            <span className="text-gray-200">·</span>
+            <span className="font-semibold">{coloresSel.length} color{coloresSel.length !== 1 ? "es" : ""}</span>
+            <span className="text-gray-200">×</span>
+            <span className="font-semibold">{tallasSel.length} talla{tallasSel.length !== 1 ? "s" : ""}</span>
+            <span className="ml-auto text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-semibold">
+              Stock inicial: 0 · se gestiona desde Inventario
+            </span>
           </div>
-          {preview.length > 0 && (
-            <div className="flex items-center gap-2 text-xs text-gray-400 pb-1">
-              <span className="font-black text-gray-700 text-base">{preview.length}</span>
-              variantes
-              <span className="text-gray-200">·</span>
-              <span className="font-semibold">{coloresSel.length} color{coloresSel.length !== 1 ? "es" : ""}</span>
-              <span className="text-gray-200">×</span>
-              <span className="font-semibold">{tallasSel.length} talla{tallasSel.length !== 1 ? "s" : ""}</span>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Preview */}
         {preview.length > 0 && (
@@ -276,7 +267,7 @@ function VariantBuilderPanel({
             type="button"
             onClick={() => preview.length && onGenerate(preview)}
             disabled={preview.length === 0}
-            className="flex items-center gap-1.5 px-5 h-9 rounded-xl text-xs font-black text-white bg-pink-600 hover:bg-pink-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 px-5 h-9 rounded-xl text-xs font-black text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Check size={13} />
             Generar {preview.length > 0 ? `${preview.length} variantes` : "variantes"}
@@ -340,12 +331,18 @@ function VariantRow({ index, field, skuMaestro, mode, onEdit, onRemove }: {
       )}
       <td className="px-5 py-3.5">
         <div className="flex justify-end items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button type="button" onClick={onEdit}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-pink-600 hover:bg-pink-50 transition-colors">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
+          >
             <Edit2 size={14} />
           </button>
-          <button type="button" onClick={onRemove}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+          >
             <Trash2 size={14} />
           </button>
         </div>
@@ -364,7 +361,6 @@ export function VariantsSection({ stockResumen = [], mode = "create" }: {
   const { fields, append, remove } = useFieldArray({ control, name: "variantes" });
 
   const skuMaestro = watch("sku") || "SKU";
-  // Lee el nombre de categoría que GeneralInfoSection escribe en "categoria_nombre"
   const categoriaNombre = watch("categoria_nombre") || "";
 
   const [showBuilder, setShowBuilder] = useState(false);
@@ -399,7 +395,7 @@ export function VariantsSection({ stockResumen = [], mode = "create" }: {
   };
 
   const colHeaders = [
-    "Color", "Talla", "SKU Variante", "Stock actual",
+    "Color", "Talla", "SKU Variante", "Stock",
     ...(mode === "edit" ? ["+ Agregar"] : []),
     "",
   ];
@@ -408,7 +404,7 @@ export function VariantsSection({ stockResumen = [], mode = "create" }: {
     <div className="max-w-4xl mx-auto w-full space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-5 bg-pink-500 rounded-full" />
+          <div className="w-1 h-5 bg-teal-500 rounded-full" />
           <h3 className="text-xs font-black text-gray-700 uppercase tracking-widest">
             Variantes de Inventario
           </h3>
@@ -429,7 +425,7 @@ export function VariantsSection({ stockResumen = [], mode = "create" }: {
             onClick={() => { setShowBuilder((v) => !v); setEditingIndex(null); }}
             className={`flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-black transition-all ${showBuilder
               ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
-              : "bg-gray-900 hover:bg-gray-800 text-white"
+              : "bg-teal-600 hover:bg-teal-700 text-white"
               }`}
           >
             {showBuilder ? <X size={13} /> : <Plus size={13} />}
@@ -444,7 +440,10 @@ export function VariantsSection({ stockResumen = [], mode = "create" }: {
             <thead>
               <tr className="bg-gray-50/60 border-b border-gray-100">
                 {colHeaders.map((h) => (
-                  <th key={h} className="px-5 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                  <th
+                    key={h}
+                    className="px-5 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest"
+                  >
                     {h}
                   </th>
                 ))}
