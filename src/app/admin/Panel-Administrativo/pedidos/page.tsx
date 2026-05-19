@@ -34,37 +34,12 @@ export default function PedidosPage() {
   const [currentPage,    setCurrentPage]    = useState(0);
   const pageSize = 10;
 
-<<<<<<< HEAD
-
-  useEffect(() => { 
-    if (!authLoading && can && can('view', 'pedidos')) {
-      obtener();
-    }
-  }, [authLoading, can, obtener]);
-
-  // Calcular stats cuando cambien las órdenes
-  useEffect(() => {
-    if (ordenes.length > 0) {
-      setStats({
-        total: ordenes.length,
-        pendientes: ordenes.filter((p: any) => 
-          p.estado?.toLowerCase() === "solicitado" || p.estado?.toLowerCase() === "pendiente"
-        ).length,
-        completados: ordenes.filter((p: any) => 
-          p.estado?.toLowerCase() === "finalizado" || p.estado?.toLowerCase() === "entregado"
-        ).length,
-        cancelados: ordenes.filter((p: any) => p.estado?.toLowerCase() === "cancelado").length
-      });
-    }
-  }, [ordenes]);
-=======
   const stats = useMemo(() => ({
     total:       pedidos.length,
     pendientes:  pedidos.filter((p: any) => ["solicitud", "cotizado", "aprobado"].includes(p.estado)).length,
     completados: pedidos.filter((p: any) => ["finalizado", "pagado"].includes(p.estado)).length,
     cancelados:  pedidos.filter((p: any) => p.estado === "cancelado").length,
   }), [pedidos]);
->>>>>>> main
 
   const filteredPedidos = useMemo(() => {
     if (!pedidos.length) return [];
@@ -182,18 +157,8 @@ export default function PedidosPage() {
         <ViewPedidoDialog isOpen pedido={selectedPedido} onClose={() => { setSelectedPedido(null); setDialogMode(null); }} />
       )}
       {selectedPedido && dialogMode === "cancel" && (
-<<<<<<< HEAD
-        <CancelPedidoDialog 
-          isOpen 
-          pedido={selectedPedido} 
-          onClose={() => { setSelectedPedido(null); setDialogMode(null); }} 
-          onSuccess={obtener} 
-        /> 
-=======
         <CancelPedidoDialog isOpen pedido={selectedPedido} onClose={() => { setSelectedPedido(null); setDialogMode(null); }} onSuccess={() => refetch()} />
->>>>>>> main
       )}
-      
     </div>
   );
 }
