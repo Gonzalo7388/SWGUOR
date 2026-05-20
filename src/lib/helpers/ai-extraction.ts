@@ -165,47 +165,32 @@ INSTRUCCIONES CRÍTICAS:
 // ─── extracción de cotización (sin cambios, sigue usando PDF) ─────────────────
 
 export async function extraerCotizacionProveedor(
-  pdfPath: string
+  pdfPath: string,
 ): Promise<ExtraccionCotizacionProveedor> {
-  const base64Data = fileToBase64(pdfPath);
-
-  const prompt = `
-Analiza este PDF de cotización de proveedor y extrae la siguiente información en formato JSON:
-{
-  "numero_cotizacion": "número si aparece",
-  "fecha_cotizacion": "fecha en formato YYYY-MM-DD",
-  "fecha_vencimiento": "fecha de vencimiento si aparece",
-  "proveedor_nombre": "nombre del proveedor",
-  "proveedor_ruc": "RUC si aparece",
-  "proveedor_email": "correo electrónico",
-  "proveedor_telefono": "número de teléfono",
-  "moneda": "moneda usada (USD, PEN, EUR, etc)",
-  "items": [
-    {
-      "descripcion": "descripción",
-      "cantidad": número,
-      "precio_unitario": número,
-      "subtotal": número
-    }
-  ],
-  "total": número,
-  "notas": "notas o condiciones especiales"
-}
-Responde SOLO el JSON sin explicaciones adicionales.
-`;
-
-  try {
-    const response = await model.generateContent([
-      { inlineData: { mimeType: 'application/pdf', data: base64Data } },
-      { text: prompt },
-    ]);
-
-    const content = response.response.text();
-    return parseJSON<ExtraccionCotizacionProveedor>(content);
-  } catch (error: any) {
-    console.error('Error al extraer cotización:', error);
-    throw new Error(`Fallo al extraer información del PDF: ${error.message}`);
-  }
+  const { extraerCotizacionProveedorDesdeArchivo } = await import(
+    '@/lib/helpers/cotizacion-gemini-extraction'
+  );
+  const data = await extraerCotizacionProveedorDesdeArchivo(pdfPath);
+  const p = data.proveedor ?? {};
+  const c = data.cotizacion ?? {};
+  return {
+    numero_cotizacion: c.numero_externo ?? undefined,
+    fecha_cotizacion: c.fecha_solicitud ?? undefined,
+    fecha_vencimiento: c.fecha_vencimiento ?? undefined,
+    proveedor_nombre: p.razon_social ?? undefined,
+    proveedor_ruc: p.ruc ?? undefined,
+    proveedor_email: p.email ?? undefined,
+    proveedor_telefono: p.telefono ?? undefined,
+    moneda: c.moneda ?? undefined,
+    items: (data.items ?? []).map((item) => ({
+      descripcion: item.descripcion ?? '',
+      cantidad: Number(item.cantidad) || 0,
+      precio_unitario: Number(item.precio_unitario) || 0,
+      subtotal: Number(item.subtotal) || 0,
+    })),
+    total: Number(c.total_estimado) || 0,
+    notas: c.notas ?? undefined,
+  };
 }
 
 // ─── extracción genérica ──────────────────────────────────────────────────────

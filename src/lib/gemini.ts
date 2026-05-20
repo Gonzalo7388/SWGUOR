@@ -1,16 +1,30 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GEMINI_MODEL_FLASH } from '@/lib/constants/gemini';
 
 if (!process.env.GEMINI_API_KEY) {
-  throw new Error("Falta la API Key de Gemini en las variables de entorno");
+  throw new Error('Falta GEMINI_API_KEY en las variables de entorno');
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Usamos 1.5 Flash por su baja latencia en respuestas de chat
-export const model = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash",
+/** Modelo general (chat / fichas técnicas) */
+export const model = genAI.getGenerativeModel({
+  model: GEMINI_MODEL_FLASH,
   generationConfig: {
-    temperature: 0.2, // Mantener respuestas precisas y no creativas
+    temperature: 0.2,
     topP: 0.8,
-  }
+  },
 });
+
+/** Modelo con salida JSON estricta (cotizaciones proveedor — CUS_44) */
+export function getGeminiJsonModel(systemInstruction: string) {
+  return genAI.getGenerativeModel({
+    model: GEMINI_MODEL_FLASH,
+    systemInstruction,
+    generationConfig: {
+      temperature: 0.1,
+      topP: 0.8,
+      responseMimeType: 'application/json',
+    },
+  });
+}
