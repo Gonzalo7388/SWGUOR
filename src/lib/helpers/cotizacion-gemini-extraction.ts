@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { getGeminiJsonModel } from '@/lib/gemini';
+import { resolveGeminiModelId } from '@/lib/helpers/gemini-models.helper';
 import {
   cotizacionExtraccionIaSchema,
   type CotizacionExtraccionIA,
@@ -97,17 +98,21 @@ export async function extraerCotizacionProveedorDesdeBuffer(
   pdfBuffer: Buffer,
 ): Promise<CotizacionExtraccionIA> {
   const base64Data = pdfBuffer.toString('base64');
-  const jsonModel = getGeminiJsonModel(SYSTEM_PROMPT);
+  const modelId = await resolveGeminiModelId({
+    purpose: 'extract-cotizacion-pdf',
+  });
+  const jsonModel = getGeminiJsonModel(modelId);
 
   const response = await jsonModel.generateContent([
+    { text: SYSTEM_PROMPT },
+    {
+      text: 'Extrae la cotización del PDF según el esquema indicado. Responde solo con el JSON.',
+    },
     {
       inlineData: {
         mimeType: 'application/pdf',
         data: base64Data,
       },
-    },
-    {
-      text: 'Extrae la cotización del PDF según el esquema indicado. Responde solo con el JSON.',
     },
   ]);
 

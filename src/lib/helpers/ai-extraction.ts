@@ -1,4 +1,5 @@
-import { model } from '@/lib/gemini';
+import { getGeminiFlashModel } from '@/lib/gemini';
+import { resolveGeminiModelId } from '@/lib/helpers/gemini-models.helper';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -142,14 +143,16 @@ INSTRUCCIONES CRÍTICAS:
 `;
 
   try {
+    const modelId = await resolveGeminiModelId({ purpose: 'extract-ficha-tecnica' });
+    const model = getGeminiFlashModel(modelId);
     const response = await model.generateContent([
+      { text: prompt },
       {
         inlineData: {
           mimeType,
           data: base64Data,
         },
       },
-      { text: prompt },
     ]);
 
     const content = response.response.text();
@@ -217,9 +220,11 @@ export async function extraerConPromptCustom(
   const prompt = promptCustom ?? prompts[tipoExtraccion] ?? 'Extrae toda la información relevante en JSON.';
 
   try {
+    const modelId = await resolveGeminiModelId({ purpose: `extract-${tipoExtraccion}` });
+    const model = getGeminiFlashModel(modelId);
     const response = await model.generateContent([
-      { inlineData: { mimeType, data: base64Data } },
       { text: prompt },
+      { inlineData: { mimeType, data: base64Data } },
     ]);
 
     const content = response.response.text();

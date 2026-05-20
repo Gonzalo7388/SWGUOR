@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { CotizacionProveedorForm } from '@/components/admin/cotizaciones-proveedor/CotizacionProveedorForm';
 import type { CotizacionProveedorInitial } from '@/components/admin/cotizaciones-proveedor/CotizacionProveedorForm';
-import { ESTADO_COTIZACION_PROVEEDOR } from '@/lib/constants/estados';
+import { ESTADO_COTIZACION_PROVEEDOR } from '@/lib/constants/cotizacion-proveedor-estados';
 import { prisma } from '@/lib/prisma';
 import { getCotizacionProveedorPdfPublicUrl } from '@/lib/services/cotizacion-proveedor-documento.service';
 

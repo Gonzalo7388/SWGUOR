@@ -1,5 +1,8 @@
-/** Modelo por defecto para extracción de documentos */
-export const GEMINI_MODEL_FLASH = 'gemini-1.5-flash';
+/**
+ * Modelo preferido (se valida contra la API al ejecutar).
+ * Override con GEMINI_MODEL en .env
+ */
+export const GEMINI_MODEL_FLASH = 'gemini-3.1-flash-lite';
 
 /** Límite orientativo de la capa gratuita (~15 RPM) — procesar PDFs en serie */
 export const GEMINI_EXTRACT_DELAY_MS = 4500;

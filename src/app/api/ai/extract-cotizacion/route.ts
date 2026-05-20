@@ -5,6 +5,7 @@ import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { MAX_PDF_EXTRACCION_BYTES } from '@/lib/constants/gemini';
 import { extraerCotizacionProveedorDesdeBuffer } from '@/lib/helpers/cotizacion-gemini-extraction';
+import { resolveGeminiModelId } from '@/lib/helpers/gemini-models.helper';
 
 const ROLES: RolUsuario[] = ['administrador', 'gerente', 'almacenero'];
 
@@ -38,9 +39,16 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const modelId = await resolveGeminiModelId({ purpose: 'extract-cotizacion-pdf' });
     const extracted = await extraerCotizacionProveedorDesdeBuffer(buffer);
 
-    return NextResponse.json({ success: true, data: extracted });
+    return NextResponse.json({
+      success: true,
+      data: extracted,
+      ...(process.env.GEMINI_DEBUG === 'true' || process.env.NODE_ENV === 'development'
+        ? { meta: { modelId } }
+        : {}),
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Error al procesar PDF';
     console.error('[POST /api/ai/extract-cotizacion]', error);

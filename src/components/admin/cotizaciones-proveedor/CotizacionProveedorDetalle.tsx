@@ -16,7 +16,7 @@ import {
   ESTADOS_COTIZACION_PROVEEDOR,
   ESTADOS_COTIZACION_PARA_GENERAR_OC,
   TRANSICIONES_COTIZACION_PROVEEDOR,
-} from '@/lib/constants/estados';
+} from '@/lib/constants/cotizacion-proveedor-estados';
 import { CotizacionProveedorPdfUpload } from './CotizacionProveedorPdfUpload';
 import { useCotizacionProveedorMutations } from '@/lib/hooks/useCotizacionesProveedor';
 

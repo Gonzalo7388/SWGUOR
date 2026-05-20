@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import {
   ESTADO_COTIZACION_PROVEEDOR,
   TRANSICIONES_COTIZACION_PROVEEDOR,
-} from '@/lib/constants/estados';
+} from '@/lib/constants/cotizacion-proveedor-estados';
 import type {
   ActualizarCotizacionProveedorInput,
   CrearCotizacionProveedorInput,
@@ -13,6 +13,7 @@ import {
   COTIZACION_PROVEEDOR_INCLUDE,
   type CotizacionProveedorDetalle,
 } from '@/lib/services/cotizaciones-proveedor.types';
+import { buildCotizacionItemsCreateData } from '@/lib/services/cotizacion-proveedor-items.helper';
 
 export type { CotizacionProveedorDetalle };
 
@@ -29,24 +30,6 @@ function calcularTotal(items: CotizacionProveedorItemInput[]): number {
     (acc, item) => acc + item.cantidad * item.precio_unitario,
     0,
   );
-}
-
-function mapItemsCreate(
-  cotizacionId: bigint,
-  items: CotizacionProveedorItemInput[],
-): Prisma.cotizaciones_proveedor_itemsCreateManyInput[] {
-  return items.map((item) => ({
-    cotizacion_id: cotizacionId,
-    descripcion: item.descripcion.trim(),
-    cantidad: item.cantidad,
-    precio_unitario: item.precio_unitario,
-    subtotal: item.cantidad * item.precio_unitario,
-    unidad: item.unidad ?? 'unidades',
-    tipo_item: item.tipo_item ?? 'insumo',
-    material_id: item.material_id ? BigInt(item.material_id) : null,
-    insumo_id: item.insumo_id ? BigInt(item.insumo_id) : null,
-    notas: item.notas ?? null,
-  }));
 }
 
 async function assertProveedorActivo(proveedorId: bigint) {
@@ -79,15 +62,20 @@ export function assertTransicionEstado(estadoActual: string, estadoNuevo: string
 async function syncItems(
   tx: Prisma.TransactionClient,
   cotizacionId: bigint,
+  proveedorId: bigint,
   items: CotizacionProveedorItemInput[],
 ) {
   await tx.cotizaciones_proveedor_items.deleteMany({
     where: { cotizacion_id: cotizacionId },
   });
   if (items.length > 0) {
-    await tx.cotizaciones_proveedor_items.createMany({
-      data: mapItemsCreate(cotizacionId, items),
-    });
+    const data = await buildCotizacionItemsCreateData(
+      tx,
+      cotizacionId,
+      proveedorId,
+      items,
+    );
+    await tx.cotizaciones_proveedor_items.createMany({ data });
   }
 }
 
@@ -158,7 +146,7 @@ export const cotizacionesProveedorService = {
         },
       });
 
-      await syncItems(tx, cot.id, datos.items);
+      await syncItems(tx, cot.id, proveedorId, datos.items);
       return cot.id;
     });
 
@@ -196,7 +184,7 @@ export const cotizacionesProveedorService = {
           updated_at: new Date(),
         },
       });
-      await syncItems(tx, BigInt(id), datos.items);
+      await syncItems(tx, BigInt(id), proveedorId, datos.items);
     });
 
     const actualizada = await cotizacionesProveedorService.obtenerPorId(id);

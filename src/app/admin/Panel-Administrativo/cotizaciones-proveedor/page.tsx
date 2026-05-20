@@ -28,7 +28,7 @@ import {
   ESTADO_COTIZACION_PROVEEDOR,
   ESTADOS_COTIZACION_PARA_GENERAR_OC,
   ESTADOS_COTIZACION_PROVEEDOR,
-} from '@/lib/constants/estados';
+} from '@/lib/constants/cotizacion-proveedor-estados';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
 import { useCotizacionesProveedorList } from '@/lib/hooks/useCotizacionesProveedor';
@@ -233,14 +233,14 @@ export default function CotizacionesProveedorPage() {
                             {ESTADOS_COTIZACION_PARA_GENERAR_OC.includes(
                               estado as (typeof ESTADOS_COTIZACION_PARA_GENERAR_OC)[number],
                             ) && (
-                              <Link
-                                href={`/admin/Panel-Administrativo/ordenes-compra/nueva?cotizacion_id=${cot.id}`}
-                                title="Generar orden de compra"
-                                className="inline-flex p-2 rounded-xl hover:bg-rose-50 hover:text-rose-600"
-                              >
-                                <ShoppingCart className="w-4 h-4" />
-                              </Link>
-                            )}
+                                <Link
+                                  href={`/admin/Panel-Administrativo/ordenes-compra/nueva?cotizacion_id=${cot.id}`}
+                                  title="Generar orden de compra"
+                                  className="inline-flex p-2 rounded-xl hover:bg-rose-50 hover:text-rose-600"
+                                >
+                                  <ShoppingCart className="w-4 h-4" />
+                                </Link>
+                              )}
                             <Link
                               href={`/admin/Panel-Administrativo/cotizaciones-proveedor/${cot.id}`}
                               title="Ver cotización"

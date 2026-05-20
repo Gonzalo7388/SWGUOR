@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ESTADO_COTIZACION_PROVEEDOR } from '@/lib/constants/estados';
+import { ESTADO_COTIZACION_PROVEEDOR } from '@/lib/constants/cotizacion-proveedor-estados';
 
 const estadosValidos = [
   ESTADO_COTIZACION_PROVEEDOR.BORRADOR,

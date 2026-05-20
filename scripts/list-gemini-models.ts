@@ -1,37 +1,37 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import * as dotenv from "dotenv";
-import path from "path";
+/**
+ * Lista modelos Gemini disponibles para esta API key.
+ * Uso: npx tsx scripts/list-gemini-models.ts
+ */
+import * as dotenv from 'dotenv';
+import path from 'path';
+import {
+  listAvailableGeminiModels,
+  resolveGeminiModelId,
+  clearGeminiModelCache,
+} from '../src/lib/helpers/gemini-models.helper';
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-async function listModels() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("ERROR: GEMINI_API_KEY no encontrada");
-    return;
+async function main() {
+  clearGeminiModelCache();
+
+  console.log('GEMINI_MODEL (env):', process.env.GEMINI_MODEL ?? '(no definido)');
+  console.log('GEMINI_DEBUG:', process.env.GEMINI_DEBUG ?? '(no definido)');
+  console.log('---');
+
+  const models = await listAvailableGeminiModels();
+  console.log(`Modelos con generateContent: ${models.length}\n`);
+  for (const m of models) {
+    console.log(`  ${m.id.padEnd(42)} | ${m.displayName ?? ''}`);
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // @ts-ignore
-    const client = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
-    // We can't easily list models with the high-level SDK without extra effort, 
-    // but we can try common names.
-    
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
-    
-    for (const m of models) {
-      try {
-        const model = genAI.getGenerativeModel({ model: m });
-        const result = await model.generateContent("test");
-        console.log(`Modelo ${m}: FUNCIONA`);
-      } catch (e: any) {
-        console.log(`Modelo ${m}: ERROR - ${e.message}`);
-      }
-    }
-  } catch (error: any) {
-    console.error("Error:", error.message);
-  }
+  console.log('\n--- Resolución automática ---');
+  const resolved = await resolveGeminiModelId({ purpose: 'script-list' });
+  console.log('Modelo seleccionado:', resolved);
 }
 
-listModels();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

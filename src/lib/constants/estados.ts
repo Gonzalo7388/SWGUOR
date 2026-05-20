@@ -152,37 +152,14 @@ export const ESTADOS_CONFECCION: Record<string, { label: string; color: string; 
 };
 export const LISTA_ESTADOS_CONFECCION = Object.keys(ESTADOS_CONFECCION);
 
-// ─── COTIZACIONES PROVEEDOR (CUS — registro manual / IA) ─────────────────────
-export const ESTADO_COTIZACION_PROVEEDOR = {
-  BORRADOR: 'borrador',
-  CERRADO: 'cerrado',
-  CONVERTIDA: 'convertida',
-  ANULADO: 'anulado',
-} as const;
-
-export type EstadoCotizacionProveedor =
-  (typeof ESTADO_COTIZACION_PROVEEDOR)[keyof typeof ESTADO_COTIZACION_PROVEEDOR];
-
-export const ESTADOS_COTIZACION_PROVEEDOR: Record<string, { label: string; color: string; bgColor: string }> = {
-  borrador: { label: 'Borrador', color: 'text-slate-600', bgColor: 'bg-slate-100' },
-  cerrado: { label: 'Cerrado', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  convertida: { label: 'Convertida a OC', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  anulado: { label: 'Anulado', color: 'text-red-700', bgColor: 'bg-red-100' },
-};
-
-/** Desde estos estados se puede generar una orden de compra */
-export const ESTADOS_COTIZACION_PARA_GENERAR_OC = [
-  ESTADO_COTIZACION_PROVEEDOR.BORRADOR,
-  ESTADO_COTIZACION_PROVEEDOR.CERRADO,
-] as const;
-
-/** Transiciones permitidas: estado actual → estados destino */
-export const TRANSICIONES_COTIZACION_PROVEEDOR: Record<string, string[]> = {
-  borrador: ['cerrado', 'anulado'],
-  cerrado: ['borrador'],
-  convertida: [],
-  anulado: [],
-};
+// ─── COTIZACIONES PROVEEDOR (re-export sin ciclos de importación) ────────────
+export {
+  ESTADO_COTIZACION_PROVEEDOR,
+  ESTADOS_COTIZACION_PROVEEDOR,
+  ESTADOS_COTIZACION_PARA_GENERAR_OC,
+  TRANSICIONES_COTIZACION_PROVEEDOR,
+  type EstadoCotizacionProveedor,
+} from '@/lib/constants/cotizacion-proveedor-estados';
 
 // ─── ÓRDENES DE COMPRA (CUS-50) ───────────────────────────────────────────────
 export const ESTADOS_ORDEN_COMPRA: Record<string, { label: string; color: string; bgColor: string }> = {
