@@ -9,7 +9,7 @@ import {
   LogOut, Boxes, Scissors, Building,
   Bell, BarChart3, LucideIcon, ChevronDown,
   Settings, Truck, Package, Grid3x3, DollarSign, FileText,
-  Building2, ShieldCheck, UserSquare, Briefcase, MessageSquare, History,
+  Building2, ShieldCheck, UserSquare, Briefcase, MessageSquare, History, Tag,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { usuarios } from '@prisma/client';
@@ -78,6 +78,7 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       subItems: [
         { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart, resource: 'pedidos' as RecursoKey },
         { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones', icon: FileText, resource: 'cotizaciones' as RecursoKey },
+        { title: 'Promociones y Ofertas', href: '/admin/Panel-Administrativo/promociones', icon: Tag, resource: 'promociones' as RecursoKey },
         { title: 'Devoluciones', href: '/admin/Panel-Administrativo/devoluciones-cliente', icon: Truck, resource: 'devoluciones_clientes' as RecursoKey },
         { title: 'Pagos', href: '/admin/Panel-Administrativo/pagos', icon: DollarSign, resource: 'pagos' as RecursoKey },
       ],
