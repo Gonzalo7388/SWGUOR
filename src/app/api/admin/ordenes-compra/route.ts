@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { ordenesCompraService } from '@/lib/services/ordenes-compra.service';
+import { getOrdenCompraPdfPublicUrl } from '@/lib/services/orden-compra-documento.service';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import {
   crearOrdenCompraSchema,
@@ -39,7 +40,11 @@ export async function GET(req: Request) {
     }
 
     const ordenes = await ordenesCompraService.listar(parsed.data);
-    return NextResponse.json({ success: true, data: serializeBigInt(ordenes) });
+    const conPdf = ordenes.map((o) => ({
+      ...o,
+      pdf_url: getOrdenCompraPdfPublicUrl(String(o.id)),
+    }));
+    return NextResponse.json({ success: true, data: serializeBigInt(conPdf) });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     console.error('[GET ordenes-compra]', msg);
@@ -70,7 +75,13 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json(
-      { success: true, data: serializeBigInt(orden) },
+      {
+        success: true,
+        data: serializeBigInt({
+          ...orden,
+          pdf_url: getOrdenCompraPdfPublicUrl(String(orden.id)),
+        }),
+      },
       { status: 201 },
     );
   } catch (error: unknown) {

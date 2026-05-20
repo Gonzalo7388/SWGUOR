@@ -26,12 +26,15 @@ export interface OrdenCompraRow {
   notas: string | null;
   created_at: string | null;
   updated_at: string | null;
+  pdf_url?: string | null;
   proveedores?: {
     id: number;
     razon_social: string;
     ruc: string;
     email: string;
     telefono?: string;
+    contacto?: string;
+    direccion?: string;
   };
   cotizaciones_proveedor?: {
     id: number;

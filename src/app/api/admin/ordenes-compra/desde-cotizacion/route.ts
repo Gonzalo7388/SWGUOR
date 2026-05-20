@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { ordenesCompraService } from '@/lib/services/ordenes-compra.service';
+import { getOrdenCompraPdfPublicUrl } from '@/lib/services/orden-compra-documento.service';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { crearOrdenDesdeCotizacionSchema } from '@/lib/schemas/ordenes-compra';
 
@@ -36,7 +37,13 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json(
-      { success: true, data: serializeBigInt(orden) },
+      {
+        success: true,
+        data: serializeBigInt({
+          ...orden,
+          pdf_url: getOrdenCompraPdfPublicUrl(String(orden.id)),
+        }),
+      },
       { status: 201 },
     );
   } catch (error: unknown) {

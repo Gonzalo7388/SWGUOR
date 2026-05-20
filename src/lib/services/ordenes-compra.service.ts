@@ -3,37 +3,19 @@ import { Prisma, EstadoOrdenCompra, EstadoPagoOrdenCompra } from '@prisma/client
 import {
   ESTADOS_COTIZACION_PARA_GENERAR_OC,
 } from '@/lib/constants/estados';
+import { generarYAlmacenarPdfOrdenCompra } from '@/lib/services/orden-compra-documento.service';
 import type {
   CrearOrdenCompra,
   CrearOrdenDesdeCotizacion,
   ActualizarOrdenCompra,
   OrdenCompraItemInput,
 } from '@/lib/schemas/ordenes-compra';
+import {
+  ORDEN_COMPRA_INCLUDE,
+  type OrdenCompraDetalle,
+} from '@/lib/services/ordenes-compra.types';
 
-const ORDEN_INCLUDE = {
-  proveedores: {
-    select: { id: true, razon_social: true, ruc: true, email: true, telefono: true },
-  },
-  cotizaciones_proveedor: {
-    select: {
-      id: true,
-      numero_externo: true,
-      estado: true,
-      total_estimado: true,
-      moneda: true,
-    },
-  },
-  ordenes_compra_items: {
-    include: {
-      materiales: { select: { id: true, nombre: true, unidad_medida: true } },
-      insumo: { select: { id: true, nombre: true, unidad_medida: true } },
-    },
-  },
-} satisfies Prisma.ordenes_compraInclude;
-
-export type OrdenCompraDetalle = Prisma.ordenes_compraGetPayload<{
-  include: typeof ORDEN_INCLUDE;
-}>;
+export type { OrdenCompraDetalle };
 
 export interface FiltrosOrdenCompra {
   proveedor_id?: number | bigint;
@@ -100,7 +82,7 @@ export const ordenesCompraService = {
           cotizacion_proveedor_id: BigInt(filtros.cotizacion_proveedor_id),
         }),
       },
-      include: ORDEN_INCLUDE,
+      include: ORDEN_COMPRA_INCLUDE,
       orderBy: { created_at: 'desc' },
     });
   },
@@ -108,7 +90,7 @@ export const ordenesCompraService = {
   obtenerPorId: async (id: bigint | number): Promise<OrdenCompraDetalle | null> => {
     return prisma.ordenes_compra.findUnique({
       where: { id: BigInt(id) },
-      include: ORDEN_INCLUDE,
+      include: ORDEN_COMPRA_INCLUDE,
     });
   },
 
@@ -158,7 +140,16 @@ export const ordenesCompraService = {
 
     const creada = await ordenesCompraService.obtenerPorId(ordenId);
     if (!creada) throw new Error('Error al recuperar la orden creada');
+    try {
+      await ordenesCompraService.generarDocumentoPdf(creada);
+    } catch (pdfErr) {
+      console.error('[crearConItems] PDF no generado:', pdfErr);
+    }
     return creada;
+  },
+
+  generarDocumentoPdf: async (orden: OrdenCompraDetalle) => {
+    return generarYAlmacenarPdfOrdenCompra(orden);
   },
 
   crearDesdeCotizacion: async (
@@ -304,7 +295,7 @@ export const ordenesCompraService = {
         fecha_prometida: { lt: new Date() },
         estado: { in: ['pendiente', 'confirmada', 'parcialmente_recibida'] },
       },
-      include: ORDEN_INCLUDE,
+      include: ORDEN_COMPRA_INCLUDE,
       orderBy: { fecha_prometida: 'asc' },
     });
   },

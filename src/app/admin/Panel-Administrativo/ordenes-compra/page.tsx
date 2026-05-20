@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
 import OrdenesCompraTable from '@/components/admin/ordenes-compra/OrdenesCompraTable';
-import OrdenCompraDetailSheet from '@/components/admin/ordenes-compra/OrdenCompraDetailSheet';
 import { useOrdenesCompra } from '@/lib/hooks/useOrdenesCompra';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { ESTADOS_ORDEN_COMPRA } from '@/lib/constants/estados';
@@ -29,9 +28,6 @@ export default function OrdenesCompraPage() {
   const { can, isLoading: authLoading } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('todos');
-  const [detailOrden, setDetailOrden] = useState<OrdenCompraRow | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-
   const {
     ordenes,
     isLoading,
@@ -175,8 +171,7 @@ export default function OrdenesCompraPage() {
           <OrdenesCompraTable
             ordenes={filtered}
             onVer={(o) => {
-              setDetailOrden(o);
-              setSheetOpen(true);
+              router.push(`/admin/Panel-Administrativo/ordenes-compra/${o.id}`);
             }}
             onConfirmar={canEdit ? handleConfirmar : undefined}
             onCancelar={canCancel ? handleCancelar : undefined}
@@ -185,11 +180,6 @@ export default function OrdenesCompraPage() {
           />
         )}
 
-        <OrdenCompraDetailSheet
-          orden={detailOrden}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-        />
       </div>
     </div>
   );
