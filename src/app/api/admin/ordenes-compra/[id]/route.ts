@@ -5,10 +5,7 @@ import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { ordenesCompraService } from '@/lib/services/ordenes-compra.service';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import {
-  crearOrdenCompraSchema,
-  listarOrdenesCompraSchema,
-} from '@/lib/schemas/ordenes-compra';
+import { actualizarOrdenCompraSchema } from '@/lib/schemas/ordenes-compra';
 
 const ORDENES_COMPRA_ROLES: RolUsuario[] = [
   'administrador',
@@ -16,46 +13,41 @@ const ORDENES_COMPRA_ROLES: RolUsuario[] = [
   'almacenero',
 ];
 
-export async function GET(req: Request) {
+type RouteParams = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, { params }: RouteParams) {
   const auth = await requireServerRole(ORDENES_COMPRA_ROLES);
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const parsed = listarOrdenesCompraSchema.safeParse({
-      proveedor_id: searchParams.get('proveedor_id') ?? undefined,
-      estado: searchParams.get('estado') ?? undefined,
-      estado_pago: searchParams.get('estado_pago') ?? undefined,
-      cotizacion_proveedor_id: searchParams.get('cotizacion_proveedor_id') ?? undefined,
-    });
+    const { id } = await params;
+    const ordenId = BigInt(id);
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? 'Parámetros inválidos' },
-        { status: 400 },
-      );
+    const orden = await ordenesCompraService.obtenerPorId(ordenId);
+    if (!orden) {
+      return NextResponse.json({ error: 'Orden de compra no encontrada' }, { status: 404 });
     }
 
-    const ordenes = await ordenesCompraService.listar(parsed.data);
-    return NextResponse.json({ success: true, data: serializeBigInt(ordenes) });
+    return NextResponse.json({ success: true, data: serializeBigInt(orden) });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Error desconocido';
-    console.error('[GET ordenes-compra]', msg);
+    console.error('[GET ordenes-compra/:id]', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function PATCH(req: Request, { params }: RouteParams) {
   const auth = await requireServerRole(ORDENES_COMPRA_ROLES);
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
+    const { id } = await params;
     const body = await req.json();
-    const parsed = crearOrdenCompraSchema.safeParse(body);
+    const parsed = actualizarOrdenCompraSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -64,18 +56,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const orden = await ordenesCompraService.crearConItems(
-      parsed.data,
-      auth.user.authId,
-    );
-
-    return NextResponse.json(
-      { success: true, data: serializeBigInt(orden) },
-      { status: 201 },
-    );
+    const orden = await ordenesCompraService.actualizar(BigInt(id), parsed.data);
+    return NextResponse.json({ success: true, data: serializeBigInt(orden) });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Error desconocido';
-    console.error('[POST ordenes-compra]', msg);
+    console.error('[PATCH ordenes-compra/:id]', msg);
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

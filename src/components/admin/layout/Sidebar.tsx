@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, ShoppingCart, Users, Menu, X,
+  LayoutDashboard, ShoppingCart, ShoppingBag, Users, Menu, X,
   LogOut, Boxes, Scissors, Building,
   Bell, BarChart3, LucideIcon, ChevronDown,
   Settings, Truck, Package, Grid3x3, DollarSign, FileText,
@@ -103,7 +103,21 @@ export default function Sidebar({ }: { usuario: usuarios }) {
         { title: 'Inventario', href: '/admin/Panel-Administrativo/inventario', icon: Boxes, resource: 'inventario' as RecursoKey },
         { title: 'Movimientos', href: '/admin/Panel-Administrativo/movimientos', icon: Grid3x3, resource: 'movimiento_inventario' as RecursoKey },
         { title: 'Proveedores', href: '/admin/Panel-Administrativo/proveedores', icon: Building2, resource: 'proveedores' as RecursoKey },
+        { title: 'Cotiz. Proveedor', href: '/admin/Panel-Administrativo/cotizaciones-proveedor', icon: FileText, resource: 'proveedores' as RecursoKey },
         { title: 'Devoluciones Prov.', href: '/admin/Panel-Administrativo/devoluciones-proveedor', icon: Truck, resource: 'devoluciones_proveedor' as RecursoKey },
+      ],
+    },
+    {
+      title: 'Compras',
+      icon: ShoppingBag,
+      roles: ['gerente', 'administrador', 'almacenero'],
+      subItems: [
+        {
+          title: 'Órdenes de Compra',
+          href: '/admin/Panel-Administrativo/ordenes-compra',
+          icon: ShoppingBag,
+          resource: 'ordenes_compra' as RecursoKey,
+        },
       ],
     },
     {

@@ -151,3 +151,30 @@ export const ESTADOS_CONFECCION: Record<string, { label: string; color: string; 
   cancelada: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 export const LISTA_ESTADOS_CONFECCION = Object.keys(ESTADOS_CONFECCION);
+
+// ─── COTIZACIONES PROVEEDOR ───────────────────────────────────────────────────
+export const ESTADOS_COTIZACION_PROVEEDOR: Record<string, { label: string; color: string; bgColor: string }> = {
+  borrador: { label: 'Borrador', color: 'text-slate-600', bgColor: 'bg-slate-100' },
+  pendiente: { label: 'Pendiente', color: 'text-amber-700', bgColor: 'bg-amber-100' },
+  aprobada: { label: 'Aprobada', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  rechazada: { label: 'Rechazada', color: 'text-red-700', bgColor: 'bg-red-100' },
+  convertida: { label: 'Con OC', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+};
+
+/** Estados de cotización proveedor desde los que se puede generar una OC */
+export const ESTADOS_COTIZACION_PARA_GENERAR_OC = ['borrador', 'pendiente', 'aprobada'] as const;
+
+// ─── ÓRDENES DE COMPRA (CUS-50) ───────────────────────────────────────────────
+export const ESTADOS_ORDEN_COMPRA: Record<string, { label: string; color: string; bgColor: string }> = {
+  pendiente: { label: 'Pendiente', color: 'text-amber-700', bgColor: 'bg-amber-100' },
+  confirmada: { label: 'Confirmada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  parcialmente_recibida: { label: 'Parcial', color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
+  completada: { label: 'Completada', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  cancelada: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
+};
+
+export const ESTADOS_PAGO_ORDEN_COMPRA: Record<string, { label: string; color: string; bgColor: string }> = {
+  pendiente: { label: 'Pago pendiente', color: 'text-amber-700', bgColor: 'bg-amber-100' },
+  parcial: { label: 'Pago parcial', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  pagado: { label: 'Pagado', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+};

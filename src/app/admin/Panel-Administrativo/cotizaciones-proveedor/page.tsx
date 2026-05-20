@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   FileText, Plus, Search, RefreshCw, DollarSign,
-  CheckCircle2, Clock, Calendar,
-  ChevronLeft, ChevronRight, FileSpreadsheet, Eye,
-  ClipboardList,
+  CheckCircle2, Clock,
+  ChevronLeft, ChevronRight, Eye,
+  ClipboardList, ShoppingCart,
 } from 'lucide-react';
+import { ESTADOS_COTIZACION_PARA_GENERAR_OC } from '@/lib/constants/estados';
 import { toast } from 'sonner';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
@@ -46,7 +47,23 @@ export default function CotizacionesProveedorPage() {
       const res = await fetch('/api/admin/cotizaciones-proveedor');
       if (!res.ok) throw new Error('Error al cargar datos');
       const json = await res.json();
-      setData(json.data ?? json);
+      const raw = json.data ?? json;
+      const mapped: CotizacionProv[] = (Array.isArray(raw) ? raw : []).map(
+        (c: Record<string, unknown>) => ({
+          id: String(c.id),
+          numero_cotizacion: String((c.numero_externo as string) ?? ''),
+          proveedor_nombre: String(
+            (c.proveedores as { razon_social?: string })?.razon_social ?? '',
+          ),
+          proveedor_ruc: String((c.proveedores as { ruc?: string })?.ruc ?? ''),
+          monto: Number(c.total_estimado ?? 0),
+          moneda: String(c.moneda ?? 'PEN'),
+          fecha_cotizacion: String(c.fecha_solicitud ?? c.created_at ?? ''),
+          fecha_vencimiento: String(c.fecha_vencimiento ?? ''),
+          estado: String(c.estado ?? 'borrador'),
+        }),
+      );
+      setData(mapped);
     } catch (err: any) {
       toast.error('Error al cargar cotizaciones de proveedores');
     } finally {
@@ -180,9 +197,32 @@ export default function CotizacionesProveedorPage() {
                         </span>
                       </td>
                       <td className="py-4 px-5 text-center">
-                        <Button variant="ghost" size="sm" className="rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90">
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          {ESTADOS_COTIZACION_PARA_GENERAR_OC.includes(
+                            cot.estado as (typeof ESTADOS_COTIZACION_PARA_GENERAR_OC)[number],
+                          ) && (
+                            <Link
+                              href={`/admin/Panel-Administrativo/ordenes-compra/nueva?cotizacion_id=${cot.id}`}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="rounded-xl hover:bg-rose-50 hover:text-rose-600"
+                                title="Generar orden de compra"
+                              >
+                                <ShoppingCart className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
+                            title="Ver cotización"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
