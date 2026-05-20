@@ -69,6 +69,7 @@ export default function Sidebar({ }: { usuario: usuarios }) {
         { title: 'Productos', href: '/admin/Panel-Administrativo/productos', icon: Package, resource: 'productos' as RecursoKey },
         { title: 'Categorías', href: '/admin/Panel-Administrativo/categorias', icon: Grid3x3, resource: 'categorias' as RecursoKey },
         { title: 'Fichas Técnicas', href: '/admin/Panel-Administrativo/fichas-tecnicas', icon: FileText, resource: 'fichas_tecnicas' as RecursoKey },
+        { title: 'Promociones y Ofertas', href: '/admin/Panel-Administrativo/promociones', icon: Tag, resource: 'promociones' as RecursoKey },
       ],
     },
     {
@@ -78,7 +79,6 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       subItems: [
         { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart, resource: 'pedidos' as RecursoKey },
         { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones', icon: FileText, resource: 'cotizaciones' as RecursoKey },
-        { title: 'Promociones y Ofertas', href: '/admin/Panel-Administrativo/promociones', icon: Tag, resource: 'promociones' as RecursoKey },
         { title: 'Devoluciones', href: '/admin/Panel-Administrativo/devoluciones-cliente', icon: Truck, resource: 'devoluciones_clientes' as RecursoKey },
         { title: 'Pagos', href: '/admin/Panel-Administrativo/pagos', icon: DollarSign, resource: 'pagos' as RecursoKey },
       ],
