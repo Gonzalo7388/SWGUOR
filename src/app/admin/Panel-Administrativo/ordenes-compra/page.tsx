@@ -78,7 +78,6 @@ export default function OrdenesCompraPage() {
   };
 
   const handleCancelar = async (orden: OrdenCompraRow) => {
-    if (!confirm('¿Cancelar esta orden de compra?')) return;
     try {
       await cancelar(orden.id);
     } catch (e: unknown) {
@@ -177,6 +176,7 @@ export default function OrdenesCompraPage() {
             onCancelar={canCancel ? handleCancelar : undefined}
             canConfirm={canEdit && !isConfirming}
             canCancel={canCancel && !isCancelling}
+            isCancelling={isCancelling}
           />
         )}
 

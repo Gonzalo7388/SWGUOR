@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Eye, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ESTADOS_ORDEN_COMPRA,
@@ -9,6 +10,7 @@ import {
 } from '@/lib/constants/estados';
 import { formatNumeroOc } from '@/lib/helpers/ordenes-compra-helpers';
 import type { OrdenCompraRow } from './types';
+import { OrdenCompraArchiveModal } from './OrdenCompraModals';
 
 interface Props {
   ordenes: OrdenCompraRow[];
@@ -17,6 +19,7 @@ interface Props {
   onCancelar?: (orden: OrdenCompraRow) => void;
   canConfirm?: boolean;
   canCancel?: boolean;
+  isCancelling?: boolean;
 }
 
 const tableWrap =
@@ -34,7 +37,10 @@ export default function OrdenesCompraTable({
   onCancelar,
   canConfirm = false,
   canCancel = false,
+  isCancelling = false,
 }: Props) {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [ordenToCancel, setOrdenToCancel] = useState<OrdenCompraRow | null>(null);
   if (!ordenes.length) {
     return (
       <div className={tableWrap}>
@@ -151,7 +157,10 @@ export default function OrdenesCompraTable({
                         variant="ghost"
                         size="sm"
                         className="rounded-xl text-red-600 hover:bg-red-50"
-                        onClick={() => onCancelar!(orden)}
+                        onClick={() => {
+                          setOrdenToCancel(orden);
+                          setShowCancelModal(true);
+                        }}
                         title="Cancelar"
                       >
                         <XCircle className="w-4 h-4" />
@@ -164,6 +173,27 @@ export default function OrdenesCompraTable({
           })}
         </tbody>
       </table>
+
+      {showCancelModal && (
+        <OrdenCompraArchiveModal
+          ordenCompra={ordenToCancel}
+          isArchiving={isCancelling}
+          onClose={() => {
+            setShowCancelModal(false);
+            setOrdenToCancel(null);
+          }}
+          onConfirm={async () => {
+            if (ordenToCancel && onCancelar) {
+              try {
+                await onCancelar(ordenToCancel);
+              } finally {
+                setShowCancelModal(false);
+                setOrdenToCancel(null);
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
