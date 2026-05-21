@@ -236,7 +236,7 @@ export default function CategoriasPage() {
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Header */}
+        {/* Header con los botones integrados arriba a la derecha */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Directorio de Categorías</h1>
@@ -245,18 +245,29 @@ export default function CategoriasPage() {
           <div className="flex items-center gap-3">
             {canExport && (
               <>
-                <Button onClick={handleExportPDF} variant="outline" className="bg-white border-red-200 text-red-700 hover:bg-red-50 font-bold gap-2 h-11 transition-all active:scale-95">
-                  <FileText className="w-5 h-5" />
-                  <span className="hidden sm:inline">Exportar PDF</span>
+                {/* BOTÓN EXPORTAR EXCEL ESTILIZADO */}
+                <Button 
+                  onClick={handleExportExcel} 
+                  variant="outline" 
+                  className="h-11 rounded-xl border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 font-medium transition-all active:scale-95 bg-white"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
+                  Excel
                 </Button>
-                <Button onClick={handleExportExcel} variant="outline" className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold gap-2 h-11 transition-all active:scale-95">
-                  <FileSpreadsheet className="w-5 h-5" />
-                  <span className="hidden sm:inline">Exportar Excel</span>
+
+                {/* BOTÓN EXPORTAR PDF ESTILIZADO */}
+                <Button 
+                  onClick={handleExportPDF} 
+                  variant="outline" 
+                  className="h-11 rounded-xl border-red-200 hover:bg-red-50 hover:text-red-700 text-gray-600 font-medium transition-all active:scale-95 bg-white"
+                >
+                  <FileText className="w-4 h-4 mr-2 text-red-600" />
+                  PDF
                 </Button>
               </>
             )}
             {canCreate && (
-              <Button onClick={handleCreateClick} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95">
+              <Button onClick={handleCreateClick} className="bg-pink-600 hover:bg-pink-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95 rounded-xl">
                 <Plus className="w-5 h-5" /> Nueva Categoría
               </Button>
             )}

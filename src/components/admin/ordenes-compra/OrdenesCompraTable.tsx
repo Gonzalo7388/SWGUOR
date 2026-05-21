@@ -10,7 +10,7 @@ import {
 } from '@/lib/constants/estados';
 import { formatNumeroOc } from '@/lib/helpers/ordenes-compra-helpers';
 import type { OrdenCompraRow } from './types';
-import { OrdenCompraArchiveModal } from './OrdenCompraModals';
+import { OrdenCompraArchiveModal, OrdenCompraConfirmModal } from './OrdenCompraModals';
 
 interface Props {
   ordenes: OrdenCompraRow[];
@@ -39,8 +39,16 @@ export default function OrdenesCompraTable({
   canCancel = false,
   isCancelling = false,
 }: Props) {
+
+  // ESTADOS para confirmación
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [ordenToConfirm, setOrdenToConfirm] = useState<OrdenCompraRow | null>(null);
+  const [isConfirmingState, setIsConfirmingState] = useState(false);
+
+  // ESTADOS para cancelación
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [ordenToCancel, setOrdenToCancel] = useState<OrdenCompraRow | null>(null);
+
   if (!ordenes.length) {
     return (
       <div className={tableWrap}>
@@ -141,17 +149,22 @@ export default function OrdenesCompraTable({
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
+                    
                     {puedeConfirmar && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="rounded-xl text-emerald-600 hover:bg-emerald-50"
-                        onClick={() => onConfirmar!(orden)}
+                        onClick={() => {
+                          setOrdenToConfirm(orden);
+                          setShowConfirmModal(true);
+                        }}
                         title="Confirmar"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                       </Button>
                     )}
+
                     {puedeCancelar && (
                       <Button
                         variant="ghost"
@@ -174,26 +187,54 @@ export default function OrdenesCompraTable({
         </tbody>
       </table>
 
-      {showCancelModal && (
-        <OrdenCompraArchiveModal
-          ordenCompra={ordenToCancel}
-          isArchiving={isCancelling}
-          onClose={() => {
-            setShowCancelModal(false);
-            setOrdenToCancel(null);
-          }}
-          onConfirm={async () => {
-            if (ordenToCancel && onCancelar) {
-              try {
-                await onCancelar(ordenToCancel);
-              } finally {
-                setShowCancelModal(false);
-                setOrdenToCancel(null);
+      {/* Renderizado de Modales de Acción */}
+      <>
+        {showCancelModal && (
+          <OrdenCompraArchiveModal
+            ordenCompra={ordenToCancel}
+            isArchiving={isCancelling}
+            onClose={() => {
+              setShowCancelModal(false);
+              setOrdenToCancel(null);
+            }}
+            onConfirm={async () => {
+              if (ordenToCancel && onCancelar) {
+                try {
+                  await onCancelar(ordenToCancel);
+                } finally {
+                  setShowCancelModal(false);
+                  setOrdenToCancel(null);
+                }
               }
-            }
-          }}
-        />
-      )}
+            }}
+          />
+        )}
+
+        {showConfirmModal && (
+          <OrdenCompraConfirmModal
+            ordenCompra={ordenToConfirm}
+            isConfirming={isConfirmingState}
+            onClose={() => {
+              setShowConfirmModal(false);
+              setOrdenToConfirm(null);
+            }}
+            onConfirm={async () => {
+              if (ordenToConfirm && onConfirmar) {
+                try {
+                  setIsConfirmingState(true);
+                  await onConfirmar(ordenToConfirm);
+                } catch (error) {
+                  console.error("Error al confirmar la orden:", error);
+                } finally {
+                  setIsConfirmingState(false);
+                  setShowConfirmModal(false);
+                  setOrdenToConfirm(null);
+                }
+              }
+            }}
+          />
+        )}
+      </>
     </div>
   );
 }
