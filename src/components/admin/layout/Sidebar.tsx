@@ -87,7 +87,7 @@ export default function Sidebar({ }: { usuario: usuarios }) {
       icon: Scissors,
       roles: ['gerente', 'administrador', 'cortador', 'representante_taller', 'disenador'],
       subItems: [
-        { title: 'Órdenes Producción', href: '/admin/Panel-Administrativo/produccion', icon: Package, resource: 'produccion' as RecursoKey },
+        { title: 'Órdenes Producción', href: '/admin/Panel-Administrativo/ordenes-produccion', icon: Package, resource: 'produccion' as RecursoKey },
         { title: 'Confecciones', href: '/admin/Panel-Administrativo/confecciones', icon: Scissors, resource: 'confecciones' as RecursoKey },
         { title: 'Talleres', href: '/admin/Panel-Administrativo/talleres', icon: Building, resource: 'talleres' as RecursoKey },
         { title: 'Incidencias del Taller', href: '/admin/Panel-Administrativo/incidencias-taller', icon: Bell, resource: 'incidencias' as RecursoKey },
