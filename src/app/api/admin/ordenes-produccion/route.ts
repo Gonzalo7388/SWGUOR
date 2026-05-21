@@ -17,6 +17,7 @@ export async function GET(req: Request) {
       producto_id: searchParams.get('producto_id') ?? '',
       taller_id: searchParams.get('taller_id') ?? '',
       estado: searchParams.get('estado') ?? '',
+      etapa: searchParams.get('etapa') ?? '',
       search: searchParams.get('search') ?? '',
       page: searchParams.has('page') ? Number(searchParams.get('page')) : 1,
       limit: searchParams.has('limit') ? Number(searchParams.get('limit')) : 10,
