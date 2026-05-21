@@ -22,21 +22,21 @@ export interface PaletaColors {
   white: string;
 }
 
-// ─── PALETA ERP — profesional, sin cremas ─────────────────────────────────────
-export const COMPANY_PALETTE = {
-  accent:    '#1d3fa6',   // índigo principal
-  bg:        '#ffffff',
-  bgSoft:    '#f4f6f9',   // gris frío suave
-  border:    '#d4dae5',   // gris neutro
-  text:      '#0f172a',   // slate-900
-  mid:       '#3358e8',   // índigo medio
-  primary:   '#1d3fa6',
-  secondary: '#3358e8',
-  dark:      '#0f172a',
-  cream:     '#f0f4ff',   // índigo 50 (reemplaza crema)
-  peach:     '#e0e9ff',   // índigo 100 (reemplaza melocotón)
-  beige:     '#f4f6f9',   // gris frío (reemplaza beige)
-  white:     '#ffffff',
+// ─── PALETA CORPORATIVA ROSE ──────────────────────────────────────────────────
+export const COMPANY_PALETTE: PaletaColors = {
+  accent:     '#e11d48',   // rose-600
+  bg:         '#ffffff',
+  bgSoft:     '#f8fafc',   // slate-50
+  border:     '#e2e8f0',   // slate-200
+  text:       '#0f172a',   // slate-900 
+  mid:        '#f43f5e',   // rose-500
+  primary:    '#e11d48',   // rose-600
+  secondary:  '#be123c',   // rose-700
+  dark:       '#0f172a',   // slate-900
+  cream:      '#fff1f2',   // rose-50
+  peach:      '#ffe4e6',   // rose-100
+  beige:      '#f1f5f9',   // slate-100
+  white:      '#ffffff',
 };
 
 export type RolPaleta =
@@ -103,44 +103,88 @@ export function getTipoCliente(tipo: string) {
   return cfg?.label ?? tipo ?? '—';
 }
 
-// ─── TOOLTIPS ─────────────────────────────────────────────────────────────────
-export const AreaTip = ({ active, payload, label, accentColor = '#1d3fa6' }: any) => {
-  if (!active || !payload?.length) return null;
+// ─── INTERFACES PARA RECHARTS TOOLTIPS ────────────────────────────────────────
+interface RechartsTooltipPayloadItem {
+  value: number | string;
+  name: string;
+  payload: Record<string, unknown>;
+}
+
+interface RechartsTooltipProps {
+  active?: boolean;
+  payload?: RechartsTooltipPayloadItem[];
+  label?: string | number;
+}
+
+interface CustomAreaProps extends RechartsTooltipProps {
+  accentColor?: string;
+}
+
+interface ProductoPayload {
+  fullName: string;
+  sales: number;
+}
+
+// ─── TOOLTIPS CORREGIDOS ──────────────────────────────────────────────────────
+export const AreaTip = ({ active, payload, label, accentColor = '#e11d48' }: CustomAreaProps) => {
+  if (!active || !payload || !payload.length) return null;
+  
+  const valorNum = Number(payload[0].value ?? 0);
+
   return (
     <div
       style={{
         background: '#0f172a',
         border: `1px solid ${accentColor}40`,
-        borderRadius: 10,
+        borderRadius: 12,
         padding: '8px 12px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
       }}
     >
-      <p style={{ fontSize: 10, color: accentColor, textTransform: 'uppercase',
-        letterSpacing: '0.06em', marginBottom: 3 }}>{label}</p>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>
-        S/ {Number(payload[0].value).toLocaleString('es-PE')}
+      <p style={{ 
+        fontSize: 10, 
+        color: accentColor, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em', 
+        marginBottom: 3,
+        fontWeight: 900 
+      }}>{String(label)}</p>
+      <p style={{ color: '#fff', fontWeight: 900, fontSize: 13 }}>
+        S/ {valorNum.toLocaleString('es-PE')}
       </p>
     </div>
   );
 };
 
-export const BarTip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
+export const BarTip = ({ active, payload }: RechartsTooltipProps) => {
+  if (!active || !payload || !payload.length) return null;
+  
+  const p = payload[0].payload as unknown as ProductoPayload;
+
   return (
     <div style={{
       background: '#0f172a',
       border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 10,
+      borderRadius: 12,
       padding: '8px 12px',
       boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
     }}>
-      <p style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase',
-        letterSpacing: '0.06em', marginBottom: 4 }}>Producto</p>
-      <p style={{ color: '#fff', fontSize: 12, fontWeight: 500,
-        marginBottom: 4, maxWidth: 180 }}>{p.fullName}</p>
-      <p style={{ color: '#1d3fa6', fontWeight: 700, fontSize: 13 }}>{p.sales} uds.</p>
+      <p style={{ 
+        color: '#64748b', 
+        fontSize: 10, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em', 
+        marginBottom: 4,
+        fontWeight: 700 
+      }}>Producto</p>
+      <p style={{ 
+        color: '#fff', 
+        fontSize: 12, 
+        fontWeight: 700,
+        marginBottom: 4, 
+        maxWidth: 180 
+      }}>{p.fullName}</p>
+      <p style={{ color: '#e11d48', fontWeight: 900, fontSize: 13 }}>{p.sales} uds.</p>
     </div>
   );
 };
@@ -152,10 +196,10 @@ export const Sk = ({
 }: {
   className?: string;
   style?: React.CSSProperties;
-  roleColor?: string;   // mantenido por compatibilidad
+  roleColor?: string;
 }) => (
   <div
-    className={`animate-pulse rounded-lg ${className}`}
-    style={{ background: '#f4f6f9', border: '1px solid #d4dae5', ...style }}
+    className={`animate-pulse rounded-xl ${className}`}
+    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', ...style }}
   />
 );

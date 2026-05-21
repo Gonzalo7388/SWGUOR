@@ -6,15 +6,44 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 
-// ─── PALETA LIMPIA ────────────────────────────────────────────────────────────
+// Definición de tipos estrictos
+interface VentasData {
+  mes: string;
+  ventas: number;
+}
+
+interface ProductoData {
+  nombre: string;
+  cantidad: number;
+}
+
+interface VentaRecienteData {
+  cliente?: string;
+  clientes?: {
+    razon_social: string;
+  };
+  created_at: string;
+  total?: number;
+  total_pagado?: number;
+  estado: string;
+}
+
+interface StockCriticoData {
+  nombre: string;
+  stock_actual: number | { toNumber(): number }; // ◄ Tipado estricto real, sin unknown
+  unidad?: string;
+  unidad_medida?: string;
+}
+
+// ─── PALETA CORPORATIVA MINIMALISTA CON ROSE ─────────────────────────────────
 const C = {
   bg:       '#ffffff',
-  surface:  '#f9fafb',   // gris muy suave
-  border:   '#e5e7eb',   // gris medio
-  text:     '#111827',   // casi negro
-  muted:    '#6b7280',   // gris neutro
-  accent:   '#1d3fa6',   // terracota (único color de marca)
-  accentBg: '#f0f4ff',   // fondo suave del acento
+  surface:  '#f9fafb',   
+  border:   '#e5e7eb',   
+  text:     '#111827',   
+  muted:    '#6b7280',   
+  accent:   '#e11d48',   // Rose corporativo
+  accentBg: '#fff1f2',   
   red:      '#ef4444',
   green:    '#10b981',
 };
@@ -37,14 +66,14 @@ const subStyle: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16,
 };
 
-// ─── UTILIDAD: formato compacto ───────────────────────────────────────────────
+// ─── UTILIDAD: formato compacto para uso exclusivo de datos financieros ───────
 export function fmtCompact(value: number): string {
-  if (value >= 1_000_000) return `S/ ${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000)     return `S/ ${(value / 1_000).toFixed(0)}k`;
+  if (value >= 1_000_000) return `S/ ${(value / 1_000_000).toFixed(2)}M`; 
+  if (value >= 1_000)     return `S/ ${(value / 1_000).toFixed(1)}k`;
   return `S/ ${value.toLocaleString('es-PE')}`;
 }
 
-// ─── 1. STAT CARD — sin sparkline, carga instantánea ─────────────────────────
+// ─── 1. STAT CARD — Respeta el valor puro que le envíes en la prop 'value' ────
 export function SparkKpiCard({
   label,
   value,
@@ -56,7 +85,7 @@ export function SparkKpiCard({
   value:        string | number;
   delta:        number;
   icon:         React.ElementType;
-  sparkData?:   number[];   // mantenido por compatibilidad, ignorado
+  sparkData?:   number[];
   accentColor?: string;
 }) {
   const isUp = delta >= 0;
@@ -76,7 +105,7 @@ export function SparkKpiCard({
         </div>
       </div>
 
-      {/* Valor */}
+      {/* Valor tal cual se inyecta por prop (Mantiene 21, 23, 5 limpio) */}
       <div style={{
         fontSize: 26, fontWeight: 800, color: C.text,
         letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 4,
@@ -99,12 +128,12 @@ export function SparkKpiCard({
   );
 }
 
-// ─── 2. GRÁFICO DE VENTAS — eje Y con formato compacto ───────────────────────
+// ─── 2. GRÁFICO DE VENTAS ─────────────────────────────────────────────────────
 export function VentasMensualesChart({
   data,
   accentColor = C.accent,
 }: {
-  data:          any[];
+  data:           VentasData[];
   accentColor?:  string;
 }) {
   return (
@@ -131,15 +160,7 @@ export function VentasMensualesChart({
             axisLine={false} tickLine={false}
             width={40}
           />
-          <Tooltip
-            formatter={(v) => [fmtCompact(Number(v ?? 0)), 'Ventas']}
-            contentStyle={{
-              borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              fontSize: 12,
-            }}
-          />
+          <Tooltip content={<AreaTip accentColor={accentColor} />} />
           <Area
             type="monotone"
             dataKey="ventas"
@@ -161,7 +182,7 @@ export function RankingProductos({
   data,
   accentColor = C.accent,
 }: {
-  data:         any[];
+  data:         ProductoData[];
   accentColor?: string;
 }) {
   const maxQ = Math.max(...(data?.map((d) => d.cantidad) ?? [1]), 1);
@@ -203,7 +224,6 @@ export function RankingProductos({
                     {p.cantidad} u.
                   </span>
                 </div>
-                {/* Barra */}
                 <div style={{
                   height: 5, background: C.surface,
                   borderRadius: 99, overflow: 'hidden',
@@ -231,7 +251,7 @@ export function UltimasVentas({
   data,
   accentColor = C.accent,
 }: {
-  data:         any[];
+  data:         VentaRecienteData[];
   accentColor?: string;
 }) {
   return (
@@ -272,7 +292,7 @@ export function UltimasVentas({
 }
 
 // ─── 5. STOCK CRÍTICO ─────────────────────────────────────────────────────────
-export function StockCriticoList({ data }: { data: any[] }) {
+export function StockCriticoList({ data }: { data: StockCriticoData[] }) {
   return (
     <div style={cardStyle}>
       <div style={titleStyle}>Stock Crítico</div>
@@ -283,30 +303,38 @@ export function StockCriticoList({ data }: { data: any[] }) {
             Todo en orden ✓
           </div>
         ) : (
-          data?.map((item, i) => (
-            <div key={i} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '8px 12px',
-              background: '#fef2f2',
-              borderRadius: 8,
-              border: '1px solid #fecaca',
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#991b1b',
-                maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.nombre}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', flexShrink: 0 }}>
-                {item.stock_actual} {item.unidad || item.unidad_medida}
-              </span>
-            </div>
-          ))
+          data?.map((item, i) => {
+            // Verificamos si tiene el método toNumber (es el objeto numérico de la BD)
+            const stockFormateado = 
+              typeof item.stock_actual === 'object' && item.stock_actual !== null && 'toNumber' in item.stock_actual
+                ? item.stock_actual.toNumber()
+                : Number(item.stock_actual ?? 0);
+
+            return (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 12px',
+                background: '#fef2f2',
+                borderRadius: 8,
+                border: '1px solid #fecaca',
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#991b1b',
+                  maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {item.nombre}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', flexShrink: 0 }}>
+                  {stockFormateado} {item.unidad || item.unidad_medida}
+                </span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-// ─── TOOLTIPS ─────────────────────────────────────────────────────────────────
+// ─── TOOLTIPS CORREGIDOS CON INTERFACES ESTÁNDAR ─────────────────────────────
 export const AreaTip = ({ active, payload, label, accentColor = C.accent }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -320,23 +348,6 @@ export const AreaTip = ({ active, payload, label, accentColor = C.accent }: any)
       <p style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>
         {fmtCompact(Number(payload[0].value))}
       </p>
-    </div>
-  );
-};
-
-export const BarTip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
-  return (
-    <div style={{
-      background: '#111827', borderRadius: 10,
-      padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)',
-    }}>
-      <p style={{ color: '#9ca3af', fontSize: 10, textTransform: 'uppercase',
-        letterSpacing: '0.06em', marginBottom: 4 }}>Producto</p>
-      <p style={{ color: '#fff', fontSize: 12, fontWeight: 500, marginBottom: 4,
-        maxWidth: 180 }}>{p.fullName}</p>
-      <p style={{ color: C.accent, fontWeight: 700, fontSize: 13 }}>{p.sales} uds.</p>
     </div>
   );
 };

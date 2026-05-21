@@ -1,7 +1,7 @@
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { EstadoFicha }     from '@prisma/client';
-import type { ReferenciaMovimiento, ReferenciaNotificacion} from '@prisma/client';
+import type { ReferenciaMovimiento } from '@prisma/client';
 import {
   calcularCostoFicha,
   insertarMovimiento,

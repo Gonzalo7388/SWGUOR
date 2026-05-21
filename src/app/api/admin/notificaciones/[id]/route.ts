@@ -1,5 +1,5 @@
 export const runtime = 'nodejs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireServerAuth } from '@/lib/auth/server';
 import { notificacionesService } from '@/lib/services/notificaciones.service';
 import { prisma } from '@/lib/prisma';
@@ -9,8 +9,8 @@ import { prisma } from '@/lib/prisma';
  * Marca una notificación específica como leída
  */
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }   // ← Promise en Next.js 15
 ) {
   try {
     const auth = await requireServerAuth();
@@ -18,12 +18,12 @@ export async function PATCH(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const notificacionId = BigInt(params.id);
-    
-    // Verificar que la notificación pertenece al usuario autenticado
+    const { id } = await params;                      // ← await obligatorio
+    const notificacionId = BigInt(id);
+
     const notificacion = await prisma.notificaciones.findUnique({
-      where: { id: notificacionId },
-      select: { usuario_id: true }
+      where:  { id: notificacionId },
+      select: { usuario_id: true },
     });
 
     if (!notificacion) {
@@ -40,13 +40,12 @@ export async function PATCH(
       );
     }
 
-    // Marcar como leída
     const actualizada = await notificacionesService.marcarComoLeida(notificacionId);
 
     return NextResponse.json({
       success: true,
-      data: actualizada,
-      message: 'Notificación marcada como leída'
+      data:    actualizada,
+      message: 'Notificación marcada como leída',
     });
 
   } catch (error: any) {
@@ -60,11 +59,11 @@ export async function PATCH(
 
 /**
  * DELETE /api/admin/notificaciones/[id]
- * Elimina una notificación (opcional)
+ * Elimina una notificación
  */
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }   // ← Promise en Next.js 15
 ) {
   try {
     const auth = await requireServerAuth();
@@ -72,12 +71,12 @@ export async function DELETE(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const notificacionId = BigInt(params.id);
+    const { id } = await params;                      // ← await obligatorio
+    const notificacionId = BigInt(id);
 
-    // Verificar propiedad
     const notificacion = await prisma.notificaciones.findUnique({
-      where: { id: notificacionId },
-      select: { usuario_id: true }
+      where:  { id: notificacionId },
+      select: { usuario_id: true },
     });
 
     if (!notificacion) {
@@ -94,14 +93,13 @@ export async function DELETE(
       );
     }
 
-    // Eliminar
     await prisma.notificaciones.delete({
-      where: { id: notificacionId }
+      where: { id: notificacionId },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Notificación eliminada'
+      message: 'Notificación eliminada',
     });
 
   } catch (error: any) {
