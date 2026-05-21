@@ -290,6 +290,19 @@ function ModalPago({
 }) {
   const [paso, setPaso]         = useState<PasosPago>('seleccion');
   const [metodo, setMetodo]     = useState<string | null>(null);
+   
+  const [datosTarjeta, setDatosTarjeta] = useState({
+    numero: '',
+    nombre: '',
+    vencimiento: '',
+    cvv: '',
+  });
+
+  const [datosTransferencia, setDatosTransferencia] = useState({
+    banco: '',
+    numeroOperacion: '',
+    titular: '',
+  });
 
   const total = Number(pedido.total ?? 0).toLocaleString('es-PE', {
     minimumFractionDigits: 2,
@@ -299,6 +312,19 @@ function ModalPago({
   const metodoSeleccionado = METODOS_PAGO.find(m => m.id === metodo);
 
   const handleConfirmar = async () => {
+    if (metodo === 'tarjeta') {
+      if (!datosTarjeta.numero || !datosTarjeta.nombre || !datosTarjeta.vencimiento || !datosTarjeta.cvv) {
+        alert('Completa todos los datos de la tarjeta');
+        return;
+      }
+    }
+
+    if (metodo === 'transferencia') {
+      if (!datosTransferencia.banco || !datosTransferencia.numeroOperacion || !datosTransferencia.titular) {
+        alert('Completa los datos de la transferencia');
+        return;
+      }
+    }
     setPaso('procesando');
     // Aquí iría la lógica real de pago — simulamos 2s de procesamiento
     await new Promise(r => setTimeout(r, 2000));
@@ -440,6 +466,65 @@ function ModalPago({
                   Cambiar
                 </button>
               </div>
+                {metodo === 'tarjeta' && (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Número de tarjeta"
+                      className="w-full p-3 rounded-xl border"
+                      value={datosTarjeta.numero}
+                      onChange={(e) => setDatosTarjeta({...datosTarjeta, numero: e.target.value})}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nombre del titular"
+                      className="w-full p-3 rounded-xl border"
+                      value={datosTarjeta.nombre}
+                      onChange={(e) => setDatosTarjeta({...datosTarjeta, nombre: e.target.value})}
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="MM/AA"
+                        className="w-1/2 p-3 rounded-xl border"
+                        value={datosTarjeta.vencimiento}
+                        onChange={(e) => setDatosTarjeta({...datosTarjeta, vencimiento: e.target.value})}
+                      />
+                      <input
+                        type="text"
+                        placeholder="CVV"
+                        className="w-1/2 p-3 rounded-xl border"
+                        value={datosTarjeta.cvv}
+                        onChange={(e) => setDatosTarjeta({...datosTarjeta, cvv: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                )}
+                {metodo === 'transferencia' && (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Banco (BCP, BBVA, etc.)"
+                      className="w-full p-3 rounded-xl border"
+                      value={datosTransferencia.banco}
+                      onChange={(e) => setDatosTransferencia({...datosTransferencia, banco: e.target.value})}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Número de operación"
+                      className="w-full p-3 rounded-xl border"
+                      value={datosTransferencia.numeroOperacion}
+                      onChange={(e) => setDatosTransferencia({...datosTransferencia, numeroOperacion: e.target.value})}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nombre del titular"
+                      className="w-full p-3 rounded-xl border"
+                      value={datosTransferencia.titular}
+                      onChange={(e) => setDatosTransferencia({...datosTransferencia, titular: e.target.value})}
+                    />
+                  </div>
+                )}
 
               <p className="text-xs text-slate-400 text-center">
                 Al confirmar aceptas los términos de pago. El pedido se procesará una vez verificado el pago.
