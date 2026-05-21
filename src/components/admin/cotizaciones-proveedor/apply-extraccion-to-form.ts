@@ -20,7 +20,7 @@ export function aplicarExtraccionAlFormulario(
   setValue: UseFormSetValue<CrearCotizacionProveedorInput>,
   opts?: { appendItems?: boolean; currentItems?: CrearCotizacionProveedorInput['items'] },
 ) {
-  const cot = extraccion.cotizacion ?? {};
+  const cot = extraccion.cotizacion ?? { total_estimado: 0 };
   const items = (extraccion.items ?? []).filter((i) => i.descripcion?.trim());
 
   if (cot.numero_externo) {
@@ -34,7 +34,7 @@ export function aplicarExtraccionAlFormulario(
   if (cot.notas) setValue('notas', cot.notas);
 
   if (items.length > 0) {
-    const mapped = items.map((item) => ({
+    const mapped: CrearCotizacionProveedorInput['items'] = items.map((item) => ({
       descripcion: item.descripcion?.trim() ?? 'Ítem',
       cantidad: Number(item.cantidad) > 0 ? Number(item.cantidad) : 1,
       precio_unitario: Number(item.precio_unitario) || 0,
@@ -53,7 +53,7 @@ export function aplicarExtraccionAlFormulario(
 
 export function fusionarExtracciones(extracciones: CotizacionExtraccionIA[]): CotizacionExtraccionIA {
   if (extracciones.length === 0) {
-    return { proveedor: {}, cotizacion: {}, items: [] };
+    return { proveedor: {}, cotizacion: { total_estimado: 0 }, items: [] };
   }
 
   const base = extracciones[extracciones.length - 1];
@@ -61,7 +61,7 @@ export function fusionarExtracciones(extracciones: CotizacionExtraccionIA[]): Co
 
   return {
     proveedor: base.proveedor,
-    cotizacion: base.cotizacion,
+    cotizacion: base.cotizacion ?? { total_estimado: 0 },
     items,
   };
 }

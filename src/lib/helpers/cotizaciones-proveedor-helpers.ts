@@ -1,3 +1,5 @@
+'use client';
+
 import type {
   ActualizarCotizacionProveedorInput,
   CrearCotizacionProveedorInput,
@@ -19,12 +21,13 @@ export interface ApiItemResponse<T> {
   message?: string;
 }
 
-export async function fetchCotizacionesProveedor(
+// 1. Agregamos el genérico <T = Record<string, unknown>> para mantener la compatibilidad por defecto
+export async function fetchCotizacionesProveedor<T = Record<string, unknown>>(
   page: number,
   limit: number,
   busqueda: string,
   estado: string,
-): Promise<ApiListResponse<Record<string, unknown>>> {
+): Promise<ApiListResponse<T>> {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
@@ -33,14 +36,17 @@ export async function fetchCotizacionesProveedor(
   });
   const res = await fetch(`${API}?${params}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Error al cargar cotizaciones');
-  return res.json();
+  
+  // Al retornar, casteamos la respuesta JSON al tipo de la promesa esperado
+  return res.json() as Promise<ApiListResponse<T>>;
 }
 
-export async function fetchCotizacionProveedorDetalle(
+// 2. Agregamos el genérico <T = Record<string, unknown>> para el detalle
+export async function fetchCotizacionProveedorDetalle<T = Record<string, unknown>>(
   id: string | number,
-): Promise<ApiItemResponse<Record<string, unknown>>> {
+): Promise<ApiItemResponse<T>> {
   const res = await fetch(`${API}/${id}`, { cache: 'no-store' });
-  return res.json();
+  return res.json() as Promise<ApiItemResponse<T>>;
 }
 
 export async function crearCotizacionProveedor(
@@ -51,38 +57,38 @@ export async function crearCotizacionProveedor(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+  return res.json() as Promise<ApiItemResponse<{ id: string | number }>>;
 }
 
 export async function actualizarCotizacionProveedor(
   id: string | number,
   data: ActualizarCotizacionProveedorInput,
-): Promise<ApiItemResponse<unknown>> {
+): Promise<ApiItemResponse<void>> { // Cambiado de 'unknown' a 'void' o un tipo específico si tu API devuelve algo
   const res = await fetch(`${API}/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+  return res.json() as Promise<ApiItemResponse<void>>;
 }
 
 export async function cambiarEstadoCotizacionProveedor(
   id: string | number,
   estado: string,
-): Promise<ApiItemResponse<unknown>> {
+): Promise<ApiItemResponse<void>> { // Cambiado de 'unknown' a 'void'
   const res = await fetch(`${API}/${id}/estado`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ estado }),
   });
-  return res.json();
+  return res.json() as Promise<ApiItemResponse<void>>;
 }
 
 export async function anularCotizacionProveedor(
   id: string | number,
-): Promise<ApiItemResponse<unknown>> {
+): Promise<ApiItemResponse<void>> { // Cambiado de 'unknown' a 'void'
   const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
-  return res.json();
+  return res.json() as Promise<ApiItemResponse<void>>;
 }
 
 export async function subirPdfCotizacionProveedor(
@@ -95,5 +101,5 @@ export async function subirPdfCotizacionProveedor(
     method: 'POST',
     body: formData,
   });
-  return res.json();
+  return res.json() as Promise<ApiItemResponse<{ pdf_url: string }>>;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ export interface CotizacionProveedorInitial {
     cantidad: number;
     precio_unitario: number;
     unidad?: string;
+    tipo_item?: 'insumo' | 'material';
   }>;
 }
 
@@ -70,7 +71,7 @@ function toFormValues(initial?: CotizacionProveedorInitial): CrearCotizacionProv
       fecha_vencimiento: '',
       moneda: 'PEN',
       notas: '',
-      items: [{ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades' }],
+      items: [{ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades', tipo_item: 'insumo' }],
     };
   }
   return {
@@ -85,6 +86,7 @@ function toFormValues(initial?: CotizacionProveedorInitial): CrearCotizacionProv
       cantidad: Number(i.cantidad),
       precio_unitario: Number(i.precio_unitario),
       unidad: i.unidad ?? 'unidades',
+      tipo_item: i.tipo_item ?? 'insumo',
     })),
   };
 }
@@ -106,6 +108,7 @@ export function CotizacionProveedorForm({
     setProveedoresOpts(proveedores);
   }, [proveedores]);
 
+  // Tipado estricto del hook asignando la interfaz de entrada mapeada por Zod
   const form = useForm<CrearCotizacionProveedorInput>({
     resolver: zodResolver(crearCotizacionProveedorSchema),
     defaultValues: toFormValues(initial),
@@ -119,8 +122,8 @@ export function CotizacionProveedorForm({
   const items = form.watch('items');
   const proveedorId = form.watch('proveedor_id');
   const moneda = form.watch('moneda');
-  const subtotal = items.reduce(
-    (sum, item) => sum + (item.cantidad || 0) * (item.precio_unitario || 0),
+  const subtotal = (items || []).reduce(
+    (sum, item) => sum + (item?.cantidad || 0) * (item?.precio_unitario || 0),
     0,
   );
   const simbolo = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : 'S/';
@@ -291,7 +294,7 @@ export function CotizacionProveedorForm({
               variant="outline"
               size="sm"
               onClick={() =>
-                append({ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades' })
+                append({ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades', tipo_item: 'insumo' })
               }
             >
               <Plus className="w-4 h-4 mr-1" /> Agregar
@@ -300,8 +303,8 @@ export function CotizacionProveedorForm({
 
           {fields.map((field, idx) => (
             <div key={field.id} className="grid grid-cols-12 gap-2 items-end border rounded-xl p-3">
-              <div className="col-span-5">
-                <Controller
+              <div className="col-span-3">
+                <FormField
                   control={form.control}
                   name={`items.${idx}.descripcion`}
                   render={({ field: f }) => (
@@ -315,7 +318,29 @@ export function CotizacionProveedorForm({
                 />
               </div>
               <div className="col-span-2">
-                <Controller
+                <FormField
+                  control={form.control}
+                  name={`items.${idx}.tipo_item`}
+                  render={({ field: f }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Tipo</FormLabel>
+                      <Select onValueChange={f.onChange} value={f.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="insumo">Insumo</SelectItem>
+                          <SelectItem value="material">Material</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="col-span-2">
+                <FormField
                   control={form.control}
                   name={`items.${idx}.cantidad`}
                   render={({ field: f }) => (
@@ -335,7 +360,7 @@ export function CotizacionProveedorForm({
                 />
               </div>
               <div className="col-span-3">
-                <Controller
+                <FormField
                   control={form.control}
                   name={`items.${idx}.precio_unitario`}
                   render={({ field: f }) => (
@@ -354,9 +379,11 @@ export function CotizacionProveedorForm({
                   )}
                 />
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => remove(idx)}>
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </Button>
+              <div className="col-span-2 flex justify-center">
+                <Button type="button" variant="ghost" size="icon" onClick={() => remove(idx)}>
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </Button>
+              </div>
             </div>
           ))}
           <FormMessage>{form.formState.errors.items?.message}</FormMessage>

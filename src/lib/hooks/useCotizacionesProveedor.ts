@@ -15,6 +15,12 @@ import type {
   ActualizarCotizacionProveedorInput,
   CrearCotizacionProveedorInput,
 } from '@/lib/schemas/cotizaciones-proveedor';
+import type { 
+  CotizacionRow, 
+  CotizacionDetalleData, 
+  PaginatedApiResponse, 
+  ApiResponse 
+} from '@/types/cotizacion-proveedor'; // Ajusta la ruta si las pones en otro archivo
 
 export const COTIZACIONES_PROVEEDOR_KEY = 'cotizaciones-proveedor';
 
@@ -28,10 +34,11 @@ interface ListOpts {
 export function useCotizacionesProveedorList(opts: ListOpts) {
   const qc = useQueryClient();
 
-  const query = useQuery({
+  // Forzamos a useQuery a saber que la función retorna un PaginatedApiResponse<CotizacionRow>
+  const query = useQuery<PaginatedApiResponse<CotizacionRow>>({
     queryKey: [COTIZACIONES_PROVEEDOR_KEY, opts.page, opts.busqueda, opts.estadoFilter],
     queryFn: () =>
-      fetchCotizacionesProveedor(opts.page, opts.limit, opts.busqueda, opts.estadoFilter),
+      fetchCotizacionesProveedor(opts.page, opts.limit, opts.busqueda, opts.estadoFilter) as Promise<PaginatedApiResponse<CotizacionRow>>,
     refetchOnWindowFocus: false,
   });
 
@@ -63,7 +70,8 @@ export function useCotizacionesProveedorList(opts: ListOpts) {
   });
 
   return {
-    items: query.data?.data ?? [],
+    // Si data no existe, devolvemos un array vacío seguro con el tipo correcto
+    items: query.data?.data ?? ([] as CotizacionRow[]),
     pagination: query.data?.pagination,
     isLoading: query.isLoading,
     refetch: query.refetch,
@@ -76,9 +84,11 @@ export function useCotizacionesProveedorList(opts: ListOpts) {
 }
 
 export function useCotizacionProveedorDetalle(id: string | null) {
-  return useQuery({
+  // Indicamos que useQuery resolverá una promesa de tipo ApiResponse<CotizacionDetalleData>
+  return useQuery<ApiResponse<CotizacionDetalleData>>({
     queryKey: [COTIZACIONES_PROVEEDOR_KEY, id],
-    queryFn: () => fetchCotizacionProveedorDetalle(id!),
+    queryFn: () => 
+      fetchCotizacionProveedorDetalle(id!) as Promise<ApiResponse<CotizacionDetalleData>>,
     enabled: Boolean(id),
     refetchOnWindowFocus: false,
   });

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { getGeminiJsonModel } from '@/lib/gemini';
 import { resolveGeminiModelId } from '@/lib/helpers/gemini-models.helper';
 import {
-  cotizacionExtraccionIaSchema,
+  cotizacionExtraccionIASchema,
   type CotizacionExtraccionIA,
 } from '@/lib/schemas/cotizacion-extraccion-ia';
 
@@ -64,7 +64,7 @@ function normalizarLegacy(raw: Record<string, unknown>): CotizacionExtraccionIA 
     ? raw.items
     : [];
 
-  return cotizacionExtraccionIaSchema.parse({
+  return cotizacionExtraccionIASchema.parse({
     proveedor: {
       ruc: raw.proveedor_ruc ?? raw.ruc,
       razon_social: raw.proveedor_nombre ?? raw.razon_social,
@@ -86,7 +86,7 @@ function normalizarLegacy(raw: Record<string, unknown>): CotizacionExtraccionIA 
 
 function normalizarAnidado(raw: Record<string, unknown>): CotizacionExtraccionIA {
   if (raw.proveedor || raw.cotizacion) {
-    return cotizacionExtraccionIaSchema.parse(raw);
+    return cotizacionExtraccionIASchema.parse(raw);
   }
   return normalizarLegacy(raw);
 }
