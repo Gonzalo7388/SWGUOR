@@ -70,7 +70,7 @@ function toFormValues(initial?: CotizacionProveedorInitial): CrearCotizacionProv
       fecha_vencimiento: '',
       moneda: 'PEN',
       notas: '',
-      items: [{ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades' }],
+      items: [{ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades', tipo_item: 'insumo' }],
     };
   }
   return {
@@ -85,6 +85,7 @@ function toFormValues(initial?: CotizacionProveedorInitial): CrearCotizacionProv
       cantidad: Number(i.cantidad),
       precio_unitario: Number(i.precio_unitario),
       unidad: i.unidad ?? 'unidades',
+      tipo_item: 'insumo',
     })),
   };
 }
@@ -107,7 +108,8 @@ export function CotizacionProveedorForm({
   }, [proveedores]);
 
   const form = useForm<CrearCotizacionProveedorInput>({
-    resolver: zodResolver(crearCotizacionProveedorSchema),
+
+    resolver: zodResolver(crearCotizacionProveedorSchema) as any,
     defaultValues: toFormValues(initial),
   });
 
@@ -188,8 +190,8 @@ export function CotizacionProveedorForm({
           onUpload={
             modo === 'editar' && initial?.id
               ? async (file) => {
-                  await subirPdf(initial.id, file);
-                }
+                await subirPdf(initial.id, file);
+              }
               : undefined
           }
         />
@@ -291,7 +293,7 @@ export function CotizacionProveedorForm({
               variant="outline"
               size="sm"
               onClick={() =>
-                append({ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades' })
+                append({ descripcion: '', cantidad: 1, precio_unitario: 0, unidad: 'unidades', tipo_item: 'insumo' })
               }
             >
               <Plus className="w-4 h-4 mr-1" /> Agregar
