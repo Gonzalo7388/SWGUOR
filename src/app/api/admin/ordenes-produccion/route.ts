@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 
-const ROLES_LECTURA = ['administrador', 'gerente', 'representante_taller'] as RolUsuario[];
+const ROLES_LECTURA = ['administrador', 'gerente', 'representante_taller', 'recepcionista', 'disenador'] as RolUsuario[];
 const ROLES_ESCRITURA = ['administrador', 'gerente'] as RolUsuario[];
 
 export async function GET(req: Request) {
