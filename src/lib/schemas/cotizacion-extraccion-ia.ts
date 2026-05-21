@@ -30,7 +30,7 @@ export const cotizacionExtraccionIaSchema = z.object({
       notas: z.string().nullable().optional(),
     })
     .optional()
-    .default({}),
+    .default({ total_estimado: 0 } as any),
   items: z.array(cotizacionExtraccionItemSchema).optional().default([]),
 });
 
