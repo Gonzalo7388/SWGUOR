@@ -50,7 +50,7 @@ function mapearDatosIniciales(data: OrdenProduccion | null): Partial<OrdenProduc
     producto_id:         data.producto_id,
     taller_id:           data.taller_id,
     ficha_id:            data.ficha_id,
-    pedido_id:           data.pedido_id ?? undefined,
+    pedido_id:           data.pedido_id,
     cantidad_solicitada: data.cantidad_solicitada,
     fecha_entrega:       data.fecha_entrega
       ? new Date(data.fecha_entrega).toISOString().split('T')[0]
