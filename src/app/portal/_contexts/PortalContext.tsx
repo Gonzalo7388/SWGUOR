@@ -9,6 +9,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 // ── Tipos ────────────────────────────────────────────────────────
 export interface ClientePortal {
   id: number;
+  usuario_id: number;
   ruc: number;
   razon_social: string;
   nombre_comercial: string;
@@ -230,6 +231,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         if (datosCliente) {
           setCliente({
             id: datosCliente.id,
+            usuario_id: usuarioData.id,
             ruc: Number(datosCliente.ruc),
             razon_social: datosCliente.razon_social || 'Sin Razón Social',
             direccion: datosCliente.direccion_fiscal || undefined,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { crearAlmacenSchema as almacenSchema } from '@/lib/schemas/almacenesSchema';
+import { crearAlmacenSchema as almacenSchema } from '@/lib/schemas/almacenes';
 import { ZodError } from 'zod';
 import { requireServerRole } from '@/lib/auth/server';
 import { auditoriaService } from '@/lib/services/auditoria.service';

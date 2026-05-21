@@ -2,15 +2,20 @@ export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
-
 import { requireServerAuth } from '@/lib/auth/server';
+import { notificacionesService } from '@/lib/services/notificaciones.service';
 
 export async function GET(req: Request) {
   const auth = await requireServerAuth();
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
+  const usuarioId = auth.user?.id; 
+  if (!usuarioId) {
+    return NextResponse.json({ error: 'No se pudo identificar al usuario de la sesión' }, { status: 401 });
+  }
+
   try {
-    // 1. Sincronizamos
+    // 1. Escaneo en tiempo real de incidencias del sistema
     const [insumosBajoStock, pedidosPendientes, despachosAtrasados, ordenesVencidas] =
       await Promise.all([
         prisma.insumo.findMany({
@@ -50,73 +55,87 @@ export async function GET(req: Request) {
         })
       ]);
 
-    // 2. Construir notificaciones unificadas
-    const notificaciones: Notificacion[] = [
+    // 2. Mapear usando EXACTAMENTE los nombres de tu ENUM de Supabase
+    const incidenciasDetectadas: Array<any> = [
       ...insumosBajoStock.map((i) => ({
-        id: `stock-${i.id.toString()}`,
-        tipo: 'inventario' as const,
+        usuario_id: usuarioId,
+        tipo: 'stock_bajo' as const, // Match con Supabase enum
         titulo: 'ALERTA DE STOCK',
-        descripcion: `${i.nombre} está por debajo del mínimo (${i.stock_actual}/${i.stock_minimo}).`,
-        importante: true,
-        fecha: i.created_at?.toISOString() ?? new Date().toISOString(),
+        mensaje: `${i.nombre} está por debajo del mínimo (${i.stock_actual}/${i.stock_minimo}).`,
+        referencia_tipo: 'PRODUCTO' as const,
+        referencia_id: i.id,
         url_destino: '/admin/Panel-Administrativo/inventario',
       })),
 
       ...pedidosPendientes.map((p) => ({
-        id: `ped-${p.id.toString()}`,
-        tipo: 'orden' as const,
+        usuario_id: usuarioId,
+        tipo: 'orden_produccion' as const, // Match con Supabase enum
         titulo: 'PEDIDO PENDIENTE',
-        descripcion: `Pedido de ${p.clientes?.razon_social ?? 'Cliente'} esperando gestión.`,
-        importante: p.prioridad === 'urgente' || p.prioridad === 'alta',
-        fecha: p.created_at?.toISOString() ?? new Date().toISOString(),
+        mensaje: `Pedido de ${p.clientes?.razon_social ?? 'Cliente'} esperando gestión.`,
+        referencia_tipo: 'PEDIDO' as const,
+        referencia_id: p.id,
         url_destino: '/admin/Panel-Administrativo/pedidos',
       })),
 
       ...despachosAtrasados.map((d) => ({
-        id: `desp-${d.id.toString()}`,
-        tipo: 'urgente' as const,
+        usuario_id: usuarioId,
+        tipo: 'pedido_vencido' as const, // Match con Supabase enum (Despacho retrasado impacta al vencimiento del pedido)
         titulo: 'DESPACHO ATRASADO',
-        descripcion: `Envío atrasado para el pedido #${d.pedido_id.toString()}.`,
-        importante: true,
-        fecha: d.fecha_despacho?.toISOString() ?? new Date().toISOString(),
+        mensaje: `Envío atrasado para el pedido #${d.pedido_id.toString()}.`,
+        referencia_tipo: 'PEDIDO' as const,
+        referencia_id: d.id,
         url_destino: '/admin/Panel-Administrativo/despachos',
       })),
 
       ...ordenesVencidas.map((o) => ({
-        id: `pago-${o.id.toString()}`,
-        tipo: 'pago' as const,
+        usuario_id: usuarioId,
+        tipo: 'pago_pendiente' as const, // Match con Supabase enum
         titulo: 'PAGO VENCIDO A PROVEEDOR',
-        descripcion: `Compra a ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente.`,
-        importante: Number(o.saldo_pendiente) > 1000,
-        fecha: o.created_at?.toISOString() ?? new Date().toISOString(),
+        mensaje: `Compra a ${o.proveedores?.razon_social ?? 'Proveedor'} con saldo pendiente.`,
+        referencia_tipo: 'PAGO' as const,
+        referencia_id: o.id,
         url_destino: '/admin/Panel-Administrativo/cotizaciones-proveedor',
       }))
     ];
 
-    // Ordenar por importancia y fecha
-    notificaciones.sort((a, b) => {
-      if (a.importante !== b.importante) return a.importante ? -1 : 1;
-      return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
-    });
+    // 3. Guardar registros nuevos de forma inteligente en la Base de Datos
+    for (const incidencia of incidenciasDetectadas) {
+      const yaExiste = await prisma.notificaciones.findFirst({
+        where: {
+          usuario_id: incidencia.usuario_id,
+          referencia_tipo: incidencia.referencia_tipo,
+          referencia_id: incidencia.referencia_id,
+          leido: false,
+        }
+      });
 
-    // 3. KPIs para el Dashboard
+      if (!yaExiste) {
+        await notificacionesService.crear(incidencia);
+      }
+    }
+
+    // 4. Leer las alertas persistidas reales desde PostgreSQL
+    const notificacionesDb = await notificacionesService.obtenerPorUsuario(usuarioId, { limite: 30 });
+    const sinLeerCount = await notificacionesService.obtenerNoLeidas(usuarioId);
+
+    // 5. KPIs recalculados con las llaves correctas de tu enum real
     const kpis = {
-      sinLeer: notificaciones.length,
-      total: notificaciones.length,
-      urgentes: notificaciones.filter((n) => n.importante).length,
+      sinLeer: sinLeerCount,
+      total: notificacionesDb.length,
+      urgentes: notificacionesDb.filter((n) => n.tipo === 'pedido_vencido' && !n.leido).length,
       porTipo: {
-        inventario: notificaciones.filter((n) => n.tipo === 'inventario').length,
-        orden: notificaciones.filter((n) => n.tipo === 'orden').length,
-        urgente: notificaciones.filter((n) => n.tipo === 'urgente').length,
-        pago: notificaciones.filter((n) => n.tipo === 'pago').length,
+        stock_bajo: notificacionesDb.filter((n) => n.tipo === 'stock_bajo').length,
+        orden_produccion: notificacionesDb.filter((n) => n.tipo === 'orden_produccion').length,
+        pedido_vencido: notificacionesDb.filter((n) => n.tipo === 'pedido_vencido').length,
+        pago_pendiente: notificacionesDb.filter((n) => n.tipo === 'pago_pendiente').length,
       },
     };
 
     return NextResponse.json(
       serializeBigInt({
-        data: notificaciones,
+        data: notificacionesDb,
         kpis,
-        count: notificaciones.length,
+        count: notificacionesDb.length,
       })
     );
 
@@ -126,12 +145,17 @@ export async function GET(req: Request) {
   }
 }
 
-type Notificacion = {
-  id: string;
-  tipo: 'inventario' | 'orden' | 'urgente' | 'pago';
-  titulo: string;
-  descripcion: string;
-  importante: boolean;
-  fecha: string;
-  url_destino?: string;
-};
+export async function PATCH(req: Request) {
+  const auth = await requireServerAuth();
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  
+  const usuarioId = auth.user?.id;
+  if (!usuarioId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+  try {
+    await notificacionesService.marcarTodasComoLeidas(usuarioId);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

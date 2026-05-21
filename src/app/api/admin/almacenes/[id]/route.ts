@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { actualizarAlmacenSchema as almacenUpdateSchema } from '@/lib/schemas/almacenesSchema';
+import { actualizarAlmacenSchema as almacenUpdateSchema } from '@/lib/schemas/almacenes';
 import { ZodError } from 'zod';
 
 // Función helper para serializar de forma segura registros con BigInt

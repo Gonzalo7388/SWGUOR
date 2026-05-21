@@ -1,30 +1,50 @@
 'use server';
 
 import { MovimientosInventarioService } from '@/lib/services/movimientos-inventario.service';
+import { crearMovimientoSchema } from '@/lib/schemas/movimientos-inventario';
 import type { TipoMovimiento, ReferenciaMovimiento } from '@prisma/client';
+
+/**
+ * Helper interno para validar con Zod y tipar con Prisma de forma unificada
+ */
+async function validarYRegistrar(payload: any) {
+  // 1. Validar contra el esquema de Zod. Si falla, lanza un ZodError automáticamente.
+  const dataValidada = crearMovimientoSchema.parse(payload);
+
+  // 2. Filtrar valores null/undefined para compatibilidad con RegistrarParams
+  const dataLimpia = Object.fromEntries(
+    Object.entries(dataValidada).filter(([_, value]) => value !== null && value !== undefined)
+  );
+
+  // 3. Ejecutar la persistencia en el Service con datos 100% limpios y tipados
+  return await MovimientosInventarioService.registrar({
+    ...dataLimpia,
+    // Forzamos el casteo a los tipos esperados por el cliente de Prisma generado
+    tipo_movimiento: dataValidada.tipo_movimiento as TipoMovimiento,
+    referencia_tipo: dataValidada.referencia_tipo as ReferenciaMovimiento,
+  } as any);
+}
 
 export async function registrarEntradaCompra(data: {
   material_id?: string | number;
   insumo_id?: string | number;
   cantidad: number;
-  costo_unitario: number;
+  costo_unitario: number; // Campo informativo para procesos internos
   numero_oc: string;
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     cantidad: data.cantidad,
     tipo_movimiento: 'entrada',
+    referencia_tipo: 'ORDEN_COMPRA',
     motivo: `Compra OC-${data.numero_oc}`,
-
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'ORDEN_COMPRA',
   });
 }
-
 
 export async function registrarSalidaVenta(data: {
   producto_id: string | number;
@@ -33,14 +53,14 @@ export async function registrarSalidaVenta(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     producto_id: data.producto_id,
     cantidad: data.cantidad,
     tipo_movimiento: 'salida',
+    referencia_tipo: 'PEDIDO_CLIENTE',
     motivo: `Venta OV-${data.numero_ov}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'PEDIDO_CLIENTE',
   });
 }
 
@@ -51,14 +71,14 @@ export async function registrarSalidaProduccion(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     material_id: data.material_id,
     cantidad: data.cantidad,
-    tipo_movimiento: 'salida',
+    tipo_movimiento: 'consumo_orden_produccion', // Usando tu Enum real de Supabase
+    referencia_tipo: 'ORDEN_PRODUCCION',
     motivo: `Producción CF-${data.confeccion_id}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'ORDEN_PRODUCCION',
   });
 }
 
@@ -69,14 +89,14 @@ export async function registrarEntradaDevolucionCliente(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     producto_id: data.producto_id,
     cantidad: data.cantidad,
-    tipo_movimiento: 'entrada',
+    tipo_movimiento: 'devolucion_a_cliente', // Usando tu Enum real de Supabase
+    referencia_tipo: 'DEVOLUCION',
     motivo: `Devolución cliente DEV-${data.numero_devolucion}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'PEDIDO_CLIENTE',
   });
 }
 
@@ -88,15 +108,15 @@ export async function registrarSalidaDevolucionProveedor(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     cantidad: data.cantidad,
-    tipo_movimiento: 'salida',
+    tipo_movimiento: 'devolucion_a_proveedor', // Usando tu Enum real de Supabase
+    referencia_tipo: 'DEVOLUCION',
     motivo: `Devolución proveedor DEV-${data.numero_devolucion}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'ORDEN_COMPRA',
   });
 }
 
@@ -110,16 +130,16 @@ export async function registrarSalidaIncidencia(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     producto_id: data.producto_id,
     cantidad: data.cantidad,
-    tipo_movimiento: 'salida',
+    tipo_movimiento: 'incidencia_taller', // Usando tu Enum real de Supabase
+    referencia_tipo: 'MERMA_INCIDENCIA',
     motivo: `Incidencia (${data.tipo_incidencia}) INC-${data.numero_incidencia}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'MERMA_INCIDENCIA',
   });
 }
 
@@ -132,18 +152,19 @@ export async function registrarAjusteManual(data: {
   usuario_id?: string | number;
   almacen_id?: string | number;
 }) {
-  const tipo = (data.cantidad > 0 ? 'entrada' : 'salida') as TipoMovimiento;
+  // Determinamos dinámicamente si es un ajuste de ingreso o de salida pura
+  const tipoCalculado = data.cantidad > 0 ? 'ajuste' : 'salida';
 
-  return MovimientosInventarioService.registrar({
+  return validarYRegistrar({
     material_id: data.material_id,
     insumo_id: data.insumo_id,
     producto_id: data.producto_id,
-    cantidad: Math.abs(data.cantidad),
-    tipo_movimiento: tipo,
+    cantidad: Math.abs(data.cantidad), // Zod exige números estrictamente positivos (.positive())
+    tipo_movimiento: tipoCalculado,
+    referencia_tipo: 'AJUSTE_MANUAL',
     motivo: `Ajuste: ${data.razon}`,
     usuario_id: data.usuario_id,
     almacen_id: data.almacen_id,
-    referencia_tipo: 'AJUSTE_MANUAL',
   });
 }
 

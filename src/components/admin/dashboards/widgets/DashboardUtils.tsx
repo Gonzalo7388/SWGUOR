@@ -1,14 +1,10 @@
 import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ESTADOS_PEDIDO, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
+
 type EstadoPedido =
-  | 'solicitado'
-  | 'cotizado'
-  | 'aprobado'
-  | 'pagado'
-  | 'en_proceso'
-  | 'finalizado'
-  | 'cancelado';
+  | 'solicitado' | 'cotizado' | 'aprobado' | 'pagado'
+  | 'en_proceso' | 'finalizado' | 'cancelado';
 
 export interface PaletaColors {
   accent: string;
@@ -26,45 +22,38 @@ export interface PaletaColors {
   white: string;
 }
 
+// ─── PALETA ERP — profesional, sin cremas ─────────────────────────────────────
 export const COMPANY_PALETTE = {
-  accent: '#E2725B',    // Terracota
-  bg: '#FFFFFF',
-  bgSoft: '#FAF7F2',    // Beige suave
-  border: '#F2D2BD',    // Melocotón
-  text: '#2B1B12',      // Café oscuro
-  mid: '#C05A31',       // Arcilla
-  primary: '#E2725B',    // Terracota
-  secondary: '#C05A31',  // Arcilla
-  dark: '#2B1B12',       // Café Oscuro
-  cream: '#FFF9F2',      // Crema
-  peach: '#F2D2BD',      // Melocotón
-  beige: '#FAF7F2',      // Beige para detalles
-  white: '#FFFFFF',     // Blanco Puro
+  accent:    '#1d3fa6',   // índigo principal
+  bg:        '#ffffff',
+  bgSoft:    '#f4f6f9',   // gris frío suave
+  border:    '#d4dae5',   // gris neutro
+  text:      '#0f172a',   // slate-900
+  mid:       '#3358e8',   // índigo medio
+  primary:   '#1d3fa6',
+  secondary: '#3358e8',
+  dark:      '#0f172a',
+  cream:     '#f0f4ff',   // índigo 50 (reemplaza crema)
+  peach:     '#e0e9ff',   // índigo 100 (reemplaza melocotón)
+  beige:     '#f4f6f9',   // gris frío (reemplaza beige)
+  white:     '#ffffff',
 };
 
-export type RolPaleta = 
-  | 'administrador' 
-  | 'gerente' 
-  | 'recepcionista' 
-  | 'disenador' 
-  | 'cortador' 
-  | 'representante_taller' 
-  | 'ayudante';
-
-// ─── PALETAS POR ROL ──────────────────────────────────────────────────────────
-// Usadas para colorear skeletons, tooltips y widgets según el rol activo.
+export type RolPaleta =
+  | 'administrador' | 'gerente' | 'recepcionista'
+  | 'disenador' | 'cortador' | 'representante_taller' | 'ayudante';
 
 export const ROLE_PALETTES: Record<RolPaleta, PaletaColors> = {
-  administrador: COMPANY_PALETTE,
-  gerente: COMPANY_PALETTE,
-  recepcionista: COMPANY_PALETTE,
-  disenador: COMPANY_PALETTE,
-  cortador: COMPANY_PALETTE,
-  ayudante: COMPANY_PALETTE,
+  administrador:        COMPANY_PALETTE,
+  gerente:              COMPANY_PALETTE,
+  recepcionista:        COMPANY_PALETTE,
+  disenador:            COMPANY_PALETTE,
+  cortador:             COMPANY_PALETTE,
+  ayudante:             COMPANY_PALETTE,
   representante_taller: COMPANY_PALETTE,
 } as const;
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 export function groupByDate(rows: { created_at: string; total: number }[]) {
   const acc: Record<string, number> = {};
   for (const r of rows) {
@@ -92,7 +81,7 @@ export const toBadgeCls = (color: string, bgColor: string) =>
 
 export function getOrdenStatus(estado: string) {
   const key = estado?.toLowerCase() as EstadoPedido;
-  const cfg  = ESTADOS_PEDIDO[key];
+  const cfg = ESTADOS_PEDIDO[key];
   if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: null };
   return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor), icon: ESTADO_ICONS[key] ?? null };
 }
@@ -115,12 +104,23 @@ export function getTipoCliente(tipo: string) {
 }
 
 // ─── TOOLTIPS ─────────────────────────────────────────────────────────────────
-export const AreaTip = ({ active, payload, label, accentColor = '#C9A86C' }: any) => {
+export const AreaTip = ({ active, payload, label, accentColor = '#1d3fa6' }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#0D1B2A] rounded-xl px-3 py-2.5 shadow-xl" style={{ border: `1px solid ${accentColor}33` }}>
-      <p className="text-[10px] tracking-widest uppercase mb-0.5" style={{ color: accentColor }}>{label}</p>
-      <p className="text-white font-bold text-sm">S/ {Number(payload[0].value).toLocaleString('es-PE')}</p>
+    <div
+      style={{
+        background: '#0f172a',
+        border: `1px solid ${accentColor}40`,
+        borderRadius: 10,
+        padding: '8px 12px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+      }}
+    >
+      <p style={{ fontSize: 10, color: accentColor, textTransform: 'uppercase',
+        letterSpacing: '0.06em', marginBottom: 3 }}>{label}</p>
+      <p style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>
+        S/ {Number(payload[0].value).toLocaleString('es-PE')}
+      </p>
     </div>
   );
 };
@@ -129,18 +129,33 @@ export const BarTip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
-    <div className="bg-[#0D1B2A] border border-white/10 rounded-xl px-3 py-2.5 shadow-xl">
-      <p className="text-slate-400 text-[10px] uppercase tracking-widest mb-1">Producto</p>
-      <p className="text-white text-xs font-medium mb-1.5 max-w-[180px]">{p.fullName}</p>
-      <p className="text-[#C9A86C] font-bold text-sm">{p.sales} uds.</p>
+    <div style={{
+      background: '#0f172a',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 10,
+      padding: '8px 12px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+    }}>
+      <p style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase',
+        letterSpacing: '0.06em', marginBottom: 4 }}>Producto</p>
+      <p style={{ color: '#fff', fontSize: 12, fontWeight: 500,
+        marginBottom: 4, maxWidth: 180 }}>{p.fullName}</p>
+      <p style={{ color: '#1d3fa6', fontWeight: 700, fontSize: 13 }}>{p.sales} uds.</p>
     </div>
   );
 };
 
-// ─── SKELETON ────────────────────────────────────────────────────────────────
-export const Sk = ({ className = '', style, roleColor }: { className?: string; style?: React.CSSProperties; roleColor?: string }) => (
+// ─── SKELETON ─────────────────────────────────────────────────────────────────
+export const Sk = ({
+  className = '',
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  roleColor?: string;   // mantenido por compatibilidad
+}) => (
   <div
     className={`animate-pulse rounded-lg ${className}`}
-    style={{ background: roleColor ?? '#f1f5f9', ...style }}
+    style={{ background: '#f4f6f9', border: '1px solid #d4dae5', ...style }}
   />
 );
