@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ShoppingBag, ArrowUpRight, Calendar,
   PackageSearch, RefreshCw, ChevronRight,
@@ -288,6 +289,7 @@ function ModalPago({
   pedido: Pedido;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [paso, setPaso]         = useState<PasosPago>('seleccion');
   const [metodo, setMetodo]     = useState<string | null>(null);
    
@@ -422,7 +424,17 @@ function ModalPago({
               </button>
               <button
                 disabled={!metodo}
-                onClick={() => setPaso('confirmacion')}
+                onClick={() => {
+                  if (!metodo) {
+                    alert('Selecciona un método de pago');
+                    return;
+                  }
+
+                  console.log('Método enviado:', metodo); // 👈 DEBUG
+
+                  onClose();
+                  router.push(`/portal/pago/${pedido.id}?metodo=${metodo}`);
+                }}
                 className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <CreditCard size={14} />
