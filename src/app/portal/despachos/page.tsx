@@ -3,11 +3,9 @@
 import { Truck, AlertCircle, RefreshCw } from 'lucide-react';
 import CardDespacho from '@/components/portal/despachos/CardDespacho';
 import { useDespachos } from '@/lib/hooks/useDespachos';
-import { usePortal } from '../_contexts/PortalContext';
 
 export default function DespachosPage() {
-  const { cliente } = usePortal();
-  const { despachos, cargando, error, refetch } = useDespachos(cliente?.id);
+  const { despachos, cargando, error, refetch } = useDespachos();
 
   return (
     <div className="space-y-10 pb-20">
