@@ -5,6 +5,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts';
+import { COMPANY_PALETTE, AreaTip } from './DashboardUtils';
 
 // Definición de tipos estrictos
 interface VentasData {
@@ -19,9 +20,7 @@ interface ProductoData {
 
 interface VentaRecienteData {
   cliente?: string;
-  clientes?: {
-    razon_social: string;
-  };
+  clientes?: { razon_social: string };
   created_at: string;
   total?: number;
   total_pagado?: number;
@@ -30,23 +29,13 @@ interface VentaRecienteData {
 
 interface StockCriticoData {
   nombre: string;
-  stock_actual: number | { toNumber(): number }; // ◄ Tipado estricto real, sin unknown
+  stock_actual: number | { toNumber(): number };
   unidad?: string;
   unidad_medida?: string;
 }
 
-// ─── PALETA CORPORATIVA MINIMALISTA CON ROSE ─────────────────────────────────
-const C = {
-  bg:       '#ffffff',
-  surface:  '#f9fafb',   
-  border:   '#e5e7eb',   
-  text:     '#111827',   
-  muted:    '#6b7280',   
-  accent:   '#e11d48',   // Rose corporativo
-  accentBg: '#fff1f2',   
-  red:      '#ef4444',
-  green:    '#10b981',
-};
+// ─── Alias de paleta centralizada ────────────────────────────────────────────
+const C = COMPANY_PALETTE;
 
 const cardStyle: React.CSSProperties = {
   background:   C.bg,
@@ -62,18 +51,18 @@ const titleStyle: React.CSSProperties = {
 };
 
 const subStyle: React.CSSProperties = {
-  fontSize: 10, color: C.muted,
+  fontSize: 10, color: C.mid,
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16,
 };
 
-// ─── UTILIDAD: formato compacto para uso exclusivo de datos financieros ───────
+// ─── UTILIDAD ─────────────────────────────────────────────────────────────────
 export function fmtCompact(value: number): string {
-  if (value >= 1_000_000) return `S/ ${(value / 1_000_000).toFixed(2)}M`; 
+  if (value >= 1_000_000) return `S/ ${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000)     return `S/ ${(value / 1_000).toFixed(1)}k`;
   return `S/ ${value.toLocaleString('es-PE')}`;
 }
 
-// ─── 1. STAT CARD — Respeta el valor puro que le envíes en la prop 'value' ────
+// ─── 1. STAT CARD ─────────────────────────────────────────────────────────────
 export function SparkKpiCard({
   label,
   value,
@@ -92,12 +81,11 @@ export function SparkKpiCard({
 
   return (
     <div style={cardStyle}>
-      {/* Ícono */}
       <div style={{ marginBottom: 14 }}>
         <div style={{
           display:      'inline-flex',
           padding:      8,
-          background:   C.surface,
+          background:   C.beige,
           borderRadius: 10,
           border:       `1px solid ${C.border}`,
         }}>
@@ -105,24 +93,18 @@ export function SparkKpiCard({
         </div>
       </div>
 
-      {/* Valor tal cual se inyecta por prop (Mantiene 21, 23, 5 limpio) */}
       <div style={{
-        fontSize: 26, fontWeight: 800, color: C.text,
+        fontSize: 26, fontWeight: 800, color: C.dark,
         letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 4,
       }}>
         {value}
       </div>
 
-      {/* Etiqueta */}
       <div style={subStyle}>{label}</div>
 
-      {/* Delta */}
-      <div style={{
-        fontSize: 11, fontWeight: 600,
-        color: isUp ? C.green : C.red,
-      }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: isUp ? '#10b981' : '#ef4444' }}>
         {isUp ? '↑' : '↓'} {Math.abs(delta)}%{' '}
-        <span style={{ color: C.muted, fontWeight: 400 }}>vs mes ant.</span>
+        <span style={{ color: C.mid, fontWeight: 400 }}>vs mes ant.</span>
       </div>
     </div>
   );
@@ -133,7 +115,7 @@ export function VentasMensualesChart({
   data,
   accentColor = C.accent,
 }: {
-  data:           VentasData[];
+  data:          VentasData[];
   accentColor?:  string;
 }) {
   return (
@@ -151,12 +133,12 @@ export function VentasMensualesChart({
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.border} />
           <XAxis
             dataKey="mes"
-            tick={{ fontSize: 10, fill: C.muted }}
+            tick={{ fontSize: 10, fill: C.mid }}
             axisLine={false} tickLine={false}
           />
           <YAxis
             tickFormatter={(v) => fmtCompact(v).replace('S/ ', '')}
-            tick={{ fontSize: 10, fill: C.muted }}
+            tick={{ fontSize: 10, fill: C.mid }}
             axisLine={false} tickLine={false}
             width={40}
           />
@@ -193,7 +175,7 @@ export function RankingProductos({
       <div style={subStyle}>Más pedidos</div>
 
       {(!data || data.length === 0) ? (
-        <div style={{ fontSize: 12, color: C.muted, textAlign: 'center', padding: '20px 0' }}>
+        <div style={{ fontSize: 12, color: C.mid, textAlign: 'center', padding: '20px 0' }}>
           Sin datos
         </div>
       ) : (
@@ -206,13 +188,15 @@ export function RankingProductos({
                   display: 'flex', justifyContent: 'space-between',
                   fontSize: 12, marginBottom: 5,
                 }}>
-                  <span style={{ color: C.text, fontWeight: 600, maxWidth: '70%',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{
+                    color: C.text, fontWeight: 600, maxWidth: '70%',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
                     {i === 0 && (
                       <span style={{
                         display: 'inline-block', marginRight: 6,
                         fontSize: 9, fontWeight: 800, background: accentColor,
-                        color: '#fff', borderRadius: 4, padding: '1px 5px',
+                        color: C.white, borderRadius: 4, padding: '1px 5px',
                         verticalAlign: 'middle',
                       }}>
                         #1
@@ -220,12 +204,12 @@ export function RankingProductos({
                     )}
                     {p.nombre}
                   </span>
-                  <span style={{ color: C.muted, fontWeight: 700, flexShrink: 0 }}>
+                  <span style={{ color: C.mid, fontWeight: 700, flexShrink: 0 }}>
                     {p.cantidad} u.
                   </span>
                 </div>
                 <div style={{
-                  height: 5, background: C.surface,
+                  height: 5, background: C.beige,
                   borderRadius: 99, overflow: 'hidden',
                   border: `1px solid ${C.border}`,
                 }}>
@@ -262,24 +246,24 @@ export function UltimasVentas({
         {data?.map((v, i) => (
           <div key={i} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '10px 12px', background: C.surface, borderRadius: 10,
+            padding: '10px 12px', background: C.bgSoft, borderRadius: 10,
             border: `1px solid ${C.border}`,
           }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
                 {v.cliente || v.clientes?.razon_social}
               </div>
-              <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: C.mid, marginTop: 2 }}>
                 {new Date(v.created_at).toLocaleDateString('es-PE')}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.dark }}>
                 {fmtCompact(Number(v.total || v.total_pagado || 0))}
               </div>
               <div style={{
                 fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginTop: 2,
-                color: v.estado === 'pagado' ? C.green : accentColor,
+                color: v.estado === 'pagado' ? '#10b981' : accentColor,
               }}>
                 {v.estado}
               </div>
@@ -299,13 +283,12 @@ export function StockCriticoList({ data }: { data: StockCriticoData[] }) {
       <div style={subStyle}>Insumos por agotarse</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {data?.length === 0 ? (
-          <div style={{ fontSize: 12, color: C.green, textAlign: 'center', padding: '12px 0' }}>
+          <div style={{ fontSize: 12, color: '#10b981', textAlign: 'center', padding: '12px 0' }}>
             Todo en orden ✓
           </div>
         ) : (
           data?.map((item, i) => {
-            // Verificamos si tiene el método toNumber (es el objeto numérico de la BD)
-            const stockFormateado = 
+            const stockFormateado =
               typeof item.stock_actual === 'object' && item.stock_actual !== null && 'toNumber' in item.stock_actual
                 ? item.stock_actual.toNumber()
                 : Number(item.stock_actual ?? 0);
@@ -314,15 +297,17 @@ export function StockCriticoList({ data }: { data: StockCriticoData[] }) {
               <div key={i} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '8px 12px',
-                background: '#fef2f2',
+                background: C.cream,
                 borderRadius: 8,
-                border: '1px solid #fecaca',
+                border: `1px solid ${C.peach}`,
               }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#991b1b',
-                  maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, color: C.secondary,
+                  maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
                   {item.nombre}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', flexShrink: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.accent, flexShrink: 0 }}>
                   {stockFormateado} {item.unidad || item.unidad_medida}
                 </span>
               </div>
@@ -334,35 +319,5 @@ export function StockCriticoList({ data }: { data: StockCriticoData[] }) {
   );
 }
 
-// ─── TOOLTIPS CORREGIDOS CON INTERFACES ESTÁNDAR ─────────────────────────────
-export const AreaTip = ({ active, payload, label, accentColor = C.accent }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{
-      background: '#111827', borderRadius: 10,
-      padding: '8px 12px', border: `1px solid ${accentColor}40`,
-      boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-    }}>
-      <p style={{ fontSize: 10, color: accentColor, textTransform: 'uppercase',
-        letterSpacing: '0.06em', marginBottom: 3 }}>{label}</p>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>
-        {fmtCompact(Number(payload[0].value))}
-      </p>
-    </div>
-  );
-};
-
 // ─── SKELETON ─────────────────────────────────────────────────────────────────
-export const Sk = ({
-  className = '',
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-  roleColor?: string;
-}) => (
-  <div
-    className={`animate-pulse rounded-lg ${className}`}
-    style={{ background: C.surface, border: `1px solid ${C.border}`, ...style }}
-  />
-);
+export { Sk } from './DashboardUtils';
