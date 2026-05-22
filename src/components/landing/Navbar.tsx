@@ -40,13 +40,16 @@ const Navbar = () => {
             className="object-contain"
           />
           <span
-            className="text-xl font-black tracking-tight uppercase italic"
-            style={{ color: "#231e1d" }}
+            style={{
+              fontFamily: "var(--font-great-vibes)",
+              fontSize: '1.75rem',
+              lineHeight: 1,
+              color: '#231e1d',
+              letterSpacing: '0.01em',
+            }}
           >
-            Guor
-            <span className="not-italic" style={{ color: "#e4c28a" }}>
-              Style
-            </span>
+            Modas y Estilos{' '}
+            <span style={{ color: '#e4c28a' }}>Guor</span>
           </span>
         </Link>
 

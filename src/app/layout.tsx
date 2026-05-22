@@ -1,12 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Great_Vibes } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { cn } from "@/lib/utils"; // Asegúrate de tener esta utilidad (estándar en shadcn)
+import { cn } from "@/lib/utils";
 
 const inter = Inter({ 
   subsets: ["latin"],
-  variable: '--font-inter', // Definimos una variable CSS para mayor flexibilidad
+  variable: '--font-inter',
+});
+
+const greatVibes = Great_Vibes({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-great-vibes',
 });
 
 export const metadata: Metadata = {
@@ -19,9 +25,8 @@ export const metadata: Metadata = {
   authors: [{ name: "Modas y Estilos GUOR" }],
 };
 
-// Configuración de la barra de estado y colores del navegador
 export const viewport: Viewport = {
-  themeColor: "#0f172a", // Slate-900 (el color de tu sidebar)
+  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
 };
@@ -32,15 +37,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={greatVibes.variable}>
       <body 
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           inter.variable,
           inter.className
         )}
-      suppressHydrationWarning>
-        {/* Notificaciones globales con diseño moderno */}
+        suppressHydrationWarning
+      >
         <Toaster 
           position="top-right" 
           richColors 
@@ -48,8 +53,6 @@ export default function RootLayout({
           expand={false}
           theme="light"
         />
-        
-        {/* Contenido principal */}
         <div className="relative flex min-h-screen flex-col">
           {children}
         </div>

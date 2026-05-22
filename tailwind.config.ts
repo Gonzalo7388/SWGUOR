@@ -10,6 +10,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+      'great-vibes': ['var(--font-great-vibes)', 'cursive'],
+      },
       animation: {
         "thread-flow":      "thread 15s ease-in-out infinite",
         "thread-flow-slow": "thread 20s ease-in-out infinite reverse",

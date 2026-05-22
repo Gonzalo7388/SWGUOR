@@ -30,7 +30,7 @@ export default function LandingPage() {
               <br />
 
               <span className="not-italic block mt-3 text-guor-gold">
-                GUOR Style
+                Modas y Estilos GUOR
               </span>
             </h1>
 

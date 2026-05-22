@@ -18,7 +18,7 @@ const Footer = () => {
           {/* LOGO */}
           <div className="text-center md:text-left">
             <h2 className="text-5xl font-black mb-4" style={{ color: "#fff4e2" }}>
-              GUOR Style
+              Modas y Estilos GUOR
             </h2>
             <p className="text-lg leading-relaxed max-w-sm mx-auto md:mx-0" style={{ color: "rgba(255,244,226,0.8)" }}>
               Moda y confección premium para negocios modernos.
@@ -74,7 +74,7 @@ const Footer = () => {
         {/* BOTTOM */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm tracking-[0.3em] uppercase" style={{ color: "rgba(255,244,226,0.45)" }}>
-            © 2026 GUOR S.A.C.
+            © 2026 Modas y Estilos GUOR S.A.C.
           </p>
           <p className="text-sm" style={{ color: "rgba(255,244,226,0.35)" }}>
             Excelencia en cada puntada.
