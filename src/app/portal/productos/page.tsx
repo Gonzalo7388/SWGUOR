@@ -147,12 +147,29 @@ export default function ProductosPage() {
         .eq('estado', 'activo');
 
       if (prodsData) {
-        setProductos(prodsData.map(p => ({
-          ...p,
-          categoria: p.categorias?.nombre || 'General',
-          tallas: [...new Set(p.variantes_producto?.map((v: any) => v.talla))],
-          colores: [...new Set(p.variantes_producto?.map((v: any) => v.color))]
-        })));
+        setProductos(prodsData.map(p => {
+          const variantesActivas = (p.variantes_producto ?? [])
+            .filter((v: { estado?: string; stock?: number }) =>
+              (v.estado ?? 'activo') === 'activo' && Number(v.stock ?? 0) > 0,
+            )
+            .map((v: { id: unknown; color: string; talla: string; stock: number }) => ({
+              id: Number(v.id),
+              color: v.color,
+              talla: v.talla,
+              stock: Number(v.stock),
+            }));
+
+          return {
+            ...p,
+            precio: Number(p.precio),
+            moq: Number(p.moq ?? 400),
+            categoria: p.categorias?.nombre || 'General',
+            variantes: variantesActivas,
+            variantes_producto: variantesActivas,
+            tallas: [...new Set(variantesActivas.map((v) => v.talla))],
+            colores: [...new Set(variantesActivas.map((v) => v.color))],
+          };
+        }));
       }
       setLoading(false);
     }

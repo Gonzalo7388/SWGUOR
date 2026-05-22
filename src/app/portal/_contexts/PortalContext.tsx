@@ -308,8 +308,14 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const agregarAlBorrador = useCallback((nuevoItem: any) => {
+    const productoId = Number(nuevoItem.producto_id ?? nuevoItem.id);
+    const varianteId = Number(
+      nuevoItem.variante_id ?? nuevoItem.variantes?.[0]?.id ?? nuevoItem.id,
+    );
+    const primeraVariante = nuevoItem.variantes?.[0];
+
     setItems((prev: ItemCotizacion[]) => {
-      const idx = prev.findIndex(i => i.producto_id === nuevoItem.id);
+      const idx = prev.findIndex(i => i.variante_id === varianteId);
       if (idx >= 0) {
         return prev.map((i, n) => n === idx
           ? {
@@ -321,15 +327,15 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         );
       }
       return [...prev, {
-        producto_id: nuevoItem.id,
-        variante_id: nuevoItem.id,
+        producto_id: productoId,
+        variante_id: varianteId,
         nombre: nuevoItem.nombre,
         sku: `SKU-${nuevoItem.id.toString().slice(0, 5)}`,
         imagen: nuevoItem.imagen || nuevoItem.imagen_url,
         precio_unitario: nuevoItem.precio || nuevoItem.precio_base,
         cantidad: nuevoItem.cantidad || 1,
-        talla: 'M',
-        color: 'Estándar',
+        talla: primeraVariante?.talla ?? 'M',
+        color: primeraVariante?.color ?? 'Estándar',
         subtotal: (nuevoItem.cantidad || 1) * (nuevoItem.precio || nuevoItem.precio_base),
         stock_disponible: 1000,
         colores_disponibles: nuevoItem.colores_disponibles || [],

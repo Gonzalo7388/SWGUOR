@@ -4,6 +4,10 @@ import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { requireServerAuth } from '@/lib/auth/server';
+import {
+  MOQ_COTIZACION_GLOBAL,
+  ORIGEN_COTIZACION_SOLICITUD,
+} from '@/lib/constants/portal-b2b';
 
 // ─────────────────────────────────────────────────────────────
 // Helper: generar número de cotización YYMMDD-HHMMSS-{ID}
@@ -112,8 +116,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       items, notas_internas, direccion_despacho,
-      moneda, estado, costo_envio,
+      moneda, estado, costo_envio, tipo_solicitud, origen,
     } = body;
+
+    const esSolicitudConsulta =
+      tipo_solicitud === 'consulta' || origen === ORIGEN_COTIZACION_SOLICITUD;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -132,11 +139,11 @@ export async function POST(req: Request) {
       costoEnvio,
     );
 
-    if (!totales.cumpleMOQ) {
+    if (!esSolicitudConsulta && !totales.cumpleMOQ) {
       return NextResponse.json({
         success: false,
         error:   'error_negocio',
-        mensaje: 'No se cumple el MOQ de 400 unidades.',
+        mensaje: `No se cumple el MOQ de ${MOQ_COTIZACION_GLOBAL} unidades.`,
         detalle: totales,
       }, { status: 400 });
     }
@@ -151,7 +158,8 @@ export async function POST(req: Request) {
         data: {
           numero:               'PENDIENTE',           // se sobreescribe abajo
           cliente_id:           sesion.cliente_id,
-          estado:               estado ?? 'borrador',
+          estado:               estado ?? (esSolicitudConsulta ? 'enviada' : 'borrador'),
+          origen:               esSolicitudConsulta ? ORIGEN_COTIZACION_SOLICITUD : (origen ?? 'manual'),
           subtotal:             new Prisma.Decimal(totales.subtotalBruto),
           igv:                  new Prisma.Decimal(totales.igv),
           total:                new Prisma.Decimal(totales.total),
@@ -226,7 +234,7 @@ const ESCALAS_DESCUENTO = [
   { min: 5000,  dcto: 0.12 },
   { min: 10000, dcto: 0.18 },
 ];
-const MOQ_GENERAL = 400;
+const MOQ_GENERAL = MOQ_COTIZACION_GLOBAL;
 
 function calcularTotalesCotizacion(
   items: { precioBase: number; cantidad: number }[],

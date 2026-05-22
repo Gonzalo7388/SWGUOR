@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { ShoppingCart, Info, Loader2, PackageSearch, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
-import { usePortal } from '@/app/portal/_contexts/PortalContext';
+import { useCartStore } from '@/lib/store/useCartStore';
+import { resolveCartMoq } from '@/lib/constants/portal-b2b';
+import { usePortalCart } from '@/components/portal/cart/PortalCartLayout';
 import { toast } from 'sonner';
 import { PromocionProductoBadge } from '@/components/portal/PromocionProductoBadge';
 import type { ProductoCampanaBadge } from '@/lib/services/portal-promociones-catalogo.service';
@@ -28,6 +30,8 @@ export interface Producto {
   variantes_producto?: any[];
   colores_disponibles?: string[];
   tallas_disponibles?: string[];
+  moq?: number;
+  variantes?: Array<{ id: number; color: string; talla: string; stock: number }>;
 }
 
 interface ProductoCardProps {
@@ -37,7 +41,8 @@ interface ProductoCardProps {
 }
 
 export function ProductoCard({ producto, onOpenDetails, promociones = [] }: ProductoCardProps) {
-  const { agregarAlBorrador } = usePortal();
+  const addItem = useCartStore((s) => s.addItem);
+  const { openCart } = usePortalCart();
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -51,27 +56,48 @@ export function ProductoCard({ producto, onOpenDetails, promociones = [] }: Prod
         : `${PUBLIC_STORAGE_URL}${producto.imagen}`)
     : null;
 
-  const handleCotizar = async () => {
+  const moqProducto = resolveCartMoq(producto.moq);
+  const variantes =
+    producto.variantes ??
+    producto.variantes_producto ??
+    [];
+
+  const handleAgregarCarrito = async () => {
+    const variante =
+      variantes.find((v) => Number(v.stock ?? 0) > 0) ?? variantes[0];
+
+    if (!variante?.id) {
+      toast.error('Sin variantes disponibles', {
+        description: 'Este producto no tiene talla/color con stock para comprar.',
+      });
+      return;
+    }
+
     setIsAdding(true);
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    agregarAlBorrador({
-      id: producto.id,
-      nombre: producto.nombre,
-      precio: producto.precio,
-      imagen: producto.imagen,
-      cantidad: 400, // MOQ por defecto
-      variantes: producto.variantes_producto || [],
-      colores_disponibles: producto.colores_disponibles || [],
-      tallas_disponibles: producto.tallas_disponibles || [],
-    });
+    const imageForCart = imageUrl;
+
+    addItem(
+      {
+        producto_id: Number(producto.id),
+        variante_id: Number(variante.id),
+        nombre: producto.nombre,
+        precio: producto.precio,
+        moq: moqProducto,
+        imagen_url: imageForCart,
+        talla: variante?.talla ?? producto.tallas_disponibles?.[0] ?? 'M',
+        color: variante?.color ?? producto.colores_disponibles?.[0] ?? 'Estándar',
+      },
+      moqProducto,
+    );
 
     setIsAdding(false);
     setJustAdded(true);
+    openCart();
 
-    // Toast de confirmación
-    toast.success('Producto agregado al borrador de cotización', {
-      description: producto.nombre,
+    toast.success('Agregado al carrito de compras', {
+      description: `${producto.nombre} · mín. ${moqProducto} uds`,
       icon: <CheckCircle size={16} />,
       duration: 3000,
     });
@@ -146,10 +172,10 @@ export function ProductoCard({ producto, onOpenDetails, promociones = [] }: Prod
             
             {/* Botón cotizar — ocre cuando no está agregado, verde check cuando sí */}
             <button 
-              onClick={handleCotizar}
+              onClick={handleAgregarCarrito}
               disabled={isAdding || justAdded}
               aria-busy={isAdding}
-              aria-label={isAdding ? "Agregando al borrador" : `Cotizar ${producto.nombre}`}
+              aria-label={isAdding ? 'Agregando al carrito' : `Agregar ${producto.nombre} al carrito`}
               className={cn(
                 "p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-xs font-bold shrink-0 text-white",
                 "disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2",
@@ -166,7 +192,7 @@ export function ProductoCard({ producto, onOpenDetails, promociones = [] }: Prod
                 if (!justAdded)
                   (e.currentTarget as HTMLButtonElement).style.backgroundColor = justAdded ? '#22c55e' : BRAND.ocre;
               }}
-              title={isAdding ? "Agregando al borrador" : "Agregar al borrador de cotización"}
+              title={isAdding ? 'Agregando al carrito' : 'Agregar al carrito de compras'}
             >
               {isAdding ? (
                 <Loader2 size={16} className="animate-spin" aria-hidden="true" />
@@ -175,7 +201,7 @@ export function ProductoCard({ producto, onOpenDetails, promociones = [] }: Prod
               ) : (
                 <>
                   <ShoppingCart size={16} aria-hidden="true" />
-                  <span className="hidden sm:group-hover:inline transition-all duration-300">COTIZAR</span>
+                  <span className="hidden sm:group-hover:inline transition-all duration-300">COMPRAR</span>
                 </>
               )}
             </button>

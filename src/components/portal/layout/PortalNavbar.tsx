@@ -1,9 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { Bell, Search, User, Menu, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Bell, Search, User, Menu, X, ShoppingCart } from 'lucide-react';
+import { useCartStore } from '@/lib/store/useCartStore';
+import { usePortalCart } from '@/components/portal/cart/PortalCartLayout';
 
 export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
+  const [mounted, setMounted] = useState(false);
+  const itemCount = useCartStore((s) => s.items.length);
+  const { openCart } = usePortalCart();
+
+  useEffect(() => setMounted(true), []);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -30,6 +38,21 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
 
       {/* Acciones — desktop */}
       <div className="hidden sm:flex items-center gap-4">
+        <button
+          type="button"
+          onClick={openCart}
+          className="relative p-2 text-[#b5854b]/60 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#b5854b]/30"
+          aria-label={`Carrito de compras${mounted && itemCount ? `, ${itemCount} productos` : ''}`}
+          title="Carrito de compras"
+        >
+          <ShoppingCart size={20} aria-hidden="true" />
+          {mounted && itemCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[#b5854b] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {itemCount > 99 ? '99+' : itemCount}
+            </span>
+          )}
+        </button>
+
         <button
           className="relative p-2 text-[#b5854b]/60 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#b5854b]/30"
           aria-label="Ver notificaciones"
@@ -86,6 +109,21 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
                 className="w-full bg-white/70 border border-[#e4c28a]/40 rounded-full py-2 pl-10 pr-4 text-sm text-[#231e1d] placeholder:text-[#b5854b]/40 focus:outline-none focus:ring-2 focus:ring-[#b5854b]/20 focus:border-[#b5854b]"
               />
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                openCart();
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-3 p-3 text-[#b5854b]/70 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-lg transition-colors"
+            >
+              <ShoppingCart size={18} aria-hidden="true" />
+              <span className="text-sm font-medium">
+                Carrito de compras
+                {mounted && itemCount > 0 ? ` (${itemCount})` : ''}
+              </span>
+            </button>
 
             <button className="w-full flex items-center gap-3 p-3 text-[#b5854b]/70 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-lg transition-colors">
               <Bell size={18} aria-hidden="true" />

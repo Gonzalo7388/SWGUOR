@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  LayoutDashboard, FileText, ShoppingBag, Truck,
+  LayoutDashboard, FileText, ShoppingBag, ShoppingCart, Truck,
   PanelLeftClose, Package, PanelLeft, LogOut,
   Settings, UserCircle, PackageOpen,
 } from 'lucide-react';
@@ -21,8 +21,10 @@ const MENU_GROUPS = [
     group: 'Comercial',
     items: [
       { href: '/portal/productos', label: 'Catálogo', icon: ShoppingBag },
-      { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText },
-      { href: '/portal/pedidos', label: 'Mis Pedidos', icon: Package },
+      { href: '/portal/compras', label: 'Confirmar compra', icon: ShoppingCart },
+      { href: '/portal/cotizaciones/solicitar', label: 'Solicitar cotización', icon: FileText },
+      { href: '/portal/cotizaciones', label: 'Mis cotizaciones', icon: FileText },
+      { href: '/portal/pedidos', label: 'Mis pedidos', icon: Package },
     ],
   },
   {
