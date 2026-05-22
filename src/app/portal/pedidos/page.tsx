@@ -172,7 +172,7 @@ function ModalDetalle({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
-        className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+        className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden"
         style={{ animation: 'modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}
       >
         {/* Header */}
@@ -309,7 +309,7 @@ function ModalPago({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
-        className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+        className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden"
         style={{ animation: 'modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}
       >
 
@@ -340,7 +340,7 @@ function ModalPago({
             </div>
 
             {/* Métodos */}
-            <div className="p-6 space-y-3">
+            <div className="p-6 grid-cols-2 gap-6 ">
               {METODOS_PAGO.map((m) => (
                 <button
                   key={m.id}
@@ -419,7 +419,13 @@ function ModalPago({
               </button>
             </div>
 
+
+<div className="grid md:grid-cols-2 gap-6 p-6">
+
+             {/* CONTENIDO */}
+
             <div className="p-6 space-y-4">
+               
               {/* Monto */}
               <div className="text-center py-6 bg-gradient-to-br from-[#fff4e2] to-[#fde8c0] rounded-2xl border border-[#e4c28a]/40">
                 <p className="text-xs font-bold text-[#b5854b]/60 uppercase tracking-widest mb-1">Monto a pagar</p>
@@ -445,6 +451,77 @@ function ModalPago({
                 Al confirmar aceptas los términos de pago. El pedido se procesará una vez verificado el pago.
               </p>
             </div>
+
+              {/* Columna derecha */} 
+              <div>
+              {metodo === 'tarjeta' && (
+  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
+
+    <div>
+      <p className="text-[10px] font-bold text-[#b5854b] uppercase tracking-widest mb-1">
+        Datos de la tarjeta
+      </p>
+
+      <h3 className="text-lg font-black text-[#231e1d]">
+        Completa tu pago
+      </h3>
+    </div>
+<label className="block text-[11px] font-semibold text-[#b5854b] mb-1">
+    Número de tarjeta
+  </label>
+    <input
+      type="text"
+      placeholder="0000 0000 0000 0000"
+      maxLength={19}
+  onInput={(e) => {
+    let value = e.currentTarget.value.replace(/\D/g, '');
+
+    value = value.slice(0, 16);
+    value = value.replace(/(.{4})/g, '$1 ').trim();
+
+    e.currentTarget.value = value;
+  }}
+      className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
+    />
+
+
+<label className="block text-[11px] font-semibold text-[#b5854b] mb-1">
+    Nombre del titular
+  </label>
+    <input
+      type="text"
+      placeholder="Nombre del titular"
+      className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
+    />
+
+    <div className="grid grid-cols-2 gap-3">
+        
+<div className="flex flex-col">
+         <label className="text-[11px] font-semibold text-[#b5854b] mb-1">
+      Vencimiento
+    </label>
+      <input
+        type="text"
+        placeholder="MM/AA"
+        className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
+      />
+    </div>
+
+<div className="flex flex-col">
+  <label className="text-[11px] font-semibold text-[#b5854b] mb-1">
+      Código de seguridad
+    </label>
+      <input
+        type="password"
+        placeholder="000"
+        className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
+      />
+      </div>
+    </div>
+  </div>
+)}
+</div>
+</div>
 
             <div className="px-6 pb-6 flex gap-3">
               <button onClick={() => setPaso('seleccion')} className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors">
