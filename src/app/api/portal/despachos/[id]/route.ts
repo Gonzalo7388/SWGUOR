@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
     try {
+        const { id } = await params;
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
@@ -23,9 +24,8 @@ export async function GET(
             return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
         }
 
-        const grupoId = Number(params.id);
+        const grupoId = Number(id);
 
-        // Verificar que el grupo pertenece al cliente
         const pertenece = await prisma.despachos_grupo_pedidos.findFirst({
             where: {
                 grupo_despacho_id: grupoId,
