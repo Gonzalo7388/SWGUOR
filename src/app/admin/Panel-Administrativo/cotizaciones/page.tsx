@@ -13,10 +13,11 @@ import { toast } from 'sonner';
 import { exportCotizacionesToPDF } from '@/lib/utils/export-utils';
 import { exportToExcel } from '@/lib/utils/export-utils';
 import type { CotizacionRow } from '@/lib/services/cotizaciones.service';
-import { CotizacionActions } from '@/components/admin/cotizaciones/CotizacionActions';
+import { CotizacionDetalleModal } from '@/components/admin/cotizaciones/CotizacionDetalleModal';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const PAGE_SIZE = 10;
 
@@ -32,7 +33,10 @@ const ESTADO_BADGE: Record<string, { bg: string; text: string; label: string }> 
 };
 
 export default function CotizacionesPage() {
+  const router = useRouter();
   const [cotizaciones, setCotizaciones] = useState<CotizacionRow[]>([]);
+  const [detalleId, setDetalleId] = useState<number | null>(null);
+  const [detalleOpen, setDetalleOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>(null);
@@ -147,7 +151,7 @@ export default function CotizacionesPage() {
             title="Cotizaciones"
             description="Gestión de propuestas comerciales de Modas y Estilos GUOR"
             actionLabel="Nueva Cotización"
-            onAction={undefined}
+            onAction={() => router.push('/admin/Panel-Administrativo/cotizaciones/nueva')}
           />
           <div className="flex items-center gap-3">
             {/* BOTÓN EXPORTAR EXCEL CON TU DISEÑO UNIFICADO */}
@@ -300,18 +304,18 @@ export default function CotizacionesPage() {
                           )}
                         </td>
                         <td className="py-4 px-5 text-center">
-                          {['borrador', 'enviada'].includes(cot.estado) ? (
-                            <CotizacionActions
-                              cotizacionId={cot.id}
-                              estado={cot.estado}
-                              validaHasta={cot.fecha_vencimiento}
-                              onSuccess={loadCotizaciones}
-                            />
-                          ) : (
-                            <Button variant="ghost" size="sm" className="rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90"
+                            onClick={() => {
+                              setDetalleId(cot.id);
+                              setDetalleOpen(true);
+                            }}
+                            aria-label={`Ver cotización ${cot.cotizacion_id}`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -341,6 +345,13 @@ export default function CotizacionesPage() {
           </div>
         )}
       </div>
+
+      <CotizacionDetalleModal
+        cotizacionId={detalleId}
+        open={detalleOpen}
+        onOpenChange={setDetalleOpen}
+        onSuccess={loadCotizaciones}
+      />
     </div>
   );
 }

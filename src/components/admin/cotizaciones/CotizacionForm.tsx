@@ -22,7 +22,13 @@ import { ResumenFinanciero } from './ResumenFinanciero';
 
 interface CotizacionFormProps {
   clientes:  { id: number; razon_social: string | null; ruc: string }[];
-  productos: { id: number; nombre: string; sku: string; precio: number }[];
+  productos: {
+    id: number;
+    nombre: string;
+    sku: string;
+    precio: number;
+    variantes?: { id: number; color: string; talla: string; sku: string }[];
+  }[];
 }
 
 export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
@@ -89,7 +95,10 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
   const simboloMoneda = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : 'S/';
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  const onSubmit = async (data: CreateCotizacionInput) => {
+  const onSubmit = async (
+    data: CreateCotizacionInput,
+    estadoInicial: 'borrador' | 'enviada' = 'borrador',
+  ) => {
     try {
       setIsSubmitting(true);
 
@@ -124,6 +133,7 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
         tipo_operacion:        tipo_operacion || undefined,
         notas_internas:        notasCompletas,
         items,
+        estado_inicial:        estadoInicial,
       });
 
       if (!result.success) {
@@ -131,7 +141,11 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
         return;
       }
 
-      toast.success(`Cotización ${result.data?.cotizacion_id} creada exitosamente`);
+      const msg =
+        estadoInicial === 'enviada'
+          ? `Cotización ${result.data?.cotizacion_id} enviada a revisión`
+          : `Cotización ${result.data?.cotizacion_id} guardada como borrador`;
+      toast.success(msg);
       router.push('/admin/Panel-Administrativo/cotizaciones');
     } catch {
       toast.error('Error inesperado al crear la cotización');
@@ -144,7 +158,7 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
     <Form {...form}>
       <form
         id={`${formId}-cotizacion-form`}
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit((data) => onSubmit(data, 'borrador'))}
         className="space-y-6"
       >
         {/* ── Datos Generales ── */}
@@ -182,12 +196,25 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
             type="submit"
             form={`${formId}-cotizacion-form`}
             disabled={isSubmitting}
-            className="h-11 px-8 bg-slate-900 hover:bg-slate-800 font-bold uppercase rounded-xl gap-2"
+            variant="outline"
+            className="h-11 px-6 font-bold uppercase rounded-xl gap-2"
           >
             {isSubmitting ? (
-              <><Loader2 size={15} className="animate-spin" /> Creando...</>
+              <><Loader2 size={15} className="animate-spin" /> Guardando...</>
             ) : (
-              <><Save size={15} /> Crear Cotización</>
+              <><Save size={15} /> Guardar borrador</>
+            )}
+          </Button>
+          <Button
+            type="button"
+            disabled={isSubmitting}
+            className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase rounded-xl gap-2"
+            onClick={form.handleSubmit((data) => onSubmit(data, 'enviada'))}
+          >
+            {isSubmitting ? (
+              <><Loader2 size={15} className="animate-spin" /> Enviando...</>
+            ) : (
+              'Enviar a revisión'
             )}
           </Button>
         </div>
