@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { requireServerAuth } from '@/lib/auth/server';
 import { resolverCostoEnvioPedido } from '@/lib/helpers/portal-costo-envio.helper';
 import { resolverItemsPedido } from '@/lib/helpers/portal-pedido-items.helper';
+import { descontarStockLineaPedido } from '@/lib/helpers/producto-stock-transaction.helper';
 
 const IGV_RATE = 0.18;
 
@@ -210,6 +211,14 @@ export async function POST(req: Request) {
         }
       }
 
+      for (const item of lineas) {
+        await descontarStockLineaPedido(tx, {
+          producto_id: item.producto_id,
+          variante_id: item.variante_id,
+          cantidad: Number(item.cantidad),
+        });
+      }
+
       return pedido;
     });
 
@@ -220,6 +229,14 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno';
     console.error('[Portal] POST pedidos:', error);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+
+    if (message.includes('Stock insuficiente')) {
+      return NextResponse.json(
+        { success: false, error: 'stock_insuficiente', mensaje: message },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: false, error: message, mensaje: message }, { status: 500 });
   }
 }

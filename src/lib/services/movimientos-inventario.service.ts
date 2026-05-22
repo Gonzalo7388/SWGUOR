@@ -8,6 +8,7 @@ import {
   type ListarMovimientosParams,
 } from '@/lib/helpers/movimientos-filtros.helper';
 import { insertarMovimiento } from '@/lib/helpers/rpc-helpers';
+import { aplicarMovimientoStockProducto } from '@/lib/helpers/producto-stock-transaction.helper';
 
 export interface RegistrarParams {
   insumo_id?: string | number;
@@ -64,16 +65,43 @@ export const MovimientosInventarioService = {
     if (cantidad <= 0)
       throw new Error('La cantidad debe ser mayor a 0');
 
-    // insertarMovimiento llama a fn_insertar_movimiento que hace el INSERT;
-    // los triggers tr_procesar_movimiento_insumo y trg_actualizar_almacen_stock
-    // se disparan automáticamente desde ese INSERT.
+    const usuarioId = usuario_id ? BigInt(usuario_id) : null;
+    const almacenId = almacen_id ? BigInt(almacen_id) : null;
+
+    // Productos: transacción Prisma explícita (productos.stock + movimiento)
+    if (producto_id) {
+      await prisma.$transaction(async (tx) => {
+        const productoId = BigInt(producto_id);
+
+        await aplicarMovimientoStockProducto(
+          tx,
+          productoId,
+          cantidad,
+          tipo_movimiento,
+        );
+
+        await tx.movimientos_inventario.create({
+          data: {
+            producto_id: productoId,
+            cantidad,
+            motivo,
+            tipo_movimiento,
+            referencia_tipo,
+            usuario_id: usuarioId,
+            almacen_id: almacenId,
+          },
+        });
+      });
+      return { success: true };
+    }
+
+    // Insumos / materiales: RPC + triggers de BD (stock_actual en sus tablas)
     await insertarMovimiento({
-      tipoMovimiento: tipo_movimiento,    // TipoMovimiento completo — FIX error TS 2322
+      tipoMovimiento: tipo_movimiento,
       referenciaType: referencia_tipo,
-      referenciaId: referencia_id,      // opcional — FIX error TS 2345
+      referenciaId: referencia_id,
       cantidad,
       motivo,
-      productoId: producto_id ? Number(producto_id) : undefined,
       insumoId: insumo_id ? Number(insumo_id) : undefined,
       materialId: material_id ? Number(material_id) : undefined,
       usuarioId: usuario_id ? Number(usuario_id) : undefined,
