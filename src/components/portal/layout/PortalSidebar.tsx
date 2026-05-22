@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FileText, ShoppingBag, Truck,
-  ChevronRight, LogOut, Settings, UserCircle, Package, PackageOpen
+  ChevronRight, Settings, Package, PackageOpen
 } from 'lucide-react';
 
-import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 // ─── Estructura Plana de Navegación (Estilo ERP) ──────────────────────────────
@@ -18,7 +17,6 @@ const NAV_ITEMS = [
   { href: '/portal/pedidos', label: 'Mis Pedidos', icon: Package },
   { href: '/portal/seguimiento-pedido', label: 'Trazabilidad', icon: Truck },
   { href: '/portal/despachos', label: 'Envíos', icon: PackageOpen },
-  { href: '/portal/perfil', label: 'Mi Perfil', icon: UserCircle },
   { href: '/portal/configuracion', label: 'Ajustes', icon: Settings },
 ];
 
@@ -29,13 +27,6 @@ interface PortalSidebarProps {
 
 export function PortalSidebar({ collapsed, onToggle }: PortalSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await getSupabaseBrowserClient().auth.signOut();
-    router.replace('/auth/login');
-  };
-
   return (
     <aside
       className={cn(
@@ -101,17 +92,6 @@ export function PortalSidebar({ collapsed, onToggle }: PortalSidebarProps) {
 
       {/* ── Footer / Toggle y Cerrar Sesión (Idéntico al ERP) ── */}
       <div className="shrink-0 border-t border-slate-100 p-2 space-y-1 text-left">
-        {/* Botón de Logout adaptado al estilo limpio */}
-        <button
-          onClick={handleLogout}
-          className={cn(
-            'flex items-center w-full rounded-xl transition-all duration-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50',
-            collapsed ? 'justify-center p-3' : 'justify-start gap-x-4 px-4 py-2.5',
-          )}
-        >
-          <LogOut size={19} strokeWidth={1.6} className="shrink-0" />
-          {!collapsed && <span className="text-[13.5px] font-medium tracking-wide">Cerrar sesión</span>}
-        </button>
 
         {/* Botón de Contraer/Expandir del ERP */}
         <button
