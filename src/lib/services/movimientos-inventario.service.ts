@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import type { ReferenciaMovimiento, TipoMovimiento } from '@prisma/client';
+import type { Prisma, ReferenciaMovimiento, TipoMovimiento } from '@prisma/client';
+import {
+  filtrosMovimientosVacios,
+  mapFiltrosMovimientosToListar,
+  type FiltrosMovimientosInput,
+  type ListarMovimientosParams,
+} from '@/lib/helpers/movimientos-filtros.helper';
 import { insertarMovimiento } from '@/lib/helpers/rpc-helpers';
 
 export interface RegistrarParams {
@@ -16,19 +22,11 @@ export interface RegistrarParams {
   almacen_id?: string | number;
 }
 
-export interface ListarParams {
-  desde?: Date;
-  hasta?: Date;
-  tipo_movimiento?: TipoMovimiento;
-  referencia_tipo?: ReferenciaMovimiento;
-  producto_id?: string;
-  insumo_id?: string;
-  material_id?: string;
-  usuario_id?: string;
-  almacen_id?: string;
-  busqueda?: string;
-  limite?: number;
-}
+/** @deprecated Usar `ListarMovimientosParams` desde movimientos-filtros.helper */
+export type ListarParams = ListarMovimientosParams;
+
+const LIMITE_DEFECTO = 50;
+const LIMITE_CON_FILTROS = 100;
 
 // Lista completa del enum TipoMovimiento definido en el schema de Prisma / DB
 const TODOS_LOS_TIPOS: TipoMovimiento[] = [
@@ -85,50 +83,77 @@ export const MovimientosInventarioService = {
     return { success: true };
   },
 
-  async listar(params?: ListarParams) {
-    const where: Record<string, unknown> = {};
+  async listar(params?: ListarMovimientosParams) {
+    const where: Prisma.movimientos_inventarioWhereInput = {};
 
-    if (params?.desde || params?.hasta)
+    if (params?.desde || params?.hasta) {
       where.created_at = {
         ...(params?.desde && { gte: params.desde }),
         ...(params?.hasta && { lte: params.hasta }),
       };
+    }
 
     if (params?.tipo_movimiento) where.tipo_movimiento = params.tipo_movimiento;
     if (params?.referencia_tipo) where.referencia_tipo = params.referencia_tipo;
-    if (params?.producto_id) where.producto_id = BigInt(params.producto_id);
-    if (params?.material_id) where.material_id = BigInt(params.material_id);
-    if (params?.insumo_id) where.insumo_id = BigInt(params.insumo_id);
+
+    if (params?.producto_id === 'any') where.producto_id = { not: null };
+    else if (params?.producto_id) where.producto_id = BigInt(params.producto_id);
+
+    if (params?.material_id === 'any') where.material_id = { not: null };
+    else if (params?.material_id) where.material_id = BigInt(params.material_id);
+
+    if (params?.insumo_id === 'any') where.insumo_id = { not: null };
+    else if (params?.insumo_id) where.insumo_id = BigInt(params.insumo_id);
+
     if (params?.usuario_id) where.usuario_id = BigInt(params.usuario_id);
     if (params?.almacen_id) where.almacen_id = BigInt(params.almacen_id);
+
+    const q = params?.busqueda?.trim();
+    if (q) {
+      where.OR = [
+        { productos: { nombre: { contains: q, mode: 'insensitive' } } },
+        { insumo: { nombre: { contains: q, mode: 'insensitive' } } },
+        { materiales: { nombre: { contains: q, mode: 'insensitive' } } },
+        { motivo: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const sinFiltros =
+      !params?.busqueda &&
+      !params?.tipo_movimiento &&
+      !params?.referencia_tipo &&
+      !params?.producto_id &&
+      !params?.insumo_id &&
+      !params?.material_id &&
+      !params?.desde &&
+      !params?.hasta;
+
+    const take =
+      params?.limite ?? (sinFiltros ? LIMITE_DEFECTO : LIMITE_CON_FILTROS);
 
     const movimientos = await prisma.movimientos_inventario.findMany({
       where,
       include: {
         insumo: { select: { id: true, nombre: true, unidad_medida: true } },
         materiales: { select: { id: true, nombre: true } },
-        productos: { select: { id: true, nombre: true } },
+        productos: { select: { id: true, nombre: true, sku: true } },
         usuarios: { select: { id: true, email: true } },
+        almacenes: { select: { id: true, nombre: true } },
       },
       orderBy: { created_at: 'desc' },
-      take: params?.limite ?? 100,
+      take,
     });
 
-    let resultado = serializeBigInt(movimientos);
+    return serializeBigInt(movimientos);
+  },
 
-    if (params?.busqueda) {
-      const q = params.busqueda.toLowerCase();
-      resultado = resultado.filter((mov: Record<string, unknown>) => {
-        const item = (mov.insumo ?? mov.materiales ?? mov.productos) as Record<string, unknown> | null;
-        const nombre = typeof item?.nombre === 'string' ? item.nombre : '';
-        return (
-          nombre.toLowerCase().includes(q) ||
-          String(mov.motivo ?? '').toLowerCase().includes(q)
-        );
-      });
+  /** Atajo desde filtros del UI / Server Action */
+  async listarDesdeFiltros(filtros: FiltrosMovimientosInput = {}) {
+    const params = mapFiltrosMovimientosToListar(filtros);
+    if (filtrosMovimientosVacios(filtros) && !params.limite) {
+      params.limite = LIMITE_DEFECTO;
     }
-
-    return resultado;
+    return this.listar(params);
   },
 
   // Cubre todos los tipos del enum — antes solo contaba entrada/salida/ajuste
