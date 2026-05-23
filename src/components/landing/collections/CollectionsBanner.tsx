@@ -7,7 +7,7 @@ const CollectionsBanner = () => {
           className="relative rounded-[3rem] overflow-hidden flex items-center"
           style={{
             minHeight: "760px",
-            border: "2px solid #e4c28a",
+            border: "2px solid #e8d5a8",
             backgroundImage: "url('/fotoColeccion2.jpg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
@@ -19,7 +19,7 @@ const CollectionsBanner = () => {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to right, rgba(35,30,29,0.82), rgba(35,30,29,0.18), transparent)",
+                "linear-gradient(to right, rgba(26,20,16,0.80), rgba(26,20,16,0.18), transparent)",
             }}
           />
 
@@ -30,7 +30,7 @@ const CollectionsBanner = () => {
 
               <p
                 className="text-[11px] uppercase tracking-[0.4em] font-black mb-8"
-                style={{ color: "#e4c28a" }}
+                style={{ color: "#e8d5a8" }}
               >
                 Editorial Fashion
               </p>
@@ -38,7 +38,7 @@ const CollectionsBanner = () => {
               <h2
                 className="text-5xl md:text-7xl leading-[0.95] font-black italic mb-10"
                 style={{
-                  color: "#fff4e2",
+                  color: "#fdf9f3",
                   textShadow: "0 4px 25px rgba(0,0,0,0.45)",
                 }}
               >
@@ -54,7 +54,7 @@ const CollectionsBanner = () => {
               <p
                 className="text-xl md:text-2xl leading-relaxed max-w-2xl"
                 style={{
-                  color: "rgba(255,244,226,0.9)",
+                  color: "rgba(253,249,243,0.92)",
                   textShadow: "0 2px 10px rgba(0,0,0,0.35)",
                 }}
               >

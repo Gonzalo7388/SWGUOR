@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CrearAlmacen, Almacen, ActualizarAlmacen } from '@/lib/schemas/almacenesSchema';
+import { CrearAlmacen, Almacen, ActualizarAlmacen } from '@/lib/schemas/almacenes';
 
 export function useAlmacenes() {
   const [almacenes, setAlmacenes] = useState<Almacen[]>([]);
