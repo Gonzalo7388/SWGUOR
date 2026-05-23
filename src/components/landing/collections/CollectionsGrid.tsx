@@ -30,7 +30,7 @@ const CollectionsGrid = () => {
               className="group relative rounded-[3rem] overflow-hidden"
               style={{
                 minHeight: "560px",
-                border: "1px solid #e4c28a",
+                border: "1px solid #e8d5a8",
               }}
             >
 
@@ -49,7 +49,7 @@ const CollectionsGrid = () => {
                 className="absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(to top, rgba(35,30,29,0.72), rgba(35,30,29,0.18), transparent)",
+                    "linear-gradient(to top, rgba(26,20,16,0.68), rgba(26,20,16,0.18), transparent)",
                 }}
               />
 
@@ -60,7 +60,7 @@ const CollectionsGrid = () => {
 
                   <p
                     className="text-[11px] uppercase tracking-[0.35em] font-black mb-6"
-                    style={{ color: "#e4c28a" }}
+                    style={{ color: "#e8d5a8" }}
                   >
                     GUOR Collection
                   </p>
@@ -68,7 +68,7 @@ const CollectionsGrid = () => {
                   <h2
                     className="text-5xl md:text-6xl leading-tight font-black italic"
                     style={{
-                      color: "#fff4e2",
+                      color: "#fdf9f3",
                       textShadow: "0 4px 20px rgba(0,0,0,0.45)",
                     }}
                   >

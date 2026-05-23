@@ -3,36 +3,37 @@ import { ArrowRight } from "lucide-react";
 
 const BenefitsCTA = () => {
   return (
-    <section className="px-6 pt-16 pb-52">
-      <div className="max-w-7xl mx-auto">
-
+    <section className="px-6 pt-12 pb-24">
+      <div className="max-w-6xl mx-auto">
         <div
-          className="rounded-[3rem] p-16 text-center mb-10"
+          className="rounded-[2rem] p-10 md:p-14 text-center"
           style={{
-            background: "#fbddd3",
-            border: "1px solid #e4c28a",
+            background: "#f5efe4",
+            border: "1.5px solid #e8d5a8",
+            boxShadow: "0 4px 24px -6px rgba(26,20,16,0.08)",
           }}
         >
-
           <p
-            className="text-[11px] uppercase tracking-[0.35em] font-black mb-6"
-            style={{ color: "#b5854b" }}
+            className="text-[10px] uppercase tracking-[0.35em] font-black mb-4"
+            style={{ color: "#8a6d3b" }}
           >
             Alianza Estratégica
           </p>
 
           <h2
-            className="text-6xl leading-tight font-black italic mb-8"
-            style={{ color: "#231e1d" }}
+            className="text-4xl md:text-5xl leading-tight font-black italic mb-4"
+            style={{ color: "#1a1410" }}
           >
             Más que proveedores,
             <br />
             somos aliados estratégicos.
           </h2>
 
+          <div className="w-10 h-px mx-auto mb-6" style={{ background: "#c4a35a" }} />
+
           <p
-            className="max-w-3xl mx-auto text-xl leading-relaxed mb-12"
-            style={{ color: "rgba(35,30,29,0.72)" }}
+            className="max-w-xl mx-auto text-base leading-relaxed mb-8"
+            style={{ color: "rgba(26,20,16,0.62)" }}
           >
             Accede a beneficios exclusivos, producción premium
             y atención especializada para potenciar tu marca.
@@ -40,25 +41,20 @@ const BenefitsCTA = () => {
 
           <Link
             href="/registro-cliente"
-            className="inline-flex items-center gap-3 px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.15em] transition-all duration-300 hover:-translate-y-1"
-            style={{
-              background: "#231e1d",
-              color: "#fff4e2",
-            }}
+            className="inline-flex items-center gap-2 px-7 py-4 rounded-xl font-black text-xs uppercase tracking-[0.15em] transition-all duration-300 hover:-translate-y-0.5"
+            style={{ background: "#1a1410", color: "#fdf9f3" }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#b5854b";
-              e.currentTarget.style.color = "#231e1d";
+              e.currentTarget.style.background = "#c4a35a";
+              e.currentTarget.style.color = "#1a1410";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#231e1d";
-              e.currentTarget.style.color = "#fff4e2";
+              e.currentTarget.style.background = "#1a1410";
+              e.currentTarget.style.color = "#fdf9f3";
             }}
           >
             Iniciar Alianza B2B
-
-            <ArrowRight size={18} />
+            <ArrowRight size={15} />
           </Link>
-
         </div>
       </div>
     </section>

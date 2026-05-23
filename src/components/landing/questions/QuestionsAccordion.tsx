@@ -39,71 +39,62 @@ const QuestionsAccordion = () => {
       <div className="max-w-5xl mx-auto">
 
         {/* TITULO */}
-        <div className="text-center mb-40">
-
+        <div className="text-center mb-16">
           <p
-            className="text-[11px] uppercase tracking-[0.35em] font-black mb-6"
-            style={{ color: "#b5854b" }}
+            className="text-[11px] uppercase tracking-[0.35em] font-black mb-4"
+            style={{ color: "#8a6d3b" }}
           >
             Preguntas Frecuentes
           </p>
-
           <h2
             className="text-5xl md:text-6xl leading-tight font-black italic"
-            style={{ color: "#231e1d" }}
+            style={{ color: "#1a1410" }}
           >
             Todo lo que necesitas
             <br />
-
             saber sobre GUOR.
           </h2>
-
+          <div className="w-12 h-px mx-auto mt-6" style={{ background: "#c4a35a" }} />
         </div>
 
         {/* FAQ */}
-        <div className="space-y-8">
-
+        <div className="space-y-4">
           {faqs.map((faq, index) => {
             const isOpen = active === index;
 
             return (
               <div
                 key={index}
-                className="rounded-[2rem] overflow-hidden transition-all duration-300"
+                className="rounded-[1.75rem] overflow-hidden transition-all duration-300"
                 style={{
-                  background: "#fbddd3",
-                  border: isOpen
-                    ? "1px solid #b5854b"
-                    : "1px solid #e4c28a",
+                  background: "#f5efe4",
+                  border: isOpen ? "1.5px solid #c4a35a" : "1.5px solid #e8d5a8",
+                  boxShadow: isOpen
+                    ? "0 4px 20px -4px rgba(196,163,90,0.20)"
+                    : "0 1px 4px -1px rgba(26,20,16,0.04)",
                 }}
               >
-
                 {/* BUTTON */}
                 <button
-                  onClick={() =>
-                    setActive(isOpen ? null : index)
-                  }
-                  className="w-full flex items-center justify-between px-8 py-8 text-left"
+                  onClick={() => setActive(isOpen ? null : index)}
+                  className="w-full flex items-center justify-between px-8 py-7 text-left"
                 >
-
                   <h3
-                    className="text-xl md:text-2xl font-black"
-                    style={{ color: "#231e1d" }}
+                    className="text-lg md:text-xl font-black pr-4"
+                    style={{ color: "#1a1410" }}
                   >
                     {faq.question}
                   </h3>
 
                   <ChevronDown
-                    size={30}
+                    size={24}
                     style={{
-                      color: "#b5854b",
-                      transform: isOpen
-                        ? "rotate(180deg)"
-                        : "rotate(0deg)",
+                      color: "#8a6d3b",
+                      flexShrink: 0,
+                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                       transition: "0.3s",
                     }}
                   />
-
                 </button>
 
                 {/* CONTENT */}
@@ -114,24 +105,19 @@ const QuestionsAccordion = () => {
                     transition: "all 0.4s ease",
                   }}
                 >
-                  <div className="px-8 pb-8">
-
+                  <div className="px-8 pb-7">
+                    <div className="w-8 h-px mb-4" style={{ background: "#e8d5a8" }} />
                     <p
-                      className="text-lg leading-relaxed"
-                      style={{
-                        color: "rgba(35,30,29,0.72)",
-                      }}
+                      className="text-base leading-relaxed"
+                      style={{ color: "rgba(26,20,16,0.68)" }}
                     >
                       {faq.answer}
                     </p>
-
                   </div>
                 </div>
-
               </div>
             );
           })}
-
         </div>
 
       </div>
