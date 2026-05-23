@@ -108,6 +108,7 @@ interface PortalCtx {
     cantidad?: number;
   }) => void;
   stats: { cotizaciones_activas: number; ordenes_activas: number; despachos_en_ruta: number };
+  actualizarCliente: (updates: Partial<ClientePortal>) => void;
   // ── Notificaciones (instancia única, sin duplicados) ──
   notificaciones: Notificacion[];
   unreadCount: number;
@@ -472,11 +473,16 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
   const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => setZonaEnvio(zona), []);
 
+  const actualizarCliente = useCallback((updates: Partial<ClientePortal>) => {
+    setCliente((prev) => (prev ? { ...prev, ...updates } : prev));
+  }, []);
+
   return (
     <PortalContext.Provider value={{
       cliente, loading, items, resumen, zonaEnvio, costosEnvio,
       actualizarZonaEnvio, stats, agregarAlBorrador,
       actualizarCantidad, actualizarItem, eliminarDelBorrador, limpiarBorrador,
+      actualizarCliente,
       // ── Notificaciones ──
       notificaciones,
       unreadCount,

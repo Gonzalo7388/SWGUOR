@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   productionBrowserSourceMaps: false,
@@ -34,7 +36,9 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400',
+            value: isProduction
+              ? 'public, max-age=3600, stale-while-revalidate=86400'
+              : 'no-store, no-cache, must-revalidate, proxy-revalidate',
           },
           {
             key: 'X-Frame-Options',

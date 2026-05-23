@@ -58,7 +58,7 @@ export function PortalShell({ children }: PortalShellProps) {
           collapsed ? 'pl-[68px]' : 'pl-[264px]',
         )}
       >
-        <Navbar empresa={cliente.razon_social ?? cliente.nombre_comercial ?? undefined} />
+        <Navbar empresa={cliente.nombre_comercial ?? cliente.razon_social ?? undefined} />
 
         <main className="flex-1 relative overflow-y-auto px-6 py-8">
           <div className="max-w-[1400px] mx-auto">
@@ -69,4 +69,4 @@ export function PortalShell({ children }: PortalShellProps) {
       </div>
     </div>
   );
-}
+}
