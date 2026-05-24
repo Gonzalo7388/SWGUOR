@@ -169,7 +169,7 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
       '@types/react':
-        specifier: ^19
+        specifier: ^19.2.14
         version: 19.2.15
       '@types/react-dom':
         specifier: ^19
@@ -196,7 +196,7 @@ importers:
         specifier: ^8.5.8
         version: 8.5.15
       prisma:
-        specifier: ^7.7.0
+        specifier: ^7.8.0
         version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(typescript@5.9.3)
       supabase:
         specifier: ^2.84.1
