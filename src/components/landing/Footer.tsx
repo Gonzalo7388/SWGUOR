@@ -9,7 +9,7 @@ const Footer = () => {
     <footer
       className="mt-auto py-14"
       style={{
-        background: "#1a1410",
+        background: "#211f1d",
         borderTop: "1px solid rgba(196,163,90,0.30)",
       }}
     >
