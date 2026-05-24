@@ -87,40 +87,15 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    /* Sin background aquí — cada página/layout define el suyo */
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Solo para páginas admin y auth que necesitan fondo claro */
+  body.light-surface {
     background-color: var(--guor-cream);
     color: var(--guor-dark);
-  }
-
-  /* ── Shell admin ── */
-  .admin-shell {
-    --admin-bg: 33 27% 96%;
-    --admin-surface: 0 0% 100%;
-    --admin-line: 33 20% 85%;
-    --admin-ink: 20 22% 9%;
-    --admin-ink-soft: 25 12% 45%;
-    --admin-accent: 37 50% 56%;
-    /* champagne gold */
-
-    --background: var(--admin-bg);
-    --foreground: var(--admin-ink);
-    --card: var(--admin-surface);
-    --card-foreground: var(--admin-ink);
-    --popover: var(--admin-surface);
-    --popover-foreground: var(--admin-ink);
-    --muted: 33 27% 91%;
-    --muted-foreground: var(--admin-ink-soft);
-    --border: var(--admin-line);
-    --input: var(--admin-line);
-
-    color: hsl(var(--admin-ink));
-    background: hsl(var(--admin-bg));
-  }
-
-  .admin-shell main {
-    color: hsl(var(--admin-ink));
   }
 }
 

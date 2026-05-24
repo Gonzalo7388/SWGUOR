@@ -40,10 +40,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning className={greatVibes.variable}>
       <body
         className={cn(
-          "min-h-screen bg-[#0f0d0b] font-sans antialiased",
+          "min-h-screen font-sans antialiased",
           inter.variable,
           inter.className
         )}
+        style={{ backgroundColor: "#0f0d0b", color: "#fdf9f3" }}
         suppressHydrationWarning
       >
         <Toaster
