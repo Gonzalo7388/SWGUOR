@@ -1,21 +1,20 @@
-
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AsyncLocalStorage } from 'async_hooks';
 
-// ── Almacén del usuario por request (seguro con concurrencia) ──────────────
 export const auditUserStore = new AsyncLocalStorage<{ userId: bigint }>();
 
-// ── Singleton global ───────────────────────────────────────────────────────
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+declare global {
+  // eslint-disable-next-line no-var
+  var prismaGlobal: PrismaClient | undefined;
+}
 
 function buildClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString || connectionString === 'undefined') {
-    // Build de Vercel sin variables disponibles — cliente mínimo
-    return new PrismaClient();
+    throw new Error('DATABASE_URL is not set.');
   }
 
   const pool = new Pool({ connectionString });
@@ -27,14 +26,21 @@ function buildClient(): PrismaClient {
   });
 }
 
-let prismaInstance: PrismaClient;
-
-if (typeof window === 'undefined') {
-  prismaInstance = globalForPrisma.prisma ?? buildClient();
-
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prismaInstance;
+function getClient(): PrismaClient {
+  if (typeof window !== 'undefined') {
+    throw new Error('Prisma cannot be used on the client side.');
   }
+
+  global.prismaGlobal ??= buildClient();
+
+  return global.prismaGlobal;
 }
 
-export const prisma = prismaInstance!;
+export const prisma = new Proxy<PrismaClient>(
+  Object.create(PrismaClient.prototype) as PrismaClient,
+  {
+    get(target, prop: keyof PrismaClient) {
+      return getClient()[prop];
+    },
+  }
+);

@@ -3,28 +3,43 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 
 export async function GET() {
+  if (!prisma) {
+    return NextResponse.json(
+      { error: 'Database client not initialized' },
+      { status: 503 }
+    );
+  }
+
   try {
     const testimonials = await prisma.feedback_cliente.findMany({
       where: {
-        puntuacion: 5
+        estado: 'revisado',
+        puntuacion: { gte: 4 },
+        comentarios: { not: null },
       },
       include: {
         clientes: {
           select: {
             nombre_comercial: true,
-            ruc: true,
-          }
-        }
+          },
+        },
       },
-      take: 10,
       orderBy: {
-        created_at: 'desc'
-      }
+        created_at: 'desc',
+      },
+      take: 20,
     });
 
-    return NextResponse.json(serializeBigInt(testimonials));
+    return NextResponse.json(serializeBigInt(testimonials), {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (error) {
     console.error('Error fetching testimonials:', error);
-    return NextResponse.json({ error: 'Failed to fetch testimonials' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch testimonials' },
+      { status: 500 }
+    );
   }
 }

@@ -12,6 +12,7 @@ import {
   SparkKpiCard,
   StockCriticoList,
   RankingProductos,
+  fmtCompact, 
 } from './widgets/DashboardWidgets';
 import DashboardCharts from './DashboardCharts';
 import type { insumo, pedidos } from '@prisma/client';
@@ -151,7 +152,7 @@ export default function DashboardAdministrador() {
 
       {/* ── KPIs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SparkKpiCard label="Ventas Reales"    value={kpis ? `S/ ${Number(kpis.total_ventas).toLocaleString('es-PE')}` : '—'} delta={12}  icon={TrendingUp}   />
+        <SparkKpiCard label="Ventas Reales"    value={kpis ? fmtCompact(Number(kpis.total_ventas)) : '—'} delta={12}  icon={TrendingUp}   />
         <SparkKpiCard label="Clientes Activos" value={kpis?.total_clientes ?? '—'}   delta={5}   icon={Users}         />
         <SparkKpiCard label="Órdenes Totales"  value={kpis?.nuevas_ordenes ?? '—'}   delta={8}   icon={ShoppingCart}  />
         <SparkKpiCard label="Alertas Insumos"  value={kpis?.stock_alerta ?? '—'}     delta={-2}  icon={AlertTriangle} accentColor="#dc2626" />
@@ -216,7 +217,7 @@ export default function DashboardAdministrador() {
             ))
           ) : recentOrders.length === 0 ? (
             <div className="col-span-full py-12 text-center">
-              <ShoppingCart style={{ width: 32, height: 32, color: P.border, margin: '0 auto 8px' }} />
+              <ShoppingCart size={32} style={{ color: P.border, margin: '0 auto 8px' }} />
               <span style={{ fontSize: 11, color: P.muted, fontWeight: 600,
                 textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Sin actividad reciente
