@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   variable: '--font-inter',
 });
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#0f0d0b",
   width: "device-width",
   initialScale: 1,
 };
@@ -38,20 +38,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning className={greatVibes.variable}>
-      <body 
+      <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased",
+          "min-h-screen bg-[#0f0d0b] font-sans antialiased",
           inter.variable,
           inter.className
         )}
         suppressHydrationWarning
       >
-        <Toaster 
-          position="top-right" 
-          richColors 
-          closeButton 
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
           expand={false}
-          theme="light"
+          theme="dark"
         />
         <div className="relative flex min-h-screen flex-col">
           {children}

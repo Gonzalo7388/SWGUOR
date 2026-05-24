@@ -163,16 +163,16 @@ export default function RegisterPage() {
 
   /* ─── MAIN FORM ─── */
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#fdf9f3' }}>
+    <div className="md:col-span-3 p-8 md:p-12 flex flex-col justify-center" style={{ background: '#fdf9f3' }}>
       <GoldenThreadBackground />
 
       <div
-        className="relative z-10 max-w-md w-full text-center space-y-6 p-10 rounded-[2.5rem]"
-        style={{ background: '#fdf9f3', border: '1.5px solid #e8d5a8', boxShadow: '0 20px 60px rgba(26,20,16,0.10)' }}
+        className="relative z-10 w-full grid grid-cols-5 rounded-[2.5rem] overflow-hidden"
+        style={{ maxWidth: '900px', border: '1.5px solid #e8d5a8', boxShadow: '0 20px 60px rgba(26,20,16,0.10)' }}
       >
 
         {/* ── LADO IZQUIERDO ── */}
-        <div className="hidden md:flex md:col-span-2 p-10 flex-col justify-between" style={{ background: '#1a1410' }}>
+        <div className="md:flex md:col-span-2 p-10 flex-col justify-between hidden" style={{ background: '#1a1410' }}>
           <div>
             <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-8 shadow-xl" style={{ background: '#fdf9f3' }}>
               <Image src="/logo.png" alt="Logo Guor" width={40} height={40} />
