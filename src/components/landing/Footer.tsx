@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Phone, MapPin, Instagram, Facebook } from "lucide-react";
 
 const Footer = () => {
@@ -15,11 +16,18 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6">
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-14 items-start">
+
           {/* LOGO */}
           <div className="text-center md:text-left">
-            <h2 className="text-4xl font-black mb-3" style={{ color: "#fdf9f3" }}>
-              Modas y Estilos GUOR
-            </h2>
+            <div className="flex justify-center md:justify-start mb-3">
+              <Image
+                src="/logo-oscuro.png"
+                alt="GUOR Logo"
+                width={200}
+                height={150}
+                className="object-contain"
+              />
+            </div>
             <div className="w-10 h-px mb-4" style={{ background: "#c4a35a" }} />
             <p className="text-base leading-relaxed max-w-sm mx-auto md:mx-0" style={{ color: "rgba(253,249,243,0.62)" }}>
               Moda y confección premium para negocios modernos.
@@ -71,7 +79,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* LINEA */}
+        {/* LÍNEA */}
         <div className="my-10" style={{ height: "1px", background: "rgba(196,163,90,0.15)" }} />
 
         {/* BOTTOM */}

@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { UserCircle, ShieldCheck, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 const navItems = [
   { name: "Inicio", href: "/" },
@@ -17,17 +18,33 @@ const navItems = [
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { scrollY } = useScroll();
+  const pathname = usePathname();
+
+  // En páginas internas el navbar siempre es oscuro desde el inicio
+  const isHome = pathname === "/";
 
   const backgroundColor = useTransform(
     scrollY,
-    [0, 100],
-    ["rgba(253,249,243,0)", "rgba(253,249,243,0.97)"]
+    [0, 80],
+    isHome
+      ? ["rgba(15,13,11,0)", "rgba(15,13,11,0.92)"]
+      : ["rgba(15,13,11,0.92)", "rgba(15,13,11,0.92)"]
+  );
+
+  const borderColor = useTransform(
+    scrollY,
+    [0, 80],
+    isHome
+      ? ["rgba(196,163,90,0)", "rgba(196,163,90,0.18)"]
+      : ["rgba(196,163,90,0.18)", "rgba(196,163,90,0.18)"]
   );
 
   const boxShadow = useTransform(
     scrollY,
-    [0, 100],
-    ["none", "0 1px 0 0 rgba(232,213,168,0.4), 0 4px 24px -6px rgba(26,20,16,0.07)"]
+    [0, 80],
+    isHome
+      ? ["none", "0 4px 40px rgba(0,0,0,0.4)"]
+      : ["0 4px 40px rgba(0,0,0,0.4)", "0 4px 40px rgba(0,0,0,0.4)"]
   );
 
   return (
@@ -35,59 +52,49 @@ const Navbar = () => {
       style={{ backgroundColor, boxShadow }}
       className="fixed top-0 inset-x-0 z-50 backdrop-blur-md"
     >
+      <motion.div
+        style={{ height: "1px", background: borderColor }}
+        className="absolute bottom-0 left-0 right-0"
+      />
+
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3">
-          <Image
-            src="/logo.png"
-            alt="GUOR Logo"
-            width={40}
-            height={40}
-            className="object-contain"
-          />
-          <span
-            style={{
-              fontFamily: "var(--font-great-vibes)",
-              fontSize: '1.75rem',
-              lineHeight: 1,
-              color: '#1a1410',
-              letterSpacing: '0.01em',
-            }}
-          >
-            Modas y Estilos{' '}
-            <span style={{ color: '#c4a35a' }}>Guor</span>
-          </span>
+          <Image src="/logo-oscuro.png" alt="GUOR Logo" width={200} height={150} className="object-contain" />
         </Link>
 
         {/* LINKS DESKTOP */}
         <div className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="text-[11px] font-bold uppercase tracking-widest transition-colors duration-200"
-              style={{ color: "rgba(26,20,16,0.50)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#8a6d3b")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(26,20,16,0.50)")}
-            >
-              {item.name}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-[11px] font-bold uppercase tracking-widest transition-colors duration-200"
+                style={{ color: isActive ? "#c4a35a" : "rgba(253,249,243,0.55)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#c4a35a")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? "#c4a35a" : "rgba(253,249,243,0.55)")}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
         </div>
 
-        {/* BOTONES */}
+        {/* BOTONES DESKTOP */}
         <div className="hidden md:flex items-center gap-3">
-          {/* ADMIN */}
           <Link
             href="/login-admin"
             className="flex items-center gap-2 px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all duration-200"
-            style={{ color: "rgba(26,20,16,0.50)", border: "1px solid transparent" }}
+            style={{ color: "rgba(253,249,243,0.45)", border: "1px solid transparent" }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#1a1410";
-              e.currentTarget.style.borderColor = "#e8d5a8";
+              e.currentTarget.style.color = "rgba(253,249,243,0.85)";
+              e.currentTarget.style.borderColor = "rgba(196,163,90,0.35)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = "rgba(26,20,16,0.50)";
+              e.currentTarget.style.color = "rgba(253,249,243,0.45)";
               e.currentTarget.style.borderColor = "transparent";
             }}
           >
@@ -95,20 +102,26 @@ const Navbar = () => {
             GUOR Corporativo
           </Link>
 
-          {/* CLIENTE */}
           <Link
             href="/login-cliente"
             className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all duration-300"
-            style={{ background: "#1a1410", color: "#fdf9f3", border: "1.5px solid #1a1410" }}
+            style={{
+              background: "#c4a35a",
+              color: "#0f0d0b",
+              border: "1.5px solid #c4a35a",
+              boxShadow: "0 0 20px rgba(196,163,90,0.25)",
+            }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#c4a35a";
-              e.currentTarget.style.borderColor = "#c4a35a";
-              e.currentTarget.style.color = "#1a1410";
+              e.currentTarget.style.background = "#d4b472";
+              e.currentTarget.style.borderColor = "#d4b472";
+              e.currentTarget.style.boxShadow = "0 0 30px rgba(196,163,90,0.45)";
+              e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#1a1410";
-              e.currentTarget.style.borderColor = "#1a1410";
-              e.currentTarget.style.color = "#fdf9f3";
+              e.currentTarget.style.background = "#c4a35a";
+              e.currentTarget.style.borderColor = "#c4a35a";
+              e.currentTarget.style.boxShadow = "0 0 20px rgba(196,163,90,0.25)";
+              e.currentTarget.style.transform = "translateY(0)";
             }}
           >
             <UserCircle size={16} />
@@ -119,7 +132,7 @@ const Navbar = () => {
         {/* MOBILE BUTTON */}
         <button
           className="md:hidden"
-          style={{ color: "#1a1410" }}
+          style={{ color: "#fdf9f3" }}
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -131,30 +144,38 @@ const Navbar = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden absolute top-20 inset-x-0 p-6 flex flex-col gap-4 shadow-lg"
-          style={{ background: "#fdf9f3", borderBottom: "1px solid #e8d5a8" }}
+          className="md:hidden absolute top-20 inset-x-0 p-6 flex flex-col gap-4"
+          style={{
+            background: "rgba(15,13,11,0.97)",
+            borderBottom: "1px solid rgba(196,163,90,0.2)",
+            backdropFilter: "blur(16px)",
+          }}
         >
           {navItems.map((item) => (
             <Link
               key={item.name}
               href={item.href}
               className="text-sm font-bold uppercase tracking-widest py-2"
-              style={{ color: "#1a1410" }}
+              style={{ color: pathname === item.href ? "#c4a35a" : "rgba(253,249,243,0.75)" }}
+              onClick={() => setIsOpen(false)}
             >
               {item.name}
             </Link>
           ))}
+          <div style={{ height: "1px", background: "rgba(196,163,90,0.2)", margin: "4px 0" }} />
           <Link
             href="/login-cliente"
             className="w-full py-3 text-center rounded-xl font-bold text-xs"
-            style={{ background: "#1a1410", color: "#fdf9f3", border: "1.5px solid #1a1410" }}
+            style={{ background: "#c4a35a", color: "#0f0d0b" }}
+            onClick={() => setIsOpen(false)}
           >
             Portal Socios
           </Link>
           <Link
             href="/login-admin"
             className="w-full py-3 text-center rounded-xl font-bold text-xs"
-            style={{ background: "transparent", color: "#1a1410", border: "1px solid #e8d5a8" }}
+            style={{ color: "rgba(253,249,243,0.65)", border: "1px solid rgba(196,163,90,0.25)" }}
+            onClick={() => setIsOpen(false)}
           >
             GUOR Corporativo
           </Link>
