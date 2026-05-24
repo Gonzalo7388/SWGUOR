@@ -21,7 +21,7 @@ const Footer = () => {
           <div className="text-center md:text-left">
             <div className="flex justify-center md:justify-start mb-3">
               <Image
-                src="/logo-sin-fondo.png"
+                src="/logo-oscuro.png"
                 alt="GUOR Logo"
                 width={200}
                 height={150}
