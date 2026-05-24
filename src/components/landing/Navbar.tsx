@@ -33,7 +33,7 @@ const Navbar = () => {
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3">
           <Image
-            src="/logo-sin-fondo.png"
+            src="/logo-oscuro.png"
             alt="GUOR Logo"
             width={200}
             height={150}
