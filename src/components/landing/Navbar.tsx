@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
 import { UserCircle, ShieldCheck, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,51 +16,29 @@ const navItems = [
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { scrollY } = useScroll();
   const pathname = usePathname();
 
-  // En páginas internas el navbar siempre es oscuro desde el inicio
-  const isHome = pathname === "/";
-
-  const backgroundColor = useTransform(
-    scrollY,
-    [0, 80],
-    isHome
-      ? ["rgba(15,13,11,0)", "rgba(15,13,11,0.92)"]
-      : ["rgba(15,13,11,0.92)", "rgba(15,13,11,0.92)"]
-  );
-
-  const borderColor = useTransform(
-    scrollY,
-    [0, 80],
-    isHome
-      ? ["rgba(196,163,90,0)", "rgba(196,163,90,0.18)"]
-      : ["rgba(196,163,90,0.18)", "rgba(196,163,90,0.18)"]
-  );
-
-  const boxShadow = useTransform(
-    scrollY,
-    [0, 80],
-    isHome
-      ? ["none", "0 4px 40px rgba(0,0,0,0.4)"]
-      : ["0 4px 40px rgba(0,0,0,0.4)", "0 4px 40px rgba(0,0,0,0.4)"]
-  );
-
   return (
-    <motion.nav
-      style={{ backgroundColor, boxShadow }}
-      className="fixed top-0 inset-x-0 z-50 backdrop-blur-md"
+    <nav
+      style={{
+        background: "#211f1d",
+        borderBottom: "1px solid rgba(196,163,90,0.18)",
+        boxShadow: "0 4px 40px rgba(0,0,0,0.4)",
+        backdropFilter: "blur(12px)",
+      }}
+      className="fixed top-0 inset-x-0 z-50"
     >
-      <motion.div
-        style={{ height: "1px", background: borderColor }}
-        className="absolute bottom-0 left-0 right-0"
-      />
-
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
 
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/logo-sin-fondo.png" alt="GUOR Logo" width={200} height={150} className="object-contain" />
+          <Image
+            src="/logo-sin-fondo.png"
+            alt="GUOR Logo"
+            width={200}
+            height={150}
+            className="object-contain"
+          />
         </Link>
 
         {/* LINKS DESKTOP */}
@@ -141,14 +118,11 @@ const Navbar = () => {
 
       {/* MOBILE MENU */}
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="md:hidden absolute top-20 inset-x-0 p-6 flex flex-col gap-4"
           style={{
-            background: "rgba(15,13,11,0.97)",
+            background: "#211f1d",
             borderBottom: "1px solid rgba(196,163,90,0.2)",
-            backdropFilter: "blur(16px)",
           }}
         >
           {navItems.map((item) => (
@@ -179,9 +153,9 @@ const Navbar = () => {
           >
             GUOR Corporativo
           </Link>
-        </motion.div>
+        </div>
       )}
-    </motion.nav>
+    </nav>
   );
 };
 
