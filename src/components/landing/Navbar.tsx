@@ -61,7 +61,7 @@ const Navbar = () => {
 
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/logo-oscuro.png" alt="GUOR Logo" width={200} height={150} className="object-contain" />
+          <Image src="/logo-sin-fondo.png" alt="GUOR Logo" width={200} height={150} className="object-contain" />
         </Link>
 
         {/* LINKS DESKTOP */}
