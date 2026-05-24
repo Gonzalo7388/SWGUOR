@@ -9,7 +9,6 @@ import { usePortal } from '../_contexts/PortalContext';
 import { KpiCards } from '@/components/portal/dashboard/KpiCards';
 import { RecentQuotes } from '@/components/portal/dashboard/RecentQuotes';
 import { RecentOrders } from '@/components/portal/dashboard/RecentOrders';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
 import type { EstadoCotizacion, EstadoPedido } from '@prisma/client';
@@ -60,14 +59,14 @@ interface KpiItem {
 // ─── Skeleton Optimizado (Mismo tamaño que el layout real) ─────────────────────
 
 function Pulse({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-xl bg-slate-100/80', className)} />;
+  return <div className={cn('animate-pulse rounded-xl bg-guor-100/60', className)} />;
 }
 
 function DashboardSkeleton() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Cabecera Skeleton */}
-      <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+      <div className="flex justify-between items-center pb-4 border-b border-guor-line">
         <div className="space-y-2">
           <Pulse className="h-4 w-24 rounded-full" />
           <Pulse className="h-8 w-64 rounded-xl" />
@@ -111,37 +110,13 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      const [
-        { data: cotizacionesRaw, error: eCot },
-        { data: pedidosRaw, error: ePed },
-        { data: cotStats, error: eCotS },
-        { data: pedStats, error: ePedS },
-      ] = await Promise.all([
-        supabase.from('cotizaciones').select('id, numero, total, estado, created_at, moneda, cotizacion_items(count)').eq('cliente_id', cliente.id).order('created_at', { ascending: false }).limit(6),
-        supabase.from('pedidos').select('id, estado, total, created_at, total_unidades, moneda').eq('cliente_id', cliente.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('cotizaciones').select('estado').eq('cliente_id', cliente.id),
-        supabase.from('pedidos').select('estado, total').eq('cliente_id', cliente.id),
-      ]);
+      const res = await fetch('/api/portal/dashboard', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Error al obtener datos del servidor');
 
-      if (eCot || ePed || eCotS || ePedS) throw eCot || ePed || eCotS || ePedS;
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Error en respuesta');
 
-      const pedidoIds = (pedidosRaw ?? []).map((p: any) => p.id).filter(Boolean);
-      const { count: despachosCount } = pedidoIds.length > 0
-        ? await supabase.from('despachos').select('id', { count: 'exact', head: true }).eq('estado', 'en_ruta').in('pedido_id', pedidoIds)
-        : { count: 0 };
-
-      setData({
-        cotizaciones: (cotizacionesRaw ?? []).map((c: any) => ({ ...c, total_items: c.cotizacion_items?.[0]?.count ?? 0 })),
-        pedidos: (pedidosRaw ?? []).map((p: any) => ({ ...p, estado: p.estado ?? 'pendiente', created_at: p.created_at ?? '' })),
-        stats: {
-          cotizaciones_pendientes: (cotStats ?? []).filter((c: any) => ['borrador', 'enviada'].includes(c.estado)).length,
-          pedidos_en_produccion: (pedStats ?? []).filter((p: any) => p.estado === 'en_produccion').length,
-          pedidos_listos: (pedStats ?? []).filter((p: any) => p.estado === 'listo_para_despacho').length,
-          despachos_en_ruta: despachosCount ?? 0,
-          total_gastado: (pedStats ?? []).filter((p: any) => ['entregado', 'completado'].includes(p.estado)).reduce((acc: number, p: any) => acc + Number(p.total ?? 0), 0),
-        },
-      });
+      setData(json.data);
     } catch (err) {
       setError('No se pudo cargar la información.');
       console.error(err);
@@ -157,9 +132,9 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 text-center">
-        <AlertCircle size={40} className="text-rose-400" />
-        <p className="text-slate-500 font-bold uppercase text-xs tracking-wider">{error}</p>
-        <button onClick={fetchData} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold uppercase text-[10px] tracking-wider transition-transform active:scale-95">Reintentar</button>
+        <AlertCircle size={40} className="text-guor-400" />
+        <p className="text-guor-soft font-bold uppercase text-xs tracking-wider">{error}</p>
+        <button onClick={fetchData} className="px-6 py-2.5 bg-guor-600 text-white rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all hover:bg-guor-700 active:scale-95">Reintentar</button>
       </div>
     );
   }
@@ -181,28 +156,28 @@ export default function DashboardPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       
       {/* ── Cabecera Compacta ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-guor-line">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
-            <Sparkles size={10} className="text-[#d4af37]" />
-            <span className="text-[9px] font-bold text-[#d4af37] uppercase tracking-wider">{saludo}</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-guor-50 border border-guor-200">
+            <Sparkles size={10} className="text-guor-500" />
+            <span className="text-[9px] font-bold text-guor-600 uppercase tracking-wider">{saludo}</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-            Hola, <span className="text-[#d4af37]">{primerNombre}</span>
+          <h1 className="text-2xl md:text-3xl font-black text-guor-ink tracking-tight">
+            Hola, <span className="text-guor-600">{primerNombre}</span>
           </h1>
-          <p className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">
+          <p className="text-guor-soft font-bold uppercase text-[9px] tracking-wider">
             {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-white border border-slate-100 rounded-xl shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Inversión Total</span>
-            <span className="text-lg font-black text-slate-900">{formatCurrency(s?.total_gastado ?? 0)}</span>
+          <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-white border border-guor-line rounded-xl shadow-sm">
+            <span className="text-[9px] font-bold text-guor-soft uppercase tracking-wider">Inversión Total</span>
+            <span className="text-lg font-black text-guor-ink">{formatCurrency(s?.total_gastado ?? 0)}</span>
           </div>
           <Link
             href="/portal/cotizaciones/nueva"
-            className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-[#d4af37] rounded-xl font-bold uppercase text-[11px] tracking-wider transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-5 py-3 bg-guor-600 hover:bg-guor-700 text-white rounded-xl font-bold uppercase text-[11px] tracking-wider transition-all shadow-sm active:scale-95"
           >
             <Plus size={14} />
             Nueva Solicitud

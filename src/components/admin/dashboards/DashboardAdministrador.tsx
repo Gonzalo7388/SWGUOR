@@ -12,7 +12,7 @@ import {
   SparkKpiCard,
   StockCriticoList,
   RankingProductos,
-  fmtCompact, 
+   fmtCompact, 
 } from './widgets/DashboardWidgets';
 import DashboardCharts from './DashboardCharts';
 import type { insumo, pedidos } from '@prisma/client';
@@ -29,16 +29,16 @@ interface ApiData {
   topProductos:    TopProducto[];
 }
 
-// ─── Paleta ERP ───────────────────────────────────────────────────────────────
+// ─── Paleta GUOR ──────────────────────────────────────────────────────────────
 const P = {
-  accent:  '#1d3fa6',
-  accent2: '#3358e8',
-  bg:      '#f4f6f9',
-  white:   '#ffffff',
-  border:  '#d4dae5',
-  text:    '#0f172a',
-  muted:   '#64748b',
-  surface: '#f0f4ff',
+  accent:  '#e11d48',   // guor-600 — acento principal
+  accent2: '#f43f5e',   // guor-500 — hover activo
+  bg:      '#fafaf9',   // guor-bg  — fondo shell
+  white:   '#ffffff',   // guor-white
+  border:  '#e7e5e4',   // guor-line
+  text:    '#1c1917',   // guor-ink — warm-black
+  muted:   '#78716c',   // guor-soft — warm-gray
+  surface: '#fff1f2',   // guor-50  — surface tint rose
 };
 
 export default function DashboardAdministrador() {
@@ -69,8 +69,8 @@ export default function DashboardAdministrador() {
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 p-6 text-center">
       <AlertOctagon className="w-8 h-8 text-red-400" />
-      <h2 className="font-bold text-gray-900">Error en el panel</h2>
-      <p className="text-xs text-gray-500">{error}</p>
+      <h2 className="font-bold text-guor-ink">Error en el panel</h2>
+      <p className="text-xs text-guor-soft">{error}</p>
       <Button
         onClick={() => fetchData()}
         style={{ background: P.accent, color: '#fff', borderRadius: 8 }}
@@ -90,7 +90,7 @@ export default function DashboardAdministrador() {
     <>
       {/* Filtros de período */}
       <div style={{
-        display: 'flex', background: '#e8ecf2',
+        display: 'flex', background: '#ece9e8',
         borderRadius: 8, padding: 3, gap: 2,
       }}>
         {['7', '30', '90'].map((d) => (
@@ -104,8 +104,8 @@ export default function DashboardAdministrador() {
               textTransform: 'uppercase',
               border: 'none', cursor: 'pointer',
               transition: 'all 0.15s',
-              background: filter === d ? P.white  : 'transparent',
-              color:      filter === d ? P.accent : P.muted,
+              background: filter === d ? P.white   : 'transparent',
+              color:      filter === d ? P.accent  : P.muted,
               boxShadow:  filter === d ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}
           >
@@ -136,8 +136,8 @@ export default function DashboardAdministrador() {
   );
 
   const estadoColor = (estado: string) => {
-    if (estado === 'entregado')          return '#16a34a';
-    if (estado === 'pendiente')          return '#d97706';
+    if (estado === 'entregado')           return '#16a34a';
+    if (estado === 'pendiente')           return '#d97706';
     if (estado === 'listo_para_despacho') return '#0284c7';
     return P.accent;
   };
@@ -232,7 +232,7 @@ export default function DashboardAdministrador() {
                   background: P.white, border: `1px solid ${P.border}`,
                   transition: 'all 0.2s',
                 }}
-                className="hover:border-blue-200 hover:shadow-md hover:-translate-y-0.5 group"
+                className="hover:border-guor-200 hover:shadow-md hover:-translate-y-0.5 group"
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between',
                   alignItems: 'flex-start', marginBottom: 10 }}>

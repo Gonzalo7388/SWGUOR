@@ -24,19 +24,22 @@ export interface PaletaColors {
 
 // ─── PALETA CORPORATIVA ROSE ──────────────────────────────────────────────────
 export const COMPANY_PALETTE: PaletaColors = {
-  accent:     '#e11d48',   // rose-600
-  bg:         '#ffffff',
-  bgSoft:     '#f8fafc',   // slate-50
-  border:     '#e2e8f0',   // slate-200
-  text:       '#0f172a',   // slate-900 
-  mid:        '#f43f5e',   // rose-500
-  primary:    '#e11d48',   // rose-600
-  secondary:  '#be123c',   // rose-700
-  dark:       '#0f172a',   // slate-900
-  cream:      '#fff1f2',   // rose-50
-  peach:      '#ffe4e6',   // rose-100
-  beige:      '#f1f5f9',   // slate-100
-  white:      '#ffffff',
+  accent:    '#e11d48',   // guor-600  — rose principal
+  primary:   '#e11d48',   // guor-600
+  secondary: '#be123c',   // guor-700  — hover / pressed
+
+  bg:        '#fafaf9',   // guor-bg   — off-white cálido
+  bgSoft:    '#fff1f2',   // guor-50   — surface tint rose
+  white:     '#ffffff',
+  beige:     '#fff1f2',   // guor-50   — icon bg
+  cream:     '#ffe4e6',   // guor-100  — stock crítico bg
+  peach:     '#fecdd3',   // guor-200  — stock crítico border
+
+  text:      '#1c1917',   // guor-ink  — warm-black
+  dark:      '#1c1917',   // guor-ink
+  mid:       '#78716c',   // guor-soft — warm-gray (texto secundario)
+
+  border:    '#e7e5e4',   // guor-line — warm-stone
 };
 
 export type RolPaleta =
