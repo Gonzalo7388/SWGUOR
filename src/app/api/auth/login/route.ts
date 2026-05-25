@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { prisma, prismaAvailable } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT = 5;
@@ -49,10 +49,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (!prismaAvailable) {
-      console.error('Prisma client unavailable: DATABASE_URL not set');
-      return NextResponse.json({ error: 'Servicio temporalmente no disponible' }, { status: 503 });
-    }
     const { email, password } = await request.json();
     const cookieStore = await cookies();
     const { url, anonKey } = getSupabaseEnv();

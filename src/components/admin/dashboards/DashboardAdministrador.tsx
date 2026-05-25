@@ -14,6 +14,7 @@ import {
   RankingProductos,
    fmtCompact, 
 } from './widgets/DashboardWidgets';
+import { COMPANY_PALETTE } from './widgets/DashboardUtils';
 import DashboardCharts from './DashboardCharts';
 import type { insumo, pedidos } from '@prisma/client';
 import type { VentaMensual, DashboardKpis, TopProducto } from '@/lib/services/dashboard.service';
@@ -30,16 +31,7 @@ interface ApiData {
 }
 
 // ─── Paleta GUOR ──────────────────────────────────────────────────────────────
-const P = {
-  accent:  '#e11d48',   // guor-600 — acento principal
-  accent2: '#f43f5e',   // guor-500 — hover activo
-  bg:      '#fafaf9',   // guor-bg  — fondo shell
-  white:   '#ffffff',   // guor-white
-  border:  '#e7e5e4',   // guor-line
-  text:    '#1c1917',   // guor-ink — warm-black
-  muted:   '#78716c',   // guor-soft — warm-gray
-  surface: '#fff1f2',   // guor-50  — surface tint rose
-};
+const P = COMPANY_PALETTE;
 
 export default function DashboardAdministrador() {
   const [filter, setFilter]         = useState('30');
