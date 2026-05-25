@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaAvailable } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 
 export async function GET() {
@@ -11,6 +11,9 @@ export async function GET() {
   }
 
   try {
+    if (!prismaAvailable) {
+      return NextResponse.json([]);
+    }
     const testimonials = await prisma.feedback_cliente.findMany({
       where: {
         estado: 'revisado',

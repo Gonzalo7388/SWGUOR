@@ -14,7 +14,28 @@ function buildClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString || connectionString === 'undefined') {
-    throw new Error('DATABASE_URL is not set.');
+
+    const makeUnavailable = () => {
+      const thrower = () => {
+        throw new Error('Prisma client unavailable: DATABASE_URL is not set');
+      };
+
+      const proxy = new Proxy(thrower as any, {
+        get() {
+          return proxy;
+        },
+        apply() {
+          throw new Error('Prisma client unavailable: DATABASE_URL is not set');
+        },
+      });
+
+      // Mark proxy so callers can detect availability without invoking it
+      (proxy as any).__prisma_unavailable = true;
+
+      return proxy as unknown as PrismaClient;
+    };
+
+    return makeUnavailable();
   }
 
   const pool = new Pool({ connectionString });
@@ -36,11 +57,5 @@ function getClient(): PrismaClient {
   return global.prismaGlobal;
 }
 
-export const prisma = new Proxy<PrismaClient>(
-  Object.create(PrismaClient.prototype) as PrismaClient,
-  {
-    get(target, prop: keyof PrismaClient) {
-      return getClient()[prop];
-    },
-  }
-);
+export const prisma = prismaInstance!;
+export const prismaAvailable = !(prisma as any).__prisma_unavailable;
