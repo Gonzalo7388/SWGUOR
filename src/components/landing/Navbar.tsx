@@ -21,10 +21,16 @@ const Navbar = () => {
   return (
     <nav
       style={{
+<<<<<<< HEAD
         background: "#211f1d",
         borderBottom: "1px solid rgba(196,163,90,0.18)",
         boxShadow: "0 4px 40px rgba(0,0,0,0.4)",
         backdropFilter: "blur(12px)",
+=======
+        backgroundColor: "#211f1d",
+        borderBottom: "1px solid rgba(196,163,90,0.18)",
+        boxShadow: "0 4px 40px rgba(0,0,0,0.5)",
+>>>>>>> main
       }}
       className="fixed top-0 inset-x-0 z-50"
     >
@@ -50,9 +56,15 @@ const Navbar = () => {
                 key={item.name}
                 href={item.href}
                 className="text-[11px] font-bold uppercase tracking-widest transition-colors duration-200"
+<<<<<<< HEAD
                 style={{ color: isActive ? "#c4a35a" : "rgba(253,249,243,0.55)" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#c4a35a")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? "#c4a35a" : "rgba(253,249,243,0.55)")}
+=======
+                style={{ color: isActive ? "#c4a35a" : "#fdf9f3" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#c4a35a")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? "#c4a35a" : "#fdf9f3")}
+>>>>>>> main
               >
                 {item.name}
               </Link>
@@ -130,7 +142,11 @@ const Navbar = () => {
               key={item.name}
               href={item.href}
               className="text-sm font-bold uppercase tracking-widest py-2"
+<<<<<<< HEAD
               style={{ color: pathname === item.href ? "#c4a35a" : "rgba(253,249,243,0.75)" }}
+=======
+              style={{ color: pathname === item.href ? "#c4a35a" : "#fdf9f3" }}
+>>>>>>> main
               onClick={() => setIsOpen(false)}
             >
               {item.name}
