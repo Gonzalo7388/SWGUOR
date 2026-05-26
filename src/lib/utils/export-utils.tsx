@@ -775,20 +775,57 @@ const CARGO_LABELS_MAP: Record<string, string> = {
   representante_taller: 'Rep. de Taller',
 };
 
-export const exportPersonalToExcel = async (data: PersonalBase[], config?: { filename?: string }) => {
+export interface PersonalExportInput {
+  nombre_completo?: string | null;
+  cargo?: string | null;
+  dni?: string | null;
+  telefono?: string | number | null;
+  estado?: string | boolean | null;
+  fecha_ingreso?: string | Date | null;
+  usuarios?: {
+    email?: string | null;
+    rol?: string | null;
+    ultimo_acceso?: string | Date | null;
+  } | null;
+}
+
+export const exportPersonalToExcel = async (
+  data: PersonalExportInput[], 
+  config?: { filename?: string }
+) => {
   if (!data || data.length === 0) return;
-  const rows = data.map(p => ({
-    'NOMBRE COMPLETO': p.nombre_completo ?? '—',
-    'CARGO': p.cargo ? (CARGO_LABELS_MAP[p.cargo] ?? p.cargo) : '—',
-    'DNI': p.dni ?? '—',
-    'TELÉFONO': p.telefono ?? '—',
-    'EMAIL': p.usuarios?.email ?? '—',
-    'ROL SISTEMA': p.usuarios?.rol ?? '—',
-    'ESTADO': p.estado !== false ? 'ACTIVO' : 'INACTIVO',
-    'FECHA INGRESO': p.fecha_ingreso ? new Date(p.fecha_ingreso).toLocaleDateString('es-PE') : '—',
-    'ÚLTIMO ACCESO': p.usuarios?.ultimo_acceso ? new Date(p.usuarios.ultimo_acceso).toLocaleDateString('es-PE') : '—',
-  }));
-  await exportToExcel(rows as unknown as Record<string, unknown>[], {
+
+  const rows = data.map(p => {
+    // 1. Procesamiento seguro del Cargo buscando en tu mapa de etiquetas
+    const cargoKey = p.cargo ?? '';
+    const cargoLabel = cargoKey && typeof CARGO_LABELS_MAP !== 'undefined'
+      ? (CARGO_LABELS_MAP as Record<string, string>)[cargoKey] ?? cargoKey
+      : cargoKey;
+
+    // 2. Procesamiento semántico del Estado (por si viene como String o Boolean)
+    let estadoLabel = 'INACTIVO';
+    if (p.estado === 'activo' || p.estado === true) {
+      estadoLabel = 'ACTIVO';
+    } else if (p.estado === 'suspendido') {
+      estadoLabel = 'SUSPENDIDO';
+    } else if (p.estado) {
+      estadoLabel = String(p.estado).toUpperCase();
+    }
+
+    return {
+      'NOMBRE COMPLETO': p.nombre_completo || '—',
+      'CARGO': cargoLabel || '—',
+      'DNI': p.dni || '—',
+      'TELÉFONO': p.telefono || '—',
+      'EMAIL': p.usuarios?.email || '—',
+      'ROL SISTEMA': p.usuarios?.rol || '—',
+      'ESTADO': estadoLabel,
+      'FECHA INGRESO': p.fecha_ingreso ? new Date(p.fecha_ingreso).toLocaleDateString('es-PE') : '—',
+      'ÚLTIMO ACCESO': p.usuarios?.ultimo_acceso ? new Date(p.usuarios.ultimo_acceso).toLocaleDateString('es-PE') : '—',
+    };
+  });
+
+  await exportToExcel(rows as Record<string, unknown>[], {
     filename: config?.filename ?? `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
     sheetName: 'Personal Interno',
   });

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeBigInt } from "@/lib/utils/serialize";
-import PedidoDetalle from "@/components/admin/pedidos/detalles/PedidoDetalle";
+import PedidoDetalle, { type DetallePedidoData, type TallerOption } from "@/components/admin/pedidos/detalles/PedidoDetalle";
 
 export const dynamic = 'force-dynamic';
 
@@ -64,10 +64,16 @@ export default async function PedidoDetallePage({ params }: PageProps) {
     notFound();
   }
 
+  // ── CORRECCIÓN ESTRICTA SIN "AS ANY" ──
+  // Forzamos el tipado correcto a través del valor de retorno de la serialización 
+  // usando un Type Assertion específico ("as DetallePedidoData" y "as TallerOption[]")
+  const pedidoSerializado = serializeBigInt(pedido) as unknown as DetallePedidoData;
+  const talleresSerializados = serializeBigInt(talleres) as unknown as TallerOption[];
+
   return (
     <PedidoDetalle
-      pedido={serializeBigInt(pedido)}
-      talleres={serializeBigInt(talleres)}
+      pedido={pedidoSerializado}
+      talleres={talleresSerializados}
     />
   );
 }

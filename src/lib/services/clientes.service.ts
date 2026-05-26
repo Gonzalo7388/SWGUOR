@@ -140,7 +140,7 @@ export const ClientesService = {
             telefono:         data.telefono          ?? null,
             direccion_fiscal: data.direccion_fiscal  ?? null,
             tipo_cliente:     (data.tipo_cliente as TipoCliente) ?? 'corporativo',
-            activo:           'activo',
+            estado:           'activo',
             usuario_id:       usuario.id,
           },
           include: {
@@ -203,7 +203,7 @@ export const ClientesService = {
     const [clienteActualizado] = await prisma.$transaction([
       prisma.clientes.update({
         where: { id: BigInt(clienteId) },
-        data:  { activo: estado, updated_at: new Date() },
+        data:  { estado: estado, updated_at: new Date() },
       }),
       ...(cliente.usuarios
         ? [prisma.usuarios.update({

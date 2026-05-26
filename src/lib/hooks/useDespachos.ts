@@ -1,13 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getDespachoActivos,
   subscribeToGrupo,
   type DespachoFlat,
   type SeguimientoDespacho,
+  type TipoIncidenciaCliente,
+  type SeveridadIncidencia,
 } from '@/lib/services/despachos.service';
 import { aplanarDespacho } from '@/lib/helpers/despachos-helpers';
+
+// ─── useDespachos ────────────────────────────────────────────────────────────
 
 interface UseDespachoState {
   despachos: DespachoFlat[];
@@ -18,17 +22,16 @@ interface UseDespachoState {
 
 export function useDespachos(): UseDespachoState {
   const [despachos, setDespachos] = useState<DespachoFlat[]>([]);
-  const [cargando, setCargando] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando]   = useState(true);
+  const [error, setError]         = useState<string | null>(null);
 
   const cleanupRefs = useRef<(() => void)[]>([]);
 
-  // 1. Definición del cargador asíncrono memorizado
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const raw = await getDespachoActivos();
+      const raw  = await getDespachoActivos();
       const plano = raw.map(aplanarDespacho);
       setDespachos(plano);
     } catch (err: unknown) {
@@ -38,65 +41,108 @@ export function useDespachos(): UseDespachoState {
     }
   }, []);
 
-  // Calcular la cadena de IDs activos para controlar estrictamente las suscripciones externas
-  const despachosActivosIds = despachos
-    .filter(d => d.estado === 'en_ruta' || d.estado === 'preparando')
-    .map(d => d.id)
-    .join(',');
+  // ✓ useMemo evita recalcular la cadena en cada render y estabiliza
+  //   la dependencia del efecto de suscripciones.
+  const idsActivos = useMemo(
+    () =>
+      despachos
+        .filter(d => d.estado === 'en_ruta' || d.estado === 'preparando')
+        .map(d => d.id),
+    [despachos],
+  );
 
-  // 2. Efecto de Realtime optimizado
+  // Cadena estable para comparación en el efecto (evita objetos array como dep)
+  const idsKey = idsActivos.join(',');
+
   useEffect(() => {
-    if (!despachosActivosIds) return;
+    if (!idsKey) return;
 
+    // Limpiar suscripciones anteriores antes de crear las nuevas
     cleanupRefs.current.forEach(fn => fn());
     cleanupRefs.current = [];
 
-    // Obtenemos los IDs y los mapeamos explícitamente a tipo 'number' para evitar cualquier ambigüedad de tipo en las suscripciones
-    const idsParaSuscribir = despachosActivosIds
-      .split(',')
-      .filter(Boolean)
-      .map(idStr => Number(idStr));
-
-    const subs = idsParaSuscribir.map(numericId =>
-      subscribeToGrupo(numericId, (seguimiento: SeguimientoDespacho) => {
+    cleanupRefs.current = idsActivos.map(id =>
+      subscribeToGrupo(id, (seg: SeguimientoDespacho) => {
         setDespachos(prev =>
           prev.map(item =>
-            item.id === numericId
-              ? { ...item, estado: seguimiento.status, ultimo_estado: seguimiento }
-              : item
-          )
+            item.id === id
+              ? { ...item, estado: seg.status, ultimo_estado: seg }
+              : item,
+          ),
         );
-      })
+      }),
     );
-
-    cleanupRefs.current = subs;
 
     return () => {
       cleanupRefs.current.forEach(fn => fn());
       cleanupRefs.current = [];
     };
-  }, [despachosActivosIds]);
+    // idsActivos se recrea cuando cambia idsKey, así que usar idsKey
+    // como dep es suficiente y evita el array como dependencia inestable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
 
-  // 3. Inicialización controlada del componente en el cliente
   useEffect(() => {
-    let isMounted = true;
-
-    const inicializar = async () => {
-      try {
-        if (isMounted) {
-          await cargar();
-        }
-      } catch {
-        // Silenciar excepciones del ciclo de vida si el componente se desmonta antes de finalizar
-      }
-    };
-
-    inicializar();
-
-    return () => {
-      isMounted = false;
-    };
+    let mounted = true;
+    cargar().catch(() => { if (!mounted) return; });
+    return () => { mounted = false; };
   }, [cargar]);
 
   return { despachos, cargando, error, refetch: cargar };
+}
+
+// ─── useIncidencia ───────────────────────────────────────────────────────────
+
+type IncidenciaStatus = 'idle' | 'loading' | 'success' | 'error';
+
+interface SubmitPayload {
+  tipo:        TipoIncidenciaCliente;
+  severidad:   SeveridadIncidencia;
+  descripcion: string;
+  foto:        File | null;
+}
+
+interface UseIncidenciaReturn {
+  status:   IncidenciaStatus;
+  errorMsg: string;
+  submit:   (pedidoId: number, payload: SubmitPayload) => Promise<void>;
+  reset:    () => void;
+}
+
+export function useIncidencia(): UseIncidenciaReturn {
+  const [status, setStatus]     = useState<IncidenciaStatus>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const reset = useCallback(() => {
+    setStatus('idle');
+    setErrorMsg('');
+  }, []);
+
+  const submit = useCallback(async (pedidoId: number, payload: SubmitPayload) => {
+    setStatus('loading');
+    setErrorMsg('');
+    try {
+      const form = new FormData();
+      form.append('pedido_id',  String(pedidoId));
+      form.append('tipo',       payload.tipo);
+      form.append('severidad',  payload.severidad);
+      form.append('descripcion', payload.descripcion);
+      if (payload.foto) form.append('foto', payload.foto);
+
+      const res = await fetch('/api/incidencias', { method: 'POST', body: form });
+
+      if (!res.ok) {
+        // ✓ Intentar leer mensaje del servidor antes de lanzar genérico
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message ?? `Error ${res.status}`);
+      }
+
+      setStatus('success');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'No se pudo enviar el reporte.');
+      setStatus('error');
+    }
+  }, []);
+
+  return { status, errorMsg, submit, reset };
 }

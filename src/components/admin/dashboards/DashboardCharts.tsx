@@ -14,9 +14,9 @@ import { fmtCompact } from './widgets/DashboardWidgets';
 const P = COMPANY_PALETTE;
 
 type VentaDataPoint = {
-  mes:    string;
+  mes: string;
   ventas: number;
-  [key: string]: unknown; // por si vienen campos extra del API
+  [key: string]: any; 
 }
 
 interface DashboardChartsProps {

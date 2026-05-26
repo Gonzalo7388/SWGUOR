@@ -210,10 +210,20 @@ export default function CategoriasPage() {
     const toastId = toast.loading("Preparando reporte PDF...");
     try {
       setExportingPDF(true);
-      await exportCategoriasToPDF(filteredCategorias, {
+
+      const categoriasSanitizadas = filteredCategorias.map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        descripcion: c.descripcion || "Sin descripción",
+        activo: c.activo ?? false,
+        created_at: c.created_at ? new Date(c.created_at) : new Date(),
+      }));
+
+      await exportCategoriasToPDF(categoriasSanitizadas, {
         title: "REPORTE DE CATEGORÍAS",
         filename: `Categorias_GUOR_${new Date().toISOString().split('T')[0]}`,
       });
+      
       toast.success("PDF generado correctamente", { id: toastId });
     } catch (error) {
       console.error(error);

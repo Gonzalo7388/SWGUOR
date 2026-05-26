@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form'; // 1. Importamos useWatch
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ordenProduccionSchema, OrdenProduccionFormValues } from '@/lib/schemas/ordenes-produccion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useOrdenesProduccion } from '@/lib/hooks/useOrdenProduccion';
+// 2. Corregimos las importaciones según las sugerencias de tus hooks reales
+import { useCreateOrdenProduccion, useUpdateOrdenProduccion } from '@/lib/hooks/useOrdenProduccion'; 
 import { OrdenProduccion } from '@/components/admin/ordenes/types';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -17,14 +18,12 @@ import {
 } from 'lucide-react';
 
 // ─── Option types ─────────────────────────────────────────────────────────────
-
 interface ProductoOption  { id: number; nombre: string; sku: string; }
 interface TallerOption    { id: number; nombre: string; especialidad: string; }
 interface FichaOption     { id: number; version: string; ficha_url: string | null; producto_nombre: string; }
 interface PedidoOption    { id: number; total_unidades: number; estado: string; prioridad: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const ESTADO_PEDIDO_LABELS: Record<string, string> = {
   pendiente:          'Pendiente',
   en_produccion:      'En Producción',
@@ -43,7 +42,6 @@ const ESPECIALIDAD_LABELS: Record<string, string> = {
 };
 
 // ─── Mapper ───────────────────────────────────────────────────────────────────
-
 function mapearDatosIniciales(data: OrdenProduccion | null): Partial<OrdenProduccionFormValues> {
   if (!data) return { cantidad_solicitada: 1 };
   return {
@@ -60,7 +58,6 @@ function mapearDatosIniciales(data: OrdenProduccion | null): Partial<OrdenProduc
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-
 interface OrdenFormDialogProps {
   open:        boolean;
   onClose:     () => void;
@@ -68,7 +65,10 @@ interface OrdenFormDialogProps {
 }
 
 export default function OrdenFormDialog({ open, onClose, initialData }: OrdenFormDialogProps) {
-  const { create, update, isCreating, isUpdating } = useOrdenesProduccion();
+  // 2. Adaptamos los hooks de mutación corregidos
+  const { create, isCreating } = useCreateOrdenProduccion();
+  const { update, isUpdating } = useUpdateOrdenProduccion();
+  
   const supabase   = getSupabaseBrowserClient();
   const isEditing  = !!initialData;
   const isLoading  = isCreating || isUpdating;
@@ -81,16 +81,17 @@ export default function OrdenFormDialog({ open, onClose, initialData }: OrdenFor
   const [loadingOptions,   setLoadingOptions]    = useState(false);
 
   // ── Form ───────────────────────────────────────────────────────────────────
-  const { register, handleSubmit, reset, watch, formState: { errors } } =
+  const { register, handleSubmit, reset, control, formState: { errors } } =
     useForm<OrdenProduccionFormValues>({
       resolver:      zodResolver(ordenProduccionSchema),
       defaultValues: mapearDatosIniciales(initialData),
     });
 
-  const watchProductoId = watch('producto_id');
-  const watchTallerId   = watch('taller_id');
-  const watchFichaId    = watch('ficha_id');
-  const watchPedidoId   = watch('pedido_id');
+  // 1. Corregimos el uso de watch pasándolo a useWatch para complacer al React Compiler
+  const watchProductoId = useWatch({ control, name: 'producto_id' });
+  const watchTallerId   = useWatch({ control, name: 'taller_id' });
+  const watchFichaId    = useWatch({ control, name: 'ficha_id' });
+  const watchPedidoId   = useWatch({ control, name: 'pedido_id' });
 
   // ── Load options on open ───────────────────────────────────────────────────
   useEffect(() => {
@@ -136,7 +137,7 @@ export default function OrdenFormDialog({ open, onClose, initialData }: OrdenFor
         setPedidos((ped.data ?? []) as PedidoOption[]);
       })
       .finally(() => setLoadingOptions(false));
-  }, [open]);
+  }, [open, supabase]); // 3. Añadida la dependencia 'supabase' aquí
 
   // ── Reset form on data change ──────────────────────────────────────────────
   useEffect(() => {
@@ -145,7 +146,8 @@ export default function OrdenFormDialog({ open, onClose, initialData }: OrdenFor
 
   const onSubmit = (data: OrdenProduccionFormValues) => {
     if (isEditing && initialData) {
-      update(String(initialData.id), data);
+      //  CORRECTO: Ahora pasamos tanto el ID como el objeto con los datos modificados
+      update(String(initialData.id), data); 
     } else {
       create(data);
     }

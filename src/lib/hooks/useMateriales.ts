@@ -10,42 +10,29 @@ import {
   deleteMaterial,
   ajustarStockMaterial,
 } from '@/lib/helpers/materiales-helpers';
+import { 
+  type Material, 
+  type MaterialCatalogo, 
+  type MaterialFormValues, 
+  type AjustarStockValues 
+} from '@/lib/schemas/material';
 
 export const MATERIALES_KEY = 'materiales';
 
-// ── Interfaces del Dominio de Materiales ────────────────────────────────────
-
-export interface Material {
-  id:          string;
-  nombre:      string;
-  tipo:        string; // Ej: 'TELA', 'BOTON', 'HILO'
-  sku?:        string;
-  stockActual: number;
-  stockMinimo: number;
-  unidad:      string; // Ej: 'METROS', 'UNIDADES', 'CONOS'
-  createdAt:   string;
-  updatedAt:   string;
-  [key: string]: unknown;
-}
-
-export interface ApiResponse<T = unknown> {
-  success:  boolean;
-  error?:   string | null;
-  message?: string | null;
-  data?:    T;
-}
-
+// Tipado estricto para los parámetros de filtrado aceptados por el helper
 export interface UseMaterialesParams {
-  tipo?:      string;
-  busqueda?:  string;
+  tipo?: string;
+  busqueda?: string;
   stockBajo?: boolean;
 }
 
-export interface AjustarStockInput {
-  id:        string;
-  operacion: 'sumar' | 'restar' | 'absoluto';
-  cantidad:  number;
-  motivo?:   string;
+// Interface genérica para respuestas estructuradas desde tus mutaciones de API
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  error?: string | null;
+  message?: string | null;
+  data?: T;
+  nuevoStock?: number;
 }
 
 // ── Hook: useMateriales ─────────────────────────────────────────────────────
@@ -53,54 +40,51 @@ export interface AjustarStockInput {
 export function useMateriales(params?: UseMaterialesParams) {
   const queryClient = useQueryClient();
 
-  // useQuery fuertemente tipado con la estructura de un arreglo de Materiales
-  const query = useQuery<Material[], Error>({
+  const query = useQuery<MaterialCatalogo[], Error>({
     queryKey: [MATERIALES_KEY, params],
-    queryFn: async () => {
-      const res = await fetchMateriales(params);
-      return res as unknown as Material[];
-    },
+    queryFn: () => fetchMateriales(params),
     refetchOnWindowFocus: false,
   });
 
-  const createMutation = useMutation<ApiResponse, Error, Record<string, unknown>>({
+  const createMutation = useMutation<ApiResponse<Material>, Error, MaterialFormValues>({
     mutationFn: createMaterial,
     onSuccess: (res) => {
-      if (!res.success) { toast.error(res.error ?? 'Error al crear'); return; }
-      toast.success('Material creado');
+      if (!res.success) { toast.error(res.error ?? 'Error al crear material'); return; }
+      toast.success('Material creado exitosamente');
       queryClient.invalidateQueries({ queryKey: [MATERIALES_KEY] });
     },
-    onError: () => toast.error('Error de conexión'),
+    onError: () => toast.error('Error de conexión con el servidor'),
   });
 
-  const updateMutation = useMutation<ApiResponse, Error, { id: string; data: Record<string, unknown> }>({
+  const updateMutation = useMutation<ApiResponse<Material>, Error, { id: string; data: MaterialFormValues }>({
     mutationFn: ({ id, data }) => updateMaterial(id, data),
     onSuccess: (res) => {
-      if (!res.success) { toast.error(res.error ?? 'Error al actualizar'); return; }
-      toast.success('Material actualizado');
+      if (!res.success) { toast.error(res.error ?? 'Error al actualizar material'); return; }
+      toast.success('Material actualizado exitosamente');
       queryClient.invalidateQueries({ queryKey: [MATERIALES_KEY] });
+      queryClient.invalidateQueries({ queryKey: [MATERIALES_KEY, (res.data?.id)?.toString()] });
     },
-    onError: () => toast.error('Error de conexión'),
+    onError: () => toast.error('Error de conexión con el servidor'),
   });
 
-  const ajustarStockMutation = useMutation<ApiResponse, Error, AjustarStockInput>({
-    mutationFn: ({ id, ...data }) => ajustarStockMaterial(id, data),
+  const ajustarStockMutation = useMutation<ApiResponse, Error, { id: string; data: Omit<AjustarStockValues, 'id'> }>({
+    mutationFn: ({ id, data }) => ajustarStockMaterial(id, data),
     onSuccess: (res) => {
       if (!res.success) { toast.error(res.error ?? 'Error al ajustar stock'); return; }
-      toast.success('Stock actualizado');
+      toast.success('Stock actualizado correctamente');
       queryClient.invalidateQueries({ queryKey: [MATERIALES_KEY] });
     },
-    onError: () => toast.error('Error de conexión'),
+    onError: () => toast.error('Error de conexión con el servidor'),
   });
 
   const deleteMutation = useMutation<ApiResponse, Error, string>({
     mutationFn: deleteMaterial,
     onSuccess: (res) => {
-      if (!res.success) { toast.error(res.error ?? 'Error al eliminar'); return; }
-      toast.success('Material eliminado');
+      if (!res.success) { toast.error(res.error ?? 'Error al eliminar material'); return; }
+      toast.success('Material eliminado permanentemente');
       queryClient.invalidateQueries({ queryKey: [MATERIALES_KEY] });
     },
-    onError: () => toast.error('Error de conexión'),
+    onError: () => toast.error('Error de conexión con el servidor'),
   });
 
   return {
@@ -108,10 +92,10 @@ export function useMateriales(params?: UseMaterialesParams) {
     isLoading:  query.isLoading,
     refetch:    query.refetch,
 
-    // Exposición de funciones con tipados rigurosos y autocompletado en tus formularios
-    create:       (data: Record<string, unknown>) => createMutation.mutate(data),
-    update:       (id: string, data: Record<string, unknown>) => updateMutation.mutate({ id, data }),
-    ajustarStock: (datos: AjustarStockInput) => ajustarStockMutation.mutate(datos),
+    // Métodos expuestos con firmas exactas y auto-completado inteligente
+    create:       (data: MaterialFormValues) => createMutation.mutate(data),
+    update:       (id: string, data: MaterialFormValues) => updateMutation.mutate({ id, data }),
+    ajustarStock: (id: string, data: Omit<AjustarStockValues, 'id'>) => ajustarStockMutation.mutate({ id, data }),
     remove:       (id: string) => deleteMutation.mutate(id),
 
     isCreating:       createMutation.isPending,
@@ -126,10 +110,7 @@ export function useMateriales(params?: UseMaterialesParams) {
 export function useMaterial(id: string) {
   return useQuery<Material, Error>({
     queryKey: [MATERIALES_KEY, id],
-    queryFn: async () => {
-      const res = await fetchMaterialById(id);
-      return res as unknown as Material;
-    },
+    queryFn: () => fetchMaterialById(id),
     enabled: !!id,
     refetchOnWindowFocus: false,
   });
