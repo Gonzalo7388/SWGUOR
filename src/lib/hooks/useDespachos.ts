@@ -4,31 +4,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getDespachoActivos,
   subscribeToGrupo,
-  uploadEvidencia,
-  createIncidenciaCliente,
   type DespachoFlat,
   type SeguimientoDespacho,
-  type TipoIncidenciaCliente,
-  type SeveridadIncidencia,
 } from '@/lib/services/despachos.service';
 import { aplanarDespacho } from '@/lib/helpers/despachos-helpers';
 
-// ── useDespachos ──────────────────────────────────────────────────────────────
-
 interface UseDespachoState {
   despachos: DespachoFlat[];
-  cargando: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
+  cargando:  boolean;
+  error:     string | null;
+  refetch:   () => Promise<void>;
 }
 
 export function useDespachos(): UseDespachoState {
   const [despachos, setDespachos] = useState<DespachoFlat[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const cleanupRefs = useRef<(() => void)[]>([]);
 
+  // 1. Definición del cargador asíncrono memorizado
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
@@ -43,26 +38,36 @@ export function useDespachos(): UseDespachoState {
     }
   }, []);
 
-  // Realtime: escucha nuevos seguimientos en cada grupo activo
+  // Calcular la cadena de IDs activos para controlar estrictamente las suscripciones externas
+  const despachosActivosIds = despachos
+    .filter(d => d.estado === 'en_ruta' || d.estado === 'preparando')
+    .map(d => d.id)
+    .join(',');
+
+  // 2. Efecto de Realtime optimizado
   useEffect(() => {
-    if (!despachos.length) return;
+    if (!despachosActivosIds) return;
 
     cleanupRefs.current.forEach(fn => fn());
     cleanupRefs.current = [];
 
-    const subs = despachos
-      .filter(d => d.estado === 'en_ruta' || d.estado === 'preparando')
-      .map(d =>
-        subscribeToGrupo(d.id, (seguimiento: SeguimientoDespacho) => {
-          setDespachos(prev =>
-            prev.map(item =>
-              item.id === d.id
-                ? { ...item, estado: seguimiento.status, ultimo_estado: seguimiento }
-                : item,
-            ),
-          );
-        }),
-      );
+    // Obtenemos los IDs y los mapeamos explícitamente a tipo 'number' para evitar cualquier ambigüedad de tipo en las suscripciones
+    const idsParaSuscribir = despachosActivosIds
+      .split(',')
+      .filter(Boolean)
+      .map(idStr => Number(idStr));
+
+    const subs = idsParaSuscribir.map(numericId =>
+      subscribeToGrupo(numericId, (seguimiento: SeguimientoDespacho) => {
+        setDespachos(prev =>
+          prev.map(item =>
+            item.id === numericId
+              ? { ...item, estado: seguimiento.status, ultimo_estado: seguimiento }
+              : item
+          )
+        );
+      })
+    );
 
     cleanupRefs.current = subs;
 
@@ -70,64 +75,28 @@ export function useDespachos(): UseDespachoState {
       cleanupRefs.current.forEach(fn => fn());
       cleanupRefs.current = [];
     };
-  }, [despachos.map(d => d.id).join(',')]);
+  }, [despachosActivosIds]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  // 3. Inicialización controlada del componente en el cliente
+  useEffect(() => {
+    let isMounted = true;
+
+    const inicializar = async () => {
+      try {
+        if (isMounted) {
+          await cargar();
+        }
+      } catch {
+        // Silenciar excepciones del ciclo de vida si el componente se desmonta antes de finalizar
+      }
+    };
+
+    inicializar();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cargar]);
 
   return { despachos, cargando, error, refetch: cargar };
-}
-
-// ── useIncidencia ─────────────────────────────────────────────────────────────
-
-type Status = 'idle' | 'loading' | 'success' | 'error';
-
-interface SubmitPayload {
-  tipo: TipoIncidenciaCliente;
-  severidad: SeveridadIncidencia;
-  descripcion: string;
-  foto: File | null;
-}
-
-export function useIncidencia() {
-  const [status, setStatus] = useState<Status>('idle');
-  const [errorMsg, setError] = useState('');
-
-  async function submit(pedidoId: number | undefined, payload: SubmitPayload) {
-    if (!pedidoId) {
-      setError('No se encontró el pedido asociado.');
-      setStatus('error');
-      return;
-    }
-
-    setStatus('loading');
-    setError('');
-
-    try {
-      const evidencia_url: string[] = [];
-      if (payload.foto) {
-        const url = await uploadEvidencia(pedidoId, payload.foto);
-        evidencia_url.push(url);
-      }
-
-      await createIncidenciaCliente({
-        pedido_id: pedidoId,
-        tipo: payload.tipo,
-        severidad: payload.severidad,
-        descripcion: payload.descripcion,
-        evidencia_url,
-      });
-
-      setStatus('success');
-    } catch (err: any) {
-      setError(err.message || 'Error al enviar la incidencia.');
-      setStatus('error');
-    }
-  }
-
-  function reset() {
-    setStatus('idle');
-    setError('');
-  }
-
-  return { status, errorMsg, submit, reset };
 }

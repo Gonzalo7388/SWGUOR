@@ -14,10 +14,10 @@ import {
   ShoppingBag,
   Tag,
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { usuarios } from '@prisma/client';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import type { RecursoKey } from '@/lib/constants/roles';
+import Image from 'next/image';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -213,7 +213,6 @@ function CollapseTooltip({ label, children }: { label: string; children: React.R
 
 export default function Sidebar({ }: { usuario: usuarios }) {
   const pathname = usePathname();
-  const supabase = getSupabaseBrowserClient();
   const { can } = usePermissions();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -295,7 +294,13 @@ export default function Sidebar({ }: { usuario: usuarios }) {
           isCollapsed ? 'h-20 px-3 justify-center' : 'h-20 px-5 gap-3.5 justify-start',
         )}>
           <div className="w-11 h-11 rounded-full border border-rose-500/30 bg-white flex items-center justify-center shrink-0 overflow-hidden p-0.5 shadow-sm">
-            <img src="/logo.png" alt="GUOR" className="w-full h-full object-cover rounded-full" />
+            <Image
+              src="/logo.png"
+              alt="GUOR"
+              width={44}
+              height={44}
+              className="w-full h-full object-cover rounded-full"
+            />
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0 overflow-hidden text-left">

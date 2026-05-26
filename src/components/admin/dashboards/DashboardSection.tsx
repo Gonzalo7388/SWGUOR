@@ -7,7 +7,7 @@ import { COMPANY_PALETTE } from './widgets/DashboardUtils';
 interface DashboardSectionProps {
   title:    string;
   subtitle?: string;
-  role:     'administrador' | 'gerente' | 'recepcionista' | 'disenador' | 'cortador' | 'ayudante' | 'representante_taller';
+  role:     'administrador' | 'gerente' | 'recepcionista' | 'disenador' | 'cortador' | 'ayudante' | 'representante_taller' | 'almacenero';
   actions?: React.ReactNode;
   children: React.ReactNode;
 }

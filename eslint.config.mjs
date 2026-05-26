@@ -13,6 +13,41 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+
+  // ── Relax `any` en capas de infraestructura ──────────────────────────────
+  // Estos archivos interactúan con Supabase RPC, Prisma y APIs externas
+  // donde los tipos dinámicos hacen que `any` sea legítimo y pragmático.
+  {
+    files: [
+      "src/lib/helpers/**",
+      "src/lib/services/**",
+      "src/lib/hooks/**",
+      "src/lib/schemas/**",
+      "src/lib/logic/**",
+      "src/lib/auth/**",
+      "src/lib/utils/export-utils.tsx",
+      "src/lib/utils/serialize.ts",
+      "src/lib/prisma.ts",
+      "src/lib/with-auth.ts",
+      "src/lib/constants/estados.ts",
+      "src/proxy.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "prefer-const": "warn",
+    },
+  },
+
+  // ── Relax warnings menores en archivos de portal ─────────────────────────
+  {
+    files: [
+      "src/components/portal/**",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -1,74 +1,47 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import {
-  fetchOrdenesProduccion,
-  createOrdenProduccion,
-  updateOrdenProduccion,
-  registrarEtapaProduccion,
-} from '@/lib/helpers/ordenes-produccion-helpers';
+import { createOrdenProduccion } from '@/lib/helpers/ordenes-produccion-helpers';
+
+// 1. Definimos la interfaz estricta con las propiedades exactas que tu helper exige
+export interface CreateOrdenProduccionInput {
+  producto_id:         string | number;
+  taller_id:           string | number;
+  ficha_id:            string | number;
+  cantidad_solicitada: number;
+  fecha_entrega?:      string;
+  notas?:              string;
+}
+
+interface ApiResponse<T = unknown> {
+  success:  boolean;
+  error?:   string | null;
+  message?: string | null;
+  data?:    T;
+}
 
 export const ORDENES_KEY = 'ordenes-produccion';
 
-export function useOrdenesProduccion(params?: {
-  producto_id?: string;
-  search?: string;
-  etapa?: string;
-  page?: number;
-  limit?: number;
-}) {
+export function useCreateOrdenProduccion() {
   const queryClient = useQueryClient();
 
-  const query = useQuery({
-    queryKey: [ORDENES_KEY, params],
-    queryFn:  () => fetchOrdenesProduccion(params),
-    refetchOnWindowFocus: false,
-  });
-
-  const createMutation = useMutation({
+  const createMutation = useMutation<ApiResponse<unknown>, Error, CreateOrdenProduccionInput>({
     mutationFn: createOrdenProduccion,
     onSuccess: (res) => {
-      if (!res.success) { toast.error(res.error ?? 'Error al crear'); return; }
-      toast.success('Orden de producción creada');
+      if (!res.success) { 
+        toast.error(res.error ?? 'Error al crear la orden'); 
+        return; 
+      }
+      toast.success('Orden de producción creada correctamente');
       queryClient.invalidateQueries({ queryKey: [ORDENES_KEY] });
     },
-    onError: () => toast.error('Error de conexión'),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateOrdenProduccion(id, data),
-    onSuccess: (res) => {
-      if (!res.success) { toast.error(res.error ?? 'Error al actualizar'); return; }
-      toast.success('Orden actualizada');
-      queryClient.invalidateQueries({ queryKey: [ORDENES_KEY] });
-    },
-    onError: () => toast.error('Error de conexión'),
-  });
-
-  const etapaMutation = useMutation({
-    mutationFn: registrarEtapaProduccion,
-    onSuccess: (res) => {
-      if (!res.success) { toast.error(res.error ?? 'Error'); return; }
-      toast.success('Etapa actualizada');
-      queryClient.invalidateQueries({ queryKey: [ORDENES_KEY] });
-    },
-    onError: () => toast.error('Error de conexión'),
+    onError: () => toast.error('Error de conexión con el servidor'),
   });
 
   return {
-    ordenes:   query.data?.data ?? [],
-    meta:      query.data?.meta ?? { total: 0, page: 1, limit: 10, totalPages: 1 },
-    isLoading: query.isLoading,
-    refetch:   query.refetch,
-
-    create:         (data: any)                      => createMutation.mutate(data),
-    update:         (id: string, data: any)          => updateMutation.mutate({ id, data }),
-    registrarEtapa: (data: { orden_id: string; etapa: string; observaciones?: string }) =>
-      etapaMutation.mutate(data),
-
-    isCreating:  createMutation.isPending,
-    isUpdating:  updateMutation.isPending,
-    isRegistrando: etapaMutation.isPending,
+    // Tipamos también el argumento de la función expuesta para mantener el autocompletado en los formularios
+    create: (data: CreateOrdenProduccionInput) => createMutation.mutate(data),
+    isCreating: createMutation.isPending,
   };
 }
