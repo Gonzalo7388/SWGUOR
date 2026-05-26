@@ -17,6 +17,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { EstadoBadge } from '@/components/portal/EstadoBadge';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
+import { stripePromise } from '@/lib/stripe';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,8 @@ function ModalDetalle({
     maximumFractionDigits: 2,
   });
 
+  
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
@@ -279,8 +282,45 @@ function ModalDetalle({
 }
 
 // ─── Modal Pasarela de Pagos ──────────────────────────────────────────────────
+const PASOS = [
+  {
+    id: 'entrega',
+    numero: 1,
+    label: 'Entrega',
+  },
+  {
+    id: 'metodo',
+    numero: 2,
+    label: 'Método',
+  },
+  {
+    id: 'datos_pago',
+    numero: 3,
+    label: 'Pago',
+  },
+  {
+    id: 'confirmacion',
+    numero: 4,
+    label: 'Confirmación',
+  },
+];
 
-type PasosPago = 'seleccion' | 'confirmacion' | 'procesando' | 'exito' | 'error';
+const PAISES_SUDAMERICA = [
+  'Perú',
+  'Argentina',
+  'Bolivia',
+  'Brasil',
+  'Chile',
+  'Colombia',
+  'Ecuador',
+  'Guyana',
+  'Paraguay',
+  'Surinam',
+  'Uruguay',
+  'Venezuela',
+];
+type PasosPago = 'entrega' | 'metodo'| 'datos_pago' | 'procesando'| 'confirmacion'| 'error';
+
 
 function ModalPago({
   pedido,
@@ -289,10 +329,18 @@ function ModalPago({
   pedido: Pedido;
   onClose: () => void;
 }) {
-  const router = useRouter();
-  const [paso, setPaso]         = useState<PasosPago>('seleccion');
-  const [metodo, setMetodo]     = useState<string | null>(null);
-   
+
+  const [paso, setPaso] = useState<PasosPago>('entrega');
+  const [metodo, setMetodo] = useState('');
+
+  const [datosEntrega, setDatosEntrega] = useState({
+    pais: 'Perú',
+    departamento: '',
+    distrito: '',
+    direccion: '',
+    referencia: '',
+  });
+
   const [datosTarjeta, setDatosTarjeta] = useState({
     numero: '',
     nombre: '',
@@ -306,56 +354,313 @@ function ModalPago({
     titular: '',
   });
 
+  const pasoActual = PASOS.findIndex((p) => p.id === paso);
+
   const total = Number(pedido.total ?? 0).toLocaleString('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const metodoSeleccionado = METODOS_PAGO.find(m => m.id === metodo);
-
+  const metodoSeleccionado = METODOS_PAGO.find(
+    (m) => m.id === metodo
+  );
+  
   const handleConfirmar = async () => {
-    if (metodo === 'tarjeta') {
-      if (!datosTarjeta.numero || !datosTarjeta.nombre || !datosTarjeta.vencimiento || !datosTarjeta.cvv) {
-        alert('Completa todos los datos de la tarjeta');
-        return;
-      }
+  try {
+    setPaso('procesando');
+
+    const response = await fetch('/api/stripe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        total: Number(pedido.total),
+      }),
+    });
+
+    const data = await response.json();
+
+    const stripe = await stripePromise;
+
+    if (!stripe) {
+      setPaso('error');
+      return;
     }
 
-    if (metodo === 'transferencia') {
-      if (!datosTransferencia.banco || !datosTransferencia.numeroOperacion || !datosTransferencia.titular) {
-        alert('Completa los datos de la transferencia');
-        return;
+    const result = await stripe.confirmCardPayment(
+      data.clientSecret,
+      {
+        payment_method: {
+          card: {
+            token: 'tok_visa',
+          },
+        },
       }
+    );
+
+    if (result.error) {
+      console.error(result.error);
+      setPaso('error');
+      return;
     }
-    setPaso('procesando');
-    // Aquí iría la lógica real de pago — simulamos 2s de procesamiento
-    await new Promise(r => setTimeout(r, 2000));
-    // Simular éxito (reemplazar con lógica real)
-    setPaso('exito');
-  };
+
+    setPaso('confirmacion');
+
+  } catch (error) {
+    console.error(error);
+    setPaso('error');
+  }
+};
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div
-        className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden"
-        style={{ animation: 'modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}
-      >
+ <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
 
-        {/* ── PASO 1: Selección de método ─────────────────────────────── */}
-        {paso === 'seleccion' && (
+    <div
+  className="w-full max-w-5.5xl h-screen bg-white overflow-y-auto"
+>
+
+  <div className="sticky top-0 z-20 bg-white border-b border-slate-100 px-8 py-5">
+
+  {/* LOGO */}
+  <div className="flex items-center justify-between mb-6">
+
+    <div className="flex items-center gap-3">
+      <Image
+        src="/logo.png"
+        alt="Logo"
+        width={42}
+        height={42}
+        className="object-contain"
+      />
+
+      <div>
+        <p className="text-lg font-black text-[#231e1d] leading-none">
+          SWGUOR
+        </p>
+
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#b5854b] font-bold mt-1">
+          Pasarela de pago
+        </p>
+      </div>
+    </div>
+
+
+  </div>
+
+  {/* STEPPER */}
+  <div className="flex items-center justify-between">
+
+    {PASOS.map((p, index) => {
+      const activo = index <= pasoActual;
+
+      return (
+        <div
+          key={p.id}
+          className="flex items-center flex-1"
+        >
+
+          {/* Círculo */}
+          <div className="flex flex-col items-center relative z-10">
+
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all',
+                activo
+                  ? 'bg-[#231e1d] text-[#e4c28a]'
+                  : 'bg-slate-100 text-slate-400'
+              )}
+            >
+              {p.numero}
+            </div>
+
+            <span
+              className={cn(
+                'text-[10px] font-bold mt-2 uppercase tracking-wider',
+                activo
+                  ? 'text-[#231e1d]'
+                  : 'text-slate-400'
+              )}
+            >
+              {p.label}
+            </span>
+
+          </div>
+
+          {/* Línea */}
+          {index < PASOS.length - 1 && (
+            <div className="flex-1 h-[2px] mx-3 bg-slate-200 relative top-[-10px]">
+              <div
+                className={cn(
+                  'h-full transition-all',
+                  index < pasoActual
+                    ? 'bg-[#231e1d]'
+                    : 'bg-slate-200'
+                )}
+              />
+            </div>
+          )}
+
+        </div>
+      );
+    })}
+
+  </div>
+</div>
+
+       {/* ── PASO 1: ENTREGA ─────────────────────────────── */}
+{paso === 'entrega' && (
+  <div className="p-8 space-y-5">
+
+    <div>
+      <p className="text-xl font-black text-[#231e1d]">
+        Datos de entrega
+      </p>
+
+      <p className="text-sm text-slate-400 mt-1">
+        Completa la información para el envío
+      </p>
+    </div>
+
+    {/* País */}
+    <div>
+      <label className="text-xs font-bold text-slate-500">
+        País
+      </label>
+
+      <select
+        value={datosEntrega.pais}
+        onChange={(e) =>
+          setDatosEntrega({
+            ...datosEntrega,
+            pais: e.target.value,
+          })
+        }
+        className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3 bg-white"
+      >
+        {PAISES_SUDAMERICA.map((pais) => (
+          <option key={pais} value={pais}>
+            {pais}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* Departamento + Distrito */}
+    <div className="grid grid-cols-2 gap-4">
+
+      <div>
+        <label className="text-xs font-bold text-slate-500">
+          Departamento
+        </label>
+
+        <input
+          type="text"
+          value={datosEntrega.departamento}
+          onChange={(e) =>
+            setDatosEntrega({
+              ...datosEntrega,
+              departamento: e.target.value,
+            })
+          }
+          className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+          placeholder="Lima"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-slate-500">
+          Distrito
+        </label>
+
+        <input
+          type="text"
+          value={datosEntrega.distrito}
+          onChange={(e) =>
+            setDatosEntrega({
+              ...datosEntrega,
+              distrito: e.target.value,
+            })
+          }
+          className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+          placeholder="Miraflores"
+        />
+      </div>
+
+    </div>
+
+    {/* Dirección */}
+    <div>
+      <label className="text-xs font-bold text-slate-500">
+        Dirección
+      </label>
+
+      <input
+        type="text"
+        value={datosEntrega.direccion}
+        onChange={(e) =>
+          setDatosEntrega({
+            ...datosEntrega,
+            direccion: e.target.value,
+          })
+        }
+        className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+        placeholder="Av. Ejemplo 123"
+      />
+    </div>
+
+    {/* Referencia */}
+    <div>
+      <label className="text-xs font-bold text-slate-500">
+        Referencia
+      </label>
+
+      <input
+        type="text"
+        value={datosEntrega.referencia}
+        onChange={(e) =>
+          setDatosEntrega({
+            ...datosEntrega,
+            referencia: e.target.value,
+          })
+        }
+        className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+        placeholder="Frente al parque"
+      />
+    </div>
+
+    {/* Botones */}
+    <div className="flex gap-3 pt-4">
+
+      <button
+        onClick={onClose}
+        className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors"
+      >
+        Cancelar
+      </button>
+
+      <button
+        onClick={() => setPaso('metodo')}
+        className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all"
+      >
+        Continuar
+      </button>
+
+    </div>
+
+  </div>
+)}
+
+        {/* ── PASO 2: SELECCION DE METODO────────────────────────────────────── */}
+       {paso === 'metodo' &&  (
           <>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <div>
-                <p className="text-[10px] font-bold text-[#b5854b] uppercase tracking-widest">Pasarela de pago</p>
+                
                 <h2 className="text-xl font-black text-[#231e1d]">Selecciona método</h2>
               </div>
-              <button
-                onClick={onClose}
-                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-              >
-                <X size={16} className="text-slate-500" />
-              </button>
+             
             </div>
 
             {/* Resumen */}
@@ -368,7 +673,7 @@ function ModalPago({
             </div>
 
             {/* Métodos */}
-            <div className="p-6 grid-cols-2 gap-6 ">
+            <div className="p-6 grid grid-cols-2 gap-6 ">
               {METODOS_PAGO.map((m) => (
                 <button
                   key={m.id}
@@ -416,12 +721,12 @@ function ModalPago({
 
             {/* Botones */}
             <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={onClose}
-                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors"
+             <button
+              onClick={() => setPaso('entrega')}
+              className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors"
               >
-                Cancelar
-              </button>
+                 Volver
+            </button>
               <button
                 disabled={!metodo}
                 onClick={() => {
@@ -429,11 +734,8 @@ function ModalPago({
                     alert('Selecciona un método de pago');
                     return;
                   }
-
-                  console.log('Método enviado:', metodo); // 👈 DEBUG
-
-                  onClose();
-                  router.push(`/portal/pago/${pedido.id}?metodo=${metodo}`);
+                 setPaso('datos_pago');
+                  
                 }}
                 className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
@@ -444,199 +746,182 @@ function ModalPago({
           </>
         )}
 
-        {/* ── PASO 2: Confirmación ────────────────────────────────────── */}
-        {paso === 'confirmacion' && metodoSeleccionado && (
-          <>
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <div>
-                <p className="text-[10px] font-bold text-[#b5854b] uppercase tracking-widest">Confirmar pago</p>
-                <h2 className="text-xl font-black text-[#231e1d]">Resumen</h2>
-              </div>
-              <button onClick={() => setPaso('seleccion')} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                <X size={16} className="text-slate-500" />
-              </button>
-            </div>
-
-
-<div className="grid md:grid-cols-2 gap-6 p-6">
-
-             {/* CONTENIDO */}
-
-            <div className="p-6 space-y-4">
-               
-              {/* Monto */}
-              <div className="text-center py-6 bg-gradient-to-br from-[#fff4e2] to-[#fde8c0] rounded-2xl border border-[#e4c28a]/40">
-                <p className="text-xs font-bold text-[#b5854b]/60 uppercase tracking-widest mb-1">Monto a pagar</p>
-                <p className="text-4xl font-black text-[#231e1d]">{pedido.moneda ?? 'PEN'} {total}</p>
-                <p className="text-xs text-[#b5854b]/60 mt-1">Pedido #{pedido.id}</p>
-              </div>
-
-              {/* Método elegido */}
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', metodoSeleccionado.bg)}>
-                  <Image src={metodoSeleccionado.imagen} alt={metodoSeleccionado.nombre} width={28} height={28} className="object-contain" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">Método de pago</p>
-                  <p className="font-bold text-[#231e1d] text-sm">{metodoSeleccionado.nombre}</p>
-                </div>
-                <button onClick={() => setPaso('seleccion')} className="ml-auto text-xs text-[#b5854b] font-bold hover:underline">
-                  Cambiar
-                </button>
-              </div>
-                {metodo === 'tarjeta' && (
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Número de tarjeta"
-                      className="w-full p-3 rounded-xl border"
-                      value={datosTarjeta.numero}
-                      onChange={(e) => setDatosTarjeta({...datosTarjeta, numero: e.target.value})}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Nombre del titular"
-                      className="w-full p-3 rounded-xl border"
-                      value={datosTarjeta.nombre}
-                      onChange={(e) => setDatosTarjeta({...datosTarjeta, nombre: e.target.value})}
-                    />
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="MM/AA"
-                        className="w-1/2 p-3 rounded-xl border"
-                        value={datosTarjeta.vencimiento}
-                        onChange={(e) => setDatosTarjeta({...datosTarjeta, vencimiento: e.target.value})}
-                      />
-                      <input
-                        type="text"
-                        placeholder="CVV"
-                        className="w-1/2 p-3 rounded-xl border"
-                        value={datosTarjeta.cvv}
-                        onChange={(e) => setDatosTarjeta({...datosTarjeta, cvv: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                )}
-                {metodo === 'transferencia' && (
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Banco (BCP, BBVA, etc.)"
-                      className="w-full p-3 rounded-xl border"
-                      value={datosTransferencia.banco}
-                      onChange={(e) => setDatosTransferencia({...datosTransferencia, banco: e.target.value})}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Número de operación"
-                      className="w-full p-3 rounded-xl border"
-                      value={datosTransferencia.numeroOperacion}
-                      onChange={(e) => setDatosTransferencia({...datosTransferencia, numeroOperacion: e.target.value})}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Nombre del titular"
-                      className="w-full p-3 rounded-xl border"
-                      value={datosTransferencia.titular}
-                      onChange={(e) => setDatosTransferencia({...datosTransferencia, titular: e.target.value})}
-                    />
-                  </div>
-                )}
-
-              <p className="text-xs text-slate-400 text-center">
-                Al confirmar aceptas los términos de pago. El pedido se procesará una vez verificado el pago.
-              </p>
-            </div>
-
-              {/* Columna derecha */} 
-              <div>
-              {metodo === 'tarjeta' && (
-  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
-
-    <div>
-      <p className="text-[10px] font-bold text-[#b5854b] uppercase tracking-widest mb-1">
-        Datos de la tarjeta
-      </p>
-
-      <h3 className="text-lg font-black text-[#231e1d]">
-        Completa tu pago
-      </h3>
-    </div>
-<label className="block text-[11px] font-semibold text-[#b5854b] mb-1">
-    Número de tarjeta
-  </label>
-    <input
-      type="text"
-      placeholder="0000 0000 0000 0000"
-      maxLength={19}
-  onInput={(e) => {
-    let value = e.currentTarget.value.replace(/\D/g, '');
-
-    value = value.slice(0, 16);
-    value = value.replace(/(.{4})/g, '$1 ').trim();
-
-    e.currentTarget.value = value;
-  }}
-      className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
-    />
-
-
-<label className="block text-[11px] font-semibold text-[#b5854b] mb-1">
-    Nombre del titular
-  </label>
-    <input
-      type="text"
-      placeholder="Nombre del titular"
-      className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
-    />
-
-    <div className="grid grid-cols-2 gap-3">
+        {/* ── PASO 3:datos_pago ──────────────────────────────────────── */}
         
-<div className="flex flex-col">
-         <label className="text-[11px] font-semibold text-[#b5854b] mb-1">
-      Vencimiento
-    </label>
-      <input
-        type="text"
-        placeholder="MM/AA"
-        className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
-      />
+        {paso === 'datos_pago' && (
+  <div className="p-6">
+
+    {/* TARJETA */}
+    {metodo === 'tarjeta' && (
+      <div className="space-y-4">
+
+        <div>
+          <label className="text-xs font-bold text-slate-500">
+            Número de tarjeta
+          </label>
+
+          <input
+            type="text"
+            value={datosTarjeta.numero}
+            onChange={(e) =>
+              setDatosTarjeta({
+                ...datosTarjeta,
+                numero: e.target.value,
+              })
+            }
+            className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+            placeholder="0000 0000 0000 0000"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-500">
+            Nombre del titular
+          </label>
+
+          <input
+            type="text"
+            value={datosTarjeta.nombre}
+            onChange={(e) =>
+              setDatosTarjeta({
+                ...datosTarjeta,
+                nombre: e.target.value,
+              })
+            }
+            className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+            placeholder="Juan Pérez"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-slate-500">
+              Vencimiento
+            </label>
+
+            <input
+              type="text"
+              value={datosTarjeta.vencimiento}
+              onChange={(e) =>
+                setDatosTarjeta({
+                  ...datosTarjeta,
+                  vencimiento: e.target.value,
+                })
+              }
+              className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+              placeholder="MM/AA"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-500">
+              CVV
+            </label>
+
+            <input
+              type="text"
+              value={datosTarjeta.cvv}
+              onChange={(e) =>
+                setDatosTarjeta({
+                  ...datosTarjeta,
+                  cvv: e.target.value,
+                })
+              }
+              className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+              placeholder="123"
+            />
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* TRANSFERENCIA */}
+    {metodo === 'transferencia' && (
+      <div className="space-y-4">
+
+        <div>
+          <label className="text-xs font-bold text-slate-500">
+            Banco
+          </label>
+
+          <input
+            type="text"
+            value={datosTransferencia.banco}
+            onChange={(e) =>
+              setDatosTransferencia({
+                ...datosTransferencia,
+                banco: e.target.value,
+              })
+            }
+            className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+            placeholder="BCP"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-500">
+            Número de operación
+          </label>
+
+          <input
+            type="text"
+            value={datosTransferencia.numeroOperacion}
+            onChange={(e) =>
+              setDatosTransferencia({
+                ...datosTransferencia,
+                numeroOperacion: e.target.value,
+              })
+            }
+            className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+            placeholder="123456789"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-500">
+            Titular
+          </label>
+
+          <input
+            type="text"
+            value={datosTransferencia.titular}
+            onChange={(e) =>
+              setDatosTransferencia({
+                ...datosTransferencia,
+                titular: e.target.value,
+              })
+            }
+            className="w-full mt-1 rounded-xl border border-slate-200 px-4 py-3"
+            placeholder="Juan Pérez"
+          />
+        </div>
+      </div>
+    )}
+        {/* BOTONES */}
+        <div className="flex gap-3 mt-6">
+
+        <button
+        onClick={() => setPaso('metodo')}
+        className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors"
+        >
+        Volver
+      </button>
+
+      <button
+        onClick={handleConfirmar}
+        className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all"
+      >
+        Pagar ahora
+      </button>
+
     </div>
 
-<div className="flex flex-col">
-  <label className="text-[11px] font-semibold text-[#b5854b] mb-1">
-      Código de seguridad
-    </label>
-      <input
-        type="password"
-        placeholder="000"
-        className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#b5854b]"
-      />
-      </div>
-    </div>
   </div>
 )}
-</div>
-</div>
 
-            <div className="px-6 pb-6 flex gap-3">
-              <button onClick={() => setPaso('seleccion')} className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors">
-                Volver
-              </button>
-              <button
-                onClick={handleConfirmar}
-                className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle size={14} />
-                Confirmar pago
-              </button>
-            </div>
-          </>
-        )}
 
-        {/* ── PASO 3: Procesando ──────────────────────────────────────── */}
-        {paso === 'procesando' && (
+        {/* ── PASO 4: Procesando ───────────────────────────────────────────── */}
+       {paso === 'procesando' && (
           <div className="p-12 flex flex-col items-center justify-center gap-5 text-center">
             <div className="relative w-20 h-20">
               <div className="absolute inset-0 rounded-full border-4 border-[#e4c28a]/20" />
@@ -651,41 +936,61 @@ function ModalPago({
             </div>
           </div>
         )}
+         
+         
+          {/* ── PASO 5: Confirmación ───────────────────────────────────────────── */}
+          {paso === 'confirmacion' && (
+  <div className="p-12 flex flex-col items-center justify-center gap-5 text-center">
+    <div
+      className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center"
+      style={{ animation: 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)' }}
+    >
+      <CheckCircle size={36} className="text-emerald-500" />
+    </div>
 
-        {/* ── PASO 4: Éxito ───────────────────────────────────────────── */}
-        {paso === 'exito' && (
-          <div className="p-12 flex flex-col items-center justify-center gap-5 text-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center" style={{ animation: 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)' }}>
-              <CheckCircle size={36} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="font-black text-[#231e1d] text-xl">¡Pago registrado!</p>
-              <p className="text-sm text-slate-400 mt-2">
-                Tu pago con{' '}
-                <strong className="text-[#b5854b]">{metodoSeleccionado?.nombre}</strong>{' '}
-                ha sido registrado y está pendiente de verificación.
-              </p>
-            </div>
-            <div className="w-full mt-2 p-4 rounded-2xl bg-[#fff4e2] border border-[#e4c28a]/40 text-left">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-500">Pedido</span>
-                <span className="font-bold text-[#b5854b]">#{pedido.id}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Monto</span>
-                <span className="font-black text-[#231e1d]">{pedido.moneda ?? 'PEN'} {total}</span>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-full py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all"
-            >
-              Listo
-            </button>
-          </div>
-        )}
+    <div>
+      <p className="font-black text-[#231e1d] text-xl">
+        ¡Pago registrado!
+      </p>
 
-        {/* ── PASO 5: Error ───────────────────────────────────────────── */}
+      <p className="text-sm text-slate-400 mt-2">
+        Tu pago con{' '}
+        <strong className="text-[#b5854b]">
+          {metodoSeleccionado?.nombre}
+        </strong>{' '}
+        ha sido registrado y está pendiente de verificación.
+      </p>
+    </div>
+
+    <div className="w-full mt-2 p-4 rounded-2xl bg-[#fff4e2] border border-[#e4c28a]/40 text-left">
+      <div className="flex justify-between text-sm mb-2">
+        <span className="text-slate-500">Pedido</span>
+
+        <span className="font-bold text-[#b5854b]">
+          #{pedido.id}
+        </span>
+      </div>
+
+      <div className="flex justify-between text-sm">
+        <span className="text-slate-500">Monto</span>
+
+        <span className="font-black text-[#231e1d]">
+          {pedido.moneda ?? 'PEN'} {total}
+        </span>
+      </div>
+    </div>
+
+    <button
+      onClick={onClose}
+      className="w-full py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all"
+    >
+      Listo
+    </button>
+  </div>
+)}
+
+
+        {/* ── PASO 6: Error ───────────────────────────────────────────── */}
         {paso === 'error' && (
           <div className="p-12 flex flex-col items-center justify-center gap-5 text-center">
             <div className="w-20 h-20 rounded-full bg-rose-50 border-2 border-rose-200 flex items-center justify-center">
@@ -701,7 +1006,7 @@ function ModalPago({
               <button onClick={onClose} className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold transition-colors">
                 Cancelar
               </button>
-              <button onClick={() => setPaso('seleccion')} className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all">
+              <button onClick={() => setPaso('metodo')} className="flex-1 py-3 rounded-2xl bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a] text-sm font-bold transition-all">
                 Reintentar
               </button>
             </div>
@@ -711,7 +1016,8 @@ function ModalPago({
       </div>
     </div>
   );
-}
+  }
+
 
 // ─── Tarjeta de pedido ────────────────────────────────────────────────────────
 
@@ -719,13 +1025,14 @@ function PedidoCard({
   pedido,
   index,
   onVerDetalle,
-  onPagar,
+  
 }: {
   pedido: Pedido;
   index: number;
   onVerDetalle: (p: Pedido) => void;
-  onPagar: (p: Pedido) => void;
+  
 }) {
+  const router = useRouter();
   const estado = ESTADO_META[pedido.estado] ?? ESTADO_META.pendiente;
   const pago   = PAGO_META[pedido.estado_pago] ?? PAGO_META.pendiente;
   const Icon   = estado.icon;
@@ -739,7 +1046,6 @@ function PedidoCard({
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-
   return (
     <div
       className={cn(
@@ -807,7 +1113,8 @@ function PedidoCard({
         {/* Botón Pagar — visible solo si pago pendiente */}
         {isPending && (
           <button
-            onClick={(e) => { e.stopPropagation(); onPagar(pedido); }}
+           onClick={(e) => {e.stopPropagation();router.push(`/portal/pago/${pedido.id}`);
+}}
             className={cn(
               'hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl',
               'bg-[#231e1d] hover:bg-[#b5854b] text-[#e4c28a]',
@@ -851,6 +1158,17 @@ const GLOBAL_STYLES = `
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+    @keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 `;
 
 // ─── Página principal ──────────────────────────────────────────────────────────
@@ -863,7 +1181,6 @@ export default function MisPedidosPage() {
   const [error, setError]                 = useState<string | null>(null);
 
   const [pedidoDetalle, setPedidoDetalle] = useState<Pedido | null>(null);
-  const [pedidoPago, setPedidoPago]       = useState<Pedido | null>(null);
 
   const fetchPedidos = useCallback(async () => {
     if (!cliente?.id) return;
@@ -951,10 +1268,7 @@ export default function MisPedidosPage() {
 
   const cotizacionesRecientes = cotizaciones.slice(0, 3);
 
-  const handlePagar = (pedido: Pedido) => {
-    setPedidoDetalle(null);
-    setPedidoPago(pedido);
-  };
+  
 
   return (
     <>
@@ -1138,11 +1452,10 @@ export default function MisPedidosPage() {
             <div className="space-y-2.5">
               {pedidos.map((pedido, i) => (
                 <PedidoCard
-                  key={pedido.id}
-                  pedido={pedido}
-                  index={i}
-                  onVerDetalle={setPedidoDetalle}
-                  onPagar={handlePagar}
+                key={pedido.id}
+                pedido={pedido}
+                index={i}
+                onVerDetalle={setPedidoDetalle}
                 />
               ))}
             </div>
@@ -1152,20 +1465,15 @@ export default function MisPedidosPage() {
       </div>
 
       {/* ── Modales ──────────────────────────────────────────────────────────── */}
-      {pedidoDetalle && !pedidoPago && (
-        <ModalDetalle
-          pedido={pedidoDetalle}
-          onClose={() => setPedidoDetalle(null)}
-          onPagar={() => handlePagar(pedidoDetalle)}
-        />
-      )}
+      {pedidoDetalle && (
+      <ModalDetalle
+        pedido={pedidoDetalle}
+        onClose={() => setPedidoDetalle(null)}
+        onPagar={() => {}}
+       />
+)}
 
-      {pedidoPago && (
-        <ModalPago
-          pedido={pedidoPago}
-          onClose={() => setPedidoPago(null)}
-        />
-      )}
+      
     </>
   );
 }
