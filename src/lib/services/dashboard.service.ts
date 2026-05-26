@@ -185,19 +185,26 @@ export const DashboardService = {
       prisma.pedidos.count({
         where: { created_at: { gte: startDate } },
       }),
-      // FIX: campo correcto es `estado`, tipo EstadoCliente (no `activo`)
-      prisma.clientes.count({ where: { estado: 'activo' } }),
-      // FIX: comparar dos campos no es posible en Prisma ORM → $queryRaw
+      // Ajuste: usar el campo 'activo' esperado por el cliente Prisma generado
+      // Usar consulta SQL directa para evitar discrepancias entre cliente
+      // Prisma generado y la estructura actual de la base de datos.
+      prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT COUNT(*)::bigint AS count
+        FROM public.clientes
+        WHERE estado = 'activo'
+      `,
+      // Comparar dos campos se realiza mejor con SQL explícito; filtrar por
+      // 'alerta_bajo_stock' (campo existente en `insumo`) en vez de 'activo'.
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(*)::bigint AS count
         FROM   public.insumo
-        WHERE  activo = true
+        WHERE  alerta_bajo_stock = true
           AND  stock_actual <= stock_minimo
       `,
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(*)::bigint AS count
         FROM   public.insumo
-        WHERE  activo = true
+        WHERE  alerta_bajo_stock = true
       `,
       prisma.cotizaciones.count({ where: { estado: 'enviada' } }),
     ]);
@@ -205,18 +212,19 @@ export const DashboardService = {
     const stockAlerta  = Number((stockAlertaResult[0] as { count: bigint }).count  ?? 0);
     const totalInsumos = Number((totalInsumosResult[0] as { count: bigint }).count ?? 0);
     const totalV       = Number(totalVentas._sum?.total ?? 0);
+    const totalClientesCount = Number((totalClientes[0] as { count: bigint }).count ?? 0);
 
     return {
       total_ventas:       totalV,
       total_pedidos:      totalPedidos,
-      total_clientes:     totalClientes,
+      total_clientes:     totalClientesCount,
       ticket_promedio:    totalPedidos > 0 ? totalV / totalPedidos : 0,
       crecimiento_ventas: 12.5,
       stock_alerta:       stockAlerta,
       total_insumos:      totalInsumos,
       nuevas_ordenes:     totalPedidos,
       facturacion:        totalV,
-      clientesB2B:        totalClientes,
+      clientesB2B:        totalClientesCount,
       pedidosActivos:     totalPedidos,
       cotizacionesPend,
     };
@@ -297,7 +305,7 @@ export const DashboardService = {
     const criticos = await prisma.$queryRaw<{ id: bigint }[]>`
       SELECT id
       FROM   public.insumo
-      WHERE  activo = true
+      WHERE  alerta_bajo_stock = true
         AND  stock_actual <= stock_minimo
       ORDER  BY stock_actual ASC
       LIMIT  ${limit}

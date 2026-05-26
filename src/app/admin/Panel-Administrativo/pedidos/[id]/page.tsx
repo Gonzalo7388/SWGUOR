@@ -12,8 +12,11 @@ interface PageProps {
 export default async function PedidoDetallePage({ params }: PageProps) {
   const { id } = await params;
 
+  let pedido;
+  let talleres;
+
   try {
-    const pedido = await prisma.pedidos.findUnique({
+    pedido = await prisma.pedidos.findUnique({
       where: { id: BigInt(id) },
       include: {
         clientes: {
@@ -51,20 +54,20 @@ export default async function PedidoDetallePage({ params }: PageProps) {
     if (!pedido) notFound();
 
     // Talleres activos para el modal
-    const talleres = await prisma.talleres.findMany({
+    talleres = await prisma.talleres.findMany({
       where: { estado: 'activo' },
       orderBy: { nombre: 'asc' },
       select: { id: true, nombre: true, especialidad: true, contacto: true, email: true },
     });
-
-    return (
-      <PedidoDetalle
-        pedido={serializeBigInt(pedido)}
-        talleres={serializeBigInt(talleres)}
-      />
-    );
   } catch (error) {
     console.error("Error cargando pedido:", error);
     notFound();
   }
+
+  return (
+    <PedidoDetalle
+      pedido={serializeBigInt(pedido)}
+      talleres={serializeBigInt(talleres)}
+    />
+  );
 }

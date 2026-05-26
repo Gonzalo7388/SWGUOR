@@ -36,8 +36,8 @@ export default function ClientesPage() {
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Error al cargar clientes");
       setClientes(body.data ?? []);
-    } catch (e: any) {
-      toast.error(e.message ?? "Error inesperado");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Error inesperado");
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ export default function ClientesPage() {
         {/* Modales */}
         {formTarget !== undefined && (
           <ClienteFormModal
-            cliente={formTarget as any}
+            cliente={formTarget}
             onClose={() => setFormTarget(undefined)}
             onSuccess={fetchClientes}
           />
