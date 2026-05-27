@@ -146,7 +146,6 @@ export default function OrdenFormDialog({ open, onClose, initialData }: OrdenFor
 
   const onSubmit = (data: OrdenProduccionFormValues) => {
     if (isEditing && initialData) {
-      //  CORRECTO: Ahora pasamos tanto el ID como el objeto con los datos modificados
       update(String(initialData.id), data); 
     } else {
       create(data);

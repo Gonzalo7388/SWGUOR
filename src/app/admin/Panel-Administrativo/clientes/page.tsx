@@ -19,7 +19,6 @@ import type { ClienteListItem } from "@/lib/services/clientes.service";
 
 export default function ClientesPage() {
   const { can } = usePermissions();
-
   const [clientes, setClientes] = useState<ClienteListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ClienteFiltrosState>(EMPTY_CLIENTE_FILTERS);

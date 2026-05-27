@@ -162,12 +162,24 @@ export default function OrdenesCompraPage() {
         
         {/* Encabezado Superior con los colores de botón solicitados */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Órdenes de Compra</h1>
-            <p className="text-slate-500 text-sm">Generación y seguimiento de órdenes a proveedores (CUS-50)</p>
-          </div>
+          <AdminPageHeader
+            title="Órdenes de Compra"
+            description="Gestión integral de compras, proveedores y control de gastos"
+          />
+          {canCreate && (
+            <Button
+              className="bg-rose-600 hover:bg-rose-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95 rounded-xl"
+              onClick={() => router.push('/admin/Panel-Administrativo/ordenes-compra/nueva')}
+            >
+              <Plus className="w-5 h-5" /> Nueva orden
+            </Button>
+          )}
+        </div>
+
+         {/* Botones de acción para exportar con los colores solicitados */}
           <div className="flex items-center gap-3">
-            
+            <div className="text-sm text-slate-500">
+          
             {/* BOTÓN EXPORTAR EXCEL CON TUS COLORES */}
             <Button
               variant="outline"
