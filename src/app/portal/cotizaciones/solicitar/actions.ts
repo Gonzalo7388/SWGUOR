@@ -71,7 +71,7 @@ export async function obtenerProductosParaCotizar(): Promise<
 > {
   const sesion = await obtenerClienteIdUsuario();
   if ('error' in sesion) {
-    return { success: false, error: sesion.error };
+    return { success: false, error: sesion.error as string };
   }
 
   const [productosRaw, categoriasRaw] = await Promise.all([
