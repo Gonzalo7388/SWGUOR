@@ -56,10 +56,10 @@ const GESTION_OPERATIVA: NavGroup = {
     },
     {
       title: 'Reportes',
-      href: '/admin/Panel-Administrativo/reportes',
+      href: '/admin/Panel-Administrativo/reportes/talleres-externos',
       icon: BarChart3,
-      resource: 'reportes' as RecursoKey,
-      roles: ['gerente', 'administrador'],
+      resource: 'dashboard' as RecursoKey,
+      roles: ['gerente', 'administrador', 'ayudante'],
     },
     {
       title: 'Catálogo',

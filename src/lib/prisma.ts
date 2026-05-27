@@ -5,7 +5,6 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 export const auditUserStore = new AsyncLocalStorage<{ userId: bigint }>();
 
-// Allow attaching an availability marker without polluting Prisma types everywhere
 type PrismaMaybeUnavailable = PrismaClient & { __prisma_unavailable?: true };
 
 declare global {
@@ -28,7 +27,6 @@ function buildClient(): PrismaClient {
           if (prop === '__prisma_unavailable') {
             return true;
           }
-
           return proxy;
         },
         apply() {
@@ -36,7 +34,6 @@ function buildClient(): PrismaClient {
         },
       }) as unknown as PrismaMaybeUnavailable;
 
-      // Mark proxy so callers can detect availability without invoking it
       proxy.__prisma_unavailable = true;
 
       return proxy as unknown as PrismaMaybeUnavailable;
@@ -45,10 +42,14 @@ function buildClient(): PrismaClient {
     return makeUnavailable();
   }
 
-  const pool = new Pool({ connectionString });
+ 
+  const cleanConnectionString = connectionString
+    .replace('?pgbouncer=true', '')
+    .replace('&pgbouncer=true', '');
+
+  const pool = new Pool({ connectionString: cleanConnectionString });
   const adapter = new PrismaPg(pool);
 
-  // Cast real client to PrismaMaybeUnavailable so callers can check the marker safely
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : [],
@@ -67,7 +68,6 @@ function getClient(): PrismaClient {
 
 export const prisma = getClient();
 
-// Safely check if prisma client is available (i.e., DATABASE_URL was set)
 function checkAvailability(): boolean {
   const client = prisma as unknown as PrismaClient & { __prisma_unavailable?: true };
   return !(client.__prisma_unavailable === true);
