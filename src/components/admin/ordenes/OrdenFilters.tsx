@@ -9,7 +9,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { ETAPAS_PRODUCCION, ETAPA_LABELS } from "@/lib/schemas/ordenes-produccion";
-import { Search, Filter, X, SlidersHorizontal } from "lucide-react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OrdenFiltersProps {

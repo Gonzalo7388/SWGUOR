@@ -69,7 +69,7 @@ export default function MovimientosPage() {
 
     const data = await response.json();
     setEstadisticas(data.data ?? ESTADISTICAS_INICIALES);
-  }, [filters.desde, filters.hasta, buildDateParams]);
+  }, [buildDateParams]);
 
   const loadAll = useCallback(async () => {
     setIsLoading(true);

@@ -4,9 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle, X, Upload, ChevronDown, CheckCircle2,
 } from 'lucide-react';
-import type { TipoIncidenciaCliente, SeveridadIncidencia, DespachoFlat } from '@/lib/services/despachos.service';
+import type {
+  TipoIncidenciaCliente,
+  SeveridadIncidencia,
+  DespachoFlat,
+} from '@/lib/services/despachos.service';
 import { TIPO_LABELS, SEVERIDAD_CONFIG } from '@/lib/constants/estados';
 import { useIncidencia } from '@/lib/hooks/useDespachos';
+import Image from 'next/image';
 
 interface ModalIncidenciaProps {
   despacho: DespachoFlat;
@@ -14,15 +19,21 @@ interface ModalIncidenciaProps {
 }
 
 export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaProps) {
-  const [tipo, setTipo] = useState<TipoIncidenciaCliente>('defecto_confeccion');
-  const [severidad, setSeveridad] = useState<SeveridadIncidencia>('media');
+  const [tipo, setTipo]               = useState<TipoIncidenciaCliente>('defecto_confeccion');
+  const [severidad, setSeveridad]     = useState<SeveridadIncidencia>('media');
   const [descripcion, setDescripcion] = useState('');
-  const [foto, setFoto] = useState<File | null>(null);
+  const [foto, setFoto]               = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
-  const [localError, setLocalError] = useState('');
+  const [localError, setLocalError]   = useState('');
 
   const fileRef = useRef<HTMLInputElement>(null);
   const { status, errorMsg, submit, reset } = useIncidencia();
+
+  // ✓ Limpiar estado del hook al montar (por si el modal fue cerrado con error
+  //   y React reutiliza la instancia del hook en un remount rápido)
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   // Bloquear scroll del body
   useEffect(() => {
@@ -46,16 +57,18 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
     setLocalError('');
   }
 
-  async function handleSubmit() {
+  // ✓ useCallback evita la recreación en cada render
+  const handleSubmit = useCallback(async () => {
     if (!descripcion.trim()) {
       setLocalError('La descripción es obligatoria.');
       return;
     }
     setLocalError('');
-    // ✓ pedido_ids[0] en lugar de pedido_id
     await submit(despacho.pedido_ids[0], { tipo, severidad, descripcion, foto });
-  }
+  }, [descripcion, despacho.pedido_ids, tipo, severidad, foto, submit]);
 
+  // ✓ localError tiene precedencia visual; errorMsg del hook aparece solo
+  //   cuando no hay error local activo
   const displayError = localError || errorMsg;
 
   return (
@@ -73,7 +86,6 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
             </div>
             <div>
               <h3 className="text-sm font-bold text-[#3A2A2A]">Reportar incidencia</h3>
-              {/* ✓ eliminado pedido_codigo, reemplazado por pedido_ids */}
               <p className="text-xs text-[#8A7676]">
                 Despacho{' '}
                 <span className="font-semibold text-[#B8962D]">{despacho.codigo}</span>
@@ -147,7 +159,7 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
                         className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all"
                         style={{
                           borderColor: severidad === v ? cfg.border : '#E7D7D7',
-                          background: severidad === v ? cfg.bg : 'white',
+                          background:  severidad === v ? cfg.bg    : 'white',
                         }}
                       >
                         <div
@@ -204,8 +216,13 @@ export default function ModalIncidencia({ despacho, onClose }: ModalIncidenciaPr
                 />
                 {fotoPreview ? (
                   <div className="relative rounded-xl overflow-hidden border border-[#E7D7D7] aspect-video bg-[#FAF5F5]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={fotoPreview} alt="Evidencia" className="w-full h-full object-cover" />
+                    <Image
+                      src={fotoPreview}
+                      alt="Evidencia"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
                     <button
                       onClick={() => { setFoto(null); setFotoPreview(null); }}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors"

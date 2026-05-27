@@ -4,26 +4,61 @@ import { useState } from "react";
 import { ArrowLeft, ShoppingBag, Clock, Factory } from "lucide-react";
 import Link from "next/link";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import { PedidoHeader }         from "./PedidoHeader";
-import { PedidoItems }          from "./PedidoItems";
-import { PedidoSeguimiento }    from "./PedidoSeguimiento";
+import { PedidoHeader } from "./PedidoHeader";
+import { PedidoItems, type ItemPedidoRow } from "./PedidoItems";
+import { PedidoSeguimiento, type SeguimientoPedidoRow } from "./PedidoSeguimiento";
 import { OrdenesProduccionList } from "./OrdenesProduccionList";
-import { CrearOrdenModal }       from "./CrearOrdenModal";
-import { usePedidos }          from "@/lib/hooks/usePedidos";
-import { useOrdenesProduccion } from "@/lib/hooks/useOrdenProduccion";
-import { ESTADO_PEDIDO_LABELS, PRIORIDAD_PEDIDO_LABELS } from "@/lib/schemas/pedidos"
+import { CrearOrdenModal } from "./CrearOrdenModal";
+import { usePedidos } from "@/lib/hooks/usePedidos";
+import { useCreateOrdenProduccion } from "@/lib/hooks/useOrdenProduccion";
+import { ESTADO_PEDIDO_LABELS, PRIORIDAD_PEDIDO_LABELS } from "@/lib/schemas/pedidos";
 
 const TABS = [
-  { id: "items",      label: "Items",          icon: ShoppingBag },
-  { id: "seguimiento", label: "Seguimiento",   icon: Clock       },
-  { id: "produccion",  label: "Producción",    icon: Factory     },
+  { id: "items",       label: "Items",          icon: ShoppingBag },
+  { id: "seguimiento", label: "Seguimiento",    icon: Clock       },
+  { id: "produccion",  label: "Producción",     icon: Factory     },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
 
+// ── Tipos y Estructuras de Datos Estrictas Saneadas ──
+
+export interface ConfeccionOrdenRow {
+  id: string | number;
+  pedido_id: string | number;
+  taller_id: string | number;
+  etapa_actual: string;
+  created_at: string | Date;
+  [key: string]: string | number | boolean | unknown;
+}
+
+export interface DetallePedidoData {
+  id: string | number;
+  estado: "pendiente" | "en_produccion" | "listo_para_despacho" | "entregado" | "cancelado" | string;
+  prioridad: "baja" | "normal" | "alta" | string;
+  cliente_id?: string | number | null;
+  total?: number;
+  created_at?: string | Date;
+  pedido_items?: ItemPedidoRow[];
+  seguimiento_pedido?: SeguimientoPedidoRow[];
+  confecciones?: ConfeccionOrdenRow[];
+  // Se añade la propiedad que Prisma mapea de forma nativa en la base de datos relacional
+  ordenes_produccion?: ConfeccionOrdenRow[];
+  [key: string]: string | number | boolean | unknown;
+}
+
+export interface TallerOption {
+  id: string | number;
+  nombre: string;
+  encargado?: string | null;
+  email?: string | null;
+  contacto?: string | null;
+  especialidad?: string | null;
+}
+
 interface PedidoDetalleProps {
-  pedido:   any;
-  talleres: any[];
+  pedido: DetallePedidoData;
+  talleres: TallerOption[];
 }
 
 const ESTADO_COLORS: Record<string, string> = {
@@ -37,22 +72,29 @@ const ESTADO_COLORS: Record<string, string> = {
 const PRIORIDAD_COLORS: Record<string, string> = {
   baja:   "bg-gray-100 text-gray-500",
   normal: "bg-blue-100 text-blue-600",
+  alta:   "bg-red-100 text-red-600",
 };
 
+// ── Componente Principal ───────────────────────────────────────
 export default function PedidoDetalle({ pedido, talleres }: PedidoDetalleProps) {
-  const [activeTab,      setActiveTab]      = useState<TabId>("items");
-  const [modalOpen,      setModalOpen]      = useState(false);
-  const { update, registrarSeguimiento, isUpdating } = usePedidos();
-  const { ordenes, create, registrarEtapa, isCreating } = useOrdenesProduccion();
+  const [activeTab, setActiveTab] = useState<TabId>("items");
+  const [modalOpen, setModalOpen] = useState(false);
+  const { registrarSeguimiento, isUpdating } = usePedidos();
+  const { create, registrarEtapa } = useCreateOrdenProduccion();
+  
   const { can } = usePermissions();
 
   const puedeCrearOrden = can("create", "confecciones") || can("edit", "productos");
+
+  // Se unifican las fuentes de datos tipadas en una constante segura
+  const listaOrdenes = pedido.confecciones ?? pedido.ordenes_produccion ?? [];
+  const totalOrdenes = listaOrdenes.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
 
-        {/* Header */}
+        {/* Header de navegación superior */}
         <div>
           <Link
             href="/admin/Panel-Administrativo/pedidos"
@@ -64,7 +106,7 @@ export default function PedidoDetalle({ pedido, talleres }: PedidoDetalleProps) 
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-pink-600 rounded-xl">
+              <div className="p-2.5 bg-pink-600 rounded-xl shadow-md shadow-pink-100">
                 <ShoppingBag className="text-white w-5 h-5" />
               </div>
               <div>
@@ -84,8 +126,9 @@ export default function PedidoDetalle({ pedido, talleres }: PedidoDetalleProps) 
 
             {puedeCrearOrden && (
               <button
+                type="button"
                 onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all active:scale-95"
+                className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all shadow-md shadow-pink-100 active:scale-95"
               >
                 <Factory size={14} />
                 Nueva orden de producción
@@ -94,14 +137,15 @@ export default function PedidoDetalle({ pedido, talleres }: PedidoDetalleProps) 
           </div>
         </div>
 
-        {/* Info cliente + totales */}
+        {/* Sección informativa del Cliente y Costos Totales */}
         <PedidoHeader pedido={pedido} />
 
-        {/* Tabs */}
+        {/* Pestañas de Navegación Exclusivas */}
         <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1 shadow-sm w-fit">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
+              type="button"
               onClick={() => setActiveTab(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
                 activeTab === id
@@ -111,36 +155,40 @@ export default function PedidoDetalle({ pedido, talleres }: PedidoDetalleProps) 
             >
               <Icon size={13} />
               {label}
-              {id === "produccion" && ordenes.length > 0 && (
-                <span className="bg-white/20 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                  {ordenes.length}
+              {id === "produccion" && totalOrdenes > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'produccion' ? 'bg-white/20 text-white' : 'bg-pink-50 text-pink-600'}`}>
+                  {totalOrdenes}
                 </span>
               )}
             </button>
           ))}
         </div>
 
-        {/* Contenido tabs */}
-        {activeTab === "items" && (
-          <PedidoItems items={pedido.pedido_items ?? []} />
-        )}
-        {activeTab === "seguimiento" && (
-          <PedidoSeguimiento
-            pedidoId={pedido.id}
-            seguimientos={pedido.seguimiento_pedido ?? []}
-            isLoading={isUpdating}
-            onUpdate={(data) => registrarSeguimiento({ pedido_id: pedido.id, ...data })}
-          />
-        )}
-        {activeTab === "produccion" && (
-          <OrdenesProduccionList
-            ordenes={pedido.confecciones ?? []} 
-            onUpdate={(actualizada) => registrarEtapa({ orden_id: actualizada.id, etapa: actualizada.etapa_actual })}
-          />
-        )}
+        {/* Renderizado Condicional del Contenido de los Tabs */}
+        <main>
+          {activeTab === "items" && (
+            <PedidoItems items={pedido.pedido_items ?? []} />
+          )}
+          
+          {activeTab === "seguimiento" && (
+            <PedidoSeguimiento
+              pedidoId={String(pedido.id)}
+              seguimientos={pedido.seguimiento_pedido ?? []}
+              isLoading={isUpdating}
+              onUpdate={(data) => registrarSeguimiento({ ...data, pedido_id: String(pedido.id) })}
+            />
+          )}
+          
+          {activeTab === "produccion" && (
+            <OrdenesProduccionList
+              ordenes={listaOrdenes} 
+              onUpdate={(actualizada) => registrarEtapa({ orden_id: String(actualizada.id), etapa: actualizada.etapa_actual })}
+            />
+          )}
+        </main>
       </div>
 
-      {/* Modal crear orden */}
+      {/* Modal Desplegable para Asignar Confección a Talleres */}
       <CrearOrdenModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

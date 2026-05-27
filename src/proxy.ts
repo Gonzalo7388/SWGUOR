@@ -29,7 +29,7 @@ const routePermissions: Record<string, string[]> = {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  let response = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
 
   // 1. RUTAS PÚBLICAS
   const publicPaths = ['/auth/login', '/auth/signup', '/admin/acceso-denegado'];
