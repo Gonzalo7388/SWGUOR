@@ -14,7 +14,7 @@ export async function liberarReservaStockAction(reservaId: string) {
   }
 
   const id = BigInt(reservaId);
-  if (id <= 0n) {
+  if (id <= BigInt(0)) {
     return { success: false as const, error: 'ID de reserva inválido' };
   }
 
