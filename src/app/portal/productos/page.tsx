@@ -14,10 +14,10 @@ import { formatCurrency } from '@/lib/helpers/format-helpers';
 
 // ── Brand colors ──────────────────────────────────────────────────
 const BRAND = {
-  ocre:       '#b5854b',
-  ocreDark:   '#9a6e3a',
-  ocreLight:  '#fff4e2',
-  negro:      '#231e1d',
+  ocre: '#b5854b',
+  ocreDark: '#9a6e3a',
+  ocreLight: '#fff4e2',
+  negro: '#231e1d',
   negroHover: '#3a3330',
 };
 
@@ -166,8 +166,8 @@ export default function ProductosPage() {
             categoria: p.categorias?.nombre || 'General',
             variantes: variantesActivas,
             variantes_producto: variantesActivas,
-            tallas: [...new Set(variantesActivas.map((v) => v.talla))],
-            colores: [...new Set(variantesActivas.map((v) => v.color))],
+            tallas: [...new Set(variantesActivas.map((v: { talla: string }) => v.talla))],
+            colores: [...new Set(variantesActivas.map((v: { color: string }) => v.color))],
           };
         }));
       }
@@ -223,7 +223,7 @@ export default function ProductosPage() {
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
+          <input
             type="text"
             placeholder="Buscar por nombre o SKU..."
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 transition-all"
@@ -294,8 +294,8 @@ export default function ProductosPage() {
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Categorías</h3>
               <div className="flex flex-wrap gap-2">
                 {categoriasLista.map(cat => (
-                  <button 
-                    key={cat} 
+                  <button
+                    key={cat}
                     onClick={() => setCategoriaSel(cat)}
                     className={cn("px-3 py-1.5 rounded-full text-xs font-bold transition-all")}
                     style={{
@@ -323,8 +323,8 @@ export default function ProductosPage() {
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Tallas</h3>
               <div className="grid grid-cols-3 gap-2">
                 {tallasLista.map(t => (
-                  <button 
-                    key={t} 
+                  <button
+                    key={t}
                     onClick={() => setTallaSel(t)}
                     className="py-2 rounded-xl text-xs font-bold border transition-all"
                     style={{
@@ -353,8 +353,8 @@ export default function ProductosPage() {
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Colores</h3>
               <div className="flex flex-wrap gap-2">
                 {coloresLista.map(c => (
-                  <button 
-                    key={c} 
+                  <button
+                    key={c}
                     onClick={() => setColorSel(c)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
                     style={{
@@ -390,10 +390,10 @@ export default function ProductosPage() {
           ) : productosFiltrados.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {productosFiltrados.map((prod, index) => (
-                <div 
+                <div
                   key={prod.id}
                   className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
-                  style={{ 
+                  style={{
                     animationDelay: `${index * 50}ms`
                   }}
                 >
@@ -409,14 +409,14 @@ export default function ProductosPage() {
             <div className="h-96 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">
               <Package size={48} className="mb-4 opacity-20" />
               <p className="font-medium text-sm">No se encontraron productos para esta búsqueda.</p>
-              <button 
+              <button
                 onClick={() => {
                   setBusqueda('');
                   setCategoriaSel('Todos');
                   setTallaSel('Todas');
                   setColorSel('Todos');
                   setPromocionSel('Todas');
-                }} 
+                }}
                 className="mt-4 text-sm font-bold uppercase underline decoration-2 underline-offset-4 transition-colors"
                 style={{ color: BRAND.ocre }}
                 onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = BRAND.ocreDark}
@@ -429,7 +429,7 @@ export default function ProductosPage() {
         </div>
       </div>
 
-      <DetallesProductoModal 
+      <DetallesProductoModal
         producto={productoSeleccionado}
         isOpen={!!productoSeleccionado}
         onClose={() => setProductoSeleccionado(null)}

@@ -30,11 +30,15 @@ type CartState = {
 /** Ítems guardados antes de Zustand o sin campo moq tipado. */
 export function normalizeCartItem(raw: Partial<CartItem> & Record<string, unknown>): CartItem {
   const precioRaw = raw.precio ?? raw.precio_unitario ?? 0;
+  const rawVid = raw.variante_id as unknown;
+  const varianteStr = rawVid == null ? '' : String(rawVid).trim();
+  const varianteNum =
+    varianteStr !== '' && !Number.isNaN(Number(rawVid)) ? Number(rawVid) : NaN;
   return {
     producto_id: Number(raw.producto_id),
     variante_id:
-      raw.variante_id != null && raw.variante_id !== ''
-        ? Number(raw.variante_id)
+      varianteStr !== '' && Number.isFinite(varianteNum) && varianteNum > 0
+        ? varianteNum
         : undefined,
     nombre: String(raw.nombre ?? 'Producto'),
     precio: Number(precioRaw) || 0,

@@ -1,3 +1,4 @@
+import type { ColorPrenda, TallaProductos } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 export type ItemPedidoEntrada = {
@@ -39,8 +40,8 @@ export async function resolverVarianteIdPedido(
     const porAttrs = await prisma.variantes_producto.findFirst({
       where: {
         producto_id: productoId,
-        color,
-        talla,
+        color: color as ColorPrenda,
+        talla: talla as TallaProductos,
         estado: 'activo',
       },
       select: { id: true },

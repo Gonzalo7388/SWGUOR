@@ -64,8 +64,7 @@ export function MovimientosInventarioPage() {
       if (!movRes.success) {
         throw new Error(movRes.error);
       }
-      setMovimientos((movRes.data ?? []) as Movimiento[]);
-
+      setMovimientos((movRes.data ?? []) as unknown as Movimiento[]);
       if (statsRes.success && statsRes.data) {
         setEstadisticas({
           totalEntradas: statsRes.data.totalEntradas ?? 0,
