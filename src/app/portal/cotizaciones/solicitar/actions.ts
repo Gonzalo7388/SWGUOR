@@ -146,7 +146,7 @@ export async function crearSolicitudCotizacion(input: {
 > {
   const sesion = await obtenerClienteIdUsuario();
   if ('error' in sesion) {
-    return { success: false, error: sesion.error };
+    return { success: false, error: sesion.error as string };
   }
 
   const mensaje = input.mensaje?.trim() ?? '';
