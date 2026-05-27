@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // 2. Corregimos las importaciones según las sugerencias de tus hooks reales
 import { useCreateOrdenProduccion, useUpdateOrdenProduccion } from '@/lib/hooks/useOrdenProduccion'; 
-import { OrdenProduccion } from '@/components/admin/ordenes/types';
+import { OrdenProduccion } from '@/components/admin/ordenes-produccion/types';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {

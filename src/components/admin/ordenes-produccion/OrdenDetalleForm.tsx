@@ -7,7 +7,7 @@ import { ETAPAS_PRODUCCION, ETAPA_LABELS } from "@/lib/schemas/ordenes-produccio
 import OrdenStepper from "./OrdenStepper";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { OrdenProduccion, SeguimientoProduccion } from "@/components/admin/ordenes/types";
+import { OrdenProduccion, SeguimientoProduccion } from "@/components/admin/ordenes-produccion/types";
 import {
   Factory,
   Package,
