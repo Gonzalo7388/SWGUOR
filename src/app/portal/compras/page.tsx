@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useCartStore, selectCanCheckout } from '@/lib/store/useCartStore';
 import { resolveCartMoq } from '@/lib/constants/portal-b2b';
-import { usePortal } from '../_contexts/PortalContext';
+import { usePortal } from '@/lib/hooks/usePortal';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
