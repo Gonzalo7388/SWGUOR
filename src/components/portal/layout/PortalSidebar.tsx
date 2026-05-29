@@ -18,11 +18,11 @@ const MENU_GROUPS = [
   {
     group: 'Comercial',
     items: [
-      { href: '/portal/productos', label: 'Catálogo', icon: ShoppingBag },
-      { href: '/portal/compras', label: 'Confirmar compra', icon: ShoppingCart },
-      { href: '/portal/cotizaciones/solicitar', label: 'Solicitar cotización', icon: FileText },
-      { href: '/portal/cotizaciones', label: 'Mis cotizaciones', icon: FileText },
+      { href: '/portal/catalogo', label: 'Catálogo', icon: ShoppingBag },
+      { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText },
       { href: '/portal/pedidos', label: 'Mis pedidos', icon: Package },
+      { href: '/portal/compras', label: 'Confirmar compra', icon: ShoppingCart },
+
     ],
   },
   {
