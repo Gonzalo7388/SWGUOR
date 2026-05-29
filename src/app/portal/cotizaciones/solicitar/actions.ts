@@ -55,11 +55,15 @@ async function obtenerClienteIdUsuario() {
 
   const cliente = await prisma.clientes.findFirst({
     where: { usuario_id: BigInt(auth.user.id) },
-    select: { id: true, activo: true },
+    select: { id: true, estado: true },
   });
 
   if (!cliente) {
     return { error: 'cliente_no_encontrado' };
+  }
+
+  if (cliente.estado !== 'activo') {
+    return { error: 'cliente_inactivo' };
   }
 
   return { clienteId: cliente.id };

@@ -626,7 +626,7 @@ model clientes {
   ruc                  String                 @unique @db.VarChar(20)
   razon_social         String?                @db.VarChar(255)
   telefono             String?                @db.VarChar(50)
-  activo               EstadoCliente?         @default(activo)
+  estado           EstadoCliente @default(activo)
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   updated_at           DateTime               @default(now()) @db.Timestamptz(6)
   usuario_id           BigInt?                @unique

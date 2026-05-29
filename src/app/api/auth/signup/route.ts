@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         telefono:         telefono ?? null,
         direccion_fiscal: direccion_fiscal ?? null,
         tipo_cliente:     (tipo_cliente ?? 'corporativo') as any,
-        activo:           'activo' as any,
+        estado:           'activo' as any,
       })
       .select('id')
       .single();

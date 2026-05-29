@@ -50,7 +50,7 @@ export const ClientesService = {
   async listar(params?: { busqueda?: string; estado?: string }) {
     const where: any = {};
     if (params?.estado && params.estado !== 'todos') {
-      where.activo = params.estado;
+      where.estado = params.estado as EstadoCliente;
     }
     if (params?.busqueda) {
       where.OR = [
@@ -76,10 +76,11 @@ export const ClientesService = {
     });
 
     // Mapear ultimo_pedido_en antes del serialize
-    const resultado = clientes.map(c => ({
+    const resultado = clientes.map((c) => ({
       ...c,
+      activo: c.estado,
       ultimo_pedido_en: c.pedidos?.[0]?.created_at ?? null,
-      pedidos: undefined, // limpiar el array, no hace falta enviarlo
+      pedidos: undefined,
     }));
     return serializeBigInt(resultado);
   },
@@ -95,7 +96,8 @@ export const ClientesService = {
         direcciones_cliente: { orderBy: [{ es_principal: 'desc' }, { created_at: 'asc' }] },
       },
     });
-    return cliente ? serializeBigInt(cliente) : null;
+    if (!cliente) return null;
+    return serializeBigInt({ ...cliente, activo: cliente.estado });
   },
 
   // ── Crear cliente + usuario en Auth ─────────────────────────
@@ -139,7 +141,7 @@ export const ClientesService = {
             telefono:         data.telefono          ?? null,
             direccion_fiscal: data.direccion_fiscal  ?? null,
             tipo_cliente:     (data.tipo_cliente as TipoCliente) ?? 'corporativo',
-            activo:           'activo' as EstadoCliente,
+            estado:           'activo' as EstadoCliente,
             usuario_id:       usuario.id,
           },
           include: {
@@ -172,7 +174,7 @@ export const ClientesService = {
       where: { id: BigInt(id) },
       data: {
         ...rest,
-        ...(activo       !== undefined && { activo:       activo       as EstadoCliente }),
+        ...(activo !== undefined && { estado: activo as EstadoCliente }),
         ...(tipo_cliente !== undefined && { tipo_cliente: tipo_cliente as TipoCliente  }),
         updated_at: new Date(),
       },
@@ -200,7 +202,7 @@ export const ClientesService = {
     const [clienteActualizado] = await prisma.$transaction([
       prisma.clientes.update({
         where: { id: BigInt(clienteId) },
-        data:  { activo: estado, updated_at: new Date() },
+        data:  { estado, updated_at: new Date() },
       }),
       ...(cliente.usuarios
         ? [prisma.usuarios.update({

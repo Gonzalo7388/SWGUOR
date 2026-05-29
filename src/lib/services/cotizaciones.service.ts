@@ -554,7 +554,7 @@ export const CotizacionesService = {
 
   async listarClientes() {
     const clientes = await prisma.clientes.findMany({
-      where: { activo: EstadoCliente.activo },
+      where: { estado: EstadoCliente.activo },
       select: { id: true, razon_social: true, ruc: true },
       orderBy: { razon_social: 'asc' },
     });

@@ -63,7 +63,7 @@ export const DashboardService = {
         where: { created_at: { gte: startDate }, estado: { not: 'cancelado' } }
       }),
       prisma.pedidos.count({ where: { created_at: { gte: startDate } } }),
-      prisma.clientes.count({ where: { activo: 'activo' } }),
+      prisma.clientes.count({ where: { estado: 'activo' } }),
       prisma.insumo.count({
         where: {
           stock_actual: { lte: prisma.insumo.fields.stock_minimo }

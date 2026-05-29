@@ -37,7 +37,7 @@ async function obtenerClienteSesion() {
 
   const clienteDb = await prisma.clientes.findFirst({
     where:  { usuario_id: auth.user.id },
-    select: { id: true, razon_social: true, ruc: true, activo: true },
+    select: { id: true, razon_social: true, ruc: true, estado: true },
   });
 
   if (!clienteDb) {

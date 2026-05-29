@@ -19,11 +19,15 @@ async function obtenerClienteSesion() {
 
   const clienteDb = await prisma.clientes.findFirst({
     where: { usuario_id: auth.user.id },
-    select: { id: true, razon_social: true, activo: true },
+    select: { id: true, razon_social: true, estado: true },
   });
 
   if (!clienteDb) {
     return { error: 'cliente_no_encontrado' as const, status: 404 };
+  }
+
+  if (clienteDb.estado !== 'activo') {
+    return { error: 'cliente_inactivo' as const, status: 403 };
   }
 
   return {
