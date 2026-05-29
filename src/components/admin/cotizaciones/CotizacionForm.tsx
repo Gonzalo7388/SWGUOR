@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -14,7 +15,6 @@ import {
   createCotizacionSchema,
   type CreateCotizacionInput,
 } from '@/lib/schemas/cotizaciones';
-// ✅ Importar desde helpers (llama al API route) en vez de actions.ts eliminado
 import { createCotizacion } from '@/lib/helpers/cotizaciones-helpers';
 import { DatosGeneralesSection } from './DatosGeneralesSection';
 import { ItemsSection } from './ItemsSection';
@@ -62,30 +62,25 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
   });
 
   // ── Cálculo de totales en tiempo real ──────────────────────────────────────
-  const resumenFinanciero = useMemo(() => {
-    const items         = form.getValues('items') ?? [];
-    const tipoOperacion = form.getValues('tipo_operacion');
-    const tasaImpuesto  = form.getValues('tasa_impuesto');
+  const watchedItems        = useWatch({ control: form.control, name: 'items' });
+  const watchedTipoOp       = useWatch({ control: form.control, name: 'tipo_operacion' });
+  const watchedTasaImpuesto = useWatch({ control: form.control, name: 'tasa_impuesto' });
+  const moneda              = useWatch({ control: form.control, name: 'moneda' }) ?? 'PEN';
 
-    const subtotalGeneral = items.reduce(
+  const resumenFinanciero = useMemo(() => {
+    const subtotalGeneral = (watchedItems ?? []).reduce(
       (sum, item) => sum + (item.cantidad ?? 0) * (item.precio_unitario ?? 0),
       0,
     );
 
-    const esExportacion = tipoOperacion === 'Exportación';
-    const tasa          = esExportacion ? 0 : tasaImpuesto === 'IGV' ? 0.18 : 0;
+    const esExportacion = watchedTipoOp === 'Exportación';
+    const tasa          = esExportacion ? 0 : watchedTasaImpuesto === 'IGV' ? 0.18 : 0;
     const igv           = subtotalGeneral * tasa;
     const total         = subtotalGeneral + igv;
 
     return { subtotalGeneral, igv, total, tasa, esExportacion };
-  }, [
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    form.watch('items'),
-    form.watch('tipo_operacion'),
-    form.watch('tasa_impuesto'),
-  ]);
+  }, [watchedItems, watchedTipoOp, watchedTasaImpuesto]);
 
-  const moneda        = form.watch('moneda') ?? 'PEN';
   const simboloMoneda = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : 'S/';
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -93,7 +88,6 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
     try {
       setIsSubmitting(true);
 
-      // ✅ Construir notas con metadatos ERP serializados
       const {
         empresa, contacto, tipo_destino, vendedor, tipo_venta,
         unidad_negocio, forma_pago, metodo, direccion_entrega,

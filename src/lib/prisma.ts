@@ -5,10 +5,9 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 export const auditUserStore = new AsyncLocalStorage<{ userId: bigint }>();
 
-type PrismaMaybeUnavailable = PrismaClient & { __prisma_unavailable?: true };
+type PrismaMaybeUnavailable = PrismaClient & { __prisma_unavailable?: boolean };
 
 declare global {
-  // eslint-disable-next-line no-var
   var prismaGlobal: PrismaMaybeUnavailable | undefined;
 }
 
@@ -16,13 +15,12 @@ function buildClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString || connectionString === 'undefined') {
-
     const makeUnavailable = () => {
       const thrower = () => {
         throw new Error('Prisma client unavailable: DATABASE_URL is not set');
       };
 
-      const proxy = new Proxy(thrower as any, {
+      const proxy = new Proxy(thrower as unknown as PrismaMaybeUnavailable, {
         get(_target, prop) {
           if (prop === '__prisma_unavailable') {
             return true;
@@ -32,17 +30,15 @@ function buildClient(): PrismaClient {
         apply() {
           throw new Error('Prisma client unavailable: DATABASE_URL is not set');
         },
-      }) as unknown as PrismaMaybeUnavailable;
+      });
 
-      proxy.__prisma_unavailable = true;
-
-      return proxy as unknown as PrismaMaybeUnavailable;
+      return proxy;
     };
 
     return makeUnavailable();
   }
 
- 
+
   const cleanConnectionString = connectionString
     .replace('?pgbouncer=true', '')
     .replace('&pgbouncer=true', '');
@@ -61,16 +57,18 @@ function getClient(): PrismaClient {
     throw new Error('Prisma cannot be used on the client side.');
   }
 
-  globalThis.prismaGlobal ??= buildClient();
+  if (!globalThis.prismaGlobal) {
+    globalThis.prismaGlobal = buildClient();
+  }
 
-  return globalThis.prismaGlobal!;
+  return globalThis.prismaGlobal;
 }
 
 export const prisma = getClient();
 
 function checkAvailability(): boolean {
-  const client = prisma as unknown as PrismaClient & { __prisma_unavailable?: true };
-  return !(client.__prisma_unavailable === true);
+  const client = prisma as PrismaMaybeUnavailable;
+  return client.__prisma_unavailable !== true;
 }
 
 export const prismaAvailable = checkAvailability();

@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 // ─── Estructura Plana de Navegación (Estilo ERP) ──────────────────────────────
 const NAV_ITEMS = [
   { href: '/portal/dashboard', label: 'Inicio', icon: LayoutDashboard },
-  { href: '/portal/productos', label: 'Catálogo', icon: ShoppingBag },
+  { href: '/portal/catalogo', label: 'Catálogo', icon: ShoppingBag },
   { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText },
   { href: '/portal/pedidos', label: 'Mis Pedidos', icon: Package },
   { href: '/portal/seguimiento-pedido', label: 'Trazabilidad', icon: Truck },

@@ -160,8 +160,6 @@ function mapearPedido(raw: PedidoRaw): PedidoConSeguimiento {
     (a: SeguimientoPedido, b: SeguimientoPedido) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
-  const supabase = getSupabaseBrowserClient();
-
   const ultima = historial.at(-1)?.created_at ?? raw.created_at;
 
   return {

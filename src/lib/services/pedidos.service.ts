@@ -7,7 +7,7 @@ export const PedidosService = {
   async listar() {
     const pedidos = await prisma.pedidos.findMany({
       include: {
-        clientes:    { select: { id: true, razon_social: true, nombre_comercial: true } },
+        clientes:    { select: { id: true, razon_social: true, nombre_comercial: true, ruc: true,} },
         pedido_items: { select: { id: true, cantidad: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -27,9 +27,6 @@ export const PedidosService = {
         },
         pedido_items: {
           include: {
-            // fichas_tecnicas_id no existe en productosSelect:
-            // la relación desde productos es fichas_tecnicas[] (lista)
-            // Se selecciona la relación directa fichas_tecnicas en el include
             productos:         { select: { id: true, nombre: true, sku: true, imagen: true } },
             variantes_producto: { select: { id: true, color: true, talla: true, sku: true } },
           },
