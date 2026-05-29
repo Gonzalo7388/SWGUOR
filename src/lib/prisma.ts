@@ -1,21 +1,41 @@
-
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AsyncLocalStorage } from 'async_hooks';
 
-// ── Almacén del usuario por request (seguro con concurrencia) ──────────────
 export const auditUserStore = new AsyncLocalStorage<{ userId: bigint }>();
 
-// ── Singleton global ───────────────────────────────────────────────────────
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+type PrismaMaybeUnavailable = PrismaClient & { __prisma_unavailable?: boolean };
+
+declare global {
+  var prismaGlobal: PrismaMaybeUnavailable | undefined;
+}
 
 function buildClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString || connectionString === 'undefined') {
-    // Build de Vercel sin variables disponibles — cliente mínimo
-    return new PrismaClient();
+    const makeUnavailable = () => {
+      const thrower = () => {
+        throw new Error('Prisma client unavailable: DATABASE_URL is not set');
+      };
+
+      const proxy = new Proxy(thrower as unknown as PrismaMaybeUnavailable, {
+        get(_target, prop) {
+          if (prop === '__prisma_unavailable') {
+            return true;
+          }
+          return proxy;
+        },
+        apply() {
+          throw new Error('Prisma client unavailable: DATABASE_URL is not set');
+        },
+      });
+
+      return proxy;
+    };
+
+    return makeUnavailable();
   }
 
   const pool = new Pool({ connectionString });
@@ -24,17 +44,27 @@ function buildClient(): PrismaClient {
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : [],
-  });
+  }) as PrismaMaybeUnavailable;
 }
 
-let prismaInstance: PrismaClient;
-
-if (typeof window === 'undefined') {
-  prismaInstance = globalForPrisma.prisma ?? buildClient();
-
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prismaInstance;
+function getClient(): PrismaClient {
+  if (typeof window !== 'undefined') {
+    throw new Error('Prisma cannot be used on the client side.');
   }
+
+  if (!globalThis.prismaGlobal) {
+    globalThis.prismaGlobal = buildClient();
+  }
+
+  return globalThis.prismaGlobal;
 }
 
-export const prisma = prismaInstance!;
+export const prisma = getClient();
+
+// Safely check if prisma client is available (i.e., DATABASE_URL was set)
+function checkAvailability(): boolean {
+  const client = prisma as PrismaMaybeUnavailable;
+  return client.__prisma_unavailable !== true;
+}
+
+export const prismaAvailable = checkAvailability();

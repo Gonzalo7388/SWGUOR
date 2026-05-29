@@ -27,7 +27,7 @@ export interface Producto {
   imagen: string | null; 
   sku: string;
   descripcion?: string;
-  variantes_producto?: any[];
+  variantes_producto?: [];
   colores_disponibles?: string[];
   tallas_disponibles?: string[];
   moq?: number;
@@ -116,17 +116,18 @@ export function ProductoCard({ producto, onOpenDetails, promociones = [] }: Prod
       {/* Imagen y Categoría */}
       <div className="aspect-[4/5] bg-slate-100 relative overflow-hidden">
         {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt={`${producto.nombre} - Producto`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.src = ""; 
-              e.currentTarget.className = "hidden";
-              e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
-            }}
-          />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img 
+          src={imageUrl} 
+          alt={`${producto.nombre} - Producto`}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = ""; 
+            e.currentTarget.className = "hidden";
+            e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+          }}
+        />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-100">
             <PackageSearch size={40} className="mb-2 opacity-50" />

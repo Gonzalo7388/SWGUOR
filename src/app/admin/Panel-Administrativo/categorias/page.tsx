@@ -67,9 +67,10 @@ export default function CategoriasPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const results: Categoria[] = (data ?? []).map((c: any) => ({
+      const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const results: Categoria[] = items.map((c: Categoria) => ({
         ...c,
-        id: Number(c.id), // normaliza bigint serializado como string/number
+        id: Number(c.id),
       }));
 
       setCategorias(results);
@@ -78,8 +79,8 @@ export default function CategoriasPage() {
         activas: results.filter(c => c.activo).length,
         inactivas: results.filter(c => !c.activo).length,
       });
-    } catch (err: any) {
-      toast.error(err.message || "Error al sincronizar categorías");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Error al sincronizar categorías");
     } finally {
       setLoading(false);
     }
@@ -144,8 +145,8 @@ export default function CategoriasPage() {
       toast.success(isEdit ? "Categoría actualizada correctamente" : "Categoría creada correctamente");
       closeFormModal();
       await loadCategorias();
-    } catch (err: any) {
-      toast.error(err.message || "Error al guardar la categoría");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Error al guardar la categoría");
     } finally {
       setIsSaving(false);
     }
@@ -169,8 +170,8 @@ export default function CategoriasPage() {
       toast.success(`"${archiveModal.categoria.nombre}" ha sido descontinuada`);
       closeArchiveModal();
       await loadCategorias();
-    } catch (err: any) {
-      toast.error(err.message || "Error al descontinuar la categoría");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Error al descontinuar la categoría");
     } finally {
       setIsArchiving(false);
     }
@@ -209,10 +210,20 @@ export default function CategoriasPage() {
     const toastId = toast.loading("Preparando reporte PDF...");
     try {
       setExportingPDF(true);
-      await exportCategoriasToPDF(filteredCategorias, {
+
+      const categoriasSanitizadas = filteredCategorias.map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        descripcion: c.descripcion || "Sin descripción",
+        activo: c.activo ?? false,
+        created_at: c.created_at ? new Date(c.created_at) : new Date(),
+      }));
+
+      await exportCategoriasToPDF(categoriasSanitizadas, {
         title: "REPORTE DE CATEGORÍAS",
         filename: `Categorias_GUOR_${new Date().toISOString().split('T')[0]}`,
       });
+      
       toast.success("PDF generado correctamente", { id: toastId });
     } catch (error) {
       console.error(error);

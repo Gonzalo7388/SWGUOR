@@ -101,10 +101,19 @@ export default function CotizacionesPage() {
     const toastId = toast.loading('Preparando PDF...');
     try {
       setExportingPDF(true);
-      await exportCotizacionesToPDF(filtered, {
+      
+      const cotizacionesSanitizadas = filtered.map((c) => ({
+        ...c,
+        cliente: c.cliente ?? 'Sin Cliente',
+        descripcion: c.descripcion ?? '---',
+      }));
+
+      // Pasamos el nuevo arreglo limpio compatible con el tipado del PDF
+      await exportCotizacionesToPDF(cotizacionesSanitizadas, {
         title: 'REPORTE DE COTIZACIONES',
         filename: `Cotizaciones_GUOR_${new Date().toISOString().split('T')[0]}`,
       });
+      
       toast.success('PDF generado correctamente', { id: toastId });
     } catch (error) {
       console.error(error);

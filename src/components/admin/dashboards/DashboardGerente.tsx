@@ -1,74 +1,124 @@
 "use client";
 
+/**
+ * DashboardGerente.tsx  — v2
+ * Mejoras:
+ *  - Paleta 100% rose corporativa (sin violeta ad hoc)
+ *  - Gráfico de ventas sin duplicado
+ *  - GoalCard reutilizable
+ *  - Tipos reales del service (sin `any`)
+ *  - Loading state unificado con DashboardLoader
+ *  - Border-radius estandarizado: rounded-3xl / rounded-2xl / rounded-xl
+ */
+
 import React from 'react';
 import {
   TrendingUp, DollarSign, Users, Activity,
-  ArrowUpRight, ArrowDownRight, Briefcase,
-  Target, Award, PieChart as PieIcon
+  ArrowUpRight, Briefcase, Target, Award,
 } from 'lucide-react';
 import { DashboardSection } from './DashboardSection';
 import { SparkKpiCard, VentasMensualesChart, RankingProductos } from './widgets/DashboardWidgets';
-import { ROLE_PALETTES } from "./widgets/DashboardUtils";
-import DashboardCharts from './DashboardCharts';
-import type { pedidos } from '@prisma/client';
-import type { VentaMensual, DashboardKpis } from '@/lib/services/dashboard.service';
+import { COMPANY_PALETTE } from './widgets/DashboardUtils';
+import DashboardLoader from './DashboardLoaders';
+import GoalCard from './GoalCard';
 
+// ─── Tipos inferidos del service ─────────────────────────────────────────────
+interface TopCliente {
+  razon_social: string;
+  total: number;
+}
+// ProductoData: { nombre, cantidad } — alineado con DashboardWidgets
+interface RankingItem {
+  nombre:   string;
+  cantidad: number;
+}
+// VentasData: { mes, ventas } — alineado con DashboardWidgets
+interface VentaMensual {
+  mes:    string;
+  ventas: number;
+}
 interface GerenteData {
-  kpis: DashboardKpis;
-  sparklines: any;
+  kpis: {
+    facturacion: number;
+    pedidosActivos: number;
+    cotizacionesPend: number;
+    clientesB2B: number;
+  };
   ventasMensuales: VentaMensual[];
-  recentOrders: (pedidos & { clientes: { razon_social: string } | null })[];
-  balanceData: any[];
-  rankingProductos: any[];
+  rankingProductos: RankingItem[];
+  topClientes: TopCliente[];
+  sparklines: {
+    facturacion: number[];
+    pedidos: number[];
+    cotizaciones: number[];
+    clientes: number[];
+  };
 }
 
+// ─── Componente de balance rápido ─────────────────────────────────────────────
+const BalanceItem = ({
+  icon: Icon,
+  label,
+  value,
+  bg,
+  color,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  bg: string;
+  color: string;
+}) => (
+  <div className="bg-white border border-stone-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className={`p-3 rounded-xl ${bg}`}>
+      <Icon size={18} className={color} />
+    </div>
+    <div>
+      <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{label}</p>
+      <p className="text-base font-black text-stone-900 leading-tight">{value}</p>
+    </div>
+  </div>
+);
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function GerenteDashboard() {
-  const G = ROLE_PALETTES.gerente;
+  const G = COMPANY_PALETTE;
   const [data, setData] = React.useState<GerenteData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    fetch('/api/admin/dashboard?days=30')
-      .then(res => res.json())
-      .then(json => {
-        setData(json);
-        setLoading(false);
-      })
+    fetch('/api/admin/dashboard?role=gerente')
+      .then((r) => r.json())
+      .then((json) => { setData(json); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Activity className="animate-spin text-violet-600" size={32} />
-        <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Calculando métricas estratégicas...</p>
-      </div>
-    );
-  }
+  if (loading) return <DashboardLoader message="Calculando métricas estratégicas..." />;
 
   const k = data?.kpis;
-  const b = data?.balanceData ?? [];
+  const meta = 55000;
+  const pct = Math.min(100, Math.round(((k?.facturacion ?? 0) / meta) * 100));
 
   return (
     <DashboardSection
       title="Panel de Gerencia"
       role="gerente"
-      subtitle="Visibilidad estratégica, métricas de rentabilidad y salud financiera"
+      subtitle="Visibilidad estratégica, rentabilidad y salud financiera"
     >
       <div className="space-y-6">
 
-        {/* 1. KPIs de Alto Nivel */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 1 ─ KPIs superiores */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <SparkKpiCard
-            label="Ingresos Totales"
-            value={`S/ ${Number(k?.facturacion ?? 0).toLocaleString()}`}
+            label="Facturación 30d"
+            value={`S/ ${Number(k?.facturacion ?? 0).toLocaleString('es-PE')}`}
             delta={12}
             icon={DollarSign}
             accentColor={G.accent}
             sparkData={data?.sparklines?.facturacion ?? []}
           />
           <SparkKpiCard
-            label="Nuevos Clientes"
+            label="Clientes Activos"
             value={k?.clientesB2B ?? 0}
             delta={5}
             icon={Users}
@@ -93,85 +143,81 @@ export default function GerenteDashboard() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* 2. Gráfico de Tendencia Principal (Ocupa 3 columnas) */}
-          <div className="lg:col-span-3">
-            <DashboardCharts rol="gerente" data={data?.ventasMensuales} />
+        {/* 2 ─ Gráfico principal + columna lateral */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+
+          {/* Gráfico único de ventas mensuales */}
+          <div className="lg:col-span-3 bg-white border border-stone-100 rounded-3xl p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest">
+                  Ventas Mensuales
+                </h3>
+                <p className="text-[10px] text-stone-400 font-bold uppercase tracking-tighter">
+                  Ingresos verificados últimos 6 meses
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-rose-600">
+                <div className="w-2 h-2 rounded-full bg-rose-600" /> Ingresos
+              </div>
+            </div>
+            <VentasMensualesChart
+              data={data?.ventasMensuales ?? []}
+              accentColor={G.accent}
+            />
           </div>
 
-          {/* 3. Balance de Situación Rápido */}
+          {/* Columna lateral: balance + meta */}
           <div className="flex flex-col gap-4">
-            {b.map((item: any, idx: number) => (
-              <div key={idx} className="bg-white border border-slate-100 rounded-[24px] p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className={`p-3 rounded-2xl ${idx === 0 ? 'bg-emerald-50' : idx === 1 ? 'bg-amber-50' : 'bg-violet-50'}`}>
-                  {idx === 0 ? <Award size={20} className="text-emerald-600" /> : idx === 1 ? <Briefcase size={20} className="text-amber-600" /> : <Target size={20} className="text-violet-600" />}
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
-                  <p className="text-lg font-black text-slate-900 leading-tight">{item.value}</p>
-                </div>
-              </div>
-            ))}
+            <BalanceItem icon={Award}    label="Facturación"  value={`S/ ${Number(k?.facturacion ?? 0).toLocaleString('es-PE')}`} bg="bg-emerald-50" color="text-emerald-600" />
+            <BalanceItem icon={Briefcase} label="Pedidos"     value={`${k?.pedidosActivos ?? 0} activos`} bg="bg-amber-50" color="text-amber-600" />
+            <BalanceItem icon={Target}   label="Cotizaciones" value={`${k?.cotizacionesPend ?? 0} pendientes`} bg="bg-rose-50" color="text-rose-600" />
 
-            {/* Widget de Meta Mensual */}
-            <div className="mt-2 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[32px] p-6 text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <h4 className="text-[10px] font-bold text-violet-200 uppercase tracking-[0.2em] mb-4">Meta Mensual</h4>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-3xl font-black">82%</span>
-                  <span className="text-xs font-bold text-violet-200 mb-1">S/ {Math.round((k?.facturacion ?? 0) / 1000)}k de S/ 55k</span>
-                </div>
-                <div className="h-2 w-full bg-white/20 rounded-full">
-                  <div className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]" style={{ width: '82%' }}></div>
-                </div>
-              </div>
-              <PieIcon className="absolute -bottom-6 -right-6 text-white/10" size={120} />
-            </div>
+            <GoalCard
+              label="Meta Mensual"
+              pct={pct}
+              current={`S/ ${Math.round((k?.facturacion ?? 0) / 1000)}k`}
+              target="S/ 55k"
+              color={G.accent}
+            />
           </div>
         </div>
 
-        {/* 4. Segunda Fila: Análisis de Ventas y Productos */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 3 ─ Ranking productos + Top clientes */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
           <div className="lg:col-span-2">
-            <div className="bg-white border border-violet-100 rounded-[32px] p-8">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Flujo de Caja Mensual</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Comparativa Ingresos vs Egresos</p>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-violet-600">
-                    <div className="w-2 h-2 rounded-full bg-violet-600"></div> Ingresos
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-300">
-                    <div className="w-2 h-2 rounded-full bg-slate-300"></div> Proyectado
-                  </div>
-                </div>
-              </div>
-              <VentasMensualesChart data={data?.ventasMensuales ?? []} accentColor={G.accent} />
-            </div>
+            <RankingProductos data={data?.rankingProductos ?? []} accentColor={G.accent} />
           </div>
 
-          <div className="space-y-6">
-            <RankingProductos data={data?.rankingProductos ?? []} accentColor={G.accent} />
-
-            {/* Resumen Ejecutivo de Clientes */}
-            <div className="bg-slate-900 rounded-[32px] p-7 text-white">
-              <h4 className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-4">Top Clientes (LTV)</h4>
-              <div className="space-y-4">
-                {(data?.recentOrders ?? []).slice(0, 3).map((o, i) => (
-                  <div key={i} className="flex justify-between items-center group cursor-pointer">
-                    <div>
-                      <p className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors truncate w-32">{o.clientes?.razon_social ?? 'S/N'}</p>
-                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">S/ {Number(o.total ?? 0).toLocaleString()}</p>
-                    </div>
-                    <ArrowUpRight size={16} className="text-emerald-400" />
+          {/* Top clientes */}
+          <div className="bg-stone-900 rounded-3xl p-6 text-white">
+            <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-5">
+              Top Clientes
+            </h4>
+            <div className="space-y-4">
+              {(data?.topClientes ?? []).map((c, i) => (
+                <div key={i} className="flex justify-between items-center group cursor-pointer">
+                  <div>
+                    <p className="text-xs font-bold text-stone-200 group-hover:text-white transition-colors truncate w-36">
+                      {c.razon_social}
+                    </p>
+                    <p className="text-[9px] text-stone-500 font-black uppercase tracking-tighter">
+                      S/ {Number(c.total).toLocaleString('es-PE')}
+                    </p>
                   </div>
-                ))}
-              </div>
+                  <ArrowUpRight size={15} className="text-emerald-400" />
+                </div>
+              ))}
+              {(data?.topClientes ?? []).length === 0 && (
+                <p className="text-[10px] text-stone-600 uppercase font-bold text-center py-4">
+                  Sin datos disponibles
+                </p>
+              )}
             </div>
           </div>
         </div>
+
       </div>
     </DashboardSection>
   );

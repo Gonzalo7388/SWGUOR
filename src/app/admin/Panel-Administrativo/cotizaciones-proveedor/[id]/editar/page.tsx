@@ -71,7 +71,7 @@ export default async function EditarCotizacionProveedorPage({
   const proveedoresOpts = proveedores.map((p) => ({
     id: String(p.id),
     razon_social: p.razon_social,
-    ruc: p.ruc ?? undefined,
+    ruc: p.ruc ?? '',
   }));
 
   return (

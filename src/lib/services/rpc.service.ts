@@ -1,15 +1,14 @@
 /**
- * rpc-service.ts
  * ──────────────────────────────────────────────────────────────────────────────
  * Punto único de acceso a las operaciones que llaman a funciones RPC /
  * lógica de base de datos que antes estaba repartida en:
  *
- *   - notificaciones-rpc-service.ts
- *   - fichas-tecnicas-rpc-service.ts
- *   - fichas-tecnicas-services.ts       (partes RPC)
- *   - inventario-rpc-service.ts
- *   - inventario-services.ts            (partes RPC)
- *   - movimientos-inventario-services.ts
+ * - notificaciones-rpc-service.ts
+ * - fichas-tecnicas-rpc-service.ts
+ * - fichas-tecnicas-services.ts       (partes RPC)
+ * - inventario-rpc-service.ts
+ * - inventario-services.ts            (partes RPC)
+ * - movimientos-inventario-services.ts
  *
  * Todos los imports del proyecto deben apuntar a este archivo.
  * ──────────────────────────────────────────────────────────────────────────────
@@ -33,6 +32,8 @@ import type {
   notificaciones,
   fichas_tecnicas,
   movimientos_inventario,
+  ReferenciaNotificacion,
+  TipoNotificacion,
 } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 
@@ -58,7 +59,7 @@ export interface CrearNotificacionInput {
   tipo: TipoNotificacionRPC;
   titulo: string;
   mensaje: string;
-  referenciaType?: string;
+  referenciaType?: ReferenciaNotificacion;  
   referenciaId?: number;
   urlDestino?: string;
 }
@@ -127,6 +128,14 @@ export interface RegistrarMovimientoParams {
   referencia_id?: string | number;
 }
 
+// Interface auxiliar para el tipado seguro del mapeo de búsqueda en movimientos
+interface MovimientoConRelaciones extends movimientos_inventario {
+  insumo?: { id: bigint; nombre: string; unidad_medida: string } | null;
+  materiales?: { id: bigint; nombre: string } | null;
+  productos?: { id: bigint; nombre: string } | null;
+  usuarios?: { id: bigint; email: string } | null;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // NOTIFICACIONES
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -140,10 +149,10 @@ export async function crearNotificacion(
   return prisma.notificaciones.create({
     data: {
       usuario_id:      input.usuarioId,
-      tipo:            input.tipo as any,
+      tipo:            input.tipo as TipoNotificacion,
       titulo:          input.titulo,
       mensaje:         input.mensaje,
-      referencia_tipo: input.referenciaType ?? null,
+      referencia_tipo: (input.referenciaType ?? 'SISTEMA') as ReferenciaNotificacion,
       referencia_id:   input.referenciaId   ?? null,
       url_destino:     input.urlDestino      ?? null,
       leido:           false,
@@ -174,7 +183,7 @@ export async function obtenerNotificacionesNoLeidas(
     total,
     notificaciones: rows.map((n) => ({
       ...n,
-      usuarioEmail: (n.usuarios as any)?.email,
+      usuarioEmail: (n.usuarios)?.email,
     })) as NotificacionConDetalles[],
   };
 }
@@ -221,7 +230,7 @@ export async function notificarCotizacionExpirada(data: {
         tipo:          'cotizacion_expirada',
         titulo:        `Cotización expirada: ${data.cotizacionNumero}`,
         mensaje:       `La cotización ${data.cotizacionNumero} expiró sin aprobación.`,
-        referenciaType: 'cotizaciones',
+        referenciaType: 'COTIZACION',
         referenciaId:   data.cotizacionId,
         urlDestino:    `/admin/Panel-Administrativo/cotizaciones/${data.cotizacionId}`,
       }),
@@ -242,7 +251,7 @@ export async function notificarDevolucionSolicitada(data: {
         tipo:          'devolucion_solicitada',
         titulo:        'Nueva devolución solicitada',
         mensaje:       `El cliente solicitó devolución de: ${data.productoNombre}`,
-        referenciaType: 'devoluciones_cliente',
+        referenciaType: 'PEDIDO',
         referenciaId:   data.devolucionId,
         urlDestino:    `/admin/Panel-Administrativo/devoluciones/${data.devolucionId}`,
       }),
@@ -267,7 +276,7 @@ export async function notificarStockBajo(data: {
         tipo:          'stock_bajo',
         titulo:        `Stock bajo: ${data.itemNombre}`,
         mensaje:       `Stock de "${data.itemNombre}" bajó a ${data.stockActual} (mínimo: ${data.stockMinimo})`,
-        referenciaType: data.tipoItem,
+        referenciaType: 'PRODUCTO',
         referenciaId:   data.itemId,
         urlDestino:    '/admin/Panel-Administrativo/inventario',
       }),
@@ -288,7 +297,7 @@ export async function notificarPagoPendiente(data: {
         tipo:          'pago_pendiente',
         titulo:        `Pago pendiente: ${data.tallerNombre}`,
         mensaje:       `Confección #${data.confeccionId} completada. Pago pendiente: S/ ${data.monto}`,
-        referenciaType: 'confecciones',
+        referenciaType: 'PAGO',
         referenciaId:   data.confeccionId,
         urlDestino:    '/admin/Panel-Administrativo/talleres/pagos',
       }),
@@ -313,7 +322,7 @@ export async function notificarConfeccionCompletada(data: {
     tipo:          'confeccion_completada',
     titulo:        'Tu confección está lista',
     mensaje:       `La confección del pedido #${data.pedidoId} está lista para despacho.`,
-    referenciaType: 'confecciones',
+    referenciaType: 'ORDEN_PRODUCCION',
     referenciaId:   data.confeccionId,
   });
 }
@@ -458,7 +467,7 @@ export async function aprobarFichaTecnica(
 
   await insertarMovimiento({
     tipoMovimiento: 'ajuste',
-    referenciaType: 'AJUSTE',
+    referenciaType: 'AJUSTE_MANUAL',
     referenciaId:   fichaId,
     cantidad:        0,
     motivo:          `Ficha técnica #${fichaId} aprobada por usuario ${usuarioId}`,
@@ -636,11 +645,11 @@ export async function obtenerItemsConStockBajo(almacenId?: number) {
  * Registra un movimiento de inventario y actualiza el stock del ítem
  * correspondiente, todo en una sola transacción.
  */
-export async function registrarMovimiento(params: RegistrarMovimientoParams) : Promise<any> {
+export async function registrarMovimiento(params: RegistrarMovimientoParams) : Promise<{ success: boolean }> {
   const {
     insumo_id, material_id, producto_id,
     cantidad, tipo_movimiento, referencia_tipo,
-    motivo, usuario_id, almacen_id, referencia_id,
+    motivo, usuario_id, referencia_id,
   } = params;
 
   if (!insumo_id && !material_id && !producto_id)
@@ -649,8 +658,8 @@ export async function registrarMovimiento(params: RegistrarMovimientoParams) : P
     throw new Error('La cantidad debe ser mayor a 0');
 
   await insertarMovimiento({
-    tipoMovimiento: tipo_movimiento as any,
-    referenciaType: referencia_tipo as any,
+    tipoMovimiento: tipo_movimiento,
+    referenciaType: referencia_tipo,
     referenciaId:   referencia_id ? Number(referencia_id) : 0,
     cantidad,
     motivo,
@@ -701,7 +710,7 @@ export async function listarMovimientos(params?: {
   busqueda?: string;
   limite?: number;
 }) : Promise<movimientos_inventario[]> {
-  const where: Record<string, any> = {};
+  const where: Prisma.movimientos_inventarioWhereInput = {};
 
   if (params?.desde || params?.hasta)
     where.created_at = {
@@ -729,17 +738,18 @@ export async function listarMovimientos(params?: {
     take:    params?.limite ?? 100,
   });
 
-  let resultado = serializeBigInt(movimientos);
+  let resultado = serializeBigInt(movimientos) as MovimientoConRelaciones[];
 
   if (params?.busqueda) {
     const q = params.busqueda.toLowerCase();
-    resultado = resultado.filter((m: any) => {
+    resultado = resultado.filter((m) => {
       const nombre = m.insumo?.nombre ?? m.materiales?.nombre ?? m.productos?.nombre ?? '';
       return nombre.toLowerCase().includes(q) || (m.motivo ?? '').toLowerCase().includes(q);
     });
+    return resultado as movimientos_inventario[];
   }
 
-  return serializeBigInt(movimientos) as movimientos_inventario[];
+  return resultado as movimientos_inventario[];
 }
 
 /**
@@ -751,7 +761,8 @@ export async function obtenerResumenMovimientos(params?: {
   desde?: Date;
   hasta?: Date;
 }) {
-  const where: Record<string, any> = {};
+  // FIX: Tipado seguro para filtros de conteo
+  const where: Prisma.movimientos_inventarioWhereInput = {};
   if (params?.tipo_movimiento) where.tipo_movimiento = params.tipo_movimiento;
   if (params?.desde || params?.hasta)
     where.created_at = {

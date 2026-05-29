@@ -1,7 +1,8 @@
-import { prisma }          from '@/lib/prisma';
+// lib/services/clientes.service.ts
+import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { createClient }    from '@/lib/supabase/server';
-import type { EstadoCliente, TipoCliente } from '@prisma/client';
+import { createClient } from '@/lib/supabase/server';
+import { Prisma, EstadoCliente, TipoCliente } from '@prisma/client';
 
 export interface ClienteListItem {
   id:               string;
@@ -48,15 +49,16 @@ export const ClientesService = {
 
   // ── Listar ──────────────────────────────────────────────────
   async listar(params?: { busqueda?: string; estado?: string }) {
-    const where: any = {};
+    const where: Prisma.clientesWhereInput = {};
+
     if (params?.estado && params.estado !== 'todos') {
       where.estado = params.estado as EstadoCliente;
     }
     if (params?.busqueda) {
       where.OR = [
-        { razon_social:    { contains: params.busqueda, mode: 'insensitive' } },
-        { ruc:             { contains: params.busqueda, mode: 'insensitive' } },
-        { nombre_comercial:{ contains: params.busqueda, mode: 'insensitive' } },
+        { razon_social:     { contains: params.busqueda, mode: 'insensitive' } },
+        { ruc:              { contains: params.busqueda, mode: 'insensitive' } },
+        { nombre_comercial: { contains: params.busqueda, mode: 'insensitive' } },
         { usuarios: { email: { contains: params.busqueda, mode: 'insensitive' } } },
       ];
     }
@@ -66,7 +68,7 @@ export const ClientesService = {
       include: {
         usuarios: { select: { id: true, email: true, estado: true, rol: true, ultimo_acceso: true } },
         direcciones_cliente: { orderBy: [{ es_principal: 'desc' }, { created_at: 'asc' }] },
-         pedidos: {
+        pedidos: {
           orderBy: { created_at: 'desc' },
           take: 1,
           select: { id: true, created_at: true, estado: true },
@@ -75,12 +77,20 @@ export const ClientesService = {
       orderBy: { created_at: 'desc' },
     });
 
+<<<<<<< HEAD
     // Mapear ultimo_pedido_en antes del serialize
     const resultado = clientes.map((c) => ({
+=======
+    const resultado = clientes.map(c => ({
+>>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
       ...c,
       activo: c.estado,
       ultimo_pedido_en: c.pedidos?.[0]?.created_at ?? null,
+<<<<<<< HEAD
       pedidos: undefined,
+=======
+      pedidos: undefined, 
+>>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
     }));
     return serializeBigInt(resultado);
   },
@@ -128,7 +138,7 @@ export const ClientesService = {
       const resultado = await prisma.$transaction(async (tx) => {
         // PASO 2: Crear usuarios
         const usuario = await tx.usuarios.create({
-          data: { email: data.email, rol: 'cliente' as any, estado: 'activo' as any, auth_id },
+          data: { email: data.email, rol: 'cliente', estado: 'activo', auth_id },
         });
 
         // PASO 3: Crear clientes vinculado al usuario
@@ -141,7 +151,11 @@ export const ClientesService = {
             telefono:         data.telefono          ?? null,
             direccion_fiscal: data.direccion_fiscal  ?? null,
             tipo_cliente:     (data.tipo_cliente as TipoCliente) ?? 'corporativo',
+<<<<<<< HEAD
             estado:           'activo' as EstadoCliente,
+=======
+            estado:           'activo',
+>>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
             usuario_id:       usuario.id,
           },
           include: {
@@ -169,15 +183,27 @@ export const ClientesService = {
     tipo_cliente:      string;
     activo:            string;
   }>) {
-    const { activo, tipo_cliente, ...rest } = data as any;
+    const { activo, tipo_cliente, ...rest } = data;
+    
+    const updateData: Prisma.clientesUpdateInput = {
+      ...rest,
+      ...(activo !== undefined && { activo: activo as EstadoCliente }),
+      ...(tipo_cliente !== undefined && { tipo_cliente: tipo_cliente as TipoCliente }),
+      updated_at: new Date(),
+    };
+
     const cliente = await prisma.clientes.update({
       where: { id: BigInt(id) },
+<<<<<<< HEAD
       data: {
         ...rest,
         ...(activo !== undefined && { estado: activo as EstadoCliente }),
         ...(tipo_cliente !== undefined && { tipo_cliente: tipo_cliente as TipoCliente  }),
         updated_at: new Date(),
       },
+=======
+      data: updateData,
+>>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
     });
     return serializeBigInt(cliente);
   },
@@ -192,7 +218,6 @@ export const ClientesService = {
     });
     if (!cliente) throw new Error('Cliente no encontrado');
 
-    // Sincronizar ban en Auth
     if (cliente.usuarios?.auth_id) {
       await supabase.auth.admin.updateUserById(cliente.usuarios.auth_id, {
         ban_duration: estado === 'inactivo' ? '87600h' : 'none',
@@ -202,12 +227,16 @@ export const ClientesService = {
     const [clienteActualizado] = await prisma.$transaction([
       prisma.clientes.update({
         where: { id: BigInt(clienteId) },
+<<<<<<< HEAD
         data:  { estado, updated_at: new Date() },
+=======
+        data:  { estado: estado, updated_at: new Date() },
+>>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
       }),
       ...(cliente.usuarios
         ? [prisma.usuarios.update({
             where: { id: cliente.usuarios.id },
-            data:  { estado: estado === 'activo' ? 'activo' : 'inactivo' as any, updated_at: new Date() },
+            data:  { estado: estado === 'activo' ? 'activo' : 'inactivo', updated_at: new Date() },
           })]
         : []),
     ]);
@@ -223,7 +252,6 @@ export const ClientesService = {
     es_principal?: boolean;
   }) {
     return prisma.$transaction(async (tx) => {
-      // Si es principal, quitar principal de las demás
       if (data.es_principal) {
         await tx.direcciones_cliente.updateMany({
           where: { cliente_id: BigInt(clienteId) },
@@ -271,7 +299,7 @@ export const ClientesService = {
     return { success: true };
   },
 
-  // ── Obtener detalle completo (perfil + pedidos + productos más comprados) ──
+  // ── Obtener detalle completo ────────────────────────────────
   async obtenerDetalle(id: string) {
     const cliente = await prisma.clientes.findUnique({
       where: { id: BigInt(id) },
@@ -319,7 +347,6 @@ export const ClientesService = {
 
     const pedidos = cliente.pedidos ?? [];
 
-    // ── Métricas de pedidos ──────────────────────────────────────
     const ahora           = Date.now();
     const totalPedidos    = pedidos.length;
     const pedidosActivos  = pedidos.filter(p =>
@@ -332,8 +359,6 @@ export const ClientesService = {
     const totalUnidades  = pedidos.reduce((acc, p) => acc + (p.total_unidades ?? 0), 0);
     const totalEstimado  = pedidos.reduce((acc, p) => acc + Number(p.total_estimado ?? 0), 0);
 
-    // ── Productos más comprados ──────────────────────────────────
-    // Agrupa todos los pedido_items por producto_id y suma cantidades
     const mapaProductos = new Map<string, {
       producto_id:    string;
       nombre:         string;
@@ -370,7 +395,6 @@ export const ClientesService = {
         entrada.total_cantidad += item.cantidad;
         entrada.total_pedidos  += 1;
 
-        // Desglose por variante (color + talla)
         const vid = String(item.variantes_producto?.id ?? 'sin-variante');
         if (!entrada.variantes.has(vid)) {
           entrada.variantes.set(vid, {
@@ -384,7 +408,6 @@ export const ClientesService = {
       }
     }
 
-    // Top 10 ordenado por cantidad total descendente
     const productosTop = Array.from(mapaProductos.values())
       .sort((a, b) => b.total_cantidad - a.total_cantidad)
       .slice(0, 10)
@@ -414,4 +437,3 @@ export const ClientesService = {
     });
   },
 };
-

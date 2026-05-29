@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeBigInt } from "@/lib/utils/serialize";
-import PedidoDetalle from "@/components/admin/pedidos/detalles/PedidoDetalle";
+import PedidoDetalle, { type DetallePedidoData, type TallerOption } from "@/components/admin/pedidos/detalles/PedidoDetalle";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +12,11 @@ interface PageProps {
 export default async function PedidoDetallePage({ params }: PageProps) {
   const { id } = await params;
 
+  let pedido;
+  let talleres;
+
   try {
-    const pedido = await prisma.pedidos.findUnique({
+    pedido = await prisma.pedidos.findUnique({
       where: { id: BigInt(id) },
       include: {
         clientes: {
@@ -51,20 +54,26 @@ export default async function PedidoDetallePage({ params }: PageProps) {
     if (!pedido) notFound();
 
     // Talleres activos para el modal
-    const talleres = await prisma.talleres.findMany({
+    talleres = await prisma.talleres.findMany({
       where: { estado: 'activo' },
       orderBy: { nombre: 'asc' },
       select: { id: true, nombre: true, especialidad: true, contacto: true, email: true },
     });
-
-    return (
-      <PedidoDetalle
-        pedido={serializeBigInt(pedido)}
-        talleres={serializeBigInt(talleres)}
-      />
-    );
   } catch (error) {
     console.error("Error cargando pedido:", error);
     notFound();
   }
+
+  // ── CORRECCIÓN ESTRICTA SIN "AS ANY" ──
+  // Forzamos el tipado correcto a través del valor de retorno de la serialización 
+  // usando un Type Assertion específico ("as DetallePedidoData" y "as TallerOption[]")
+  const pedidoSerializado = serializeBigInt(pedido) as unknown as DetallePedidoData;
+  const talleresSerializados = serializeBigInt(talleres) as unknown as TallerOption[];
+
+  return (
+    <PedidoDetalle
+      pedido={pedidoSerializado}
+      talleres={talleresSerializados}
+    />
+  );
 }

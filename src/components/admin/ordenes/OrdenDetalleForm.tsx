@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useOrdenesProduccion } from "@/lib/hooks/useOrdenProduccion";
+import { useCreateOrdenProduccion } from "@/lib/hooks/useOrdenProduccion";
 import { ETAPAS_PRODUCCION, ETAPA_LABELS } from "@/lib/schemas/ordenes-produccion";
 import OrdenStepper from "./OrdenStepper";
 import { format } from "date-fns";
@@ -20,13 +20,14 @@ import {
 } from "lucide-react";
 
 interface OrdenDetalleFormProps {
-  open?: boolean; // Propiedad opcional para mantener compatibilidad si es necesario
+  open?: boolean;
   initialData: OrdenProduccion | null;
   onClose: () => void;
 }
 
 export default function OrdenDetalleForm({ initialData: orden, onClose: onVolver }: OrdenDetalleFormProps) {
-  const { registrarEtapa } = useOrdenesProduccion();
+  // Extraemos 'registrarEtapa' e 'isChangingEtapa' para controlar el estado visual de carga
+  const { registrarEtapa, isChangingEtapa } = useCreateOrdenProduccion();
 
   if (!orden) {
     return (
@@ -39,10 +40,14 @@ export default function OrdenDetalleForm({ initialData: orden, onClose: onVolver
   const etapaActual = orden.seguimiento_produccion?.[0]?.etapa || "pendiente";
 
   const handleCambiarEtapa = (nuevaEtapa: string) => {
+    // Obtenemos el nombre legible de la etapa para construir la observación automática
+    const nombreEtapa = ETAPA_LABELS[nuevaEtapa as keyof typeof ETAPA_LABELS] || nuevaEtapa;
+
+    // AHORA SÍ: Pasamos el objeto completo incluyendo la observación requerida
     registrarEtapa({
       orden_id: orden.id.toString(),
       etapa: nuevaEtapa,
-      observaciones: `Cambio de etapa a ${ETAPA_LABELS[nuevaEtapa as keyof typeof ETAPA_LABELS]}`
+      observaciones: `Cambio manual de etapa a: ${nombreEtapa}.`
     });
   };
 
@@ -53,7 +58,8 @@ export default function OrdenDetalleForm({ initialData: orden, onClose: onVolver
         <div className="space-y-1">
           <button
             onClick={onVolver}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-2"
+            disabled={isChangingEtapa}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-2 disabled:opacity-50"
           >
             <ArrowLeft size={16} /> Volver a órdenes
           </button>
@@ -137,12 +143,13 @@ export default function OrdenDetalleForm({ initialData: orden, onClose: onVolver
                   <Button
                     key={etapa}
                     variant={isCurrent ? "default" : "outline"}
-                    disabled={isCurrent}
+                    // Se deshabilitan los botones temporalmente mientras se procesa la mutación en red
+                    disabled={isCurrent || isChangingEtapa}
                     onClick={() => handleCambiarEtapa(etapa)}
                     className={`justify-start h-12 px-4 rounded-xl font-medium transition-all ${isCurrent
                       ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
                       : "hover:border-rose-200 hover:bg-rose-50/50 hover:text-rose-600"
-                      }`}
+                    }`}
                   >
                     <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
                       {isCurrent ? <CheckCircle2 size={16} className="shrink-0 text-emerald-400" /> : <Layers size={14} className="shrink-0 text-slate-400" />}

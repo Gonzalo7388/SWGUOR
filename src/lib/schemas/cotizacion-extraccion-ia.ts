@@ -30,9 +30,8 @@ export const cotizacionExtraccionIaSchema = z.object({
       notas: z.string().nullable().optional(),
     })
     .optional()
-    .default({ total_estimado: 0 } as any),
+    .default({}),
   items: z.array(cotizacionExtraccionItemSchema).optional().default([]),
 });
 
-export type CotizacionExtraccionIA = z.infer<typeof cotizacionExtraccionIaSchema>;
-export type CotizacionExtraccionItemIA = z.infer<typeof cotizacionExtraccionItemSchema>;
+export type CotizacionExtraccionIA = z.infer<typeof cotizacionExtraccionIASchema>;
