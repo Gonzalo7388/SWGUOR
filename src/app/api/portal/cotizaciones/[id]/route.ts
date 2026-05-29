@@ -66,7 +66,7 @@ export async function GET(
         cotizacion_items: {
           include: {
             productos: {
-              select: { id: true, nombre: true, sku: true },
+              select: { id: true, nombre: true, sku: true, imagen: true },
             },
           },
           orderBy: { id: 'asc' },
