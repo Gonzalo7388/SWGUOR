@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  ChevronLeft,
+  DollarSign,
   FileText,
   Loader2,
   MessageSquare,
@@ -12,57 +14,14 @@ import {
   PlusCircle,
   Search,
   Trash2,
-  ChevronLeft,
-  DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-
 import { crearSolicitudCotizacion } from '@/app/portal/cotizaciones/actions';
-import type {
-  CategoriaCotizar,
-  ItemCotizacionLocal,
-  ProductoParaCotizar,
-} from './types';
+import type { CategoriaCotizar, ItemCotizacionLocal, ProductoParaCotizar } from './types';
 import { resolveCartMoq } from '@/lib/constants/portal-b2b';
 
-const BRAND = { ocre: '#b5854b', ocreDark: '#9a6e3a' };
+const BRAND = { ocre: '#c4a35a', ocreDark: '#9a6e3a' };
 const TODAS_CATEGORIAS = 'todas';
 
 type Props = {
@@ -74,26 +33,20 @@ export function NuevaCotizacionClient({ productos, categorias }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // Estados Locales e Independientes del Flujo de Cotización
   const [itemsCotizacion, setItemsCotizacion] = useState<ItemCotizacionLocal[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState(TODAS_CATEGORIAS);
   const [mensaje, setMensaje] = useState('');
   const [preciosPropuestos, setPreciosPropuestos] = useState<Record<number, string>>({});
-
-  // Estados del Modal Selector de Variantes
   const [dialogAbierto, setDialogAbierto] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoParaCotizar | null>(null);
   const [varianteId, setVarianteId] = useState<string>('');
   const [cantidad, setCantidad] = useState(1);
 
-  // Filtrado reactivo en tiempo real del panel izquierdo
   const productosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return productos.filter((p) => {
-      const matchCat =
-        categoriaFiltro === TODAS_CATEGORIAS ||
-        String(p.categoria?.id) === categoriaFiltro;
+      const matchCat = categoriaFiltro === TODAS_CATEGORIAS || String(p.categoria?.id) === categoriaFiltro;
       if (!matchCat) return false;
       if (!q) return true;
       return (
@@ -104,20 +57,14 @@ export function NuevaCotizacionClient({ productos, categorias }: Props) {
     });
   }, [productos, busqueda, categoriaFiltro]);
 
-  // Recupera el precio considerando si el usuario propuso un monto editable en la tabla
   const getPrecioUnitarioItem = (item: ItemCotizacionLocal) => {
     const raw = preciosPropuestos[item.variante_id];
     const parsed = raw !== undefined && raw !== '' ? parseFloat(raw) : item.precio_unitario;
     return Number.isNaN(parsed) || parsed <= 0 ? item.precio_unitario : parsed;
   };
 
-  // Resolución analítica de subtotales considerando precios propuestos editables en tiempo real
   const resumen = useMemo(() => {
-    const subtotal = itemsCotizacion.reduce((acc, item) => {
-      const precioUnitario = getPrecioUnitarioItem(item);
-      return acc + (precioUnitario * item.cantidad);
-    }, 0);
-
+    const subtotal = itemsCotizacion.reduce((acc, item) => acc + getPrecioUnitarioItem(item) * item.cantidad, 0);
     const totalUnidades = itemsCotizacion.reduce((acc, i) => acc + i.cantidad, 0);
     return { subtotal, totalUnidades };
   }, [itemsCotizacion, preciosPropuestos]);
@@ -128,12 +75,9 @@ export function NuevaCotizacionClient({ productos, categorias }: Props) {
   }, [productoSeleccionado, varianteId]);
 
   const abrirDialogoAgregar = (producto: ProductoParaCotizar) => {
-    const primeraVariante = producto.variantes[0];
-    const moqCalculado = resolveCartMoq(producto.moq);
-
     setProductoSeleccionado(producto);
-    setVarianteId(primeraVariante ? String(primeraVariante.id) : '');
-    setCantidad(moqCalculado);
+    setVarianteId(producto.variantes[0] ? String(producto.variantes[0].id) : '');
+    setCantidad(resolveCartMoq(producto.moq));
     setDialogAbierto(true);
   };
 
@@ -142,88 +86,55 @@ export function NuevaCotizacionClient({ productos, categorias }: Props) {
       toast.error('Por favor, selecciona una combinación de color y talla');
       return;
     }
-
     const moqProducto = resolveCartMoq(productoSeleccionado.moq);
-    const qty = Math.max(moqProducto, Math.floor(cantidad));
-
     if (cantidad < moqProducto) {
-      toast.error(`Regla comercial: La cantidad mínima de compra (MOQ) para este producto es de ${moqProducto.toLocaleString()} unidades.`);
+      toast.error(`La cantidad mínima (MOQ) es de ${moqProducto.toLocaleString()} unidades.`);
       return;
     }
-
-    // Corrección del bug: se calcula sumando el precio base y el adicional de la variante
+    const qty = Math.max(moqProducto, Math.floor(cantidad));
     const precioBaseUnitario = productoSeleccionado.precio + varianteSeleccionada.precio_adicional;
 
     setItemsCotizacion((prev) => {
-      const indexExistente = prev.findIndex((i) => i.variante_id === varianteSeleccionada.id);
-
-      if (indexExistente >= 0) {
+      const idx = prev.findIndex((i) => i.variante_id === varianteSeleccionada.id);
+      if (idx >= 0) {
         const clon = [...prev];
-        clon[indexExistente] = {
-          ...clon[indexExistente],
-          cantidad: clon[indexExistente].cantidad + qty,
-        };
+        clon[idx] = { ...clon[idx], cantidad: clon[idx].cantidad + qty };
         return clon;
       }
-
-      return [
-        ...prev,
-        {
-          producto_id: productoSeleccionado.id,
-          variante_id: varianteSeleccionada.id,
-          nombre: productoSeleccionado.nombre,
-          sku: varianteSeleccionada.sku,
-          color: varianteSeleccionada.color,
-          talla: varianteSeleccionada.talla,
-          precio_unitario: precioBaseUnitario,
-          cantidad: qty,
-          stock_disponible: varianteSeleccionada.stock,
-        },
-      ];
+      return [...prev, {
+        producto_id: productoSeleccionado.id,
+        variante_id: varianteSeleccionada.id,
+        nombre: productoSeleccionado.nombre,
+        sku: varianteSeleccionada.sku,
+        color: varianteSeleccionada.color,
+        talla: varianteSeleccionada.talla,
+        precio_unitario: precioBaseUnitario,
+        cantidad: qty,
+        stock_disponible: varianteSeleccionada.stock,
+      }];
     });
-
-    toast.success(`${productoSeleccionado.nombre} añadido a tu lista.`);
+    toast.success(`${productoSeleccionado.nombre} añadido.`);
     setDialogAbierto(false);
     setProductoSeleccionado(null);
   };
 
-  const quitarItem = (varianteIdItem: number) => {
-    setItemsCotizacion((prev) => prev.filter((i) => i.variante_id !== varianteIdItem));
-    setPreciosPropuestos((prev) => {
-      const clon = { ...prev };
-      delete clon[varianteIdItem];
-      return clon;
-    });
+  const quitarItem = (vid: number) => {
+    setItemsCotizacion((prev) => prev.filter((i) => i.variante_id !== vid));
+    setPreciosPropuestos((prev) => { const c = { ...prev }; delete c[vid]; return c; });
   };
 
-  const modificarCantidadLinea = (varianteIdItem: number, nuevoValor: number) => {
-    const item = itemsCotizacion.find((i) => i.variante_id === varianteIdItem);
+  const modificarCantidadLinea = (vid: number, nuevoValor: number) => {
+    const item = itemsCotizacion.find((i) => i.variante_id === vid);
     if (!item) return;
-
-    const productoOriginal = productos.find((p) => p.id === item.producto_id);
-    const moqMinimo = productoOriginal ? resolveCartMoq(productoOriginal.moq) : 1;
-
+    const moq = resolveCartMoq(productos.find((p) => p.id === item.producto_id)?.moq ?? 1);
     setItemsCotizacion((prev) =>
-      prev.map((i) => {
-        if (i.variante_id !== varianteIdItem) return i;
-        return {
-          ...i,
-          cantidad: Math.max(moqMinimo, nuevoValor),
-        };
-      })
+      prev.map((i) => i.variante_id !== vid ? i : { ...i, cantidad: Math.max(moq, nuevoValor) })
     );
   };
 
   const handleEnviar = () => {
-    if (itemsCotizacion.length === 0) {
-      toast.error('Tu lista de cotización está vacía. Selecciona productos del panel izquierdo.');
-      return;
-    }
-    if (!mensaje.trim()) {
-      toast.error('El mensaje para el equipo comercial es obligatorio para procesar la cotización.');
-      return;
-    }
-
+    if (itemsCotizacion.length === 0) { toast.error('Tu lista está vacía.'); return; }
+    if (!mensaje.trim()) { toast.error('El mensaje es obligatorio.'); return; }
     startTransition(async () => {
       const response = await crearSolicitudCotizacion({
         mensaje: mensaje.trim(),
@@ -236,436 +147,498 @@ export function NuevaCotizacionClient({ productos, categorias }: Props) {
           talla_snapshot: item.talla,
         })),
       });
-
       if (!response.success) {
-        const dicErrores: Record<string, string> = {
-          unauthenticated: 'Tu sesión ha expirado, vuelve a iniciar sesión.',
-          cliente_no_encontrado: 'No tienes un perfil comercial asignado.',
-          mensaje_requerido: 'Por favor, describe los requerimientos en el mensaje.',
-          items_requeridos: 'Es necesario incluir productos en la solicitud.',
-          item_invalido: 'Existen inconsistencias en las cantidades de tu pedido.'
+        const dic: Record<string, string> = {
+          unauthenticated: 'Tu sesión expiró.',
+          cliente_no_encontrado: 'No tienes perfil comercial asignado.',
+          mensaje_requerido: 'Escribe un mensaje.',
+          items_requeridos: 'Incluye productos.',
+          item_invalido: 'Cantidades inconsistentes.',
         };
-        toast.error(dicErrores[response.error] ?? response.error);
+        toast.error(dic[response.error] ?? response.error);
         return;
       }
-
-      toast.success(`¡Excelente! La solicitud ${response.numero} fue registrada con éxito.`);
-      setItemsCotizacion([]);
-      setMensaje('');
-      setPreciosPropuestos({});
+      toast.success(`Solicitud ${response.numero} registrada.`);
+      setItemsCotizacion([]); setMensaje(''); setPreciosPropuestos({});
       router.push('/portal/cotizaciones');
     });
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-2 sm:px-4 pb-16">
-      {/* Encabezado Principal */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4 gap-4">
+
+      {/* Encabezado */}
+      <header
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-5 gap-4"
+        style={{ borderColor: 'var(--guor-stone)' }}
+      >
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-            <Link href="/portal/cotizaciones" className="hover:text-[#b5854b] flex items-center gap-1 transition-colors">
-              <ChevronLeft size={14} /> Regresar
-            </Link>
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="text-[#b5854b]" size={26} />
+          <Link
+            href="/portal/cotizaciones"
+            className="inline-flex items-center gap-1 text-xs font-bold transition-colors"
+            style={{ color: 'var(--guor-gold)' }}
+          >
+            <ChevronLeft size={14} /> Regresar
+          </Link>
+          <h1
+            className="text-2xl font-black tracking-tight flex items-center gap-2"
+            style={{ color: 'var(--guor-dark)' }}
+          >
+            <FileText size={24} style={{ color: 'var(--guor-gold)' }} />
             Módulo Integrado de Cotizaciones
           </h1>
-          <p className="text-slate-500 text-xs sm:text-sm">
+          <p className="text-xs" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
             Configure presupuestos a medida, proponga precios unitarios y adjunte consideraciones logísticas.
           </p>
         </div>
         <Link
           href="/portal/cotizaciones"
-          className="text-xs font-bold uppercase tracking-wider px-4 py-2 border rounded-xl hover:bg-slate-50 transition-colors text-slate-600 text-center sm:w-auto"
+          className="text-xs font-black uppercase tracking-wider px-4 py-2 rounded-xl border transition-colors text-center"
+          style={{
+            borderColor: 'var(--guor-stone-mid)',
+            color: 'var(--guor-dark)',
+            backgroundColor: 'white',
+          }}
         >
           Historial de Presupuestos
         </Link>
       </header>
 
-      {/* Grid General: Split-Screen Layout */}
+      {/* Grid principal */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* PANEL IZQUIERDO: Catálogo de Modelos (5 Columnas) */}
+        {/* PANEL IZQUIERDO — Catálogo */}
         <section className="lg:col-span-5 space-y-4">
-          <Card className="rounded-2xl border-slate-200 shadow-xs bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50/50 border-b p-4">
-              <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-                Catálogo de Productos Disponibles
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Filtre existencias y añada variaciones específicas al panel derecho.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
+          <div
+            className="rounded-2xl overflow-hidden border"
+            style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}
+          >
+            {/* Cabecera panel */}
+            <div
+              className="px-5 py-4 border-b"
+              style={{ backgroundColor: 'var(--guor-cream-deep)', borderColor: 'var(--guor-stone)' }}
+            >
+              <p
+                className="text-[10px] font-black uppercase tracking-[0.2em]"
+                style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
+              >
+                Catálogo de Modelos
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>
+                Filtre existencias y añada variaciones al panel derecho.
+              </p>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {/* Buscador + filtro */}
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <Input
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--guor-dark)', opacity: 0.35 }} />
+                  <input
                     type="search"
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
                     placeholder="Buscar por nombre, SKU..."
-                    className="pl-9 text-xs rounded-xl h-9"
+                    className="w-full pl-8 pr-3 py-2 text-xs rounded-xl outline-none transition-all"
+                    style={{
+                      backgroundColor: 'white',
+                      border: '1px solid var(--guor-stone)',
+                      color: 'var(--guor-dark)',
+                    }}
                   />
                 </div>
-                <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
-                  <SelectTrigger className="w-full sm:w-[170px] text-xs rounded-xl h-9">
-                    <SelectValue placeholder="Categorías" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={TODAS_CATEGORIAS}>Todo el catálogo</SelectItem>
-                    {categorias.map((cat) => (
-                      <SelectItem key={cat.id} value={String(cat.id)} className="text-xs">
-                        {cat.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={categoriaFiltro}
+                  onChange={(e) => setCategoriaFiltro(e.target.value)}
+                  className="text-xs rounded-xl px-3 py-2 outline-none transition-all"
+                  style={{
+                    backgroundColor: 'white',
+                    border: '1px solid var(--guor-stone)',
+                    color: 'var(--guor-dark)',
+                    minWidth: '140px',
+                  }}
+                >
+                  <option value={TODAS_CATEGORIAS}>Todo el catálogo</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={String(cat.id)}>{cat.nombre}</option>
+                  ))}
+                </select>
               </div>
 
+              {/* Lista productos */}
               {productosFiltrados.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs border border-dashed rounded-xl">
-                  Ningún modelo coincide con los filtros provistos.
+                <div
+                  className="text-center py-12 text-xs rounded-xl border-2 border-dashed"
+                  style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)', opacity: 0.4 }}
+                >
+                  Ningún modelo coincide con los filtros.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[620px] overflow-y-auto pr-1">
                   {productosFiltrados.map((prod) => (
                     <div
                       key={prod.id}
-                      className="group border border-slate-100 rounded-xl bg-white overflow-hidden hover:border-slate-300 transition-all shadow-xs flex flex-col justify-between"
+                      className="group rounded-xl overflow-hidden border transition-all flex flex-col"
+                      style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)' }}
                     >
-                      <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden">
+                      <div className="aspect-[4/3] relative overflow-hidden" style={{ backgroundColor: 'var(--guor-cream-deep)' }}>
                         {prod.imagen ? (
-                          <img
-                            src={prod.imagen}
-                            alt={prod.nombre}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300 text-[10px]">
-                            Sin Imagen Referencial
+                          <div className="w-full h-full flex items-center justify-center text-[10px]" style={{ color: 'var(--guor-dark)', opacity: 0.3 }}>
+                            Sin imagen
                           </div>
                         )}
                         {prod.categoria && (
-                          <Badge className="absolute top-2 left-2 text-[9px] font-medium bg-slate-900/80 text-white border-none backdrop-blur-xs">
+                          <span className="absolute top-2 left-2 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--guor-dark)', color: 'white' }}>
                             {prod.categoria.nombre}
-                          </Badge>
+                          </span>
                         )}
-                        <Badge className="absolute bottom-2 right-2 text-[9px] font-bold bg-amber-600 text-white border-none shadow-xs">
+                        <span className="absolute bottom-2 right-2 text-[9px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--guor-gold)', color: 'white' }}>
                           MOQ: {prod.moq} u.
-                        </Badge>
+                        </span>
                       </div>
-
-                      <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
-                        <div className="space-y-0.5">
-                          <h4 className="font-bold text-xs text-slate-800 line-clamp-1 group-hover:text-[#b5854b] transition-colors">
+                      <div className="p-3 flex-1 flex flex-col justify-between gap-2">
+                        <div>
+                          <h4 className="font-black text-xs line-clamp-1 transition-colors" style={{ color: 'var(--guor-dark)' }}>
                             {prod.nombre}
                           </h4>
-                          <p className="text-[10px] text-slate-400 font-mono tracking-tight">{prod.sku}</p>
-                          <p className="text-xs font-black text-slate-900 mt-1">
-                            {formatCurrency(prod.precio)} <span className="text-[10px] font-normal text-slate-400">base</span>
+                          <p className="text-[10px] font-mono mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>{prod.sku}</p>
+                          <p className="text-xs font-black mt-1" style={{ color: 'var(--guor-gold)' }}>
+                            {formatCurrency(prod.precio)} <span className="text-[10px] font-normal" style={{ opacity: 0.5 }}>base</span>
                           </p>
                         </div>
-
-                        <Button
+                        <button
                           type="button"
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-[11px] h-8 rounded-lg font-bold text-[#b5854b] border-[#b5854b]/20 hover:bg-[#fff4e2] hover:border-[#b5854b] transition-all"
                           onClick={() => abrirDialogoAgregar(prod)}
+                          className="w-full py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all flex items-center justify-center gap-1"
+                          style={{
+                            backgroundColor: 'var(--guor-cream-deep)',
+                            borderColor: 'var(--guor-gold-pale)',
+                            color: 'var(--guor-gold)',
+                          }}
                         >
-                          <PlusCircle size={12} className="mr-1" />
+                          <PlusCircle size={12} />
                           Configurar Línea
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </section>
 
-        {/* PANEL DERECHO: Resumen de la Solicitud (7 Columnas) */}
+        {/* PANEL DERECHO — Desglose */}
         <section className="lg:col-span-7 space-y-4">
-          <Card className="rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50/50 border-b p-4 flex flex-row items-center justify-between">
+          <div
+            className="rounded-2xl overflow-hidden border"
+            style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}
+          >
+            {/* Cabecera panel */}
+            <div
+              className="px-5 py-4 border-b flex items-center justify-between"
+              style={{ backgroundColor: 'var(--guor-cream-deep)', borderColor: 'var(--guor-stone)' }}
+            >
               <div>
-                <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
                   Desglose Financiero Propuesto
-                </CardTitle>
-                <CardDescription className="text-xs">
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>
                   {itemsCotizacion.length === 0
-                    ? 'No hay productos en lista.'
-                    : `${itemsCotizacion.length} SKUs seleccionados · ${resumen.totalUnidades} unidades totales.`}
-                </CardDescription>
+                    ? 'Sin productos en lista.'
+                    : `${itemsCotizacion.length} SKUs · ${resumen.totalUnidades} unidades totales`}
+                </p>
               </div>
               {itemsCotizacion.length > 0 && (
-                <Badge variant="outline" className="text-xs font-black border-[#b5854b]/30 text-[#b5854b] bg-[#fff4e2]">
+                <span
+                  className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border"
+                  style={{ backgroundColor: 'var(--guor-gold-dust)', borderColor: 'var(--guor-gold-pale)', color: 'var(--guor-gold)' }}
+                >
                   Borrador Activo
-                </Badge>
+                </span>
               )}
-            </CardHeader>
+            </div>
 
-            <CardContent className="p-4">
+            <div className="p-4">
               {itemsCotizacion.length === 0 ? (
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-12 text-center text-slate-400 text-xs bg-slate-50/50">
-                  Seleccione variaciones del catálogo de la izquierda para comenzar la estimación comercial.
+                <div
+                  className="text-center py-14 text-xs rounded-xl border-2 border-dashed"
+                  style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)', opacity: 0.35 }}
+                >
+                  Seleccione variaciones del catálogo para comenzar la estimación.
                 </div>
               ) : (
-                <div className="border border-slate-150 rounded-xl overflow-hidden bg-white">
+                <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--guor-stone)' }}>
                   <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-slate-50 text-slate-700">
-                          <TableHead className="text-xs font-bold">Producto/SKU</TableHead>
-                          <TableHead className="text-xs font-bold text-center">Cant.</TableHead>
-                          <TableHead className="text-xs font-bold">Precio Propuesto</TableHead>
-                          <TableHead className="text-xs font-bold text-right">Subtotal</TableHead>
-                          <TableHead className="w-8" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr style={{ backgroundColor: 'var(--guor-cream-deep)', borderBottom: '1px solid var(--guor-stone)' }}>
+                          {['Producto/SKU', 'Cant.', 'Precio Propuesto', 'Subtotal', ''].map((h) => (
+                            <th key={h} className="px-3 py-2.5 text-left font-black uppercase tracking-wider" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
                         {itemsCotizacion.map((item) => {
                           const precioRender = getPrecioUnitarioItem(item);
-                          const productoDeCatalogo = productos.find((p) => p.id === item.producto_id);
-                          const moqDeLinea = productoDeCatalogo ? resolveCartMoq(productoDeCatalogo.moq) : 1;
-
+                          const moqLinea = resolveCartMoq(productos.find((p) => p.id === item.producto_id)?.moq ?? 1);
                           return (
-                            <TableRow key={item.variante_id} className="hover:bg-slate-50/40 transition-colors">
-                              <TableCell className="py-2.5">
-                                <p className="font-bold text-slate-900 text-xs line-clamp-1">{item.nombre}</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">{item.sku}</p>
-                                <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500 font-medium">
-                                  <span className="bg-slate-100 px-1.5 py-0.5 rounded-sm">Col: {item.color}</span>
-                                  <span className="bg-slate-100 px-1.5 py-0.5 rounded-sm">Tal: {item.talla}</span>
+                            <tr
+                              key={item.variante_id}
+                              className="border-b transition-colors"
+                              style={{ borderColor: 'var(--guor-stone)', backgroundColor: 'white' }}
+                            >
+                              <td className="px-3 py-3">
+                                <p className="font-black line-clamp-1" style={{ color: 'var(--guor-dark)' }}>{item.nombre}</p>
+                                <p className="font-mono mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>{item.sku}</p>
+                                <div className="flex gap-1.5 mt-1">
+                                  {[item.color, item.talla].map((val) => (
+                                    <span key={val} className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}>
+                                      {val}
+                                    </span>
+                                  ))}
                                 </div>
-                              </TableCell>
-                              <TableCell className="py-2.5">
-                                <div className="flex items-center justify-center border border-slate-200 rounded-lg bg-white h-8 w-fit mx-auto overflow-hidden shadow-xs">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="h-full px-2 text-slate-500 hover:bg-slate-100 rounded-none"
-                                    onClick={() => modificarCantidadLinea(item.variante_id, item.cantidad - 1)}
-                                  >
-                                    <Minus size={11} />
-                                  </Button>
+                              </td>
+                              <td className="px-3 py-3">
+                                <div
+                                  className="flex items-center rounded-lg overflow-hidden border w-fit mx-auto"
+                                  style={{ borderColor: 'var(--guor-stone)' }}
+                                >
+                                  <button type="button" className="px-2 py-1.5 transition-colors hover:bg-guor-cream-deep" onClick={() => modificarCantidadLinea(item.variante_id, item.cantidad - 1)}>
+                                    <Minus size={11} style={{ color: 'var(--guor-dark)' }} />
+                                  </button>
                                   <input
                                     type="number"
                                     value={item.cantidad}
-                                    onChange={(e) => modificarCantidadLinea(item.variante_id, parseInt(e.target.value, 10) || moqDeLinea)}
-                                    className="w-9 text-center text-xs font-black bg-transparent border-none outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    onChange={(e) => modificarCantidadLinea(item.variante_id, parseInt(e.target.value, 10) || moqLinea)}
+                                    className="w-9 text-center font-black bg-transparent border-none outline-none text-xs"
+                                    style={{ color: 'var(--guor-dark)' }}
                                   />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="h-full px-2 text-slate-500 hover:bg-slate-100 rounded-none"
-                                    onClick={() => modificarCantidadLinea(item.variante_id, item.cantidad + 1)}
-                                  >
-                                    <Plus size={11} />
-                                  </Button>
+                                  <button type="button" className="px-2 py-1.5 transition-colors" onClick={() => modificarCantidadLinea(item.variante_id, item.cantidad + 1)}>
+                                    <Plus size={11} style={{ color: 'var(--guor-dark)' }} />
+                                  </button>
                                 </div>
-                                <p className="text-[9px] text-center text-slate-400 mt-1 font-medium">Mín. {moqDeLinea} u.</p>
-                              </TableCell>
-                              <TableCell className="py-2.5">
+                                <p className="text-center text-[9px] mt-1" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>Mín. {moqLinea} u.</p>
+                              </td>
+                              <td className="px-3 py-3">
                                 <div className="relative">
-                                  <DollarSign size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-                                  <Input
+                                  <DollarSign size={11} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--guor-dark)', opacity: 0.4 }} />
+                                  <input
                                     type="number"
                                     min={0}
                                     step="0.01"
                                     placeholder={item.precio_unitario.toFixed(2)}
                                     value={preciosPropuestos[item.variante_id] ?? ''}
-                                    onChange={(e) =>
-                                      setPreciosPropuestos((prev) => ({
-                                        ...prev,
-                                        [item.variante_id]: e.target.value,
-                                      }))
-                                    }
-                                    className="h-8 w-24 pl-5 text-xs font-bold rounded-lg focus-visible:ring-[#b5854b]"
+                                    onChange={(e) => setPreciosPropuestos((prev) => ({ ...prev, [item.variante_id]: e.target.value }))}
+                                    className="h-8 w-24 pl-6 text-xs font-black rounded-lg outline-none border"
+                                    style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)', backgroundColor: 'var(--guor-cream)' }}
                                   />
                                 </div>
-                                <p className="text-[9px] text-slate-400 mt-1 pl-1">
+                                <p className="text-[9px] mt-1 pl-1" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>
                                   Lista: {formatCurrency(item.precio_unitario)}
                                 </p>
-                              </TableCell>
-                              <TableCell className="py-2.5 text-right font-black text-xs text-slate-800">
+                              </td>
+                              <td className="px-3 py-3 text-right font-black" style={{ color: 'var(--guor-dark)' }}>
                                 {formatCurrency(precioRender * item.cantidad)}
-                              </TableCell>
-                              <TableCell className="py-2.5">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                  onClick={() => quitarItem(item.variante_id)}
-                                >
-                                  <Trash2 size={13} />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
+                              </td>
+                              <td className="px-3 py-3">
+                                <button type="button" onClick={() => quitarItem(item.variante_id)} className="p-1.5 rounded-lg transition-colors hover:bg-red-50">
+                                  <Trash2 size={13} className="text-red-400" />
+                                </button>
+                              </td>
+                            </tr>
                           );
                         })}
-                      </TableBody>
-                    </Table>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-            </CardContent>
+            </div>
 
+            {/* Footer con mensaje y envío */}
             {itemsCotizacion.length > 0 && (
-              <CardFooter className="flex-col items-stretch gap-4 border-t bg-slate-50/50 p-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold uppercase text-slate-600 flex items-center gap-1">
-                    <MessageSquare size={13} className="text-[#b5854b]" />
+              <div className="px-4 pb-4 space-y-4 border-t pt-4" style={{ borderColor: 'var(--guor-stone)' }}>
+                <div>
+                  <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--guor-dark)', opacity: 0.6 }}>
+                    <MessageSquare size={13} style={{ color: 'var(--guor-gold)' }} />
                     Especificaciones y Mensaje Comercial <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
+                  </label>
+                  <textarea
                     value={mensaje}
                     onChange={(e) => setMensaje(e.target.value)}
                     rows={3}
                     maxLength={500}
-                    placeholder="Ej.: Cotización para campaña Q3, entrega estimada en 3 semanas o justificación de precios propuestos..."
-                    className="rounded-xl text-xs bg-white border-slate-200 focus-visible:ring-[#b5854b]"
+                    placeholder="Ej.: Cotización para campaña Q3, entrega estimada en 3 semanas..."
+                    className="w-full text-xs rounded-xl px-4 py-3 outline-none resize-none border"
+                    style={{
+                      backgroundColor: 'white',
+                      borderColor: 'var(--guor-stone)',
+                      color: 'var(--guor-dark)',
+                    }}
                   />
                 </div>
 
-                <div className="bg-white border p-3 rounded-xl flex items-center justify-between text-xs font-medium text-slate-700 shadow-xs">
+                {/* Subtotal */}
+                <div
+                  className="flex items-center justify-between px-4 py-3 rounded-xl border"
+                  style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)' }}
+                >
                   <div>
-                    Estimado Subtotal Requerido:{' '}
-                    <span className="font-black text-slate-900 text-sm">
-                      {formatCurrency(resumen.subtotal)}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal block">
-                      ({resumen.totalUnidades} uds totales · Precios no incluyen IGV)
-                    </span>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
+                      Estimado Subtotal
+                    </p>
+                    <p className="text-[9px] mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>
+                      {resumen.totalUnidades} uds · sin IGV
+                    </p>
                   </div>
+                  <p className="text-xl font-black" style={{ color: 'var(--guor-dark)' }}>
+                    {formatCurrency(resumen.subtotal)}
+                  </p>
                 </div>
 
-                <Button
+                <button
                   type="button"
                   disabled={isPending}
                   onClick={handleEnviar}
-                  className="w-full rounded-xl text-xs font-black uppercase tracking-wider text-white py-5 shadow-sm transition-all"
-                  style={{ backgroundColor: BRAND.ocre }}
+                  className="w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-widest text-white shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: 'var(--guor-gold)' }}
                 >
                   {isPending ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin mr-2" />
-                      Procesando Solicitud Corporativa...
-                    </>
+                    <><Loader2 size={14} className="animate-spin" /> Procesando...</>
                   ) : (
                     'Enviar Cotización a Revisión'
                   )}
-                </Button>
-              </CardFooter>
+                </button>
+              </div>
             )}
-          </Card>
+          </div>
         </section>
       </div>
 
-      {/* MODAL: Selector Fino de Variantes y Cantidades */}
-      <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
-        <DialogContent className="sm:max-w-md rounded-2xl p-6 bg-white border shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-slate-900 uppercase tracking-tight">
-              Configuración de Variación
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Defina los parámetros de confección y stock para: <strong className="text-slate-700">{productoSeleccionado?.nombre}</strong>
-            </DialogDescription>
-          </DialogHeader>
+      {/* MODAL de variante */}
+      {dialogAbierto && productoSeleccionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            style={{ backgroundColor: 'var(--guor-cream)', border: '1px solid var(--guor-stone)' }}
+          >
+            {/* Header modal */}
+            <div
+              className="px-6 py-5 border-b flex items-center justify-between"
+              style={{ backgroundColor: 'var(--guor-cream-deep)', borderColor: 'var(--guor-stone)' }}
+            >
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--guor-dark)' }}>
+                  Configuración de Variación
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
+                  {productoSeleccionado.nombre}
+                </p>
+              </div>
+            </div>
 
-          {productoSeleccionado && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+            <div className="p-6 space-y-5">
+              {/* Selector variante */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
                   Combinación (Color · Talla)
-                </Label>
-                <Select value={varianteId} onValueChange={setVarianteId}>
-                  <SelectTrigger className="rounded-xl text-xs h-9">
-                    <SelectValue placeholder="Seleccionar variante..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productoSeleccionado.variantes.map((v) => (
-                      <SelectItem key={v.id} value={String(v.id)} className="text-xs">
-                        {v.color} / Talla {v.talla} (Ref. Stock: {v.stock} u.)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </label>
+                <select
+                  value={varianteId}
+                  onChange={(e) => setVarianteId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl text-xs font-bold outline-none border"
+                  style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}
+                >
+                  {productoSeleccionado.variantes.map((v) => (
+                    <option key={v.id} value={String(v.id)}>
+                      {v.color} / Talla {v.talla} — Stock: {v.stock} u.
+                    </option>
+                  ))}
+                </select>
+
+                {varianteSeleccionada && (
+                  <div className="flex gap-2 mt-2">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}>
+                      {varianteSeleccionada.sku}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--guor-gold-dust)', color: 'var(--guor-gold)' }}>
+                      {formatCurrency(productoSeleccionado.precio + varianteSeleccionada.precio_adicional)}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {varianteSeleccionada && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <Badge variant="outline" className="text-[10px] font-mono font-medium text-slate-500 bg-slate-50">
-                    SKU: {varianteSeleccionada.sku}
-                  </Badge>
-                  <Badge variant="secondary" className="text-[10px] font-medium bg-slate-100 text-slate-700 border-none">
-                    Precio Catálogo: {formatCurrency(productoSeleccionado.precio + varianteSeleccionada.precio_adicional)}
-                  </Badge>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+              {/* Cantidad */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
                     Cantidad a Solicitar
-                  </Label>
-                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
-                    Mínimo Requerido: {resolveCartMoq(productoSeleccionado.moq)} u.
+                  </label>
+                  <span
+                    className="text-[9px] font-black uppercase px-2 py-0.5 rounded"
+                    style={{ backgroundColor: 'var(--guor-gold-dust)', color: 'var(--guor-gold)' }}
+                  >
+                    Mínimo: {resolveCartMoq(productoSeleccionado.moq)} u.
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    className="h-9 w-9 rounded-xl border-slate-200"
                     onClick={() => setCantidad((c) => Math.max(1, c - 1))}
+                    className="w-10 h-10 rounded-xl border flex items-center justify-center transition-colors"
+                    style={{ borderColor: 'var(--guor-stone)', backgroundColor: 'white', color: 'var(--guor-dark)' }}
                   >
                     <Minus size={14} />
-                  </Button>
-                  <Input
+                  </button>
+                  <input
                     type="number"
                     value={cantidad}
                     onChange={(e) => setCantidad(parseInt(e.target.value, 10) || 1)}
-                    className="w-24 text-center text-xs font-black rounded-xl h-9 focus-visible:ring-[#b5854b]"
+                    className="flex-1 h-10 text-center text-sm font-black rounded-xl border outline-none"
+                    style={{ borderColor: 'var(--guor-stone)', backgroundColor: 'white', color: 'var(--guor-dark)' }}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    className="h-9 w-9 rounded-xl border-slate-200"
                     onClick={() => setCantidad((c) => c + 1)}
+                    className="w-10 h-10 rounded-xl border flex items-center justify-center transition-colors"
+                    style={{ borderColor: 'var(--guor-stone)', backgroundColor: 'white', color: 'var(--guor-dark)' }}
                   >
                     <Plus size={14} />
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
-          )}
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl text-xs font-bold border-slate-200"
-              onClick={() => setDialogAbierto(false)}
+            {/* Footer modal */}
+            <div
+              className="px-6 py-4 border-t flex gap-3"
+              style={{ borderColor: 'var(--guor-stone)', backgroundColor: 'var(--guor-cream-deep)' }}
             >
-              Cerrar
-            </Button>
-            <Button
-              type="button"
-              className="rounded-xl text-xs font-black text-white px-5"
-              style={{ backgroundColor: BRAND.ocre }}
-              onClick={confirmarAgregar}
-            >
-              Añadir a la Solicitud
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <button
+                type="button"
+                onClick={() => setDialogAbierto(false)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-colors"
+                style={{ borderColor: 'var(--guor-stone-mid)', color: 'var(--guor-dark)', backgroundColor: 'white' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarAgregar}
+                className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-colors"
+                style={{ backgroundColor: 'var(--guor-gold)' }}
+              >
+                Añadir a la Solicitud
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

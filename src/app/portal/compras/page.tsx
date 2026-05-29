@@ -18,8 +18,6 @@ import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const BRAND = { ocre: '#b5854b', ocreDark: '#9a6e3a' };
-
 export default function ConfirmarCompraPage() {
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -38,16 +36,11 @@ export default function ConfirmarCompraPage() {
 
   const handleConfirmar = () => {
     if (!puedeConfirmar) return;
-
     const sinVariante = items.filter((i) => !i.variante_id);
     if (sinVariante.length > 0) {
-      toast.error('Carrito desactualizado', {
-        description:
-          'Quita los productos sin variante y vuelve a agregarlos desde el catálogo.',
-      });
+      toast.error('Carrito desactualizado — quita los productos sin variante y vuelve a agregarlos.');
       return;
     }
-
     startTransition(async () => {
       try {
         const res = await fetch('/api/portal/pedidos', {
@@ -70,10 +63,7 @@ export default function ConfirmarCompraPage() {
           }),
         });
         const json = await res.json();
-        if (!res.ok) {
-          toast.error(json.mensaje ?? json.error ?? 'No se pudo registrar el pedido');
-          return;
-        }
+        if (!res.ok) { toast.error(json.mensaje ?? json.error ?? 'No se pudo registrar el pedido'); return; }
         clearCart();
         toast.success('Pedido registrado correctamente');
         window.location.href = '/portal/pedidos';
@@ -85,16 +75,23 @@ export default function ConfirmarCompraPage() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-4">
-        <ShoppingCart size={48} className="mx-auto text-slate-300" />
-        <h1 className="text-2xl font-black text-slate-900">No hay productos para confirmar</h1>
-        <p className="text-slate-500 text-sm">
+      <div className="max-w-2xl mx-auto py-20 text-center space-y-5">
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
+          style={{ backgroundColor: 'var(--guor-stone)' }}
+        >
+          <ShoppingCart size={36} style={{ color: 'var(--guor-gold)' }} />
+        </div>
+        <h1 className="text-2xl font-black" style={{ color: 'var(--guor-dark)' }}>
+          No hay productos para confirmar
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
           Agrega productos desde el catálogo o abre el carrito desde la barra superior.
         </p>
         <Link
           href="/portal/productos"
-          className="inline-flex px-6 py-3 rounded-xl text-white font-bold text-sm"
-          style={{ backgroundColor: BRAND.ocre }}
+          className="inline-block px-6 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest"
+          style={{ backgroundColor: 'var(--guor-gold)' }}
         >
           Ir al catálogo
         </Link>
@@ -103,24 +100,33 @@ export default function ConfirmarCompraPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      <header className="flex items-center gap-3">
+    <div
+      className="max-w-5xl mx-auto space-y-6 pb-12"
+      style={{ color: 'var(--guor-dark)' }}
+    >
+      {/* Encabezado */}
+      <header className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: 'var(--guor-stone)' }}>
         <Link
           href="/portal/productos"
-          className="p-2 rounded-full hover:bg-slate-100 text-slate-500"
+          className="w-9 h-9 rounded-full flex items-center justify-center border transition-colors hover:bg-guor-cream-deep"
+          style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}
           aria-label="Volver al catálogo"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Confirmar compra</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <h1 className="text-2xl font-black" style={{ color: 'var(--guor-dark)' }}>
+            Confirmar compra
+          </h1>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>
             Revisa cantidades, MOQ y dirección antes de generar tu pedido.
           </p>
         </div>
       </header>
 
       <div className="grid lg:grid-cols-3 gap-6">
+
+        {/* Lista de items */}
         <div className="lg:col-span-2 space-y-3">
           {items.map((item) => {
             const moqMin = resolveCartMoq(item.moq);
@@ -129,64 +135,65 @@ export default function ConfirmarCompraPage() {
             return (
               <article
                 key={lineKey}
-                className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-4"
+                className="rounded-2xl border p-4 flex gap-4"
+                style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)' }}
               >
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-bold text-slate-900 truncate">{item.nombre}</h2>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">
+                  <h2 className="font-black truncate" style={{ color: 'var(--guor-dark)' }}>
+                    {item.nombre}
+                  </h2>
+                  <p className="text-[10px] font-bold uppercase mt-0.5" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>
                     {item.color} · {item.talla}
                   </p>
-                  <p className="text-sm font-black mt-1">
+                  <p className="text-sm font-black mt-1" style={{ color: 'var(--guor-gold)' }}>
                     {formatCurrency(item.precio)} / ud
                   </p>
                   {!moqOk && (
-                    <p className="text-xs text-amber-700 flex items-center gap-1 mt-2">
+                    <p className="text-xs flex items-center gap-1 mt-2 font-bold" style={{ color: '#b45309' }}>
                       <AlertTriangle size={12} />
                       Mínimo {moqMin} uds para este producto
                     </p>
                   )}
                 </div>
+
                 <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-2 border border-slate-200 rounded-xl p-1">
+                  <div
+                    className="flex items-center rounded-xl border overflow-hidden"
+                    style={{ borderColor: 'var(--guor-stone)' }}
+                  >
                     <button
                       type="button"
-                      className="p-1.5 rounded-lg hover:bg-slate-100"
-                      onClick={() =>
-                        updateQuantity(
-                          item.producto_id,
-                          item.variante_id,
-                          item.cantidad - 1,
-                        )
-                      }
+                      className="px-2 py-2 transition-colors"
+                      style={{ backgroundColor: 'var(--guor-cream-deep)' }}
+                      onClick={() => updateQuantity(item.producto_id, item.variante_id, item.cantidad - 1)}
                       aria-label="Reducir cantidad"
                     >
-                      <Minus size={14} />
+                      <Minus size={13} style={{ color: 'var(--guor-dark)' }} />
                     </button>
-                    <span className="w-12 text-center text-sm font-bold">{item.cantidad}</span>
+                    <span className="w-12 text-center text-sm font-black" style={{ color: 'var(--guor-dark)' }}>
+                      {item.cantidad}
+                    </span>
                     <button
                       type="button"
-                      className="p-1.5 rounded-lg hover:bg-slate-100"
-                      onClick={() =>
-                        updateQuantity(
-                          item.producto_id,
-                          item.variante_id,
-                          item.cantidad + 1,
-                        )
-                      }
+                      className="px-2 py-2 transition-colors"
+                      style={{ backgroundColor: 'var(--guor-cream-deep)' }}
+                      onClick={() => updateQuantity(item.producto_id, item.variante_id, item.cantidad + 1)}
                       aria-label="Aumentar cantidad"
                     >
-                      <Plus size={14} />
+                      <Plus size={13} style={{ color: 'var(--guor-dark)' }} />
                     </button>
                   </div>
+
                   <button
                     type="button"
                     onClick={() => removeItem(item.producto_id, item.variante_id)}
-                    className="text-slate-400 hover:text-red-600 p-1"
+                    className="p-1.5 rounded-lg transition-colors hover:bg-red-50"
                     aria-label="Quitar del carrito"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} className="text-red-400" />
                   </button>
-                  <p className="text-sm font-black">
+
+                  <p className="text-sm font-black" style={{ color: 'var(--guor-dark)' }}>
                     {formatCurrency(item.precio * item.cantidad)}
                   </p>
                 </div>
@@ -195,60 +202,87 @@ export default function ConfirmarCompraPage() {
           })}
         </div>
 
-        <aside className="bg-white border border-slate-200 rounded-2xl p-5 h-fit space-y-4 sticky top-4">
-          <h2 className="font-black text-slate-900">Resumen del pedido</h2>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Subtotal</span>
-            <span className="font-bold">{formatCurrency(subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Líneas</span>
-            <span className="font-bold">{items.length}</span>
+        {/* Resumen lateral */}
+        <aside
+          className="rounded-2xl border p-5 h-fit space-y-4 sticky top-4"
+          style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}
+        >
+          <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: 'var(--guor-dark)' }}>
+            Resumen del pedido
+          </h2>
+
+          <div
+            className="space-y-2 pb-3 border-b text-xs"
+            style={{ borderColor: 'var(--guor-stone)' }}
+          >
+            <div className="flex justify-between">
+              <span style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>Subtotal</span>
+              <span className="font-black" style={{ color: 'var(--guor-dark)' }}>{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span style={{ color: 'var(--guor-dark)', opacity: 0.5 }}>Líneas</span>
+              <span className="font-black" style={{ color: 'var(--guor-dark)' }}>{items.length}</span>
+            </div>
           </div>
 
           {!canCheckout && (
-            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p
+              className="text-xs rounded-xl p-3 border font-bold"
+              style={{
+                backgroundColor: 'var(--guor-gold-dust)',
+                borderColor: 'var(--guor-gold-pale)',
+                color: '#92400e',
+              }}
+            >
               Ajusta las cantidades: todos los productos deben cumplir su MOQ.
             </p>
           )}
 
-          <label className="block text-xs font-bold text-slate-500 uppercase">
-            Dirección de despacho
+          <div>
+            <label
+              className="block text-[10px] font-black uppercase tracking-[0.2em] mb-1.5"
+              style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
+            >
+              Dirección de despacho
+            </label>
             <textarea
               value={direccion}
               onChange={(e) => setDireccion(e.target.value)}
               rows={2}
-              className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-normal normal-case"
+              className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none border"
+              style={{
+                backgroundColor: 'white',
+                borderColor: 'var(--guor-stone)',
+                color: 'var(--guor-dark)',
+              }}
             />
-          </label>
+          </div>
 
           <button
             type="button"
             disabled={!puedeConfirmar || isPending}
             onClick={handleConfirmar}
             className={cn(
-              'w-full py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'w-full py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all',
+              'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
-            style={{ backgroundColor: BRAND.ocre }}
+            style={{ backgroundColor: 'var(--guor-gold)' }}
           >
             {isPending ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Procesando…
-              </>
+              <><Loader2 size={16} className="animate-spin" /> Procesando…</>
             ) : (
               'Confirmar pedido'
             )}
           </button>
 
-          <p className="text-[10px] text-slate-400 leading-relaxed">
+          <p className="text-[10px] leading-relaxed" style={{ color: 'var(--guor-dark)', opacity: 0.4 }}>
             Se genera un pedido de venta y se reserva stock si hay disponibilidad.
           </p>
 
           <Link
             href="/portal/cotizaciones/solicitar"
-            className="block text-center text-xs font-semibold text-[#b5854b] hover:underline"
+            className="block text-center text-xs font-bold hover:underline"
+            style={{ color: 'var(--guor-gold)' }}
           >
             ¿Necesitas negociar precios? Solicita una cotización
           </Link>

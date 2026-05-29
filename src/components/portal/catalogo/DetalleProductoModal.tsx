@@ -21,51 +21,84 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
     const tallas = (producto.tallas_disponibles as string[]) || [];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-3xl shadow-modal overflow-hidden animate-in zoom-in duration-200">
-
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+            <div
+                className="w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+                style={{ backgroundColor: 'var(--guor-cream)', border: '1px solid var(--guor-stone)' }}
+            >
                 {/* Encabezado */}
-                <div className="p-6 border-b flex justify-between items-center bg-guor-50"
-                    style={{ borderColor: 'var(--guor-stone)' }}>
+                <div
+                    className="px-6 py-5 flex justify-between items-center border-b"
+                    style={{ backgroundColor: 'var(--guor-cream-deep)', borderColor: 'var(--guor-stone)' }}
+                >
                     <div>
-                        <h2 className="text-xl font-black text-guor-dark">{producto.nombre}</h2>
-                        <p className="text-xs font-bold uppercase tracking-widest mt-1 text-guor-gold">
+                        <h2
+                            className="text-lg font-black uppercase tracking-tight"
+                            style={{ color: 'var(--guor-dark)' }}
+                        >
+                            {producto.nombre}
+                        </h2>
+                        <p
+                            className="text-[11px] font-bold uppercase tracking-widest mt-0.5"
+                            style={{ color: 'var(--guor-gold)' }}
+                        >
                             SKU: {producto.sku}
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2 rounded-full transition-colors border bg-white hover:bg-guor-200 shadow-sm"
-                        style={{ borderColor: 'var(--guor-stone-mid)', color: 'var(--guor-dark)' }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-black/10"
+                        style={{ color: 'var(--guor-dark)' }}
                     >
-                        <X size={20} />
+                        <X size={16} />
                     </button>
                 </div>
 
-                {/* Contenido Técnico */}
-                <div className="p-8 overflow-y-auto max-h-[70vh] space-y-8">
+                {/* Contenido */}
+                <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+
+                    {/* Descripción */}
                     <section>
-                        <div className="flex items-center gap-2 mb-3 text-guor-400">
-                            <Info size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-widest">Descripción</h3>
+                        <div
+                            className="flex items-center gap-2 mb-2"
+                            style={{ color: 'var(--guor-gold)' }}
+                        >
+                            <Info size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Descripción</span>
                         </div>
-                        <p className="text-sm leading-relaxed p-4 rounded-2xl border text-guor-dark"
-                            style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}>
-                            {producto.descripcion || "Sin descripción técnica disponible."}
+                        <p
+                            className="text-sm leading-relaxed p-4 rounded-2xl border"
+                            style={{
+                                backgroundColor: 'white',
+                                borderColor: 'var(--guor-stone)',
+                                color: 'var(--guor-dark)',
+                            }}
+                        >
+                            {producto.descripcion || 'Sin descripción técnica disponible.'}
                         </p>
                     </section>
 
+                    {/* Estructura del Modelo */}
                     <section>
-                        <div className="flex items-center gap-2 mb-4 text-guor-400">
-                            <Package size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-widest">Estructura del Modelo</h3>
+                        <div
+                            className="flex items-center gap-2 mb-3"
+                            style={{ color: 'var(--guor-gold)' }}
+                        >
+                            <Package size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Estructura del Modelo</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl border text-sm"
-                            style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}>
-                            {/* Colores Disponibles */}
+
+                        <div
+                            className="grid grid-cols-2 gap-4 p-4 rounded-2xl border"
+                            style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)' }}
+                        >
+                            {/* Colores */}
                             <div>
-                                <span className="block text-[10px] font-bold uppercase tracking-wider mb-3 text-guor-400">
+                                <span
+                                    className="block text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
+                                >
                                     Colores Habilitados
                                 </span>
                                 <div className="flex flex-wrap gap-2">
@@ -73,7 +106,7 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                                         <span
                                             key={c}
                                             title={formatearColor(c)}
-                                            className="w-6 h-6 rounded-full border-2 border-white shadow-sm shrink-0 ring-1"
+                                            className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0 hover:scale-110 transition-transform"
                                             style={{
                                                 backgroundColor: COLOR_MAP[c] ?? '#e5e7eb',
                                                 outline: '1px solid var(--guor-stone-mid)',
@@ -83,17 +116,24 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                                 </div>
                             </div>
 
-                            {/* Tallas Disponibles */}
+                            {/* Tallas */}
                             <div>
-                                <span className="block text-[10px] font-bold uppercase tracking-wider mb-3 text-guor-400">
+                                <span
+                                    className="block text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
+                                >
                                     Tallas Disponibles
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                     {tallas.map((t) => (
                                         <span
                                             key={t}
-                                            className="bg-white px-2.5 py-1 rounded-lg font-black text-xs border text-guor-dark"
-                                            style={{ borderColor: 'var(--guor-stone-mid)' }}
+                                            className="px-3 py-1 rounded-lg font-black text-xs border"
+                                            style={{
+                                                backgroundColor: 'var(--guor-cream-deep)',
+                                                borderColor: 'var(--guor-stone-mid)',
+                                                color: 'var(--guor-dark)',
+                                            }}
                                         >
                                             {t}
                                         </span>
@@ -102,10 +142,17 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                             </div>
                         </div>
 
-                        <div className="mt-4 text-right">
-                            <p className="text-xs text-guor-400">
-                                Precio:{' '}
-                                <span className="font-bold text-sm text-guor-gold">
+                        {/* Precio */}
+                        <div className="mt-4 flex justify-end">
+                            <p
+                                className="text-[10px] uppercase tracking-widest font-bold"
+                                style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
+                            >
+                                Precio base:{' '}
+                                <span
+                                    className="text-sm font-black normal-case tracking-normal"
+                                    style={{ color: 'var(--guor-gold)', opacity: 1 }}
+                                >
                                     {formatCurrency(producto.precio)}
                                 </span>
                             </p>
