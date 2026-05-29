@@ -1,22 +1,17 @@
 'use client';
 
-<<<<<<< HEAD
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Bell, Search, User, Menu, X, ShoppingCart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Search, User, Menu, X, ShoppingCart, UserCircle, LogOut } from 'lucide-react';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { usePortalCart } from '@/components/portal/cart/PortalCartLayout';
-=======
-import { useState, useRef, useEffect } from 'react';
-import { Search, User, Menu, X, LogOut, UserCircle } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropDown';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
 
 export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
   const [mounted, setMounted] = useState(false);
-  const itemCount = useCartStore((s) => s.items.length);
+  const itemCount = useCartStore((s: any) => s.items.length);
   const { openCart } = usePortalCart();
 
   useEffect(() => setMounted(true), []);
@@ -66,7 +61,6 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
 
       {/* Sección Derecha: Acciones — Escritorio */}
       <div className="hidden sm:flex items-center gap-4">
-<<<<<<< HEAD
         <button
           type="button"
           onClick={openCart}
@@ -93,10 +87,6 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
             aria-hidden="true"
           />
         </button>
-=======
-        {/* Inserción del Dropdown en Tiempo Real */}
-        <NotificationDropdown />
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
 
         {/* Contenedor del Perfil con Dropdown */}
         <div className="relative" ref={profileMenuRef}>
@@ -172,7 +162,6 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
               />
             </div>
 
-<<<<<<< HEAD
             <button
               type="button"
               onClick={() => {
@@ -201,23 +190,6 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
                 <p className="text-sm font-bold text-[#231e1d]">{empresa}</p>
                 <p className="text-[10px] text-[#b5854b] tracking-wide">Socio Corporativo</p>
               </div>
-=======
-            <div className="border-t border-guor-line pt-2 space-y-1">
-              <button
-                onClick={() => router.push('/portal/mi-perfil')}
-                className="w-full flex items-center gap-3 p-2 hover:bg-guor-50 rounded-lg text-xs text-guor-ink"
-              >
-                <UserCircle size={16} className="text-guor-600" />
-                Mi Perfil
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 p-2 hover:bg-red-50 rounded-lg text-xs text-red-600"
-              >
-                <LogOut size={16} />
-                Cerrar Sesión
-              </button>
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
             </div>
           </div>
         </div>
