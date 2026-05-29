@@ -3,19 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-<<<<<<< HEAD
-  LayoutDashboard, FileText, ShoppingBag, ShoppingCart, Truck,
-  PanelLeftClose, Package, PanelLeft, LogOut,
-  Settings, UserCircle, PackageOpen,
-=======
   LayoutDashboard, FileText, ShoppingBag, Truck,
-  ChevronRight, Settings, Package, PackageOpen
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
+  ChevronRight, Settings, Package, PackageOpen,
+  ShoppingCart, UserCircle
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-<<<<<<< HEAD
 const MENU_GROUPS = [
   {
     group: 'Menú Principal',
@@ -46,17 +40,6 @@ const MENU_GROUPS = [
       { href: '/portal/configuracion', label: 'Ajustes', icon: Settings },
     ],
   },
-=======
-// ─── Estructura Plana de Navegación (Estilo ERP) ──────────────────────────────
-const NAV_ITEMS = [
-  { href: '/portal/dashboard', label: 'Inicio', icon: LayoutDashboard },
-  { href: '/portal/productos', label: 'Catálogo', icon: ShoppingBag },
-  { href: '/portal/cotizaciones', label: 'Cotizaciones', icon: FileText },
-  { href: '/portal/pedidos', label: 'Mis Pedidos', icon: Package },
-  { href: '/portal/seguimiento-pedido', label: 'Trazabilidad', icon: Truck },
-  { href: '/portal/despachos', label: 'Envíos', icon: PackageOpen },
-  { href: '/portal/configuracion', label: 'Ajustes', icon: Settings },
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
 ];
 
 interface PortalSidebarProps {
@@ -95,7 +78,7 @@ export function PortalSidebar({ collapsed, onToggle }: PortalSidebarProps) {
         'flex-1 overflow-y-auto overflow-x-hidden py-4 text-left',
         collapsed ? 'px-2 space-y-2' : 'px-4 space-y-1.5',
       )}>
-        {NAV_ITEMS.map((item) => {
+        {MENU_GROUPS.flatMap((g) => g.items).map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);
 

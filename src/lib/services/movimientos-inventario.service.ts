@@ -17,7 +17,7 @@ export interface RegistrarParams {
   cantidad: number;
   tipo_movimiento: TipoMovimiento;
   referencia_tipo: ReferenciaMovimiento;
-  referencia_id?: number;       
+  referencia_id?: number;
   motivo: string;
   usuario_id?: string | number;
   almacen_id?: string | number;
@@ -65,7 +65,6 @@ export const MovimientosInventarioService = {
     if (cantidad <= 0)
       throw new Error('La cantidad debe ser mayor a 0');
 
-<<<<<<< HEAD
     const usuarioId = usuario_id ? BigInt(usuario_id) : null;
     const almacenId = almacen_id ? BigInt(almacen_id) : null;
 
@@ -101,13 +100,6 @@ export const MovimientosInventarioService = {
       tipoMovimiento: tipo_movimiento,
       referenciaType: referencia_tipo,
       referenciaId: referencia_id,
-=======
-    // Delegamos la persistencia en el RPC que activa los triggers nativos
-    await insertarMovimiento({
-      tipoMovimiento: tipo_movimiento,    
-      referenciaType: referencia_tipo,
-      referenciaId: referencia_id,      
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
       cantidad,
       motivo,
       insumoId: insumo_id ? Number(insumo_id) : undefined,

@@ -38,7 +38,12 @@ function buildClient(): PrismaClient {
     return makeUnavailable();
   }
 
-  const pool = new Pool({ connectionString });
+
+  const cleanConnectionString = connectionString
+    .replace('?pgbouncer=true', '')
+    .replace('&pgbouncer=true', '');
+
+  const pool = new Pool({ connectionString: cleanConnectionString });
   const adapter = new PrismaPg(pool);
 
   return new PrismaClient({
@@ -61,7 +66,6 @@ function getClient(): PrismaClient {
 
 export const prisma = getClient();
 
-// Safely check if prisma client is available (i.e., DATABASE_URL was set)
 function checkAvailability(): boolean {
   const client = prisma as PrismaMaybeUnavailable;
   return client.__prisma_unavailable !== true;

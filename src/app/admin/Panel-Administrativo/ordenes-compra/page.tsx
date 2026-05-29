@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ShoppingBag, Plus, Search, RefreshCw, Clock, CheckCircle2, DollarSign,
+  Plus, Search, RefreshCw, 
   FileSpreadsheet, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
-import StatCard from '@/components/admin/common/StatCard';
+import { OrdenesCompraStats } from '@/components/admin/ordenes-compra/OrdenesCompraStats';
+import { OrdenesCompraToolbar } from '@/components/admin/ordenes-compra/OrdenesCompraToolbar';
 import OrdenesCompraTable from '@/components/admin/ordenes-compra/OrdenesCompraTable';
 import { useOrdenesCompra } from '@/lib/hooks/useOrdenesCompra';
 import { usePermissions } from '@/lib/hooks/usePermissions';
@@ -162,12 +163,44 @@ export default function OrdenesCompraPage() {
         
         {/* Encabezado Superior con los colores de botón solicitados */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Órdenes de Compra</h1>
-            <p className="text-slate-500 text-sm">Generación y seguimiento de órdenes a proveedores (CUS-50)</p>
-          </div>
+          <AdminPageHeader
+            title="Órdenes de Compra"
+            description="Gestión integral de compras, proveedores y control de gastos"
+          />
           <div className="flex items-center gap-3">
-            
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+              disabled={exportingExcel || isLoading}
+              className="h-11 rounded-xl border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 font-medium transition-all"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
+              {exportingExcel ? 'Exportando...' : 'Exportar Excel'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              disabled={exportingPDF || isLoading}
+              className="h-11 rounded-xl border-red-200 hover:bg-red-50 hover:text-red-700 text-gray-600 font-medium transition-all"
+            >
+              <FileText className="w-4 h-4 mr-2 text-red-600" />
+              {exportingPDF ? 'Exportando...' : 'Exportar PDF'}
+            </Button>
+            {canCreate && (
+              <Button
+                className="bg-rose-600 hover:bg-rose-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95 rounded-xl"
+                onClick={() => router.push('/admin/Panel-Administrativo/ordenes-compra/nueva')}
+              >
+                <Plus className="w-5 h-5" /> Nueva orden
+              </Button>
+            )}
+          </div>
+        </div>
+
+         {/* Botones de acción para exportar con los colores solicitados */}
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-slate-500">
+          
             {/* BOTÓN EXPORTAR EXCEL CON TUS COLORES */}
             <Button
               variant="outline"
@@ -202,49 +235,17 @@ export default function OrdenesCompraPage() {
         </div>
 
         {/* Tarjetas Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard title="Total OC" value={stats.total} icon={ShoppingBag} color="slate" />
-          <StatCard title="Pendientes" value={stats.pendientes} icon={Clock} color="orange" />
-          <StatCard title="Confirmadas" value={stats.confirmadas} icon={CheckCircle2} color="emerald" />
-          <StatCard
-            title="Monto activo"
-            value={`S/ ${stats.montoTotal.toLocaleString('es-PE', { minimumFractionDigits: 0 })}`}
-            icon={DollarSign}
-            color="blue"
-            disabled
-          />
-        </div>
+        <OrdenesCompraStats stats={stats} />
 
         {/* Barra de Búsqueda y Filtros de abajo */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Buscar por proveedor, N° OC..."
-              className="pl-10 h-11 bg-white rounded-xl"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-            <SelectTrigger className="w-full sm:w-48 h-11 bg-white rounded-xl">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los estados</SelectItem>
-              {Object.entries(ESTADOS_ORDEN_COMPRA).map(([key, cfg]) => (
-                <SelectItem key={key} value={key}>
-                  {cfg.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" className="h-11 rounded-xl bg-white" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <OrdenesCompraToolbar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          estadoFilter={estadoFilter}
+          onEstadoChange={setEstadoFilter}
+          isLoading={isLoading}
+          onRefresh={refetch}
+        />
 
         {/* Listado Principal - Tabla */}
         {isLoading ? (

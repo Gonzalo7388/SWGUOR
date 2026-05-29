@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { Building2, FileText, MapPin, ShieldCheck, Download, PencilLine, Save, Loader2 } from 'lucide-react';
-import { usePortal } from '../_contexts/PortalContext';
+import { usePortal } from '@/lib/hooks/usePortal';
 
 type ReverseGeocodeData = {
   address?: {

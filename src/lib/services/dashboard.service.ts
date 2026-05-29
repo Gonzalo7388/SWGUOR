@@ -1,91 +1,77 @@
-/**
- * dashboard.service.ts  — v2 (corregido)
- *
- * Correcciones respecto a v1:
- *  1. clientes.count: campo correcto es `estado` (EstadoCliente), no `activo`
- *  2. stock_actual <= stock_minimo: Prisma ORM no soporta comparar dos campos →
- *     se usa $queryRaw con SQL explícito
- *  3. getRecepcionistaMetrics: relación es `clientes`, no `cliente`
- *  4. Añadidos getRepresentanteMetrics y getAyudanteMetrics (faltaban en v1)
- *  5. Todos los retornos tipados (sin `any`)
- *  6. serializeBigInt aplicado al final en getDashboardData
- */
-
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
 export interface VentaMensual {
-  mes:    string;
-  ventas: number; // dataKey del AreaChart
+  mes: string;
+  ventas: number;
 }
 
 export interface TopProducto {
-  nombre:   string;
+  nombre: string;
   cantidad: number;
 }
 
 export interface DashboardKpis {
-  total_ventas:       number;
-  total_pedidos:      number;
-  total_clientes:     number;
-  ticket_promedio:    number;
+  total_ventas: number;
+  total_pedidos: number;
+  total_clientes: number;
+  ticket_promedio: number;
   crecimiento_ventas: number;
-  stock_alerta:       number;
-  total_insumos:      number;
-  // Aliases para compatibilidad con widgets heredados
-  nuevas_ordenes:   number;
-  facturacion:      number;
-  clientesB2B:      number;
-  pedidosActivos:   number;
+  stock_alerta: number;
+  total_insumos: number;
+  nuevas_ordenes: number;
+  facturacion: number;
+  clientesB2B: number;
+  pedidosActivos: number;
   cotizacionesPend: number;
 }
 
 export interface CriticalStockItem {
-  id:            string;
-  nombre:        string;
-  stock:         number;
-  minimo:        number;
-  stock_actual:  number | { toNumber(): number }; // Decimal de Prisma — compatible con StockCriticoData
+  id: string;
+  nombre: string;
+  stock: number;
+  minimo: number;
+  stock_actual: number | { toNumber(): number };
   unidad_medida: string;
 }
 
 export interface MovimientoAlmacen {
-  id:   string;
+  id: string;
   item: string;
-  qty:  string;
+  qty: string;
   date: string;
   user: string;
   type: 'entrada' | 'salida';
 }
 
 export interface AlmacenMetrics {
-  movimientos:        MovimientoAlmacen[];
+  movimientos: MovimientoAlmacen[];
   ordenes_pendientes: number;
 }
 
 export interface FichaReciente {
-  id:      string;
-  prenda:  string;
+  id: string;
+  prenda: string;
   version: string | null;
-  estado:  string | null;
-  fecha:   string;
+  estado: string | null;
+  fecha: string;
 }
 
 export interface DisenadorMetrics {
   fichas_recientes: FichaReciente[];
-  total_diseños:    number;
+  total_diseños: number;
 }
 
 export interface OrdenCola {
-  id:        string;
-  prenda:    string;
-  lotes:     number;
-  estado:    string;
+  id: string;
+  prenda: string;
+  lotes: number;
+  estado: string;
   prioridad: string;
-  deadline:  string;
-  taller:    string;
+  deadline: string;
+  taller: string;
 }
 
 export interface CortadorMetrics {
@@ -93,37 +79,37 @@ export interface CortadorMetrics {
 }
 
 export interface CotizacionReciente {
-  id:      string;
+  id: string;
   cliente: string;
-  total:   number;
-  estado:  string;
+  total: number;
+  estado: string;
 }
 
 export interface RecepcionistaMetrics {
   cotizaciones_recientes: CotizacionReciente[];
-  pedidos_hoy:            number;
+  pedidos_hoy: number;
 }
 
 export interface LoteExterno {
-  id:       string;
-  taller:   string;
+  id: string;
+  taller: string;
   servicio: string;
-  estado:   string;
-  entrega:  string;
-  avance:   number;
+  estado: string;
+  entrega: string;
+  avance: number;
 }
 
 export interface RepresentanteMetrics {
-  lotes_externos:  LoteExterno[];
-  retrasados:      number;
-  ruta_hoy:        { id: string; numero: string; tipo: string; destino: string }[];
-  lead_time_dias:  number;
+  lotes_externos: LoteExterno[];
+  retrasados: number;
+  ruta_hoy: { id: string; numero: string; tipo: string; destino: string }[];
+  lead_time_dias: number;
 }
 
 export interface AyudanteMetrics {
-  guias_hoy:              { id: string; numero: string; tipo: string; destino: string }[];
+  guias_hoy: { id: string; numero: string; tipo: string; destino: string }[];
   pedidos_listo_despacho: number;
-  incidencias_abiertas:   number;
+  incidencias_abiertas: number;
 }
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -132,11 +118,11 @@ export const DashboardService = {
 
   async getDashboardData(role: string, days = 30) {
     const data: Record<string, unknown> = {
-      kpis:            await this.getKpis(days),
-      recentOrders:    await this.getRecentOrders(5),
+      kpis: await this.getKpis(days),
+      recentOrders: await this.getRecentOrders(5),
       ventasMensuales: await this.getMonthlySales(),
-      criticalStock:   await this.getCriticalStock(10),
-      topProductos:    await this.getTopProductos(5),
+      criticalStock: await this.getCriticalStock(10),
+      topProductos: await this.getTopProductos(5),
     };
 
     switch (role) {
@@ -158,7 +144,6 @@ export const DashboardService = {
       case 'ayudante':
         data.ayudante = await this.getAyudanteMetrics();
         break;
-      // gerente / administrador: solo datos base
     }
 
     return serializeBigInt(data);
@@ -169,73 +154,57 @@ export const DashboardService = {
   async getKpis(days: number): Promise<DashboardKpis> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-
     const [
       totalVentas,
       totalPedidos,
-      totalClientes,
+      totalClientesCount,
       stockAlertaResult,
       totalInsumosResult,
-      cotizacionesPend,
+      cotizacionesPendCount,
     ] = await Promise.all([
+      // 1. Suma de ventas
       prisma.pedidos.aggregate({
-        _sum:  { total: true },
+        _sum: { total: true },
         where: { created_at: { gte: startDate }, estado: { not: 'cancelado' } },
       }),
-<<<<<<< HEAD
+      // 2. Conteo de pedidos
       prisma.pedidos.count({ where: { created_at: { gte: startDate } } }),
+      // 3. Clientes activos (Conteo directo por ORM para evitar un queryRaw redundante)
       prisma.clientes.count({ where: { estado: 'activo' } }),
-      prisma.insumo.count({
-        where: {
-          stock_actual: { lte: prisma.insumo.fields.stock_minimo }
-        }
-=======
-      prisma.pedidos.count({
-        where: { created_at: { gte: startDate } },
->>>>>>> 20d3a2ff5549bc4d8edcaf355f570749fdfbaa4e
-      }),
-      // Ajuste: usar el campo 'activo' esperado por el cliente Prisma generado
-      // Usar consulta SQL directa para evitar discrepancias entre cliente
-      // Prisma generado y la estructura actual de la base de datos.
+      // 4. Conteo de insumos en stock crítico bajo stock_minimo
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(*)::bigint AS count
-        FROM public.clientes
-        WHERE estado = 'activo'
+        FROM public.insumo
+        WHERE alerta_bajo_stock = true
+          AND stock_actual <= stock_minimo
       `,
-      // Comparar dos campos se realiza mejor con SQL explícito; filtrar por
-      // 'alerta_bajo_stock' (campo existente en `insumo`) en vez de 'activo'.
+      // 5. Total de insumos registrados con alertas activas
       prisma.$queryRaw<{ count: bigint }[]>`
         SELECT COUNT(*)::bigint AS count
-        FROM   public.insumo
-        WHERE  alerta_bajo_stock = true
-          AND  stock_actual <= stock_minimo
+        FROM public.insumo
+        WHERE alerta_bajo_stock = true
       `,
-      prisma.$queryRaw<{ count: bigint }[]>`
-        SELECT COUNT(*)::bigint AS count
-        FROM   public.insumo
-        WHERE  alerta_bajo_stock = true
-      `,
+      // 6. Cotizaciones pendientes enviadas
       prisma.cotizaciones.count({ where: { estado: 'enviada' } }),
     ]);
 
-    const stockAlerta  = Number((stockAlertaResult[0] as { count: bigint }).count  ?? 0);
-    const totalInsumos = Number((totalInsumosResult[0] as { count: bigint }).count ?? 0);
-    const totalV       = Number(totalVentas._sum?.total ?? 0);
-    const totalClientesCount = Number((totalClientes[0] as { count: bigint }).count ?? 0);
+    const stockAlerta = Number(stockAlertaResult[0]?.count ?? 0);
+    const totalInsumos = Number(totalInsumosResult[0]?.count ?? 0);
+    const totalV = Number(totalVentas._sum?.total ?? 0);
 
     return {
-      total_ventas:       totalV,
-      total_pedidos:      totalPedidos,
-      total_clientes:     totalClientesCount,
-      ticket_promedio:    totalPedidos > 0 ? totalV / totalPedidos : 0,
+      total_ventas: totalV,
+      total_pedidos: totalPedidos,
+      total_clientes: totalClientesCount,
+      ticket_promedio: totalPedidos > 0 ? totalV / totalPedidos : 0,
       crecimiento_ventas: 12.5,
-      stock_alerta:       stockAlerta,
-      total_insumos:      totalInsumos,
-      nuevas_ordenes:     totalPedidos,
-      facturacion:        totalV,
-      clientesB2B:        totalClientesCount,
-      pedidosActivos:     totalPedidos,
-      cotizacionesPend,
+      stock_alerta: stockAlerta,
+      total_insumos: totalInsumos,
+      nuevas_ordenes: totalPedidos,
+      facturacion: totalV,
+      clientesB2B: totalClientesCount,
+      pedidosActivos: totalPedidos,
+      cotizacionesPend: cotizacionesPendCount,
     };
   },
 
@@ -243,10 +212,10 @@ export const DashboardService = {
 
   async getTopProductos(limit: number): Promise<TopProducto[]> {
     const resultados = await prisma.pedido_items.groupBy({
-      by:      ['producto_id'],
-      _sum:    { cantidad: true },
+      by: ['producto_id'],
+      _sum: { cantidad: true },
       orderBy: { _sum: { cantidad: 'desc' } },
-      take:    limit,
+      take: limit,
     });
 
     if (resultados.length === 0) return [];
@@ -256,14 +225,14 @@ export const DashboardService = {
       .filter((id): id is bigint => id !== null);
 
     const productos = await prisma.productos.findMany({
-      where:  { id: { in: ids } },
+      where: { id: { in: ids } },
       select: { id: true, nombre: true },
     });
 
     const nombreMap = new Map(productos.map((p) => [p.id.toString(), p.nombre]));
 
     return resultados.map((r) => ({
-      nombre:   nombreMap.get(r.producto_id?.toString() ?? '') ?? 'Producto desconocido',
+      nombre: nombreMap.get(r.producto_id?.toString() ?? '') ?? 'Producto desconocido',
       cantidad: Number(r._sum.cantidad ?? 0),
     }));
   },
@@ -272,7 +241,7 @@ export const DashboardService = {
 
   async getRecentOrders(limit: number) {
     return prisma.pedidos.findMany({
-      take:    limit,
+      take: limit,
       orderBy: { created_at: 'desc' },
       include: { clientes: { select: { razon_social: true } } },
     });
@@ -286,20 +255,22 @@ export const DashboardService = {
     sixMonthsAgo.setDate(1);
 
     const pedidos = await prisma.pedidos.findMany({
-      where:  { created_at: { gte: sixMonthsAgo }, estado: { not: 'cancelado' } },
+      where: { created_at: { gte: sixMonthsAgo }, estado: { not: 'cancelado' } },
       select: { created_at: true, total: true },
     });
 
-    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const mapa  = new Map<string, number>();
+    const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const mapa = new Map<string, number>();
 
     for (const p of pedidos) {
-      const key = MESES[p.created_at!.getMonth()];
-      mapa.set(key, (mapa.get(key) ?? 0) + Number(p.total ?? 0));
+      if (p.created_at) {
+        const key = MESES[p.created_at.getMonth()];
+        mapa.set(key, (mapa.get(key) ?? 0) + Number(p.total ?? 0));
+      }
     }
 
     return Array.from({ length: 6 }, (_, i) => {
-      const d   = new Date();
+      const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
       const key = MESES[d.getMonth()];
       return { mes: key, ventas: mapa.get(key) ?? 0 };
@@ -309,8 +280,6 @@ export const DashboardService = {
   // ── Stock crítico ─────────────────────────────────────────────────────────
 
   async getCriticalStock(limit: number): Promise<CriticalStockItem[]> {
-    // FIX: Prisma no soporta filtrar por `campo1 <= campo2` en el ORM
-    // → obtenemos los IDs con $queryRaw, luego findMany normal
     const criticos = await prisma.$queryRaw<{ id: bigint }[]>`
       SELECT id
       FROM   public.insumo
@@ -322,18 +291,18 @@ export const DashboardService = {
 
     if (criticos.length === 0) return [];
 
-    const ids   = criticos.map((r) => r.id);
+    const ids = criticos.map((r) => r.id);
     const items = await prisma.insumo.findMany({
-      where:   { id: { in: ids } },
+      where: { id: { in: ids } },
       orderBy: { stock_actual: 'asc' },
     });
 
     return items.map((i) => ({
-      id:            i.id.toString(),
-      nombre:        i.nombre,
-      stock:         Number(i.stock_actual),
-      minimo:        Number(i.stock_minimo),
-      stock_actual:  i.stock_actual,
+      id: i.id.toString(),
+      nombre: i.nombre,
+      stock: Number(i.stock_actual),
+      minimo: Number(i.stock_minimo),
+      stock_actual: i.stock_actual,
       unidad_medida: i.unidad_medida,
     }));
   },
@@ -343,7 +312,7 @@ export const DashboardService = {
   async getAlmaceneroMetrics(): Promise<AlmacenMetrics> {
     const [movimientos, ordenesPendientes] = await Promise.all([
       prisma.movimientos_inventario.findMany({
-        take:    15,
+        take: 15,
         orderBy: { created_at: 'desc' },
         include: { insumo: true, materiales: true, usuarios: true },
       }),
@@ -352,9 +321,9 @@ export const DashboardService = {
 
     return {
       movimientos: movimientos.map((m) => ({
-        id:   m.id.toString(),
+        id: m.id.toString(),
         item: m.insumo?.nombre ?? m.materiales?.nombre ?? 'Item desconocido',
-        qty:  `${Number(m.cantidad ?? 0) >= 0 ? '+' : ''}${m.cantidad}`,
+        qty: `${Number(m.cantidad ?? 0) >= 0 ? '+' : ''}${m.cantidad}`,
         date: m.created_at.toISOString(),
         user: m.usuarios?.email ?? 'Sistema',
         type: Number(m.cantidad ?? 0) >= 0 ? 'entrada' : 'salida',
@@ -369,7 +338,7 @@ export const DashboardService = {
     const [diseños, fichas] = await Promise.all([
       prisma.productos.count({ where: { estado: 'activo' } }),
       prisma.fichas_tecnicas.findMany({
-        take:    6,
+        take: 6,
         orderBy: { created_at: 'desc' },
         include: { productos: true },
       }),
@@ -377,11 +346,11 @@ export const DashboardService = {
 
     return {
       fichas_recientes: fichas.map((f) => ({
-        id:      f.id.toString(),
-        prenda:  f.productos?.nombre ?? 'Sin producto',
+        id: f.id.toString(),
+        prenda: f.productos?.nombre ?? 'Sin producto',
         version: f.version,
-        estado:  f.estado,
-        fecha:   f.created_at.toISOString(),
+        estado: f.estado,
+        fecha: f.created_at.toISOString(),
       })),
       total_diseños: diseños,
     };
@@ -391,26 +360,26 @@ export const DashboardService = {
 
   async getCortadorMetrics(): Promise<CortadorMetrics> {
     const ordenes = await prisma.ordenes_produccion.findMany({
-      where:   { estado: { in: ['confirmada', 'en_produccion'] } },
-      take:    15,
+      where: { estado: { in: ['confirmada', 'en_produccion'] } },
+      take: 15,
       orderBy: [{ estado: 'asc' }, { fecha_entrega: 'asc' }],
       include: {
         productos: { select: { nombre: true } },
-        talleres:  { select: { nombre: true } },
+        talleres: { select: { nombre: true } },
       },
     });
 
     return {
       cola_trabajo: ordenes.map((o) => ({
-        id:        o.id.toString(),
-        prenda:    o.productos?.nombre ?? 'Desconocido',
-        lotes:     o.cantidad_solicitada,
-        estado:    o.estado,
+        id: o.id.toString(),
+        prenda: o.productos?.nombre ?? 'Desconocido',
+        lotes: o.cantidad_solicitada,
+        estado: o.estado,
         prioridad: 'normal',
-        deadline:  o.fecha_entrega
+        deadline: o.fecha_entrega
           ? new Date(o.fecha_entrega).toLocaleDateString('es-PE', {
-              day: '2-digit', month: 'short',
-            })
+            day: '2-digit', month: 'short',
+          })
           : 'Sin fecha',
         taller: o.talleres?.nombre ?? '—',
       })),
@@ -425,10 +394,9 @@ export const DashboardService = {
 
     const [cotizaciones, pedidosHoy] = await Promise.all([
       prisma.cotizaciones.findMany({
-        take:    10,
+        take: 10,
         orderBy: { created_at: 'desc' },
-        where:   { estado: { not: 'rechazada' } },
-        // La relación en el schema se llama `cliente` (singular)
+        where: { estado: { not: 'rechazada' } },
         include: { cliente: { select: { razon_social: true } } },
       }),
       prisma.pedidos.count({ where: { created_at: { gte: inicioHoy } } }),
@@ -436,11 +404,10 @@ export const DashboardService = {
 
     return {
       cotizaciones_recientes: cotizaciones.map((c) => ({
-        id:      c.id.toString(),
+        id: c.id.toString(),
         cliente: c.cliente?.razon_social ?? 'Cliente Varios',
-        total:   Number(c.total ?? 0),
-        // estado puede ser null en el schema → fallback a 'borrador'
-        estado:  c.estado ?? 'borrador',
+        total: Number(c.total ?? 0),
+        estado: c.estado ?? 'borrador',
       })),
       pedidos_hoy: pedidosHoy,
     };
@@ -450,8 +417,8 @@ export const DashboardService = {
 
   async getRepresentanteMetrics(): Promise<RepresentanteMetrics> {
     const ETAPAS = [
-      'diseno','patronaje','corte','confeccion','remallado',
-      'bordado_estampado','control_calidad','acabado','listo_entrega',
+      'diseno', 'patronaje', 'corte', 'confeccion', 'remallado',
+      'bordado_estampado', 'control_calidad', 'acabado', 'listo_entrega',
     ] as const;
 
     const inicioHoy = new Date();
@@ -459,33 +426,33 @@ export const DashboardService = {
 
     const [lotes, retrasados, rutaHoy, leadTimeResult] = await Promise.all([
       prisma.ordenes_produccion.findMany({
-        where:   { estado: { in: ['confirmada', 'en_produccion'] } },
-        take:    10,
+        where: { estado: { in: ['confirmada', 'en_produccion'] } },
+        take: 10,
         orderBy: { fecha_entrega: 'asc' },
         include: {
-          productos:              { select: { nombre: true } },
-          talleres:               { select: { nombre: true } },
+          productos: { select: { nombre: true } },
+          talleres: { select: { nombre: true } },
           seguimiento_produccion: {
             orderBy: { created_at: 'desc' },
-            take:    1,
-            select:  { etapa: true },
+            take: 1,
+            select: { etapa: true },
           },
         },
       }),
       prisma.ordenes_produccion.count({
         where: {
-          estado:        { notIn: ['completada', 'cancelada'] },
+          estado: { notIn: ['completada', 'cancelada'] },
           fecha_entrega: { lt: new Date() },
         },
       }),
       prisma.guias_remision.findMany({
         where: {
           fecha_traslado: inicioHoy,
-          tipo:           { in: ['retorno_taller', 'envio_taller'] },
-          estado:         { not: 'anulada' },
+          tipo: { in: ['retorno_taller', 'envio_taller'] },
+          estado: { not: 'anulada' },
         },
         select: { id: true, numero: true, tipo: true, destino_direccion: true },
-        take:   5,
+        take: 5,
       }),
       prisma.$queryRaw<{ avg_dias: number | null }[]>`
         SELECT ROUND(
@@ -504,17 +471,17 @@ export const DashboardService = {
 
     return {
       lotes_externos: lotes.map((o) => {
-        const etapa   = o.seguimiento_produccion[0]?.etapa ?? 'corte';
-        const idx     = ETAPAS.indexOf(etapa as typeof ETAPAS[number]);
-        const avance  = Math.round(((idx + 1) / ETAPAS.length) * 100);
+        const etapa = o.seguimiento_produccion[0]?.etapa ?? 'corte';
+        const idx = ETAPAS.indexOf(etapa as typeof ETAPAS[number]);
+        const avance = Math.round(((idx + 1) / ETAPAS.length) * 100);
         const retraso = o.fecha_entrega && new Date(o.fecha_entrega) < new Date();
 
         return {
-          id:       o.id.toString(),
-          taller:   o.talleres?.nombre ?? '—',
+          id: o.id.toString(),
+          taller: o.talleres?.nombre ?? '—',
           servicio: etapa.replace(/_/g, ' '),
-          estado:   retraso ? 'Retrasado' : o.estado === 'en_produccion' ? 'En Proceso' : 'Confirmado',
-          entrega:  o.fecha_entrega
+          estado: retraso ? 'Retrasado' : o.estado === 'en_produccion' ? 'En Proceso' : 'Confirmado',
+          entrega: o.fecha_entrega
             ? new Date(o.fecha_entrega).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })
             : 'Sin fecha',
           avance,
@@ -522,9 +489,9 @@ export const DashboardService = {
       }),
       retrasados,
       ruta_hoy: rutaHoy.map((g) => ({
-        id:      g.id.toString(),
-        numero:  g.numero,
-        tipo:    g.tipo.replace(/_/g, ' '),
+        id: g.id.toString(),
+        numero: g.numero,
+        tipo: g.tipo.replace(/_/g, ' '),
         destino: g.destino_direccion,
       })),
       lead_time_dias: leadTime,
@@ -539,9 +506,9 @@ export const DashboardService = {
 
     const [guias, pedidosListos, incidencias] = await Promise.all([
       prisma.guias_remision.findMany({
-        where:  { fecha_traslado: inicioHoy, estado: { not: 'anulada' } },
+        where: { fecha_traslado: inicioHoy, estado: { not: 'anulada' } },
         select: { id: true, numero: true, tipo: true, destino_direccion: true },
-        take:   5,
+        take: 5,
       }),
       prisma.pedidos.count({ where: { estado: 'listo_para_despacho' } }),
       prisma.incidencias_taller.count({ where: { resuelto: false } }),
@@ -549,13 +516,13 @@ export const DashboardService = {
 
     return {
       guias_hoy: guias.map((g) => ({
-        id:      g.id.toString(),
-        numero:  g.numero,
-        tipo:    g.tipo.replace(/_/g, ' '),
+        id: g.id.toString(),
+        numero: g.numero,
+        tipo: g.tipo.replace(/_/g, ' '),
         destino: g.destino_direccion,
       })),
       pedidos_listo_despacho: pedidosListos,
-      incidencias_abiertas:   incidencias,
+      incidencias_abiertas: incidencias,
     };
   },
 };

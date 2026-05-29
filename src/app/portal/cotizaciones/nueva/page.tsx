@@ -1,6 +1,75 @@
-import { redirect } from 'next/navigation';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { obtenerProductosParaCotizar } from '@/app/portal/cotizaciones/actions';
+import { NuevaCotizacionClient } from './NuevaCotizacionClient';
+import { Button } from '@/components/ui/button';
 
-/** Flujo legacy: las nuevas solicitudes van a la página dedicada. */
-export default function NuevaCotizacionRedirect() {
-  redirect('/portal/cotizaciones/solicitar');
+export const metadata = {
+  title: 'Nueva Solicitud de Cotización | Portal B2B',
+  description: 'Configure productos, proponga precios unitarios y envíe requerimientos al equipo comercial.',
+};
+
+export default async function NuevaCotizacionPage() {
+  const result = await obtenerProductosParaCotizar();
+
+  // 1. Manejo en caso de error de autenticación o base de datos en las Server Actions
+  if (!result.success) {
+    const esInactivo = result.error === 'cliente_inactivo';
+
+    return (
+      <div className="max-w-md mx-auto my-12 p-6 border border-red-100 bg-red-50/30 rounded-2xl text-center space-y-4 shadow-xs">
+        <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+          <AlertCircle size={24} />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-base font-black text-slate-950">
+            {esInactivo ? 'Cuenta Comercial Suspendida' : 'Error de Conexión'}
+          </h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            {esInactivo
+              ? 'Tu perfil corporativo se encuentra en revisión o inactivo. Contacta con tu asesor asignado.'
+              : 'No pudimos sincronizar el catálogo de confecciones en este momento. Por favor, reintenta.'}
+          </p>
+        </div>
+        <div className="pt-2">
+          <Button asChild size="sm" variant="outline" className="rounded-xl text-xs gap-1.5">
+            <Link href="/portal/cotizaciones">
+              <ArrowLeft size={13} />
+              Regresar al Historial
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Manejo en caso de que no existan productos listados o activos en base de datos
+  if (result.productos.length === 0) {
+    return (
+      <div className="max-w-md mx-auto my-12 p-6 border rounded-2xl text-center space-y-4 bg-slate-50/50">
+        <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+          <AlertCircle size={24} />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-base font-black text-slate-800">Catálogo Temporalmente Vacío</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Actualmente no hay existencias o modelos configurados listos para preventa B2B.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Button asChild size="sm" variant="outline" className="rounded-xl text-xs">
+            <Link href="/portal/cotizaciones">Regresar</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Renderizado exitoso inyectando la información tipada e independiente en el Split-Screen
+  return (
+    <NuevaCotizacionClient
+      productos={result.productos}
+      categorias={result.categorias}
+    />
+  );
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { MOQ_COMPRA_DEFAULT, resolveCartMoq } from '@/lib/constants/portal-b2b';
+import { resolveCartMoq } from '@/lib/constants/portal-b2b';
 
 export type CartItem = {
   producto_id: number;
@@ -16,7 +16,7 @@ export type CartItem = {
 
 export type CartItemInput = Omit<CartItem, 'cantidad'>;
 
-type CartState = {
+export type CartState = {
   items: CartItem[];
   addItem: (item: CartItemInput, cantidad: number) => void;
   removeItem: (producto_id: number, variante_id?: number) => void;

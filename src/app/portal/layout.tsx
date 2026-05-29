@@ -1,4 +1,4 @@
-import { PortalProvider } from './_contexts/PortalContext';
+import { PortalProvider } from '@/components/portal/_contexts/PortalContext';
 import { PortalCartLayout } from '@/components/portal/cart/PortalCartLayout';
 import { PortalShell } from '@/components/portal/layout/PortalShell';
 

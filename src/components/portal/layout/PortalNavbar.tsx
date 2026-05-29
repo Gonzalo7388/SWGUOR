@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Bell, Search, User, Menu, X, ShoppingCart, UserCircle, LogOut } from 'lucide-react';
-import { useCartStore } from '@/lib/store/useCartStore';
-import { usePortalCart } from '@/components/portal/cart/PortalCartLayout';
+import { useState, useRef, useEffect } from 'react';
+import { Search, User, Menu, X, LogOut, UserCircle } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropDown';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { useCartStore, type CartState } from '@/lib/store/useCartStore';
+import { usePortalCart } from '../cart/PortalCartLayout';
 
 export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
   const [mounted, setMounted] = useState(false);
-  const itemCount = useCartStore((s: any) => s.items.length);
+  const itemCount = useCartStore((s: CartState) => s.items.length);
   const { openCart } = usePortalCart();
 
   useEffect(() => setMounted(true), []);
@@ -61,32 +60,8 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
 
       {/* Sección Derecha: Acciones — Escritorio */}
       <div className="hidden sm:flex items-center gap-4">
-        <button
-          type="button"
-          onClick={openCart}
-          className="relative p-2 text-[#b5854b]/60 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#b5854b]/30"
-          aria-label={`Carrito de compras${mounted && itemCount ? `, ${itemCount} productos` : ''}`}
-          title="Carrito de compras"
-        >
-          <ShoppingCart size={20} aria-hidden="true" />
-          {mounted && itemCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[#b5854b] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {itemCount > 99 ? '99+' : itemCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          className="relative p-2 text-[#b5854b]/60 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#b5854b]/30"
-          aria-label="Ver notificaciones"
-          title="Notificaciones"
-        >
-          <Bell size={20} aria-hidden="true" />
-          <span
-            className="absolute top-2 right-2 w-2 h-2 bg-[#b5854b] rounded-full border-2 border-[#fff4e2]"
-            aria-hidden="true"
-          />
-        </button>
+        {/* Inserción del Dropdown en Tiempo Real */}
+        <NotificationDropdown />
 
         {/* Contenedor del Perfil con Dropdown */}
         <div className="relative" ref={profileMenuRef}>
@@ -162,38 +137,26 @@ export function Navbar({ empresa = 'Cargando...' }: { empresa?: string }) {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                openCart();
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center gap-3 p-3 text-[#b5854b]/70 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-lg transition-colors"
-            >
-              <ShoppingCart size={18} aria-hidden="true" />
-              <span className="text-sm font-medium">
-                Carrito de compras
-                {mounted && itemCount > 0 ? ` (${itemCount})` : ''}
-              </span>
-            </button>
-
-            <button className="w-full flex items-center gap-3 p-3 text-[#b5854b]/70 hover:text-[#b5854b] hover:bg-[#e4c28a]/20 rounded-lg transition-colors">
-              <Bell size={18} aria-hidden="true" />
-              <span className="text-sm font-medium">Notificaciones</span>
-            </button>
-
-            <div className="flex items-center gap-3 p-3 border-t border-[#e4c28a]/30">
-              <div className="w-9 h-9 bg-[#e4c28a]/30 border border-[#e4c28a]/60 rounded-full flex items-center justify-center text-[#b5854b]">
-                <User size={18} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-[#231e1d]">{empresa}</p>
-                <p className="text-[10px] text-[#b5854b] tracking-wide">Socio Corporativo</p>
-              </div>
+            <div className="border-t border-guor-line pt-2 space-y-1">
+              <button
+                onClick={() => router.push('/portal/mi-perfil')}
+                className="w-full flex items-center gap-3 p-2 hover:bg-guor-50 rounded-lg text-xs text-guor-ink"
+              >
+                <UserCircle size={16} className="text-guor-600" />
+                Mi Perfil
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 p-2 hover:bg-red-50 rounded-lg text-xs text-red-600"
+              >
+                <LogOut size={16} />
+                Cerrar Sesión
+              </button>
             </div>
           </div>
-        </div>
-      )}
-    </header>
+        </div >
+      )
+      }
+    </header >
   );
 }
