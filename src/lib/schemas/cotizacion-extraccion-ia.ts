@@ -18,8 +18,8 @@ export const cotizacionExtraccionIaSchema = z.object({
       telefono: z.string().nullable().optional(),
       contacto: z.string().nullable().optional(),
     })
-    .optional()
-    .default({}),
+    .optional(),
+
   cotizacion: z
     .object({
       numero_externo: z.string().nullable().optional(),
@@ -29,9 +29,9 @@ export const cotizacionExtraccionIaSchema = z.object({
       total_estimado: z.coerce.number().nonnegative().optional().default(0),
       notas: z.string().nullable().optional(),
     })
-    .optional()
-    .default({}),
-  items: z.array(cotizacionExtraccionItemSchema).optional().default([]),
+    .optional(),
+
+  items: z.array(cotizacionExtraccionItemSchema).optional().default(() => []),
 });
 
-export type CotizacionExtraccionIA = z.infer<typeof cotizacionExtraccionIASchema>;
+export type CotizacionExtraccionIA = z.infer<typeof cotizacionExtraccionIaSchema>;
