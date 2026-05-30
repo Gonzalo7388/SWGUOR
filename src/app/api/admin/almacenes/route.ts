@@ -8,6 +8,15 @@ import { RolUsuario } from '@/lib/constants/roles';
 
 const ALMACEN_ROLES: RolUsuario[] = ['administrador', 'gerente', 'almacenero', 'representante_taller'];
 
+// Función utilitaria local para serializar bigints y decimales de forma segura antes de viajar por JSON o Auditorías
+const serializarPrisma = (objeto: any) => {
+  return JSON.parse(
+    JSON.stringify(objeto, (_, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    )
+  );
+};
+
 export async function GET(request: NextRequest) {
   const auth = await requireServerRole(ALMACEN_ROLES);
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -17,13 +26,7 @@ export async function GET(request: NextRequest) {
       orderBy: { nombre: 'asc' },
     });
 
-    return NextResponse.json(
-      JSON.parse(
-        JSON.stringify(almacenes, (_, value) =>
-          typeof value === 'bigint' ? value.toString() : value
-        )
-      )
-    );
+    return NextResponse.json(serializarPrisma(almacenes));
   } catch (error) {
     console.error('Error fetching almacenes:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
@@ -51,22 +54,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // CORRECCIÓN DEL ERROR TS 2322: Serializamos el objeto para transformar 'bigint' y 'Decimal' a tipos JSON válidos
+    const almacenSerializado = serializarPrisma(almacen);
+
     await auditoriaService.registrar({
       usuario_id: BigInt(auth.user.id),
       accion: 'CREAR',
       tabla: 'almacenes',
       registro_id: BigInt(almacen.id),
-      datos_despues: almacen,
+      datos_despues: almacenSerializado, // <-- Ahora es un objeto JSON plano totalmente compatible
     });
 
-    return NextResponse.json(
-      JSON.parse(
-        JSON.stringify(almacen, (_, value) =>
-          typeof value === 'bigint' ? value.toString() : value
-        )
-      ),
-      { status: 201 }
-    );
+    return NextResponse.json(almacenSerializado, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Datos inválidos', details: error.issues }, { status: 400 });

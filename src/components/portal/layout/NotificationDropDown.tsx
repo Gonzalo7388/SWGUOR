@@ -6,8 +6,8 @@ import {
   CheckCircle2, Loader2, MailOpen,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePortal } from '@/app/portal/_contexts/PortalContext';
-import { useNotifications } from '@/lib/hooks/useNotificaciones'; // Verifica tu ruta
+import { usePortal } from '@/lib/hooks/usePortal';
+import { useNotificationsPortal } from '@/lib/hooks/useNotificacionPortal';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -74,8 +74,8 @@ export function NotificationDropdown() {
     loading: cargando,
     markAsRead,
     markAllAsRead,
-  } = useNotifications(usuarioId);
-  
+  } = useNotificationsPortal(usuarioId);
+
 
   const handleMarcarComoLeido = async (id: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
