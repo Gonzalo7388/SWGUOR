@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Eye, Printer, Truck, Calendar, User, Hash, XCircle } from "lucide-react";
+import { Eye, Printer, Truck, Calendar, User, Hash, XCircle, Palette, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ESTADO_PEDIDO_LABELS } from "@/lib/schemas/pedidos";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,9 @@ export default function PedidosTable({
   onUpdateStatus,
 }: PedidosTableProps) {
   const router = useRouter();
+  const { hasRole } = usePermissions();
+  const puedeCorte = hasRole(["cortador", "administrador", "gerente"]);
+  const puedeDiseno = hasRole(["disenador", "administrador", "gerente"]);
 
   const handleView = (pedido: any) => {
     router.push(`/admin/Panel-Administrativo/pedidos/${pedido.id}`);
@@ -138,6 +142,30 @@ export default function PedidosTable({
                       >
                         <Eye size={16} />
                       </Button>
+
+                      {puedeDiseno && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => router.push(`/disenador/pedidos/${pedido.id}`)}
+                          className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 transition-all"
+                          title="Diseño y ficha técnica"
+                        >
+                          <Palette size={16} />
+                        </Button>
+                      )}
+
+                      {puedeCorte && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => router.push(`/cortador/pedidos/${pedido.id}`)}
+                          className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50 transition-all"
+                          title="Corte y registro"
+                        >
+                          <Scissors size={16} />
+                        </Button>
+                      )}
 
                       {/* Actualizar estado */}
                       {onUpdateStatus && (

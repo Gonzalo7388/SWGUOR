@@ -44,6 +44,7 @@ export interface DetallePedidoData {
   id:                 string;
   estado:             string;
   prioridad:          string;
+  cotizacion_id?:     string | null;
   notas_cliente:      string | null;
   notas_pedido:       string | null;
   created_at:         string | null;
@@ -67,6 +68,11 @@ export interface DetallePedidoData {
     nombre_comercial: string | null;
     telefono:         string | null;
     email:            string | null;
+    tipo_cliente:     string | null;
+  } | null;
+  cotizacion?: {
+    id:     string;
+    numero: string;
   } | null;
   pedido_items:       PedidoItem[];
   seguimiento_pedido: SeguimientoPedido[];
@@ -84,6 +90,7 @@ export interface EstadoConfig {
 
 export const ESTADO_CONFIG: Record<string, EstadoConfig> = {
   pendiente:           { label: 'Pendiente',            color: 'bg-amber-50 text-amber-700 border-amber-200',      icon: Clock        },
+  pagado:              { label: 'Pagado',               color: 'bg-green-50 text-green-700 border-green-200',      icon: CheckCircle2 },
   cotizado:            { label: 'Cotizado',             color: 'bg-blue-50 text-blue-700 border-blue-200',         icon: FileText     },
   aprobado:            { label: 'Aprobado',             color: 'bg-violet-50 text-violet-700 border-violet-200',   icon: CheckCircle2 },
   en_produccion:       { label: 'En Producción',        color: 'bg-indigo-50 text-indigo-700 border-indigo-200',   icon: RefreshCw    },

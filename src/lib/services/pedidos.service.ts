@@ -1,6 +1,7 @@
 import { prisma }          from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { EstadoPedido, PrioridadPedido } from '@prisma/client';
+import { notificarTransicionEstadoPedido } from '@/lib/helpers/crear-notificacion.helper';
 
 export const PedidosService = {
 
@@ -55,10 +56,31 @@ export const PedidosService = {
     notas_pedido?:  string;
     notas_cliente?: string;
   }) {
+    const antes = data.estado
+      ? await prisma.pedidos.findUnique({
+          where: { id: BigInt(id) },
+          select: { estado: true, cliente_id: true },
+        })
+      : null;
+
     const pedido = await prisma.pedidos.update({
       where: { id: BigInt(id) },
       data:  { ...data, updated_at: new Date() },
     });
+
+    if (
+      antes?.cliente_id &&
+      data.estado &&
+      antes.estado !== data.estado
+    ) {
+      await notificarTransicionEstadoPedido({
+        clienteId: antes.cliente_id,
+        pedidoId: pedido.id,
+        estadoAnterior: antes.estado,
+        estadoNuevo: data.estado,
+      });
+    }
+
     return serializeBigInt(pedido);
   },
 
@@ -68,8 +90,13 @@ export const PedidosService = {
     notas?:      string;
     creado_por?: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      const seg = await tx.seguimiento_pedido.create({
+    const antes = await prisma.pedidos.findUnique({
+      where: { id: BigInt(data.pedido_id) },
+      select: { estado: true, cliente_id: true },
+    });
+
+    const seg = await prisma.$transaction(async (tx) => {
+      const registro = await tx.seguimiento_pedido.create({
         data: {
           pedido_id:  BigInt(data.pedido_id),
           status:     data.status,
@@ -83,7 +110,18 @@ export const PedidosService = {
         data:  { estado: data.status, updated_at: new Date() },
       });
 
-      return serializeBigInt(seg);
+      return registro;
     });
+
+    if (antes?.cliente_id && antes.estado !== data.status) {
+      await notificarTransicionEstadoPedido({
+        clienteId: antes.cliente_id,
+        pedidoId: BigInt(data.pedido_id),
+        estadoAnterior: antes.estado,
+        estadoNuevo: data.status,
+      });
+    }
+
+    return serializeBigInt(seg);
   },
 };

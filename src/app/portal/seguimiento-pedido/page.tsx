@@ -17,7 +17,7 @@ export default function SeguimientoPedidoPage() {
     setCargando(true);
     setError(null);
     try {
-      const data = await getPedidosActivos(cliente.id);
+      const data = await getPedidosActivos();
       setPedidos(data);
     } catch (err: any) {
       setError(err.message || 'Error al cargar los pedidos activos.');

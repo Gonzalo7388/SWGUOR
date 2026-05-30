@@ -25,6 +25,10 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/incidencias-taller': ['administrador', 'gerente', 'representante_taller', 'almacenero'],
   '/admin/Panel-Administrativo/incidencias-clientes': ['administrador', 'gerente', 'representante_taller', 'almacenero'],
   '/portal/dashboard': ['cliente'],
+  '/disenador/pedidos': ['disenador', 'administrador', 'gerente'],
+  '/cortador/pedidos': ['cortador', 'administrador', 'gerente'],
+  '/representante/ordenes': ['representante_taller', 'administrador', 'gerente'],
+  '/ayudante/confecciones': ['ayudante', 'administrador', 'gerente'],
 };
 
 export async function proxy(request: NextRequest) {
@@ -109,5 +113,9 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/portal/:path*',
+    '/disenador/:path*',
+    '/cortador/:path*',
+    '/representante/:path*',
+    '/ayudante/:path*',
   ],
 };
