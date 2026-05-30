@@ -66,6 +66,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@prisma/config": "^7.8.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.19.39",

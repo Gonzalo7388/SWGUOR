@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils/serialize';
+import { stringifyBigInts } from '@/lib/utils/serialize';
 import type { Prisma } from '@prisma/client';
 
 export interface TallerSelectOption {
@@ -37,8 +37,8 @@ export async function listarTalleresActivosSelect(): Promise<TallerSelectOption[
     orderBy: { nombre: 'asc' },
   });
 
-  const serializado = serializeBigInt(rows) as Array<{
-    id: string | number;
+  const serializado = stringifyBigInts(rows) as unknown as Array<{
+    id: string;
     nombre: string;
     especialidad: string | null;
   }>;
@@ -69,14 +69,14 @@ export async function listarConfeccionesParaOperaciones(filtros?: {
     orderBy: { created_at: 'desc' },
   });
 
-  const serializado = serializeBigInt(rows) as Array<{
-    id: string | number;
+  const serializado = stringifyBigInts(rows) as unknown as Array<{
+    id: string;
     prenda: string;
     cantidad: number;
     estado: string;
-    talleres: { id: string | number; nombre: string } | null;
+    talleres: { id: string; nombre: string } | null;
     ordenes_produccion: {
-      pedidos: { id: string | number } | null;
+      pedidos: { id: string } | null;
     } | null;
   }>;
 

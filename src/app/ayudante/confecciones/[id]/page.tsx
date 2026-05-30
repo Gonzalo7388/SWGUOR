@@ -47,7 +47,7 @@ export default async function AyudanteConfeccionPage({ params }: PageProps) {
 
   const pedidoRaw = conf.ordenes_produccion?.pedidos;
   const pedido = pedidoRaw
-    ? (serializeBigInt(pedidoRaw) as {
+    ? (serializeBigInt(pedidoRaw) as unknown as {
         id: string | number;
         clientes: {
           razon_social: string | null;

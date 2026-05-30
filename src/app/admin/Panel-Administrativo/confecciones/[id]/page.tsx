@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { serializeBigInt } from '@/lib/utils/serialize';
+import { stringifyBigInts } from '@/lib/utils/serialize';
 import { ArrowLeft } from 'lucide-react';
 import { ESTADO_LABELS } from '@/lib/schemas/confecciones';
 
@@ -36,7 +36,7 @@ export default async function ConfeccionDetallePage({ params }: PageProps) {
 
   if (!conf) notFound();
 
-  const data = serializeBigInt(conf) as {
+  const data = stringifyBigInts(conf) as unknown as {
     id: string;
     prenda: string;
     cantidad: number;
