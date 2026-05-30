@@ -69,6 +69,19 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/api/fichas-tecnicas/archivo',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self'",
+          },
+        ],
+      },
     ];
   },
 

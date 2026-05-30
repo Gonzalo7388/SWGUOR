@@ -3,24 +3,25 @@
 import Link from 'next/link';
 import { ArrowLeft, Scissors } from 'lucide-react';
 import type { DetallePedidoData } from '@/components/admin/pedidos/detalles/types';
+import type { ItemCorteConFicha } from '@/lib/helpers/registrar-corte-pedido.helper';
 import { PedidoDetalleLectura } from '@/components/disenador/PedidoDetalleLectura';
-import { FichaTecnicaCortePanel, type FichaCorteData } from './FichaTecnicaCortePanel';
+import { CortadorItemsFichasSection } from './CortadorItemsFichasSection';
 import { FormRegistroCorte } from './FormRegistroCorte';
 
 interface Props {
   pedido: DetallePedidoData;
-  productoNombre: string;
-  ficha: FichaCorteData | null;
+  itemsConFicha: ItemCorteConFicha[];
   corteCompletado: boolean;
   ordenId: string | null;
+  puedeRegistrarCorte: boolean;
 }
 
 export function CortadorPedidoWorkspace({
   pedido,
-  productoNombre,
-  ficha,
+  itemsConFicha,
   corteCompletado,
   ordenId,
+  puedeRegistrarCorte,
 }: Props) {
   return (
     <div className="max-w-[96rem] mx-auto px-4 py-6 space-y-6">
@@ -40,7 +41,11 @@ export function CortadorPedidoWorkspace({
               Corte — Pedido #{pedido.id}
             </h1>
             <p className="text-sm text-stone-500 font-medium">
-              Revise el pedido, la ficha técnica y registre el corte completado
+              Pedido en{' '}
+              <span className="font-bold text-blue-700">
+                {pedido.estado?.replace(/_/g, ' ') ?? '—'}
+              </span>
+              — revise las fichas por ítem y registre el corte al terminar
             </p>
           </div>
         </div>
@@ -48,16 +53,16 @@ export function CortadorPedidoWorkspace({
 
       <section>
         <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-3">
-          Detalle del pedido
+          Pedido y cliente
         </h2>
         <PedidoDetalleLectura pedido={pedido} />
       </section>
 
       <section className="space-y-3">
         <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-          Ficha técnica y materiales
+          Ítems y fichas técnicas (solo lectura)
         </h2>
-        <FichaTecnicaCortePanel ficha={ficha} productoNombre={productoNombre} />
+        <CortadorItemsFichasSection items={itemsConFicha} />
       </section>
 
       <section>
@@ -65,6 +70,8 @@ export function CortadorPedidoWorkspace({
           pedidoId={pedido.id}
           corteCompletado={corteCompletado}
           ordenId={ordenId}
+          puedeRegistrarCorte={puedeRegistrarCorte}
+          pedidoEstado={pedido.estado ?? 'pendiente'}
         />
       </section>
     </div>

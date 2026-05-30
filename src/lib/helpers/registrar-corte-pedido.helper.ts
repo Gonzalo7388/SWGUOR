@@ -2,11 +2,60 @@ import { prisma } from '@/lib/prisma';
 import { crearNotificacion } from '@/lib/helpers/crear-notificacion.helper';
 import { parseDescripcionDetallada } from '@/lib/helpers/ficha-tecnica-descripcion.helper';
 
+export interface MedidaCorteData {
+  id: string;
+  punto_medida: string | null;
+  talla: string | null;
+  valor_cm: number | null;
+  tolerancia: number | null;
+}
+
+export interface FichaCorteData {
+  id: string;
+  version: string | null;
+  estado: string | null;
+  ficha_url: string | null;
+  imagen_geometral: string | null;
+  descripcionTexto: string | null;
+  evidencias: string[];
+  detalle: Array<{
+    id: string;
+    cantidad_consumo: number;
+    porcentaje_desperdicio: number | null;
+    material: {
+      nombre: string;
+      tipo: string;
+      composicion: string | null;
+      color: string | null;
+      unidad: string;
+    } | null;
+    insumo: {
+      nombre: string;
+      tipo: string;
+      unidad: string;
+    } | null;
+    observaciones: string | null;
+  }>;
+  medidas: MedidaCorteData[];
+}
+
+export interface ItemCorteConFicha {
+  itemId: string;
+  cantidad: number;
+  productoId: string;
+  productoNombre: string;
+  productoSku: string | null;
+  varianteColor: string | null;
+  varianteTalla: string | null;
+  ficha: FichaCorteData | null;
+}
+
 export interface ResultadoRegistroCorte {
   ordenId: bigint;
   confeccionId: bigint;
   tallerNombre: string;
-  yaExistia: boolean;
+  corteYaRegistrado: boolean;
+  ordenNueva: boolean;
 }
 
 function resolverProductoPrincipalId(
@@ -56,6 +105,17 @@ async function seleccionarTallerConfeccion() {
   return cualquiera;
 }
 
+/** responsable_id en confecciones debe ser rol representante_taller (check BD). */
+async function seleccionarRepresentanteTaller(): Promise<bigint | null> {
+  const representante = await prisma.usuarios.findFirst({
+    where: { rol: 'representante_taller', estado: 'activo' },
+    orderBy: { id: 'asc' },
+    select: { id: true },
+  });
+
+  return representante?.id ?? null;
+}
+
 async function notificarRepresentantesTaller(params: {
   ordenId: bigint;
   tallerNombre: string;
@@ -73,7 +133,7 @@ async function notificarRepresentantesTaller(params: {
         usuario_id: rep.id,
         tipo: 'orden_produccion',
         titulo: 'Nueva orden de confección',
-        mensaje: `Nueva orden de confección asignada al taller ${params.tallerNombre}.`,
+        mensaje: `Tienes una nueva orden de confección asignada al taller ${params.tallerNombre}.`,
         referencia_tipo: 'ORDEN_PRODUCCION',
         referencia_id: params.ordenId,
         url_destino: url,
@@ -82,6 +142,26 @@ async function notificarRepresentantesTaller(params: {
   );
 }
 
+async function buscarCorteRegistrado(pedidoId: bigint) {
+  return prisma.seguimiento_produccion.findFirst({
+    where: {
+      etapa: 'corte',
+      completado_en: { not: null },
+      ordenes_produccion: { pedido_id: pedidoId, estado: { not: 'cancelada' } },
+    },
+    include: {
+      ordenes_produccion: {
+        include: { confecciones: { take: 1 } },
+      },
+    },
+  });
+}
+
+/**
+ * Trigger operativo del cortador: registra el hito físico de corte y autogenera
+ * la orden de confección para el taller externo. El estado macro del pedido
+ * (en_produccion) NO se modifica.
+ */
 export async function registrarCortePedidoCompletado(params: {
   pedidoId: bigint;
   usuarioId: bigint;
@@ -102,8 +182,26 @@ export async function registrarCortePedidoCompletado(params: {
     throw new Error('Pedido no encontrado');
   }
 
+  if (pedido.estado !== 'en_produccion') {
+    throw new Error(
+      'El pedido debe estar en producción antes de registrar el corte. Espere a que el diseñador apruebe todas las fichas.',
+    );
+  }
+
   if (!pedido.pedido_items.length) {
     throw new Error('El pedido no tiene ítems para procesar');
+  }
+
+  const corteExistente = await buscarCorteRegistrado(params.pedidoId);
+  if (corteExistente?.ordenes_produccion) {
+    const conf = corteExistente.ordenes_produccion.confecciones[0];
+    return {
+      ordenId: corteExistente.ordenes_produccion.id,
+      confeccionId: conf?.id ?? BigInt(0),
+      tallerNombre: '',
+      corteYaRegistrado: true,
+      ordenNueva: false,
+    };
   }
 
   const productoId = resolverProductoPrincipalId(pedido.pedido_items);
@@ -124,23 +222,25 @@ export async function registrarCortePedidoCompletado(params: {
   }
 
   const taller = await seleccionarTallerConfeccion();
+  const representanteId = await seleccionarRepresentanteTaller();
+  const notasCorte = params.notas?.trim() || 'Corte completado en planta.';
 
-  let ordenExistente = await prisma.ordenes_produccion.findFirst({
-    where: {
-      pedido_id: params.pedidoId,
-      producto_id: productoId,
-      estado: { not: 'cancelada' },
-    },
-    include: { confecciones: { take: 1 } },
-    orderBy: { created_at: 'desc' },
-  });
-
-  let yaExistia = false;
+  let ordenNueva = false;
+  let confeccionNueva = false;
 
   const resultado = await prisma.$transaction(async (tx) => {
-    let orden = ordenExistente;
+    let orden = await tx.ordenes_produccion.findFirst({
+      where: {
+        pedido_id: params.pedidoId,
+        producto_id: productoId,
+        estado: { not: 'cancelada' },
+      },
+      orderBy: { created_at: 'desc' },
+      include: { confecciones: { take: 1 } },
+    });
 
     if (!orden) {
+      ordenNueva = true;
       orden = await tx.ordenes_produccion.create({
         data: {
           producto_id: productoId,
@@ -150,34 +250,27 @@ export async function registrarCortePedidoCompletado(params: {
           cantidad_solicitada: pedido.total_unidades ?? 0,
           pedido_id: params.pedidoId,
           creado_por: params.usuarioId,
-          notas: params.notas?.trim() || null,
+          notas: notasCorte,
         },
         include: { confecciones: { take: 1 } },
       });
-    } else {
-      yaExistia = true;
     }
 
-    const corteRegistrado = await tx.seguimiento_produccion.findFirst({
-      where: { orden_id: orden.id, etapa: 'corte', completado_en: { not: null } },
+    await tx.seguimiento_produccion.create({
+      data: {
+        orden_id: orden.id,
+        etapa: 'corte',
+        completado_en: new Date(),
+        usuario_id: params.usuarioId,
+        observaciones: notasCorte,
+        activo: true,
+      },
     });
-
-    if (!corteRegistrado) {
-      await tx.seguimiento_produccion.create({
-        data: {
-          orden_id: orden.id,
-          etapa: 'corte',
-          completado_en: new Date(),
-          usuario_id: params.usuarioId,
-          observaciones: params.notas?.trim() || 'Corte completado.',
-          activo: true,
-        },
-      });
-    }
 
     let confeccion = orden.confecciones?.[0];
 
     if (!confeccion) {
+      confeccionNueva = true;
       confeccion = await tx.confecciones.create({
         data: {
           taller_id: taller.id,
@@ -185,9 +278,9 @@ export async function registrarCortePedidoCompletado(params: {
           estado: 'pendiente',
           prenda: producto?.nombre ?? 'Prenda',
           cantidad: pedido.total_unidades ?? 0,
-          notas: params.notas?.trim() || null,
+          notas: notasCorte,
           fecha_inicio: new Date(),
-          responsable_id: params.usuarioId,
+          responsable_id: representanteId,
         },
       });
 
@@ -195,8 +288,8 @@ export async function registrarCortePedidoCompletado(params: {
         data: {
           confeccion_id: confeccion.id,
           estado_nuevo: 'pendiente',
-          notas: 'Confección creada automáticamente tras corte.',
-          responsable_id: params.usuarioId,
+          notas: 'Orden de confección generada automáticamente tras el corte.',
+          responsable_id: representanteId,
         },
       });
     }
@@ -208,21 +301,36 @@ export async function registrarCortePedidoCompletado(params: {
     };
   });
 
-  if (!yaExistia) {
+  if (confeccionNueva || ordenNueva) {
     await notificarRepresentantesTaller({
       ordenId: resultado.ordenId,
       tallerNombre: resultado.tallerNombre,
     });
   }
 
-  return { ...resultado, yaExistia };
+  return {
+    ...resultado,
+    corteYaRegistrado: false,
+    ordenNueva,
+  };
+}
+
+export async function obtenerEstadoCortePedido(pedidoId: bigint) {
+  const corte = await buscarCorteRegistrado(pedidoId);
+  return {
+    corteCompletado: Boolean(corte),
+    ordenId: corte?.ordenes_produccion?.id ? String(corte.ordenes_produccion.id) : null,
+  };
 }
 
 export async function obtenerDatosFichaParaCorte(productoId: bigint) {
   const ficha = await prisma.fichas_tecnicas.findFirst({
-    where: { id_producto: productoId },
+    where: { id_producto: productoId, estado: 'aprobada' },
     orderBy: { created_at: 'desc' },
     include: {
+      ficha_medidas: {
+        orderBy: [{ talla: 'asc' }, { punto_medida: 'asc' }],
+      },
       fichas_tecnicas_detalle: {
         include: {
           materiales: {
@@ -264,6 +372,8 @@ export async function obtenerDatosFichaParaCorte(productoId: bigint) {
     detalle: ficha.fichas_tecnicas_detalle.map((d) => ({
       id: String(d.id),
       cantidad_consumo: Number(d.cantidad_consumo),
+      porcentaje_desperdicio:
+        d.porcentaje_desperdicio != null ? Number(d.porcentaje_desperdicio) : null,
       material: d.materiales
         ? {
             nombre: d.materiales.nombre,
@@ -282,5 +392,48 @@ export async function obtenerDatosFichaParaCorte(productoId: bigint) {
         : null,
       observaciones: d.observaciones,
     })),
+    medidas: ficha.ficha_medidas.map((m) => ({
+      id: String(m.id),
+      punto_medida: m.punto_medida,
+      talla: m.talla,
+      valor_cm: m.valor_cm,
+      tolerancia: m.tolerancia,
+    })),
   };
+}
+
+export async function obtenerItemsConFichaParaCorte(
+  items: Array<{
+    id: bigint;
+    cantidad: number;
+    producto_id?: bigint | null;
+    productos?: { id: bigint; nombre: string; sku: string | null } | null;
+    variantes_producto?: { color: string | null; talla: string | null } | null;
+  }>,
+): Promise<ItemCorteConFicha[]> {
+  const fichaCache = new Map<string, FichaCorteData | null>();
+  const resultado: ItemCorteConFicha[] = [];
+
+  for (const item of items) {
+    const productoId = item.productos?.id ?? item.producto_id;
+    if (!productoId) continue;
+
+    const pid = String(productoId);
+    if (!fichaCache.has(pid)) {
+      fichaCache.set(pid, await obtenerDatosFichaParaCorte(productoId));
+    }
+
+    resultado.push({
+      itemId: String(item.id),
+      cantidad: item.cantidad,
+      productoId: pid,
+      productoNombre: item.productos?.nombre ?? 'Producto',
+      productoSku: item.productos?.sku ?? null,
+      varianteColor: item.variantes_producto?.color ?? null,
+      varianteTalla: item.variantes_producto?.talla ?? null,
+      ficha: fichaCache.get(pid) ?? null,
+    });
+  }
+
+  return resultado;
 }

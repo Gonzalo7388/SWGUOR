@@ -22,13 +22,14 @@ export async function POST(_req: Request, { params }: Params) {
     return NextResponse.json({
       success: true,
       data: {
+        confeccion_id: String(resultado.confeccionId),
         pedido_id: String(resultado.pedidoId),
-        ya_aprobada: resultado.yaCompletada,
+        ya_completada: resultado.yaCompletada,
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno';
-    console.error('[POST ayudante conformidad]', error);
+    console.error('[POST ayudante/confecciones/aprobar]', error);
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }

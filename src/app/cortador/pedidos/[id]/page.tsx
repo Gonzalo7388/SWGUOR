@@ -5,6 +5,8 @@ import { CortadorPedidoWorkspace } from '@/components/cortador/CortadorPedidoWor
 import type { DetallePedidoData } from '@/components/admin/pedidos/detalles/types';
 import {
   obtenerDatosFichaParaCorte,
+  obtenerEstadoCortePedido,
+  obtenerItemsConFichaParaCorte,
 } from '@/lib/helpers/registrar-corte-pedido.helper';
 
 export const dynamic = 'force-dynamic';
@@ -19,14 +21,13 @@ function resolverProductoPrincipalId(
     producto_id?: bigint | null;
     productos?: { id: bigint; nombre: string } | null;
   }>,
-): { productoId: bigint; nombre: string } {
+): bigint {
   const acumulado = new Map<string, number>();
 
   for (const item of items) {
     const pid = item.productos?.id ?? item.producto_id;
     if (!pid) continue;
-    const key = String(pid);
-    acumulado.set(key, (acumulado.get(key) ?? 0) + item.cantidad);
+    acumulado.set(String(pid), (acumulado.get(String(pid)) ?? 0) + item.cantidad);
   }
 
   let mejorId = items[0]?.productos?.id ?? items[0]?.producto_id ?? BigInt(0);
@@ -39,11 +40,7 @@ function resolverProductoPrincipalId(
     }
   }
 
-  const nombre =
-    items.find((i) => String(i.productos?.id ?? i.producto_id) === String(mejorId))
-      ?.productos?.nombre ?? 'Producto';
-
-  return { productoId: mejorId, nombre };
+  return mejorId;
 }
 
 export default async function CortadorPedidoPage({ params }: PageProps) {
@@ -79,29 +76,13 @@ export default async function CortadorPedidoPage({ params }: PageProps) {
 
   if (!pedido) notFound();
 
-  const { productoId, nombre: productoNombre } = resolverProductoPrincipalId(
-    pedido.pedido_items,
-  );
+  const itemsConFicha = await obtenerItemsConFichaParaCorte(pedido.pedido_items);
 
-  const fichaRaw = await obtenerDatosFichaParaCorte(productoId);
+  const productoPrincipalId = resolverProductoPrincipalId(pedido.pedido_items);
+  const fichaPrincipal = await obtenerDatosFichaParaCorte(productoPrincipalId);
 
-  const orden = await prisma.ordenes_produccion.findFirst({
-    where: {
-      pedido_id: pedidoId,
-      producto_id: productoId,
-      estado: { not: 'cancelada' },
-    },
-    orderBy: { created_at: 'desc' },
-    include: {
-      seguimiento_produccion: {
-        where: { etapa: 'corte', completado_en: { not: null } },
-        take: 1,
-      },
-    },
-  });
-
-  const corteCompletado = (orden?.seguimiento_produccion?.length ?? 0) > 0;
-  const ordenId = orden ? String(orden.id) : null;
+  const { corteCompletado, ordenId } = await obtenerEstadoCortePedido(pedidoId);
+  const puedeRegistrarCorte = pedido.estado === 'en_produccion' && Boolean(fichaPrincipal);
 
   const serializado = serializeBigInt(pedido) as Record<string, unknown>;
 
@@ -125,10 +106,10 @@ export default async function CortadorPedidoPage({ params }: PageProps) {
   return (
     <CortadorPedidoWorkspace
       pedido={pedidoFormateado}
-      productoNombre={productoNombre}
-      ficha={fichaRaw}
+      itemsConFicha={itemsConFicha}
       corteCompletado={corteCompletado}
       ordenId={ordenId}
+      puedeRegistrarCorte={puedeRegistrarCorte}
     />
   );
 }

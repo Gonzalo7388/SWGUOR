@@ -4,6 +4,10 @@ import { serializeBigInt } from '@/lib/utils/serialize';
 import { DisenadorPedidoWorkspace } from '@/components/disenador/DisenadorPedidoWorkspace';
 import type { DetallePedidoData } from '@/components/admin/pedidos/detalles/types';
 import type { FichaTecnicaData } from '@/components/disenador/FichaTecnicaDisenadorForm';
+import {
+  obtenerProgresoFichasPedido,
+  pedidoFichasEnModoSoloLectura,
+} from '@/lib/helpers/ficha-tecnica-pedido.helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,10 +117,15 @@ export default async function DisenadorPedidoPage({ params }: PageProps) {
       : null,
   };
 
+  const progresoFichas = await obtenerProgresoFichasPedido(pedido.id);
+  const pedidoBloqueado = pedidoFichasEnModoSoloLectura(pedido.estado);
+
   return (
     <DisenadorPedidoWorkspace
       pedido={pedidoFormateado}
       productos={fichasPorProducto}
+      progresoFichas={progresoFichas}
+      pedidoBloqueado={pedidoBloqueado}
     />
   );
 }

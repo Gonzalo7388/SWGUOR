@@ -12,7 +12,7 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador', 'gerente', 'cortador', 'ayudante', 'representante_taller', 'almacenero'],
   '/admin/Panel-Administrativo/movimientos': ['administrador', 'gerente', 'disenador', 'cortador', 'ayudante', 'representante_taller', 'almacenero'],
   '/admin/Panel-Administrativo/ordenes-produccion': ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'ayudante'],
-  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente', 'almacenero'],
+  '/admin/Panel-Administrativo/confecciones': ['administrador', 'representante_taller', 'gerente', 'almacenero', 'ayudante'],
   '/admin/Panel-Administrativo/cotizaciones': ['administrador', 'recepcionista', 'gerente'],
   '/admin/Panel-Administrativo/categorias': ['administrador', 'disenador', 'gerente'],
   '/admin/Panel-Administrativo/talleres': ['administrador', 'gerente', 'representante_taller', 'almacenero'],

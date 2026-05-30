@@ -6,7 +6,7 @@ import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import type { EstadoFicha } from '@prisma/client';
-import { procesarFichaTecnicaAprobada } from '@/lib/helpers/ficha-tecnica-aprobacion.helper';
+import { pedidoFichasEnModoSoloLectura } from '@/lib/helpers/ficha-tecnica-pedido.helper';
 
 const ROLES_FICHA: RolUsuario[] = ['disenador', 'administrador', 'gerente'];
 
@@ -50,6 +50,20 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ error: 'Ficha no encontrada' }, { status: 404 });
     }
 
+    const pedidoIdBody = body.pedido_id ?? body.pedidoId;
+    if (pedidoIdBody) {
+      const pedido = await prisma.pedidos.findUnique({
+        where: { id: BigInt(pedidoIdBody) },
+        select: { estado: true },
+      });
+      if (pedido && pedidoFichasEnModoSoloLectura(pedido.estado)) {
+        return NextResponse.json(
+          { error: 'Todas las fichas están aprobadas. El pedido ya no admite cambios.' },
+          { status: 422 },
+        );
+      }
+    }
+
     const data: Partial<{
       version: string;
       descripcion_detallada: string;
@@ -66,7 +80,18 @@ export async function PATCH(req: Request, { params }: Params) {
     if (body.imagen_geometral !== undefined) {
       data.imagen_geometral = body.imagen_geometral;
     }
-    if (body.estado !== undefined) data.estado = body.estado;
+    if (body.estado !== undefined) {
+      if (body.estado === 'aprobada') {
+        return NextResponse.json(
+          {
+            error:
+              'Use el botón "Aprobar ítem" para aprobar la ficha. No puede asignar estado aprobada desde aquí.',
+          },
+          { status: 400 },
+        );
+      }
+      data.estado = body.estado;
+    }
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json(
@@ -76,29 +101,6 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     const ficha = await FichasTecnicasService.actualizar(id, data);
-
-    const nuevoEstado = data.estado ?? fichaAntes.estado;
-    const pasoAAprobada =
-      nuevoEstado === 'aprobada' && fichaAntes.estado !== 'aprobada';
-
-    if (pasoAAprobada && fichaAntes.id_producto) {
-      const pedidoId = body.pedido_id ?? body.pedidoId;
-      if (!pedidoId) {
-        return NextResponse.json(
-          {
-            error: 'pedido_id requerido al aprobar la ficha',
-          },
-          { status: 400 },
-        );
-      }
-
-      await procesarFichaTecnicaAprobada({
-        fichaId: BigInt(id),
-        productoId: fichaAntes.id_producto,
-        pedidoId: BigInt(pedidoId),
-        usuarioId: BigInt(auth.user.id),
-      });
-    }
 
     return NextResponse.json({ success: true, data: ficha });
   } catch (error: unknown) {

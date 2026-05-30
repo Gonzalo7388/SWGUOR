@@ -10,9 +10,17 @@ interface Props {
   pedidoId: string;
   corteCompletado: boolean;
   ordenId: string | null;
+  puedeRegistrarCorte: boolean;
+  pedidoEstado: string;
 }
 
-export function FormRegistroCorte({ pedidoId, corteCompletado, ordenId }: Props) {
+export function FormRegistroCorte({
+  pedidoId,
+  corteCompletado,
+  ordenId,
+  puedeRegistrarCorte,
+  pedidoEstado,
+}: Props) {
   const router = useRouter();
   const [notas, setNotas] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,8 +39,8 @@ export function FormRegistroCorte({ pedidoId, corteCompletado, ordenId }: Props)
       }
       toast.success(
         json.data?.ya_existia
-          ? 'Corte ya estaba registrado'
-          : 'Corte completado y orden de confección creada',
+          ? 'El corte ya estaba registrado'
+          : 'Corte registrado. Orden de confección enviada al taller externo.',
       );
       router.refresh();
     } catch (e: unknown) {
@@ -47,11 +55,31 @@ export function FormRegistroCorte({ pedidoId, corteCompletado, ordenId }: Props)
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 space-y-2">
         <p className="text-sm font-bold text-emerald-800 flex items-center gap-2">
           <CheckCircle2 size={18} />
-          Corte registrado
+          Corte registrado en planta
         </p>
         {ordenId && (
           <p className="text-xs text-emerald-700">
-            Orden de producción #{ordenId} — confección en curso.
+            Orden de confección #{ordenId} generada para el taller externo. El pedido
+            sigue en producción para el cliente.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (!puedeRegistrarCorte) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+        {pedidoEstado !== 'en_produccion' ? (
+          <p>
+            El pedido aún no está en <strong>producción</strong> (estado actual:{' '}
+            {pedidoEstado.replace(/_/g, ' ')}). El diseñador debe aprobar todas las
+            fichas técnicas antes de que pueda registrar el corte.
+          </p>
+        ) : (
+          <p>
+            Falta la ficha técnica aprobada del producto principal. Solicite al diseñador
+            que complete y apruebe la ficha antes de cortar.
           </p>
         )}
       </div>
@@ -60,9 +88,15 @@ export function FormRegistroCorte({ pedidoId, corteCompletado, ordenId }: Props)
 
   return (
     <div className="rounded-xl border border-orange-200 bg-white p-5 space-y-4 shadow-sm">
-      <h3 className="text-sm font-black text-stone-900 uppercase tracking-wide">
-        Registro de corte
-      </h3>
+      <div>
+        <h3 className="text-sm font-black text-stone-900 uppercase tracking-wide">
+          Registro de corte (planta interna)
+        </h3>
+        <p className="text-xs text-stone-500 mt-1">
+          Al confirmar, el sistema creará automáticamente la orden de confección para el
+          taller externo. El estado del pedido ante el cliente no cambia.
+        </p>
+      </div>
       <div>
         <label
           htmlFor="notas-corte"
@@ -91,7 +125,7 @@ export function FormRegistroCorte({ pedidoId, corteCompletado, ordenId }: Props)
             Registrando...
           </>
         ) : (
-          'Registrar corte completado'
+          'Registrar corte completado y generar Orden de Confección'
         )}
       </Button>
     </div>

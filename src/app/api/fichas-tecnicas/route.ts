@@ -1,11 +1,12 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { FichasTecnicasService } from '@/lib/services/fichas-tecnicas.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import type { EstadoFicha } from '@prisma/client';
-import { procesarFichaTecnicaAprobada } from '@/lib/helpers/ficha-tecnica-aprobacion.helper';
+import { pedidoFichasEnModoSoloLectura } from '@/lib/helpers/ficha-tecnica-pedido.helper';
 
 const ROLES_FICHA: RolUsuario[] = ['disenador', 'administrador', 'gerente'];
 
@@ -59,7 +60,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const estado = (body.estado ?? 'borrador') as EstadoFicha;
+    const estadoRaw = (body.estado ?? 'borrador') as EstadoFicha;
+    if (estadoRaw === 'aprobada') {
+      return NextResponse.json(
+        {
+          error:
+            'No puede crear una ficha ya aprobada. Guarde como borrador y use "Aprobar ítem".',
+        },
+        { status: 400 },
+      );
+    }
+
+    const pedidoId = body.pedido_id ?? body.pedidoId;
+    if (pedidoId) {
+      const pedido = await prisma.pedidos.findUnique({
+        where: { id: BigInt(pedidoId) },
+        select: { estado: true },
+      });
+      if (pedido && pedidoFichasEnModoSoloLectura(pedido.estado)) {
+        return NextResponse.json(
+          { error: 'El pedido ya está en producción. No se pueden crear fichas.' },
+          { status: 422 },
+        );
+      }
+    }
+
+    const estado = estadoRaw;
 
     const fichaNueva = await FichasTecnicasService.crear({
       producto_id: productoId,
@@ -70,23 +96,6 @@ export async function POST(request: NextRequest) {
       estado,
       created_by: auth.user.id,
     });
-
-    if (estado === 'aprobada') {
-      const pedidoId = body.pedido_id ?? body.pedidoId;
-      if (!pedidoId) {
-        return NextResponse.json(
-          { error: 'pedido_id requerido al crear ficha aprobada' },
-          { status: 400 },
-        );
-      }
-      const fichaId = (fichaNueva as { id?: number | string }).id;
-      await procesarFichaTecnicaAprobada({
-        fichaId: BigInt(fichaId!),
-        productoId: BigInt(productoId),
-        pedidoId: BigInt(pedidoId),
-        usuarioId: BigInt(auth.user.id),
-      });
-    }
 
     return NextResponse.json({ success: true, data: fichaNueva }, { status: 201 });
   } catch (error: unknown) {

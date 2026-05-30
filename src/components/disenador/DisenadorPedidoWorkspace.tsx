@@ -16,9 +16,16 @@ export interface ProductoConFicha {
 interface Props {
   pedido: DetallePedidoData;
   productos: ProductoConFicha[];
+  progresoFichas: { total: number; aprobadas: number; todasAprobadas: boolean };
+  pedidoBloqueado: boolean;
 }
 
-export function DisenadorPedidoWorkspace({ pedido, productos }: Props) {
+export function DisenadorPedidoWorkspace({
+  pedido,
+  productos,
+  progresoFichas,
+  pedidoBloqueado,
+}: Props) {
   return (
     <div className="max-w-[96rem] mx-auto px-4 py-6 space-y-6">
       <div>
@@ -51,9 +58,28 @@ export function DisenadorPedidoWorkspace({ pedido, productos }: Props) {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-          Fichas técnicas por producto
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+            Fichas técnicas por producto
+          </h2>
+          <span
+            className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
+              progresoFichas.todasAprobadas
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-violet-100 text-violet-800'
+            }`}
+          >
+            {progresoFichas.aprobadas}/{progresoFichas.total} aprobadas
+          </span>
+        </div>
+
+        {pedidoBloqueado && (
+          <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 font-medium">
+            Todas las fichas están aprobadas. El pedido está en{' '}
+            <strong>{pedido.estado?.replace(/_/g, ' ') ?? 'producción'}</strong> y no
+            admite más cambios en las fichas.
+          </p>
+        )}
         {productos.length === 0 ? (
           <p className="text-sm text-stone-500 py-8 text-center border border-dashed rounded-xl">
             Este pedido no tiene productos asociados.
@@ -66,6 +92,7 @@ export function DisenadorPedidoWorkspace({ pedido, productos }: Props) {
               productoId={p.productoId}
               productoNombre={p.nombre}
               fichaInicial={p.ficha}
+              pedidoBloqueado={pedidoBloqueado}
             />
           ))
         )}

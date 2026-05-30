@@ -1,33 +1,33 @@
 'use client';
 
-import { getSupabaseBrowserClient } from '@/lib/supabase';
 import {
-  STORAGE_BUCKET_FICHAS_TECNICAS,
-  fichaTecnicaStoragePath,
-} from '@/lib/constants/storage';
+  buildFichaArchivoApiUrl,
+} from '@/lib/helpers/ficha-tecnica-storage.helper';
 
 export async function subirArchivoFichaTecnica(params: {
   file: File;
   productoId: string | number;
   tipo: 'pdf' | 'geometral' | 'evidencia';
 }): Promise<string> {
-  const supabase = getSupabaseBrowserClient();
-  const path = fichaTecnicaStoragePath(params.productoId, params.tipo, params.file.name);
+  const formData = new FormData();
+  formData.append('file', params.file);
+  formData.append('productoId', String(params.productoId));
+  formData.append('tipo', params.tipo);
 
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET_FICHAS_TECNICAS)
-    .upload(path, params.file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
+  const res = await fetch('/api/fichas-tecnicas/upload', {
+    method: 'POST',
+    body: formData,
+  });
 
-  if (error) {
-    throw new Error(error.message);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? 'Error al subir archivo');
   }
 
-  const { data } = supabase.storage
-    .from(STORAGE_BUCKET_FICHAS_TECNICAS)
-    .getPublicUrl(path);
+  return json.path as string;
+}
 
-  return data.publicUrl;
+/** URL segura para abrir PDF/imagen de ficha (path relativo o URL legacy). */
+export function urlVerArchivoFicha(ref: string | null | undefined): string | null {
+  return buildFichaArchivoApiUrl(ref);
 }

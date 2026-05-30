@@ -3,14 +3,14 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
-import { registrarCortePedidoCompletado } from '@/lib/helpers/registrar-corte-pedido.helper';
+import { aprobarFichaItemPedido } from '@/lib/helpers/ficha-tecnica-pedido.helper';
 
-const ROLES_CORTE: RolUsuario[] = ['cortador', 'administrador', 'gerente'];
+const ROLES: RolUsuario[] = ['disenador', 'administrador', 'gerente'];
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, { params }: Params) {
-  const auth = await requireServerRole(ROLES_CORTE);
+  const auth = await requireServerRole(ROLES);
   if (!auth.success) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -18,27 +18,28 @@ export async function POST(req: Request, { params }: Params) {
   try {
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const notas = typeof body.notas === 'string' ? body.notas : undefined;
+    const pedidoId = body.pedido_id ?? body.pedidoId;
 
-    const resultado = await registrarCortePedidoCompletado({
-      pedidoId: BigInt(id),
+    if (!pedidoId) {
+      return NextResponse.json({ error: 'pedido_id es requerido' }, { status: 400 });
+    }
+
+    const resultado = await aprobarFichaItemPedido({
+      fichaId: BigInt(id),
+      pedidoId: BigInt(String(pedidoId)),
       usuarioId: BigInt(auth.user.id),
-      notas,
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        orden_id: String(resultado.ordenId),
-        confeccion_id: String(resultado.confeccionId),
-        taller: resultado.tallerNombre,
-        ya_existia: resultado.corteYaRegistrado,
-        orden_nueva: resultado.ordenNueva,
+        pedido_en_produccion: resultado.pedidoEnProduccion,
+        progreso: resultado.progreso,
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno';
-    console.error('[POST cortador corte]', error);
+    console.error('[POST fichas-tecnicas aprobar]', error);
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }
