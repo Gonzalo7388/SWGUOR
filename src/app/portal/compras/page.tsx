@@ -36,24 +36,28 @@ export default function ConfirmarCompraPage() {
 
   const handleConfirmar = () => {
     if (!puedeConfirmar) return;
-    const sinVariante = items.filter((i) => !i.variante_id);
-    if (sinVariante.length > 0) {
-      toast.error('Carrito desactualizado — quita los productos sin variante y vuelve a agregarlos.');
+
+    // 1. Filtrar de manera proactiva ítems sin variante válida
+    const itemsValidos = items.filter((i) => i.variante_id !== undefined && i.variante_id !== null);
+
+    if (itemsValidos.length === 0) {
+      toast.error('No hay productos con variantes válidas seleccionadas.');
       return;
     }
+
     startTransition(async () => {
       try {
         const res = await fetch('/api/portal/pedidos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            items: items.map((i) => ({
+            items: itemsValidos.map((i) => ({
               producto_id: i.producto_id,
               variante_id: i.variante_id,
               cantidad: i.cantidad,
               precio_unitario: i.precio,
-              color_snapshot: i.color,
-              talla_snapshot: i.talla,
+              color_snapshot: i.color || 'Único',
+              talla_snapshot: i.talla || 'U',
             })),
             direccion_despacho: direccion || cliente?.direccion_fiscal,
             zona_envio: zonaEnvio,
@@ -62,8 +66,13 @@ export default function ConfirmarCompraPage() {
             reservar_stock: true,
           }),
         });
+
         const json = await res.json();
-        if (!res.ok) { toast.error(json.mensaje ?? json.error ?? 'No se pudo registrar el pedido'); return; }
+        if (!res.ok) {
+          toast.error(json.mensaje ?? json.error ?? 'No se pudo registrar el pedido');
+          return;
+        }
+
         clearCart();
         toast.success('Pedido registrado correctamente');
         window.location.href = '/portal/pedidos';

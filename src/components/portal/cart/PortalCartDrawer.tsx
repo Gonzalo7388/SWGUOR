@@ -222,7 +222,7 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
               </Link>
 
               <Link
-                href="/portal/productos"
+                href="/portal/catalogo"
                 onClick={() => onOpenChange(false)}
                 className="flex w-full py-2 items-center justify-center text-center text-xs font-bold text-muted-foreground hover:text-foreground transition-colors hover:underline"
               >

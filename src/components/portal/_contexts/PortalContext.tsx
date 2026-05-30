@@ -8,6 +8,7 @@ import type { ProductoBase } from '@/types/portal';
 import { resolveCartMoq } from '@/lib/constants/portal-b2b';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useQuotationStore } from '@/lib/store/useQuotationStore';
+import { toast } from 'sonner';
 
 // ── Interfaces y Tipos (Exportaciones limpias) ───────────────────────────────
 export interface ClientePortal { id: number; usuario_id: number; ruc: number; razon_social: string; nombre_comercial: string; direccion_fiscal?: string; email: string | null; telefono: number | null; tipo_cliente: string; }
@@ -226,38 +227,30 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         }, p.cantidad);
     }, []);
 
-    const agregarDesdeCatalogo = useCallback((payload: AgregarPedidoPayload) => {
-        let v_id: number | undefined = undefined;
-        let cant: number = 0;
-        let t: string = 'M';
-        let c: string = 'Estándar';
-        const prod = payload.producto;
+    const agregarDesdeCatalogo = useCallback((producto: any, varianteId?: number, cantidad: number = 1) => {
+        // 1. Si no especificó variante, buscamos la primera variante activa de este producto
+        let v_id = varianteId;
 
-        if (payload.tipo === 'catalogo_rapido') {
-            cant = resolveCartMoq(prod.moq);
-            const variantes = prod.variantes ?? [];
-            const f = variantes.find((v) => v.id === 0);
-            t = f?.talla ?? 'M';
-            c = f?.color ?? 'Estándar';
-        } else {
-            v_id = payload.variante_id;
-            cant = payload.cantidad;
-            const variantes = prod.variantes ?? [];
-            const f = variantes.find((v) => v.id === v_id);
-            t = f?.talla ?? 'M';
-            c = f?.color ?? 'Estándar';
+        if (!v_id && producto.variantes && producto.variantes.length > 0) {
+            v_id = producto.variantes[0].id; // Forzar la primera variante disponible
         }
 
+        // 2. Extraer la información extendida de la variante para Zustand
+        const varianteSeleccionada = producto.variantes?.find((v: any) => v.id === v_id);
+
+        // 3. Insertar al useCartStore de manera segura con todas sus propiedades limpias
         useCartStore.getState().addItem({
-            producto_id: prod.id,
+            producto_id: producto.id,
             variante_id: v_id,
-            nombre: prod.nombre,
-            precio: prod.precio,
-            moq: prod.moq,
-            imagen_url: prod.imagen,
-            talla: t,
-            color: c
-        }, cant);
+            nombre: producto.nombre,
+            precio: Number(producto.precio),
+            moq: producto.moq || 1,
+            imagen_url: varianteSeleccionada?.imagen_url || producto.imagen || null,
+            talla: varianteSeleccionada?.talla || 'U',
+            color: varianteSeleccionada?.color || 'Estándar'
+        }, cantidad);
+
+        toast.success(`${producto.nombre} agregado al borrador de pedido.`);
     }, []);
 
     const actualizarCantidadBorrador = useCallback((id: number, q: number) => useQuotationStore.getState().updateBorradorQuantity(id, q), []);
