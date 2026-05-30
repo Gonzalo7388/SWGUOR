@@ -56,7 +56,7 @@ export async function confirmarEntregaPedido(params: {
   const despacho = await prisma.despachos.findFirst({
     where: {
       pedido_id: params.pedidoId,
-      estado: { in: ['preparando', 'en_ruta'] },
+      estado: 'en_ruta',
     },
     orderBy: { created_at: 'desc' },
     include: {
@@ -65,7 +65,18 @@ export async function confirmarEntregaPedido(params: {
   });
 
   if (!despacho) {
-    throw new Error('No hay despacho en preparación o en ruta para este pedido');
+    const enPreparacion = await prisma.despachos.findFirst({
+      where: {
+        pedido_id: params.pedidoId,
+        estado: 'preparando',
+      },
+    });
+    if (enPreparacion) {
+      throw new Error(
+        'El despacho aún está en preparación. Inicie la ruta desde Gestión de Despachos antes de confirmar la entrega.',
+      );
+    }
+    throw new Error('No hay despacho en ruta para este pedido');
   }
 
   if (!params.actaPdfUrl?.trim()) {

@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getServerAuthUser } from '@/lib/auth/server';
 import { PedidoEntregaForm } from '@/components/admin/pedidos/entrega/PedidoEntregaForm';
+import { PedidoEntregaPendienteRuta } from '@/components/admin/pedidos/entrega/PedidoEntregaPendienteRuta';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,30 +32,52 @@ export default async function PedidoEntregaPage({ params }: PageProps) {
     redirect(`/admin/Panel-Administrativo/pedidos/${id}`);
   }
 
-  const despacho = await prisma.despachos.findFirst({
+  const despachoEnRuta = await prisma.despachos.findFirst({
     where: {
       pedido_id: BigInt(id),
-      estado: { in: ['preparando', 'en_ruta'] },
+      estado: 'en_ruta',
     },
     orderBy: { created_at: 'desc' },
   });
 
-  if (!despacho) {
-    if (pedido.estado === 'listo_para_despacho') {
-      redirect(`/admin/Panel-Administrativo/pedidos/${id}/empaque`);
-    }
-    redirect(`/admin/Panel-Administrativo/pedidos/${id}`);
+  if (despachoEnRuta) {
+    return (
+      <PedidoEntregaForm
+        pedidoId={id}
+        despacho={{
+          id: String(despachoEnRuta.id),
+          estado: despachoEnRuta.estado,
+          direccion_entrega: despachoEnRuta.direccion_entrega,
+          fecha_entrega: despachoEnRuta.fecha_entrega?.toISOString() ?? null,
+        }}
+      />
+    );
   }
 
-  return (
-    <PedidoEntregaForm
-      pedidoId={id}
-      despacho={{
-        id: String(despacho.id),
-        estado: despacho.estado,
-        direccion_entrega: despacho.direccion_entrega,
-        fecha_entrega: despacho.fecha_entrega?.toISOString() ?? null,
-      }}
-    />
-  );
+  const despachoPreparando = await prisma.despachos.findFirst({
+    where: {
+      pedido_id: BigInt(id),
+      estado: 'preparando',
+    },
+    orderBy: { created_at: 'desc' },
+  });
+
+  if (despachoPreparando) {
+    return (
+      <PedidoEntregaPendienteRuta
+        pedidoId={id}
+        despacho={{
+          id: String(despachoPreparando.id),
+          estado: despachoPreparando.estado,
+          direccion_entrega: despachoPreparando.direccion_entrega,
+        }}
+      />
+    );
+  }
+
+  if (pedido.estado === 'listo_para_despacho') {
+    redirect(`/admin/Panel-Administrativo/pedidos/${id}/empaque`);
+  }
+
+  redirect(`/admin/Panel-Administrativo/pedidos/${id}`);
 }

@@ -9,7 +9,9 @@ import {
   calcularPasosTracker,
   formatearFechaEntrega,
 } from '@/lib/helpers/pedido-tracker.helper';
-import { DESPACHO_ESTADOS_BLOQUEAN_DIRECCION } from '@/lib/constants/pedido-tracker';
+import {
+  puedeClienteEditarDireccionDespacho,
+} from '@/lib/helpers/pedido-direccion.helper';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -47,14 +49,9 @@ export async function GET(_req: Request, { params }: Params) {
     const pasos = calcularPasosTracker(pedido.estado, despacho?.estado);
     const fechaEntregaTexto = formatearFechaEntrega(despacho?.fecha_entrega);
 
-    const despachoBloqueante = pedido.despachos.some((d) =>
-      DESPACHO_ESTADOS_BLOQUEAN_DIRECCION.includes(d.estado),
-    );
-
     const puedeEditarDireccion =
       acceso.esClienteDueño &&
-      pedido.estado === 'listo_para_despacho' &&
-      !despachoBloqueante;
+      puedeClienteEditarDireccionDespacho(pedido.estado, despacho?.estado);
 
     const historial = pedido.seguimiento_pedido.map((s) => ({
       id: Number(s.id),

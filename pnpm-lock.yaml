@@ -110,6 +110,9 @@ importers:
       nodemailer:
         specifier: ^6.10.1
         version: 6.10.1
+      peru-utils:
+        specifier: ^3.2.0
+        version: 3.2.0
       pg:
         specifier: ^8.20.0
         version: 8.21.0
@@ -3465,6 +3468,9 @@ packages:
 
   performance-now@2.1.0:
     resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
+
+  peru-utils@3.2.0:
+    resolution: {integrity: sha512-SARDTj0CjbHTWb+/hS064+vpRTTmyN7bqhB2952wu+de82phDT3rCTvS9dN/gLVcYJqrICfIfgmyLxRd+hOUqQ==}
 
   pg-cloudflare@1.4.0:
     resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
@@ -7718,6 +7724,8 @@ snapshots:
 
   performance-now@2.1.0:
     optional: true
+
+  peru-utils@3.2.0: {}
 
   pg-cloudflare@1.4.0:
     optional: true

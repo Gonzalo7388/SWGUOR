@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         pedido_id:         pedidoId,
         direccion_entrega: body.direccion_entrega.trim(),
         fecha_despacho:    body.fecha_despacho ? new Date(body.fecha_despacho) : new Date(),
-        estado:            body.estado ?? 'pendiente',
+        estado:            body.estado ?? 'preparando',
       },
       include: {
         pedidos: { include: { clientes: { select: { razon_social: true } } } },

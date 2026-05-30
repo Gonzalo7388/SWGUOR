@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { subirFotoEmpaque } from '@/lib/helpers/despacho-upload.client';
+import { DireccionDespachoPeruFields, esDireccionDespachoPeruValida } from '@/components/shared/DireccionDespachoPeruFields';
 
 interface Props {
   pedidoId: string;
@@ -43,8 +44,8 @@ export function PedidoEmpaqueForm({ pedidoId, direccionInicial }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!direccion.trim()) {
-      toast.error('Ingrese la dirección de entrega');
+    if (!esDireccionDespachoPeruValida(direccion)) {
+      toast.error('Complete departamento, provincia, distrito y ubicación exacta');
       return;
     }
     if (!fechaEntrega) {
@@ -164,12 +165,19 @@ export function PedidoEmpaqueForm({ pedidoId, direccionInicial }: Props) {
           >
             Dirección de entrega
           </label>
-          <textarea
-            id="direccion"
-            rows={2}
+          {direccionInicial.trim() ? (
+            <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 mb-2">
+              Precargada desde la dirección indicada por el cliente. Confírmela o ajústela si es necesario.
+            </p>
+          ) : (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-2">
+              El cliente no registró dirección. Ingrese la dirección de entrega antes de crear el despacho.
+            </p>
+          )}
+          <DireccionDespachoPeruFields
             value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
+            onChange={setDireccion}
+            variant="admin"
           />
         </div>
 

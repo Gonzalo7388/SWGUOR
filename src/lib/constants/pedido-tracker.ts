@@ -1,4 +1,4 @@
-import type { EstadoDespacho, EstadoPedido } from '@prisma/client';
+import type { EstadoPedido } from '@prisma/client';
 
 export type TrackerStepKey =
   | 'pendiente'
@@ -28,7 +28,4 @@ export const PASOS_TRACKER_PEDIDO: TrackerStepDef[] = [
   { key: 'entregado', label: 'Entregado', pedidoEstado: 'entregado' },
 ];
 
-export const DESPACHO_ESTADOS_BLOQUEAN_DIRECCION: EstadoDespacho[] = [
-  'en_ruta',
-  'entregado',
-];
+export { DESPACHO_ESTADOS_BLOQUEAN_EDICION_DIRECCION as DESPACHO_ESTADOS_BLOQUEAN_DIRECCION } from '@/lib/helpers/pedido-direccion.helper';

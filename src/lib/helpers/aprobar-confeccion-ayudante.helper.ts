@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import type { EstadoConfeccion, EstadoOrdenProduccion } from '@prisma/client';
+import { precargarDireccionDespachoPedido } from '@/lib/helpers/pedido-direccion.helper';
+import { validarTransicionEstadoPedido } from '@/lib/helpers/pedido-transiciones.helper';
 
 const ESTADO_CONFECCION_COMPLETADA = 'completada' satisfies EstadoConfeccion;
 const ESTADO_ORDEN_COMPLETADA = 'completada' satisfies EstadoOrdenProduccion;
@@ -20,7 +22,7 @@ export async function aprobarConfeccionAyudante(
     include: {
       ordenes_produccion: {
         include: {
-          pedidos: { select: { id: true, estado: true } },
+          pedidos: { select: { id: true, estado: true, cliente_id: true } },
         },
       },
     },
@@ -54,6 +56,8 @@ export async function aprobarConfeccionAyudante(
     };
   }
 
+  validarTransicionEstadoPedido(pedido.estado, 'listo_para_despacho');
+
   const ordenId = conf.orden_produccion_id;
   if (!ordenId) {
     throw new Error('La confección no tiene orden de producción asociada');
@@ -78,6 +82,10 @@ export async function aprobarConfeccionAyudante(
       where: { id: pedido.id },
       data: { estado: 'listo_para_despacho', updated_at: new Date() },
     });
+
+    if (pedido.cliente_id) {
+      await precargarDireccionDespachoPedido(tx, pedido.id, pedido.cliente_id);
+    }
 
     await tx.seguimiento_pedido.create({
       data: {

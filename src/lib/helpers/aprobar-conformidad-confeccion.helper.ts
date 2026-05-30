@@ -3,6 +3,8 @@ import {
   crearNotificacion,
   crearNotificacionCliente,
 } from '@/lib/helpers/crear-notificacion.helper';
+import { precargarDireccionDespachoPedido } from '@/lib/helpers/pedido-direccion.helper';
+import { validarTransicionEstadoPedido } from '@/lib/helpers/pedido-transiciones.helper';
 
 const NOTA_CONFORMIDAD = 'Conformidad aprobada por ayudante';
 
@@ -76,6 +78,8 @@ export async function aprobarConformidadConfeccion(params: {
     return { pedidoId: pedido.id, yaAprobada: true };
   }
 
+  validarTransicionEstadoPedido(pedido.estado, 'listo_para_despacho');
+
   await prisma.$transaction(async (tx) => {
     await tx.confecciones.update({
       where: { id: params.confeccionId },
@@ -107,6 +111,8 @@ export async function aprobarConformidadConfeccion(params: {
       where: { id: pedido.id },
       data: { estado: 'listo_para_despacho', updated_at: new Date() },
     });
+
+    await precargarDireccionDespachoPedido(tx, pedido.id, pedido.cliente_id);
 
     await tx.seguimiento_pedido.create({
       data: {

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
+import type { Prisma } from '@prisma/client';
 
 export interface TallerSelectOption {
   id: string;
@@ -16,6 +17,18 @@ export interface ConfeccionListItem {
   tallerNombre: string;
   pedidoId: string | null;
 }
+
+/** Solo confecciones cuya orden ya tiene la etapa de corte completada. */
+export const whereConfeccionConCorteCompletado: Prisma.confeccionesWhereInput = {
+  ordenes_produccion: {
+    seguimiento_produccion: {
+      some: {
+        etapa: 'corte',
+        completado_en: { not: null },
+      },
+    },
+  },
+};
 
 export async function listarTalleresActivosSelect(): Promise<TallerSelectOption[]> {
   const rows = await prisma.talleres.findMany({
@@ -41,7 +54,10 @@ export async function listarConfeccionesParaOperaciones(filtros?: {
   tallerId?: string;
 }): Promise<ConfeccionListItem[]> {
   const rows = await prisma.confecciones.findMany({
-    where: filtros?.tallerId ? { taller_id: BigInt(filtros.tallerId) } : undefined,
+    where: {
+      ...whereConfeccionConCorteCompletado,
+      ...(filtros?.tallerId ? { taller_id: BigInt(filtros.tallerId) } : {}),
+    },
     include: {
       talleres: { select: { id: true, nombre: true } },
       ordenes_produccion: {

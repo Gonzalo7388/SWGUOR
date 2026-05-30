@@ -12,6 +12,10 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { PasoTrackerCalculado } from '@/lib/helpers/pedido-tracker.helper';
+import {
+  DireccionDespachoPeruFields,
+} from '@/components/shared/DireccionDespachoPeruFields';
+import { formatearVistaDireccionDespacho } from '@/lib/helpers/direccion-despacho-peru.helper';
 
 interface HistorialItem {
   id: number;
@@ -49,6 +53,7 @@ export function PedidoTracker({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [direccion, setDireccion] = useState('');
+  const [direccionValida, setDireccionValida] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -66,6 +71,7 @@ export function PedidoTracker({
       const payload = json.data as TrackerData;
       setData(payload);
       setDireccion(payload.direccion_despacho ?? '');
+      setDireccionValida(Boolean(payload.direccion_despacho));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al cargar');
     } finally {
@@ -131,8 +137,8 @@ export function PedidoTracker({
   const progresoPct =
     data.pasos.length > 1
       ? (data.pasos.filter((p) => p.estadoVisual === 'completado').length /
-          (data.pasos.length - 1)) *
-        100
+        (data.pasos.length - 1)) *
+      100
       : 0;
 
   return (
@@ -215,27 +221,36 @@ export function PedidoTracker({
           {data.puede_editar_direccion ? (
             <>
               <p className="text-xs text-emerald-800 font-medium">
-                Confirme o actualice su dirección antes del envío.
+                {data.estado === 'listo_para_despacho'
+                  ? 'Confirme o actualice su dirección antes del envío.'
+                  : 'Indique dónde desea recibir su pedido. Puede modificarla en cualquier momento antes del despacho.'}
               </p>
-              <textarea
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-                rows={3}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                placeholder="Calle, distrito, provincia, referencia…"
-              />
+              <div className="text-slate-900 [&_label]:text-slate-900 [&_input]:text-slate-900 [&_select]:text-slate-900">
+                <DireccionDespachoPeruFields
+                  value={direccion}
+                  onChange={setDireccion}
+                  onValidityChange={setDireccionValida}
+                  variant={variant === 'portal' ? 'portal' : 'admin'}
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleGuardarDireccion}
-                disabled={guardando || direccion.trim().length < 10}
+                disabled={guardando || !direccionValida}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase disabled:opacity-50"
               >
                 {guardando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Guardar dirección
               </button>
             </>
+          ) : data.direccion_despacho ? (
+            <p className="text-sm text-slate-800">
+              {formatearVistaDireccionDespacho(data.direccion_despacho)}
+            </p>
           ) : (
-            <p className="text-sm text-slate-800">{data.direccion_despacho}</p>
+            <p className="text-sm text-slate-500 italic">
+              Sin dirección registrada.
+            </p>
           )}
         </div>
       )}

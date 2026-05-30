@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { Eye, Printer, Truck, Calendar, User, Hash, XCircle, Palette, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ESTADO_PEDIDO_LABELS } from "@/lib/schemas/pedidos";
+import {
+  ESTADO_PEDIDO_LABELS,
+} from "@/lib/schemas/pedidos";
+import { ESTADO_VISUAL_PEDIDO_LABELS } from "@/lib/helpers/pedido-estado-visual.helper";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
@@ -22,12 +25,26 @@ const STATUS_COLORS: Record<string, string> = {
   pendiente:           "bg-amber-50 text-amber-600 border-amber-200",
   en_produccion:       "bg-blue-50 text-blue-600 border-blue-200",
   listo_para_despacho: "bg-violet-50 text-violet-600 border-violet-200",
+  preparando:          "bg-cyan-50 text-cyan-600 border-cyan-200",
+  en_ruta:             "bg-sky-50 text-sky-700 border-sky-200",
   entregado:           "bg-emerald-50 text-emerald-600 border-emerald-200",
   cancelado:           "bg-rose-50 text-rose-500 border-rose-200",
   pagado:              "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
-function StatusBadge({ estado }: { estado: string }) {
+function StatusBadge({
+  estado,
+  label,
+}: {
+  estado: string;
+  label?: string;
+}) {
+  const displayLabel =
+    label ??
+    ESTADO_VISUAL_PEDIDO_LABELS[estado] ??
+    ESTADO_PEDIDO_LABELS[estado as keyof typeof ESTADO_PEDIDO_LABELS] ??
+    estado;
+
   return (
     <Badge
       variant="outline"
@@ -36,7 +53,7 @@ function StatusBadge({ estado }: { estado: string }) {
         STATUS_COLORS[estado] ?? "bg-stone-50 text-stone-500 border-stone-200"
       )}
     >
-      {ESTADO_PEDIDO_LABELS[estado as keyof typeof ESTADO_PEDIDO_LABELS] ?? estado}
+      {displayLabel}
     </Badge>
   );
 }
@@ -125,7 +142,10 @@ export default function PedidosTable({
 
                   {/* Estado */}
                   <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:shadow-md transition-all">
-                    <StatusBadge estado={pedido.estado ?? "pendiente"} />
+                    <StatusBadge
+                      estado={pedido.estado_visual ?? pedido.estado ?? "pendiente"}
+                      label={pedido.estado_label}
+                    />
                   </td>
 
                   {/* Acciones */}

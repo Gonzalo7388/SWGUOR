@@ -8,6 +8,7 @@ import {
   calcularFechaEntregaEstimada,
   formatearEtaLegible,
 } from '@/lib/helpers/pedido-seguimiento.helper';
+import { puedeClienteEditarDireccionDespacho } from '@/lib/helpers/pedido-direccion.helper';
 import type { EstadoPedido } from '@prisma/client';
 
 async function obtenerClienteId() {
@@ -63,6 +64,11 @@ export async function GET(req: Request) {
         seguimiento_pedido: {
           orderBy: { created_at: 'asc' },
         },
+        despachos: {
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          select: { estado: true },
+        },
       },
       orderBy: { id: 'desc' },
     });
@@ -100,7 +106,10 @@ export async function GET(req: Request) {
         total_unidades: p.total_unidades ?? 0,
         notas_cliente: p.notas_cliente,
         direccion_despacho: p.direccion_despacho,
-        puede_editar_direccion: p.estado === 'listo_para_despacho',
+        puede_editar_direccion: puedeClienteEditarDireccionDespacho(
+          p.estado,
+          p.despachos[0]?.estado,
+        ),
         historial,
         ultimaActualizacion: ultima,
       };

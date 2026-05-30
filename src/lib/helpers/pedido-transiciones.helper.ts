@@ -20,3 +20,23 @@ export function puedeTransicionar(
 ): boolean {
   return obtenerEstadosSiguientes(desde).includes(hacia as EstadoPedido);
 }
+
+/** Bloquea saltos inválidos (p. ej. pendiente → listo_para_despacho). */
+export function validarTransicionEstadoPedido(
+  estadoActual: EstadoPedido | string | null | undefined,
+  estadoDestino: EstadoPedido | string,
+): void {
+  const actual = estadoActual ?? 'pendiente';
+
+  if (estadoDestino === 'listo_para_despacho' && actual !== 'en_produccion') {
+    throw new Error(
+      'El pedido debe estar en producción para pasar a listo para despacho.',
+    );
+  }
+
+  if (!puedeTransicionar(actual, estadoDestino)) {
+    throw new Error(
+      `No se puede cambiar el pedido de "${actual}" a "${estadoDestino}".`,
+    );
+  }
+}
