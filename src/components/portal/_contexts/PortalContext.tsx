@@ -5,7 +5,6 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { useNotificationsPortal } from '@/lib/hooks/useNotificacionPortal';
 import { calcularResumen } from './portalCalculos';
 import type { ProductoBase } from '@/types/portal';
-import { resolveCartMoq } from '@/lib/constants/portal-b2b';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useQuotationStore } from '@/lib/store/useQuotationStore';
 import { toast } from 'sonner';

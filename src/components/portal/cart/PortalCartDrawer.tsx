@@ -75,7 +75,7 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
                 <p className="text-xs text-muted-foreground">Añade productos desde el catálogo B2B para empezar.</p>
               </div>
               <Link
-                href="/portal/productos"
+                href="/portal/catalogo"
                 onClick={() => onOpenChange(false)}
                 className="inline-flex h-9 items-center justify-center rounded-lg bg-secondary px-4 text-xs font-bold text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80"
               >
