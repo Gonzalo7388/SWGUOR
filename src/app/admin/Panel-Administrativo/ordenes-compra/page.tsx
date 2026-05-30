@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, Search, RefreshCw, 
+  Plus, Search, RefreshCw,
   FileSpreadsheet, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,14 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 import { ESTADOS_ORDEN_COMPRA } from '@/lib/constants/estados';
 import type { OrdenCompraRow } from '@/components/admin/ordenes-compra/types';
 import { exportToExcel } from '@/lib/utils/export-utils';
+import { EstadoOrdenCompra } from '@prisma/client';
 
 export default function OrdenesCompraPage() {
   const router = useRouter();
   const { can, isLoading: authLoading } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('todos');
-  
+
   // Estados de carga para las exportaciones
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
@@ -91,11 +92,11 @@ export default function OrdenesCompraPage() {
         'Cotización': o.cotizaciones_proveedor?.numero_externo
           ? `#${o.cotizaciones_proveedor.numero_externo}`
           : o.cotizacion_proveedor_id
-          ? `COT-${o.cotizacion_proveedor_id}`
-          : 'Manual',
+            ? `COT-${o.cotizacion_proveedor_id}`
+            : 'Manual',
         'Total': `S/ ${Number(o.total_orden).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
         'F. prometida': o.fecha_prometida ? new Date(o.fecha_prometida).toLocaleDateString('es-PE') : '—',
-        'Estado': ESTADOS_ORDEN_COMPRA[o.estado]?.label || o.estado,
+        'Estado': ESTADOS_ORDEN_COMPRA[o.estado as EstadoOrdenCompra]?.label || o.estado,
         'Pago': o.estado_pago,
       }));
 
@@ -160,7 +161,7 @@ export default function OrdenesCompraPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Encabezado Superior con los colores de botón solicitados */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <AdminPageHeader
@@ -197,10 +198,10 @@ export default function OrdenesCompraPage() {
           </div>
         </div>
 
-         {/* Botones de acción para exportar con los colores solicitados */}
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-slate-500">
-          
+        {/* Botones de acción para exportar con los colores solicitados */}
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-slate-500">
+
             {/* BOTÓN EXPORTAR EXCEL CON TUS COLORES */}
             <Button
               variant="outline"
