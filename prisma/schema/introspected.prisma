@@ -1191,7 +1191,7 @@ model incidencias_cliente {
   id            BigInt                   @id @default(autoincrement())
   cliente_id    BigInt?
   pedido_id     BigInt?
-  tipo          tipo_incidencia_cliente?
+  tipo          TipoIncidenciaCliente?
   descripcion   String?
   estado        String?                  @default("abierta")
   evidencia_url String[]
@@ -2126,6 +2126,9 @@ enum EstadoDespacho {
   entregado
   preparando
   incidencia
+  en_almacen
+  devuelto
+  cancelado
 
   @@schema("public")
 }
@@ -2200,8 +2203,9 @@ enum EstadoOrdenProduccion {
 
 enum EstadoPago {
   pendiente
-  verificado
-  rechazado
+  pago_parcial
+  pagado
+  anulado
 
   @@schema("public")
 }
@@ -2402,6 +2406,7 @@ enum TipoBeneficio {
 enum TipoCliente {
   corporativo
   minorista
+  mayorista
   distribuidor
 
   @@schema("public")
@@ -2444,7 +2449,7 @@ enum TipoIncidencia {
   @@schema("public")
 }
 
-enum tipo_incidencia_cliente {
+enum TipoIncidenciaCliente {
   defecto_confeccion
   pedido_equivocado
   talla_incorrecta

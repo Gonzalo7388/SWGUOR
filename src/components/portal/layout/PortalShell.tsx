@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { usePortal } from '@/lib/hooks/usePortal';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
-import { AsistenteIA } from '@/components/portal/AsistenteIA';
+import { AsistenteIA } from '@/components/portal/layout/AsistenteIA';
 import { PortalSidebar } from './PortalSidebar';
 import { Navbar } from './PortalNavbar';
 

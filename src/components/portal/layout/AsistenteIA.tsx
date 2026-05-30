@@ -205,7 +205,7 @@ export function AsistenteIA() {
                 {loading && (
                   <div className="flex items-center gap-2" style={{ color: '#a89060', fontSize: 11 }}>
                     <Loader2 size={13} className="animate-spin" />
-                    <span>Guorino está escribiendo…</span>
+                    <span>Nexus está escribiendo…</span>
                   </div>
                 )}
               </div>

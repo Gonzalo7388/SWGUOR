@@ -59,7 +59,7 @@ export default function CatalogoPage() {
       const cumplePrecio =
         producto.precio >= rangoPrecio[0] && producto.precio <= rangoPrecio[1];
 
-      // 4. Filtro por Talla Seleccionada (Asegurando tipado dinámico)
+      // 4. Filtro por Talla Seleccionada
       let cumpleTalla = true;
       if (tallaSeleccionada) {
         const lasTallas = producto.tallas_disponibles;
@@ -74,7 +74,7 @@ export default function CatalogoPage() {
         }
       }
 
-      // 5. Filtro por Color Seleccionado (Asegurando tipado dinámico)
+      // 5. Filtro por Color Seleccionado
       let cumpleColor = true;
       if (colorSeleccionado) {
         const losColores = producto.colores_disponibles;
@@ -108,7 +108,8 @@ export default function CatalogoPage() {
 
   const handleConfirmarAgregar = async (varianteId: number, producto: ProductoPortal, cantidad: number) => {
     try {
-      const varianteElegida = producto.variantes?.find((v) => v.id === varianteId);
+      const lasVariantes = producto.variantes ?? producto.variantes_producto ?? [];
+      const varianteElegida = lasVariantes.find((v) => v.id === varianteId);
 
       if (!varianteElegida) {
         toast.error('La combinación seleccionada no se encuentra disponible.');
@@ -202,6 +203,8 @@ export default function CatalogoPage() {
                   producto={producto}
                   onSelect={handleAbrirPicker}
                   onQuickView={(p) => setProductoDetalle(p)}
+                  // CORRECCIÓN CRÍTICA: Enviar las promociones que vienen dentro del objeto producto
+                  promociones={(producto as any).badges_campanas || []}
                 />
               ))}
             </div>

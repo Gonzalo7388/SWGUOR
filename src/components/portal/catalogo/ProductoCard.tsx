@@ -2,11 +2,11 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { ShoppingBag, Eye, Star, Loader2, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Eye, Star, Loader2, CheckCircle, Ban } from 'lucide-react';
 import { useCartStore, type CartState } from '@/lib/store/useCartStore';
 import { resolveCartMoq } from '@/lib/constants/portal-b2b';
 import { usePortalCart } from '@/components/portal/cart/PortalCartLayout';
-import { PromocionProductoBadge } from '@/components/portal/PromocionProductoBadge';
+import { PromocionProductoBadge } from '@/components/portal/catalogo/PromocionProductoBadge';
 import { COLOR_MAP } from '@/lib/constants/colores';
 import { toast } from 'sonner';
 import type { ProductoCampanaBadge } from '@/lib/services/portal-promociones-catalogo.service';
@@ -49,13 +49,37 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
 
     const imageUrl = resolveImageUrl(producto.imagen);
     const moqProducto = resolveCartMoq(producto.moq);
-    const variantes = producto.variantes ?? producto.variantes_producto ?? [];
 
-    // Modo carrito directo (sin onSelect)
+    // 1. Extraemos las variantes respetando el tipado seguro y propiedades de la vista
+    const variantes = (producto.variantes ?? (producto as any).variantes_producto ?? []) as Array<{
+        id: number;
+        talla?: string;
+        color?: string;
+        stock?: number;
+        stock_disponible?: number;
+        imagen_url?: string | null;
+    }>;
+
+    // 2. Calculamos el stock acumulado total del producto usando la vista
+    const totalStockDisponible = variantes.reduce((acc, v) => acc + Number(v.stock_disponible ?? v.stock ?? 0), 0);
+    const estaAgotado = totalStockDisponible <= 0;
+
+    // Modo carrito directo (Fallback seguro)
     const handleAgregarCarrito = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        e.preventDefault();
 
-        const variante = variantes.find((v) => Number(v.stock ?? 0) > 0) ?? variantes[0];
+        if (estaAgotado) return;
+
+        if (!variantes || variantes.length === 0) {
+            toast.error('Sin variantes configuradas', {
+                description: 'Este producto no cuenta con una matriz de stock activa.',
+            });
+            return;
+        }
+
+        // Busca la primera variante que tenga stock real en tu vista
+        const variante = variantes.find((v) => Number(v.stock_disponible ?? v.stock ?? 0) > 0) ?? variantes[0];
 
         if (!variante?.id) {
             toast.error('Sin variantes disponibles', {
@@ -96,22 +120,37 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
 
     // Ícono del botón principal de acción en hover
     const ActionButton = () => {
-        if (onSelect) {
-            // Modo catálogo: abre configurador
+        if (estaAgotado) {
             return (
                 <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onSelect(producto); }}
-                    className="p-3 rounded-full text-white transition-all hover:scale-110 shadow-md"
+                    disabled
+                    className="p-3 bg-gray-300 text-gray-500 rounded-full cursor-not-allowed shadow-md"
+                    title="Producto sin inventario"
+                >
+                    <Ban size={18} />
+                </button>
+            );
+        }
+
+        if (onSelect) {
+            return (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onSelect(producto);
+                    }}
+                    className="p-3 rounded-full text-white transition-all hover:scale-110 shadow-md cursor-pointer"
                     style={{ backgroundColor: 'var(--guor-gold)' }}
-                    title="Configurar Pedido"
+                    title="Configurar Pedido Mayorista"
                 >
                     <ShoppingBag size={18} />
                 </button>
             );
         }
 
-        // Modo carrito directo
         return (
             <button
                 type="button"
@@ -132,14 +171,15 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
 
     return (
         <div
-            className="group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 border flex flex-col h-full"
+            className={`group relative bg-white rounded-2xl transition-all duration-300 border flex flex-col h-full ${estaAgotado ? 'opacity-85 shadow-none' : 'hover:shadow-lg'
+                }`}
             style={{ borderColor: 'var(--guor-stone)' }}
-            onMouseEnter={() => setIsHovered(true)}
+            onMouseEnter={() => !estaAgotado && setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* ── Imagen ─────────────────────────────────────────────────────────── */}
             <div
-                className="relative aspect-square w-full overflow-hidden flex items-center justify-center select-none"
+                className="relative aspect-square w-full overflow-hidden rounded-t-2xl flex items-center justify-center select-none"
                 style={{ backgroundColor: 'var(--guor-cream)' }}
             >
                 {imageUrl ? (
@@ -149,7 +189,8 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
                         fill
                         sizes="(max-width: 768px) 50vw, 25vw"
                         priority={false}
-                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        className={`object-cover transition-transform duration-700 ease-out ${estaAgotado ? 'grayscale' : 'group-hover:scale-105'
+                            }`}
                     />
                 ) : (
                     <div
@@ -160,50 +201,60 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
                     </div>
                 )}
 
-                {/* Capa de acciones en hover */}
-                <div
-                    className={`absolute inset-0 bg-black/20 backdrop-blur-xs flex items-center justify-center gap-3 transition-opacity duration-300 z-10 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                        }`}
-                >
-                    {onQuickView && (
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onQuickView(producto); }}
-                            className="p-3 bg-white rounded-full hover:bg-gray-100 transition-all hover:scale-110 shadow-md"
-                            title="Vista Rápida"
-                        >
-                            <Eye size={18} style={{ color: 'var(--guor-dark)' }} />
-                        </button>
-                    )}
-                    <ActionButton />
-                </div>
+                {/* Capa de acciones en hover (Solo si no está agotado) */}
+                {!estaAgotado && (
+                    <div
+                        className={`absolute inset-0 bg-black/20 backdrop-blur-xs flex items-center justify-center gap-3 transition-opacity duration-300 z-10 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                            }`}
+                    >
+                        {onQuickView && (
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onQuickView(producto); }}
+                                className="p-3 bg-white rounded-full hover:bg-gray-100 transition-all hover:scale-110 shadow-md"
+                                title="Vista Rápida"
+                            >
+                                <Eye size={18} style={{ color: 'var(--guor-dark)' }} />
+                            </button>
+                        )}
+                        <ActionButton />
+                    </div>
+                )}
 
-                {/* ── Badges superiores ──────────────────────────────────────────── */}
-                <div className="absolute top-3 left-3 right-3 flex justify-between items-start pointer-events-none z-10">
-                    <div>
-                        {producto.destacado && (
+                {/* Badges superiores izquierdos */}
+                <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none z-10">
+                    {estaAgotado ? (
+                        <span className="bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-md flex items-center gap-1 animate-pulse">
+                            <Ban size={10} /> Agotado
+                        </span>
+                    ) : (
+                        producto.destacado && (
                             <span
                                 className="bg-white/90 backdrop-blur-xs text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-xs flex items-center gap-1 border border-amber-100"
                                 style={{ color: 'var(--guor-gold)' }}
                             >
                                 <Star size={10} className="fill-current" /> Destacado
                             </span>
-                        )}
-                    </div>
+                        )
+                    )}
                     <span
-                        className="text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-xs"
-                        style={{ backgroundColor: 'var(--guor-dark)' }}
+                        className="text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-xs self-start"
+                        style={{ backgroundColor: estaAgotado ? '#6b7280' : 'var(--guor-dark)' }}
                     >
                         MOQ: {moqProducto} uds
                     </span>
                 </div>
 
-                {/* Badges de promociones */}
-                {promociones.length > 0 && <PromocionProductoBadge badges={promociones} />}
+                {/* Badges superiores derechos */}
+                {promociones.length > 0 && !estaAgotado && (
+                    <div className="absolute top-3 right-3 z-20 pointer-events-auto">
+                        <PromocionProductoBadge badges={promociones} />
+                    </div>
+                )}
             </div>
 
             {/* ── Cuerpo ─────────────────────────────────────────────────────────── */}
-            <div className="p-4 flex flex-col flex-1 bg-white">
+            <div className="p-4 flex flex-col flex-1 bg-white rounded-b-2xl">
                 <div className="mb-2">
                     <p
                         className="text-[10px] font-bold uppercase tracking-widest opacity-40 truncate mb-0.5"
@@ -212,9 +263,10 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
                         {producto.sku || 'SKU-PENDIENTE'}
                     </p>
                     <h3
-                        className="text-xs font-black uppercase tracking-wider line-clamp-1 group-hover:text-amber-700 transition-colors cursor-pointer"
-                        style={{ color: 'var(--guor-dark)' }}
-                        onClick={() => onSelect?.(producto)}
+                        className={`text-xs font-black uppercase tracking-wider line-clamp-1 transition-colors ${estaAgotado ? 'text-gray-400 line-through' : 'group-hover:text-amber-700 cursor-pointer'
+                            }`}
+                        style={{ color: estaAgotado ? '#9ca3af' : 'var(--guor-dark)' }}
+                        onClick={(e) => { e.stopPropagation(); !estaAgotado && onSelect?.(producto); }}
                     >
                         {producto.nombre}
                     </h3>
@@ -228,7 +280,7 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
                                 <span
                                     key={color}
                                     title={formatearColor(color)}
-                                    className="w-4 h-4 rounded-full border border-gray-200 inline-block shrink-0"
+                                    className={`w-4 h-4 rounded-full border border-gray-200 inline-block shrink-0 ${estaAgotado ? 'opacity-40' : ''}`}
                                     style={{ backgroundColor: COLOR_MAP[color] ?? '#e5e7eb' }}
                                 />
                             ))}
@@ -240,20 +292,33 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
                         </div>
                     )}
 
-                    {/* Tallas */}
-                    {(producto.tallas_disponibles?.length ?? 0) > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                            {producto.tallas_disponibles!.map((talla) => (
-                                <span
-                                    key={talla}
-                                    className="text-[9px] font-black px-1.5 py-0.5 rounded border"
-                                    style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}
-                                >
-                                    {talla}
-                                </span>
-                            ))}
-                        </div>
-                    )}
+                    {/* Tallas y Alerta Detallada de Variantes Sin Stock */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {(producto.tallas_disponibles?.length ?? 0) > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {producto.tallas_disponibles!.map((talla) => (
+                                    <span
+                                        key={talla}
+                                        className="text-[9px] font-black px-1.5 py-0.5 rounded border"
+                                        style={{
+                                            borderColor: estaAgotado ? '#e5e7eb' : 'var(--guor-stone)',
+                                            color: estaAgotado ? '#9ca3af' : 'var(--guor-dark)',
+                                            backgroundColor: estaAgotado ? '#f9fafb' : 'transparent'
+                                        }}
+                                    >
+                                        {talla}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Texto explícito de Sin Stock al lado de las variantes en color rojo */}
+                        {estaAgotado && (
+                            <span className="text-[10px] font-bold text-red-600 ml-auto tracking-wide bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                                Sin Stock
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Precio y acción */}
@@ -268,21 +333,30 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
                         >
                             Precio
                         </span>
-                        <span className="text-sm font-black" style={{ color: 'var(--guor-gold)' }}>
+                        <span className={`text-sm font-black ${estaAgotado ? 'text-gray-400' : ''}`} style={{ color: estaAgotado ? '#9ca3af' : 'var(--guor-gold)' }}>
                             {formatPrecio(producto.precio)}
                         </span>
                     </div>
 
-                    {/* Botón de texto en el footer — solo en modo catálogo */}
-                    {onSelect && (
+                    {estaAgotado ? (
                         <button
                             type="button"
-                            onClick={() => onSelect(producto)}
-                            className="text-[10px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
-                            style={{ color: 'var(--guor-dark)' }}
+                            disabled
+                            className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 cursor-not-allowed"
                         >
-                            Nuevo Pedido
+                            Sin Stock
                         </button>
+                    ) : (
+                        onSelect && (
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onSelect(producto); }}
+                                className="text-[10px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+                                style={{ color: 'var(--guor-dark)' }}
+                            >
+                                Agregar al Pedido
+                            </button>
+                        )
                     )}
                 </div>
             </div>
@@ -294,10 +368,10 @@ export function ProductoCard<T extends ProductoBase>({ producto, onSelect, onQui
 export function ProductoCardSkeleton() {
     return (
         <div
-            className="bg-white border rounded-2xl overflow-hidden flex flex-col h-full animate-pulse"
+            className="bg-white border rounded-2xl flex flex-col h-full animate-pulse"
             style={{ borderColor: 'var(--guor-stone)' }}
         >
-            <div className="aspect-square w-full" style={{ backgroundColor: 'var(--guor-cream)' }}>
+            <div className="aspect-square w-full rounded-t-2xl bg-gray-100" style={{ backgroundColor: 'var(--guor-cream)' }}>
                 <div className="absolute top-3 right-3 h-5 w-16 bg-white/60 rounded-md" />
             </div>
             <div className="p-4 flex flex-col gap-3 flex-1">

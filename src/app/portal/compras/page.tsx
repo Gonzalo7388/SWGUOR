@@ -116,7 +116,7 @@ export default function ConfirmarCompraPage() {
       {/* Encabezado */}
       <header className="flex items-center gap-3 pb-4 border-b" style={{ borderColor: 'var(--guor-stone)' }}>
         <Link
-          href="/portal/productos"
+          href="/portal/catalogo"
           className="w-9 h-9 rounded-full flex items-center justify-center border transition-colors hover:bg-guor-cream-deep"
           style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}
           aria-label="Volver al catálogo"

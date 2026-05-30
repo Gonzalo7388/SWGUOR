@@ -89,7 +89,7 @@ export function FiltrosCatalogo({
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Escribe nombre o SKU..."
+                        placeholder="Escribe nombre del modelo..."
                         className="w-full h-10 pl-9 pr-4 border rounded-xl text-xs font-bold focus:outline-none transition-colors bg-white"
                         style={{ borderColor: 'var(--guor-stone)', color: 'var(--guor-dark)' }}
                     />
