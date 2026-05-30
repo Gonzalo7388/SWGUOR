@@ -2,9 +2,16 @@ import React from 'react';
 import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ESTADOS_PEDIDO, ESTADOS_PAGO, PRIORIDADES_PEDIDO, TIPOS_CLIENTE } from '@/lib/constants/estados';
 
-type EstadoPedido =
-  | 'solicitado' | 'cotizado' | 'aprobado' | 'pagado'
-  | 'en_proceso' | 'finalizado' | 'cancelado';
+type BadgeConfig = { label: string; color: string; bgColor: string };
+
+function lookupBadge<T extends string>(
+  record: Record<T, BadgeConfig>,
+  key: string,
+): BadgeConfig | undefined {
+  const normalized = key?.toLowerCase();
+  if (!normalized || !(normalized in record)) return undefined;
+  return record[normalized as T];
+}
 
 export interface PaletaColors {
   accent: string;
@@ -91,32 +98,36 @@ export const ESTADO_ICONS: Record<string, React.ReactNode> = {
   en_proceso: <AlertCircle size={11} />,
   finalizado: <CheckCircle2 size={11} />,
   cancelado:  <AlertCircle size={11} />,
+  pendiente: <Clock size={11} />,
+  en_produccion: <AlertCircle size={11} />,
+  listo_para_despacho: <CheckCircle2 size={11} />,
+  entregado: <CheckCircle2 size={11} />,
 };
 
 export const toBadgeCls = (color: string, bgColor: string) =>
   `${bgColor.replace('100', '50')} ${color} border ${bgColor.replace('bg-', 'border-').replace('100', '200')}`;
 
 export function getOrdenStatus(estado: string) {
-  const key = estado?.toLowerCase() as EstadoPedido;
-  const cfg = ESTADOS_PEDIDO[key];
+  const key = estado?.toLowerCase() ?? '';
+  const cfg = lookupBadge(ESTADOS_PEDIDO, key);
   if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: null };
   return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor), icon: ESTADO_ICONS[key] ?? null };
 }
 
 export function getPagoStatus(estado: string) {
-  const cfg = ESTADOS_PAGO[estado?.toLowerCase()];
+  const cfg = lookupBadge(ESTADOS_PAGO, estado);
   if (!cfg) return { label: estado ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
   return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor) };
 }
 
 export function getPrioridad(p: string) {
-  const cfg = PRIORIDADES_PEDIDO[p?.toLowerCase()];
+  const cfg = lookupBadge(PRIORIDADES_PEDIDO, p);
   if (!cfg) return { label: p ?? '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
   return { label: cfg.label, cls: toBadgeCls(cfg.color, cfg.bgColor) };
 }
 
 export function getTipoCliente(tipo: string) {
-  const cfg = TIPOS_CLIENTE[tipo?.toLowerCase()];
+  const cfg = lookupBadge(TIPOS_CLIENTE, tipo);
   return cfg?.label ?? tipo ?? '—';
 }
 

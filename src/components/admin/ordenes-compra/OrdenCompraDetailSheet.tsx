@@ -22,8 +22,8 @@ interface Props {
 export default function OrdenCompraDetailSheet({ orden, open, onOpenChange }: Props) {
   if (!orden) return null;
 
-  const est = ESTADOS_ORDEN_COMPRA[orden.estado];
-  const pago = ESTADOS_PAGO_ORDEN_COMPRA[orden.estado_pago];
+  const est = ESTADOS_ORDEN_COMPRA[orden.estado as keyof typeof ESTADOS_ORDEN_COMPRA];
+  const pago = ESTADOS_PAGO_ORDEN_COMPRA[orden.estado_pago as keyof typeof ESTADOS_PAGO_ORDEN_COMPRA];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

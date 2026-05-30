@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get('file');
-    const productoId = formData.get('productoId');
+    const productoId = formData.get('productoId') as string;
     const tipo = formData.get('tipo');
 
     if (!(file instanceof File)) {
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Imagen demasiado grande (máx. 8 MB)' }, { status: 400 });
     }
 
-    const path = fichaTecnicaStoragePath(productoId, tipoStr as 'pdf' | 'geometral' | 'evidencia', file.name);
+    const path = fichaTecnicaStoragePath(productoId as string, tipoStr as 'pdf' | 'geometral' | 'evidencia', file.name);
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const supabase = createAdminClient();
