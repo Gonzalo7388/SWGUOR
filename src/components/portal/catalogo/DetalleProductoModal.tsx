@@ -14,11 +14,31 @@ interface DetallesProductoModalProps {
 const formatearColor = (color: string) =>
     color.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
+/**
+ * Función auxiliar para asegurar que colores y tallas 
+ * se transformen en un array iterable sin importar cómo vengan desde la DB.
+ */
+function parsearAtributoSeguro(data: unknown): string[] {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.map(String);
+    if (typeof data === 'string') {
+        try {
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch {
+            // Si no es un JSON válido pero tiene texto separado por comas
+            return data.split(',').map((str) => str.trim()).filter(Boolean);
+        }
+    }
+    return [];
+}
+
 export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesProductoModalProps) {
     if (!isOpen || !producto) return null;
 
-    const colores = (producto.colores_disponibles as string[]) || [];
-    const tallas = (producto.tallas_disponibles as string[]) || [];
+    // Ejecución del parseo seguro para evitar "colores.map is not a function"
+    const colores = parsearAtributoSeguro(producto.colores_disponibles);
+    const tallas = parsearAtributoSeguro(producto.tallas_disponibles);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
@@ -42,7 +62,7 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                             className="text-[11px] font-bold uppercase tracking-widest mt-0.5"
                             style={{ color: 'var(--guor-gold)' }}
                         >
-                            SKU: {producto.sku}
+                            SKU: {producto.sku || 'N/D'}
                         </p>
                     </div>
                     <button
@@ -90,7 +110,7 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                         </div>
 
                         <div
-                            className="grid grid-cols-2 gap-4 p-4 rounded-2xl border"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl border"
                             style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)' }}
                         >
                             {/* Colores */}
@@ -101,19 +121,23 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                                 >
                                     Colores Habilitados
                                 </span>
-                                <div className="flex flex-wrap gap-2">
-                                    {colores.map((c) => (
-                                        <span
-                                            key={c}
-                                            title={formatearColor(c)}
-                                            className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0 hover:scale-110 transition-transform"
-                                            style={{
-                                                backgroundColor: COLOR_MAP[c] ?? '#e5e7eb',
-                                                outline: '1px solid var(--guor-stone-mid)',
-                                            }}
-                                        />
-                                    ))}
-                                </div>
+                                {colores.length === 0 ? (
+                                    <p className="text-xs italic text-slate-400">Estándar / Único</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {colores.map((c) => (
+                                            <span
+                                                key={c}
+                                                title={formatearColor(c)}
+                                                className="w-7 h-7 rounded-full border-2 border-white shadow-sm shrink-0 hover:scale-110 transition-transform"
+                                                style={{
+                                                    backgroundColor: COLOR_MAP[c.toLowerCase()] ?? '#e5e7eb',
+                                                    outline: '1px solid var(--guor-stone-mid)',
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Tallas */}
@@ -124,38 +148,51 @@ export function DetallesProductoModal({ producto, isOpen, onClose }: DetallesPro
                                 >
                                     Tallas Disponibles
                                 </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {tallas.map((t) => (
-                                        <span
-                                            key={t}
-                                            className="px-3 py-1 rounded-lg font-black text-xs border"
-                                            style={{
-                                                backgroundColor: 'var(--guor-cream-deep)',
-                                                borderColor: 'var(--guor-stone-mid)',
-                                                color: 'var(--guor-dark)',
-                                            }}
-                                        >
-                                            {t}
-                                        </span>
-                                    ))}
-                                </div>
+                                {tallas.length === 0 ? (
+                                    <p className="text-xs italic text-slate-400">Tamaño Único (U)</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {tallas.map((t) => (
+                                            <span
+                                                key={t}
+                                                className="px-3 py-1 rounded-lg font-black text-xs border"
+                                                style={{
+                                                    backgroundColor: 'var(--guor-cream-deep)',
+                                                    borderColor: 'var(--guor-stone-mid)',
+                                                    color: 'var(--guor-dark)',
+                                                }}
+                                            >
+                                                {t.toUpperCase()}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Precio */}
-                        <div className="mt-4 flex justify-end">
-                            <p
-                                className="text-[10px] uppercase tracking-widest font-bold"
-                                style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
-                            >
-                                Precio base:{' '}
-                                <span
-                                    className="text-sm font-black normal-case tracking-normal"
-                                    style={{ color: 'var(--guor-gold)', opacity: 1 }}
+                        {/* Detalles de MOQ y Precio */}
+                        <div className="mt-4 flex justify-between items-center px-1">
+                            <div>
+                                {producto.moq && (
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                        Pedido Mínimo (MOQ): <span className="font-black text-slate-700">{producto.moq} uds</span>
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <p
+                                    className="text-[10px] uppercase tracking-widest font-bold"
+                                    style={{ color: 'var(--guor-dark)', opacity: 0.5 }}
                                 >
-                                    {formatCurrency(producto.precio)}
-                                </span>
-                            </p>
+                                    Precio base:{' '}
+                                    <span
+                                        className="text-sm font-black normal-case tracking-normal"
+                                        style={{ color: 'var(--guor-gold)', opacity: 1 }}
+                                    >
+                                        {formatCurrency(producto.precio)}
+                                    </span>
+                                </p>
+                            </div>
                         </div>
                     </section>
                 </div>
