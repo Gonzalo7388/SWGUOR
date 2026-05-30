@@ -1,15 +1,16 @@
 'use client';
 
-import { createContext, useEffect, useState, useCallback, useMemo, ReactNode, useReducer } from 'react';
+import { createContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { useNotificationsPortal } from '@/lib/hooks/useNotificacionPortal';
-import { portalReducer, PortalState } from './portalReducer';
 import { calcularResumen } from './portalCalculos';
 import type { ProductoBase } from '@/types/portal';
 import { resolveCartMoq } from '@/lib/constants/portal-b2b';
+import { useCartStore } from '@/lib/store/useCartStore';
+import { useQuotationStore } from '@/lib/store/useQuotationStore';
 
 // ── Interfaces y Tipos (Exportaciones limpias) ───────────────────────────────
-export interface ClientePortal { id: number; usuario_id: number; ruc: number; razon_social: string; nombre_comercial: string; direccion?: string; email: string | null; telefono: number | null; tipo_cliente: string; }
+export interface ClientePortal { id: number; usuario_id: number; ruc: number; razon_social: string; nombre_comercial: string; direccion_fiscal?: string; email: string | null; telefono: number | null; tipo_cliente: string; }
 export type ItemCotizacion = ItemLineaB2B;
 export type ItemCarrito = ItemLineaB2B;
 export type ZonaEnvio = 'cercana_sjl' | 'media' | 'lejana';
@@ -87,17 +88,16 @@ export const PortalContext = createContext<PortalCtxProps | null>(null);
 
 export const MAX_UNIDADES = 2000;
 
-const SS_BORRADOR = 'guor_portal_borrador';
-const SS_CARRITO = 'guor_portal_carrito';
-const SS_ZONA = 'guor_portal_zona';
-
-const initialState: PortalState = { itemsBorrador: [], itemsCarrito: [] };
-
 export function PortalProvider({ children }: { children: ReactNode }) {
-    const [state, dispatch] = useReducer(portalReducer, initialState);
+    // ── 1. ESTADOS REACTIVOS DESDE ZUSTAND ──
+    const storeItemsBorrador = useQuotationStore((state) => state.itemsBorrador);
+    const storeItemsCarrito = useCartStore((state) => state.items);
+    const zonaEnvio = useQuotationStore((state) => state.zonaEnvio);
+    const actualizarZonaEnvioState = useQuotationStore((state) => state.actualizarZonaEnvio);
+
+    // ── 2. ESTADOS LOCALES BASE ──
     const [cliente, setCliente] = useState<ClientePortal | null>(null);
     const [loading, setLoading] = useState(true);
-    const [zonaEnvio, setZonaEnvioState] = useState<ZonaEnvio>('cercana_sjl');
     const [reglas, setReglas] = useState<ReglaDescuento[]>([]);
     const [stats, setStats] = useState({ cotizaciones_activas: 0, ordenes_activas: 0, despachos_en_ruta: 0 });
     const [costosEnvio, setCostosEnvio] = useState<CostoEnvioDb[]>([
@@ -110,27 +110,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     const { notificaciones, unreadCount, loading: loadingNotifs, markAsRead, markAllAsRead, refetch: refetchNotifs } = useNotificationsPortal(cliente?.usuario_id);
 
-    // Carga inicial segura de SessionStorage en Cliente (Previene desajustes de SSR)
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            const b = sessionStorage.getItem(SS_BORRADOR);
-            const c = sessionStorage.getItem(SS_CARRITO);
-            const z = sessionStorage.getItem(SS_ZONA);
-            dispatch({
-                type: 'SET_INITIAL_STATES',
-                borrador: b ? JSON.parse(b) : [],
-                carrito: c ? JSON.parse(c) : []
-            });
-            if (z) setZonaEnvioState(JSON.parse(z));
-        } catch (e) { console.error(e); }
-    }, []);
-
-    // Sincronizadores automáticos e independientes de almacenamiento local
-    useEffect(() => { sessionStorage.setItem(SS_BORRADOR, JSON.stringify(state.itemsBorrador)); }, [state.itemsBorrador]);
-    useEffect(() => { sessionStorage.setItem(SS_CARRITO, JSON.stringify(state.itemsCarrito)); }, [state.itemsCarrito]);
-
-    // Inicialización del Portal B2B con consulta única optimizada (Mitiga Latencia de Red / LCP)
+    // Inicialización del Portal B2B con consulta única optimizada
     useEffect(() => {
         const init = async () => {
             const supabase = getSupabaseBrowserClient();
@@ -152,7 +132,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                     setCostosEnvio(costosRes.data.map(c => ({ id: c.id, zona: c.zona as ZonaEnvio, costo: Number(c.costo), activo: c.activo })));
                 }
 
-                // Consulta relacional en un solo viaje limpio
                 const { data: usuarioPerfil } = await supabase
                     .from('usuarios')
                     .select(`id, cliente_datos:clientes!clientes_usuario_id_fkey (*)`)
@@ -169,7 +148,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                         usuario_id: usuarioPerfil!.id,
                         ruc: Number(datosCliente.ruc),
                         razon_social: datosCliente.razon_social || 'Sin Razón Social',
-                        direccion: datosCliente.direccion_fiscal || 'Sin Dirección',
+                        direccion_fiscal: datosCliente.direccion_fiscal || 'Sin Dirección',
                         email: datosCliente.email,
                         telefono: datosCliente.telefono ? Number(datosCliente.telefono.replace(/\D/g, '')) : null,
                         tipo_cliente: datosCliente.tipo_cliente || 'corporativo',
@@ -191,34 +170,64 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     const esClienteNuevo = cliente?.tipo_cliente === 'nuevo';
 
-    const resumenBorrador = useMemo(() => calcularResumen(state.itemsBorrador, zonaEnvio, reglas, esClienteNuevo), [state.itemsBorrador, zonaEnvio, reglas, esClienteNuevo]);
-    const resumenCarrito = useMemo(() => calcularResumen(state.itemsCarrito, zonaEnvio, reglas, esClienteNuevo), [state.itemsCarrito, zonaEnvio, reglas, esClienteNuevo]);
+    // ── 3. NORMALIZACIÓN DE TIPOS Y ADAPTACIÓN PARA CALCULOS (Corrige error de TypeScript) ──
+    const itemsBorradorAdaptados = useMemo<ItemLineaB2B[]>(() => {
+        return storeItemsBorrador.map((item) => ({
+            producto_id: item.producto_id,
+            variante_id: item.variante_id,
+            nombre: item.nombre,
+            sku: item.sku,
+            imagen: item.imagen,
+            precio_unitario: item.precio_unitario,
+            cantidad: item.cantidad,
+            talla: item.talla,
+            color: item.color,
+            stock_disponible: item.stock_disponible ?? 9999,
+            subtotal: item.precio_unitario * item.cantidad // Inyectamos dinámicamente la propiedad faltante
+        }));
+    }, [storeItemsBorrador]);
 
-    const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => { setZonaEnvioState(zona); sessionStorage.setItem(SS_ZONA, JSON.stringify(zona)); }, []);
+    const itemsCarritoAdaptados = useMemo<ItemLineaB2B[]>(() => {
+        return storeItemsCarrito.map((item) => ({
+            producto_id: item.producto_id,
+            variante_id: item.variante_id ?? 0,
+            nombre: item.nombre,
+            sku: '',
+            imagen: item.imagen_url,
+            precio_unitario: item.precio,
+            cantidad: item.cantidad,
+            talla: item.talla,
+            color: item.color,
+            stock_disponible: 9999,
+            subtotal: item.precio * item.cantidad
+        }));
+    }, [storeItemsCarrito]);
 
-    // ── FLUJO 1: AGREGAR A COTIZACIÓN (Borrador interno aislado del carrito comercial) ──
+    // ── 4. MEMOS DE RESÚMENES FINANCIEROS ──
+    const resumenBorrador = useMemo(() => calcularResumen(itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo), [itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo]);
+    const resumenCarrito = useMemo(() => calcularResumen(itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo), [itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo]);
+
+    // ── 5. ACCIONES CONECTADAS DIRECTAMENTE A ZUSTAND ──
+    const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => {
+        actualizarZonaEnvioState(zona);
+    }, [actualizarZonaEnvioState]);
+
     const agregarACotizacion = useCallback((p: AgregarCotizacionPayload) => {
-        dispatch({
-            type: 'AGREGAR_A_BORRADOR',
-            item: {
-                producto_id: p.producto_id,
-                variante_id: p.variante_id,
-                nombre: p.nombre,
-                sku: p.sku,
-                imagen: p.imagen,
-                precio_unitario: p.precio_unitario,
-                cantidad: p.cantidad,
-                talla: p.talla,
-                color: p.color,
-                subtotal: p.cantidad * p.precio_unitario,
-                stock_disponible: 9999
-            }
-        });
+        useQuotationStore.getState().addItemToBorrador({
+            producto_id: p.producto_id,
+            variante_id: p.variante_id,
+            nombre: p.nombre,
+            sku: p.sku,
+            imagen: p.imagen,
+            precio_unitario: p.precio_unitario,
+            talla: p.talla,
+            color: p.color,
+            stock_disponible: 9999
+        }, p.cantidad);
     }, []);
 
-    // ── FLUJO 2: AGREGAR AL CARRITO (Pedido Directo / Compra Inmediata) ──
     const agregarDesdeCatalogo = useCallback((payload: AgregarPedidoPayload) => {
-        let v_id: number = 0;
+        let v_id: number | undefined = undefined;
         let cant: number = 0;
         let t: string = 'M';
         let c: string = 'Estándar';
@@ -227,7 +236,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         if (payload.tipo === 'catalogo_rapido') {
             cant = resolveCartMoq(prod.moq);
             const variantes = prod.variantes ?? [];
-            const f = variantes.find((v) => v.id === v_id);
+            const f = variantes.find((v) => v.id === 0);
             t = f?.talla ?? 'M';
             c = f?.color ?? 'Estándar';
         } else {
@@ -239,35 +248,40 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             c = f?.color ?? 'Estándar';
         }
 
-        dispatch({
-            type: 'AGREGAR_A_CARRITO',
-            item: {
-                producto_id: prod.id,
-                variante_id: v_id,
-                nombre: prod.nombre,
-                sku: prod.sku,
-                imagen: prod.imagen,
-                precio_unitario: prod.precio,
-                cantidad: cant,
-                talla: t,
-                color: c,
-                subtotal: cant * prod.precio,
-                stock_disponible: prod.stock || 1000
-            }
-        });
+        useCartStore.getState().addItem({
+            producto_id: prod.id,
+            variante_id: v_id,
+            nombre: prod.nombre,
+            precio: prod.precio,
+            moq: prod.moq,
+            imagen_url: prod.imagen,
+            talla: t,
+            color: c
+        }, cant);
     }, []);
 
-    const actualizarCantidadBorrador = useCallback((id: number, q: number) => dispatch({ type: 'ACTUALIZAR_CANTIDAD_BORRADOR', variante_id: id, cantidad: q }), []);
-    const actualizarCantidadCarrito = useCallback((id: number, q: number) => dispatch({ type: 'ACTUALIZAR_CANTIDAD_CARRITO', variante_id: id, cantidad: q }), []);
-    const eliminarDelBorrador = useCallback((id: number) => dispatch({ type: 'ELIMINAR_DE_BORRADOR', variante_id: id }), []);
-    const eliminarDelCarrito = useCallback((id: number) => dispatch({ type: 'ELIMINAR_DE_CARRITO', variante_id: id }), []);
-    const limpiarBorrador = useCallback(() => dispatch({ type: 'LIMPIAR_BORRADOR' }), []);
-    const limpiarCarrito = useCallback(() => dispatch({ type: 'LIMPIAR_CARRITO' }), []);
+    const actualizarCantidadBorrador = useCallback((id: number, q: number) => useQuotationStore.getState().updateBorradorQuantity(id, q), []);
+    const actualizarCantidadCarrito = useCallback((v_id: number, q: number) => {
+        const item = useCartStore.getState().items.find(i => i.variante_id === v_id);
+        if (item) {
+            useCartStore.getState().updateQuantity(item.producto_id, v_id, q);
+        }
+    }, []);
+    const eliminarDelBorrador = useCallback((id: number) => useQuotationStore.getState().removeItemFromBorrador(id), []);
+    const eliminarDelCarrito = useCallback((v_id: number) => {
+        const item = useCartStore.getState().items.find(i => i.variante_id === v_id);
+        if (item) {
+            useCartStore.getState().removeItem(item.producto_id, v_id);
+        }
+    }, []);
+    const limpiarBorrador = useCallback(() => useQuotationStore.getState().clearBorrador(), []);
+    const limpiarCarrito = useCallback(() => useCartStore.getState().clearCart(), []);
+
     const actualizarCliente = useCallback((u: Partial<ClientePortal>) => setCliente(prev => prev ? { ...prev, ...u } : prev), []);
 
     return (
         <PortalContext.Provider value={{
-            cliente, loading, itemsBorrador: state.itemsBorrador, itemsCarrito: state.itemsCarrito, resumenBorrador, resumenCarrito, zonaEnvio, costosEnvio, productos, categorias, stats,
+            cliente, loading, itemsBorrador: itemsBorradorAdaptados, itemsCarrito: itemsCarritoAdaptados, resumenBorrador, resumenCarrito, zonaEnvio, costosEnvio, productos, categorias, stats,
             actualizarZonaEnvio, agregarACotizacion, agregarDesdeCatalogo, actualizarCantidadBorrador, actualizarCantidadCarrito, eliminarDelBorrador, eliminarDelCarrito, limpiarBorrador, limpiarCarrito, actualizarCliente,
             notificaciones, unreadCount, loadingNotifs, markAsRead, markAllAsRead, refetchNotifs
         }}>

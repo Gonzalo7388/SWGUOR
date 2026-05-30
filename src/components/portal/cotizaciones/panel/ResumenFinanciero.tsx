@@ -1,17 +1,49 @@
 'use client';
 
+import { MapPin } from 'lucide-react';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { SelectorZonaEnvio } from './SelectorZonaEnvio';
 import { usePortal } from '@/lib/hooks/usePortal';
 
 export function ResumenFinanciero() {
-    // Corregido: Extraemos 'resumenBorrador' en lugar de la propiedad global antigua
-    const { resumenBorrador } = usePortal();
+    // Asegúrate de que PortalContext exponga `cliente` con su campo `direccion_fiscal`
+    const { resumenBorrador, cliente } = usePortal();
 
     return (
         <div className="space-y-2">
 
-            {/* Subtotal */}
+            {/* ── Dirección de despacho (fiscal) ── */}
+            {cliente?.direccion_fiscal && (
+                <div
+                    className="flex items-start gap-2.5 rounded-xl border p-3"
+                    style={{
+                        backgroundColor: 'var(--guor-cream-deep)',
+                        borderColor: 'var(--guor-gold-pale)',
+                    }}
+                >
+                    <MapPin
+                        size={13}
+                        className="shrink-0 mt-0.5"
+                        style={{ color: 'var(--guor-gold)' }}
+                    />
+                    <div className="min-w-0">
+                        <p
+                            className="text-[9px] font-black uppercase tracking-[0.2em]"
+                            style={{ color: 'var(--guor-gold)' }}
+                        >
+                            Dirección de despacho
+                        </p>
+                        <p
+                            className="text-[10px] font-medium leading-snug mt-0.5 break-words"
+                            style={{ color: 'var(--guor-dark)' }}
+                        >
+                            {cliente.direccion_fiscal}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Subtotal ── */}
             <div className="flex justify-between items-center text-xs">
                 <span className="text-guor-soft">
                     Subtotal ({resumenBorrador.total_unidades.toLocaleString()} uds)
@@ -21,7 +53,7 @@ export function ResumenFinanciero() {
                 </span>
             </div>
 
-            {/* Descuento */}
+            {/* ── Descuento (sólo si aplica) ── */}
             {resumenBorrador.descuento_pct > 0 && (
                 <div className="flex justify-between items-center text-xs">
                     <span className="text-emerald-700 font-medium">
@@ -33,7 +65,7 @@ export function ResumenFinanciero() {
                 </div>
             )}
 
-            {/* IGV */}
+            {/* ── IGV ── */}
             <div className="flex justify-between items-center text-xs">
                 <span className="text-guor-soft">IGV 18%</span>
                 <span className="font-bold text-guor-dark tabular-nums">
@@ -41,10 +73,10 @@ export function ResumenFinanciero() {
                 </span>
             </div>
 
-            {/* Envío */}
+            {/* ── Selector de zona de envío ── */}
             <SelectorZonaEnvio />
 
-            {/* Total */}
+            {/* ── Total ── */}
             <div className="flex justify-between items-center pt-2 border-t border-guor-stone">
                 <span className="text-sm font-black text-guor-dark uppercase tracking-tight">
                     Total a pagar

@@ -29,7 +29,7 @@ export default function ConfirmarCompraPage() {
   const { cliente, zonaEnvio, costosEnvio } = usePortal();
   const zonaEnvioSeleccionada = costosEnvio.find((z) => z.zona === zonaEnvio);
   const [isPending, startTransition] = useTransition();
-  const [direccion, setDireccion] = useState(cliente?.direccion ?? '');
+  const [direccion, setDireccion] = useState(cliente?.direccion_fiscal ?? '');
 
   const subtotal = getTotal();
   const puedeConfirmar = canCheckout && cliente;
@@ -55,7 +55,7 @@ export default function ConfirmarCompraPage() {
               color_snapshot: i.color,
               talla_snapshot: i.talla,
             })),
-            direccion_despacho: direccion || cliente?.direccion,
+            direccion_despacho: direccion || cliente?.direccion_fiscal,
             zona_envio: zonaEnvio,
             zona_envio_id: zonaEnvioSeleccionada?.id ?? null,
             costo_envio: zonaEnvioSeleccionada?.costo ?? 0,

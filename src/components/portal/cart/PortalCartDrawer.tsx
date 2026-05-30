@@ -46,15 +46,15 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md flex flex-col p-0 gap-0 border-guor-line bg-guor-surface"
+        className="w-full sm:max-w-md flex flex-col p-0 gap-0 border-l border-border bg-background"
       >
-        {/* Cabecera con fondo sutil usando la escala de cremas de GUOR */}
-        <SheetHeader className="px-5 py-4 border-b border-guor-line-soft bg-guor-hover">
-          <SheetTitle className="flex items-center gap-2 text-guor-ink">
-            <ShoppingCart size={20} className="text-guor-gold" />
+        {/* Cabecera con fondo sutil de la paleta cálida (bg-muted) */}
+        <SheetHeader className="px-5 py-5 border-b border-border bg-muted/60">
+          <SheetTitle className="flex items-center gap-2 text-foreground font-black tracking-tight">
+            <ShoppingCart size={20} className="text-primary" />
             Carrito de compras
           </SheetTitle>
-          <SheetDescription className="text-guor-soft">
+          <SheetDescription className="text-muted-foreground font-medium">
             {mounted && items.length > 0
               ? `${items.length} producto(s) · ${totalUnidades} unidades`
               : 'Compra rápida B2B — solo pedidos directos'}
@@ -62,17 +62,22 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
         </SheetHeader>
 
         {/* Contenedor del listado */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 bg-guor-bg">
+        <div className="flex-1 overflow-y-auto px-4 py-4 bg-background">
           {!mounted ? (
-            <p className="text-sm text-guor-muted text-center py-8">Cargando carrito…</p>
+            <p className="text-sm text-muted-foreground text-center py-8 font-medium">Cargando carrito…</p>
           ) : items.length === 0 ? (
-            <div className="text-center py-12 space-y-3">
-              <ShoppingCart size={40} className="mx-auto text-guor-stone-mid" />
-              <p className="text-sm text-guor-soft font-medium">Tu carrito está vacío</p>
+            <div className="text-center py-16 space-y-4">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                <ShoppingCart size={28} className="text-muted-foreground/60" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-foreground font-bold">Tu carrito está vacío</p>
+                <p className="text-xs text-muted-foreground">Añade productos desde el catálogo B2B para empezar.</p>
+              </div>
               <Link
                 href="/portal/productos"
                 onClick={() => onOpenChange(false)}
-                className="inline-block text-sm font-bold text-guor-soft hover:text-guor-700 transition-colors hover:underline"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-secondary px-4 text-xs font-bold text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80"
               >
                 Ir al catálogo
               </Link>
@@ -86,50 +91,46 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
                 return (
                   <li
                     key={lineKey}
-                    className="flex gap-3 p-3 rounded-xl border border-guor-line-soft bg-guor-surface shadow-card transition-shadow hover:shadow-card-hover"
+                    className="flex gap-3 p-3 rounded-xl border border-border bg-card shadow-sm transition-all hover:border-border/80"
                   >
                     {/* Contenedor de la Imagen */}
-                    <div className="w-14 h-14 rounded-lg bg-guor-stone border border-guor-line-soft overflow-hidden shrink-0 relative">
+                    <div className="w-16 h-16 rounded-lg bg-muted border border-border overflow-hidden shrink-0 relative">
                       {item.imagen_url ? (
                         <Image
                           src={item.imagen_url}
                           alt=""
                           fill
                           className="object-cover"
-                          sizes="56px"
+                          sizes="64px"
                           unoptimized
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-guor-muted">
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground/50">
                           <ShoppingCart size={20} />
                         </div>
                       )}
                     </div>
 
                     {/* Detalles del Item */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-guor-ink truncate">{item.nombre}</p>
-                      <p className="text-[10px] text-guor-muted font-bold uppercase tracking-wider">
-                        {item.color} · {item.talla}
-                      </p>
-                      <p className="text-xs font-bold text-guor-soft mt-0.5">
-                        {formatCurrency(item.precio)}
-                      </p>
-
-                      {/* Alerta de MOQ usando la paleta semántica de status */}
-                      {!moqOk && (
-                        <p className="text-[10px] text-status-warning flex items-center gap-0.5 mt-1 font-medium">
-                          <AlertTriangle size={10} />
-                          Mín. {moqMin} uds
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-bold text-foreground truncate">{item.nombre}</p>
+                          <p className="text-sm font-black text-foreground shrink-0">
+                            {formatCurrency(item.precio * item.cantidad)}
+                          </p>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+                          {item.color} · {item.talla} · <span className="text-primary/90 font-medium">{formatCurrency(item.precio)} c/u</span>
                         </p>
-                      )}
+                      </div>
 
-                      {/* Selectores de Cantidad */}
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center border border-guor-line-soft rounded-lg bg-guor-surface">
+                      {/* Selectores de Cantidad y Alerta de MOQ */}
+                      <div className="flex items-center justify-between mt-2 gap-2">
+                        <div className="flex items-center border border-border rounded-lg bg-background">
                           <button
                             type="button"
-                            className="p-1 hover:bg-guor-hover text-guor-soft rounded-l-lg transition-colors"
+                            className="p-1.5 hover:bg-muted text-muted-foreground rounded-l-lg transition-colors"
                             onClick={() =>
                               updateQuantity(
                                 item.producto_id,
@@ -141,12 +142,12 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
                           >
                             <Minus size={12} />
                           </button>
-                          <span className="w-8 text-center text-xs font-bold text-guor-ink">
+                          <span className="w-8 text-center text-xs font-bold text-foreground">
                             {item.cantidad}
                           </span>
                           <button
                             type="button"
-                            className="p-1 hover:bg-guor-hover text-guor-soft rounded-r-lg transition-colors"
+                            className="p-1.5 hover:bg-muted text-muted-foreground rounded-r-lg transition-colors"
                             onClick={() =>
                               updateQuantity(
                                 item.producto_id,
@@ -160,15 +161,25 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
                           </button>
                         </div>
 
-                        {/* Botón Eliminar con el token semántico de peligro */}
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.producto_id, item.variante_id)}
-                          className="text-guor-muted hover:text-status-danger p-1 transition-colors"
-                          aria-label="Quitar del carrito"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {/* Alerta de MOQ semántica utilizando el color destructivo de Shadcn */}
+                          {!moqOk && (
+                            <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/20 rounded-md px-1.5 py-0.5 flex items-center gap-0.5 font-bold">
+                              <AlertTriangle size={10} />
+                              Mín. {moqMin}
+                            </span>
+                          )}
+
+                          {/* Botón Eliminar */}
+                          <button
+                            type="button"
+                            onClick={() => removeItem(item.producto_id, item.variante_id)}
+                            className="text-muted-foreground hover:text-destructive p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                            aria-label="Quitar del carrito"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </li>
@@ -178,43 +189,46 @@ export function PortalCartDrawer({ open, onOpenChange }: PortalCartDrawerProps) 
           )}
         </div>
 
-        {/* Footer del Carrito */}
+        {/* Footer del Carrito con separación clara */}
         {mounted && items.length > 0 && (
-          <SheetFooter className="border-t border-guor-line px-5 py-4 bg-guor-hover flex-col gap-3 sm:flex-col">
-            <div className="flex justify-between w-full text-sm">
-              <span className="text-guor-soft font-medium">Subtotal estimado</span>
-              <span className="font-black text-guor-ink">{formatCurrency(total)}</span>
+          <SheetFooter className="border-t border-border px-5 py-5 bg-muted/40 flex-col gap-3 sm:flex-col">
+            <div className="flex justify-between w-full text-sm items-center">
+              <span className="text-muted-foreground font-medium">Subtotal estimado</span>
+              <span className="text-xl font-black text-foreground tracking-tight">{formatCurrency(total)}</span>
             </div>
 
-            {/* Banner preventivo de MOQ */}
+            {/* Banner preventivo de MOQ usando tokens destructivos suaves */}
             {!checkoutEnabled && (
-              <p className="w-full text-xs text-status-warning bg-guor-surface border border-guor-line rounded-lg px-3 py-2 font-medium shadow-subtle">
-                Todos los productos deben cumplir su cantidad mínima (MOQ) antes de confirmar.
-              </p>
+              <div className="w-full text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-2.5 font-medium flex items-start gap-2">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <span>Algunos productos en tu carrito no cumplen con la cantidad mínima (MOQ) requerida.</span>
+              </div>
             )}
 
-            {/* Botón Principal: Confirmar compra (Usa el Champagne Gold de la marca mediante bg-primary) */}
-            <Link
-              href="/portal/compras"
-              onClick={() => onOpenChange(false)}
-              className={cn(
-                'w-full py-3 rounded-xl text-center font-bold text-sm text-primary-foreground shadow-gold transition-all',
-                checkoutEnabled
-                  ? 'bg-primary hover:bg-guor-700 active:scale-[0.99]'
-                  : 'pointer-events-none opacity-40 bg-guor-stone-mid shadow-none text-guor-muted',
-              )}
-              aria-disabled={!checkoutEnabled}
-            >
-              Confirmar compra
-            </Link>
+            {/* Botones de acción principales */}
+            <div className="space-y-2 w-full mt-2">
+              <Link
+                href="/portal/compras"
+                onClick={() => onOpenChange(false)}
+                className={cn(
+                  'flex w-full py-3 items-center justify-center rounded-xl text-center font-bold text-sm text-primary-foreground shadow-sm transition-all',
+                  checkoutEnabled
+                    ? 'bg-primary hover:opacity-90 active:scale-[0.99]'
+                    : 'pointer-events-none opacity-40 bg-muted-foreground text-muted shadow-none',
+                )}
+                aria-disabled={!checkoutEnabled}
+              >
+                Confirmar compra
+              </Link>
 
-            <Link
-              href="/portal/productos"
-              onClick={() => onOpenChange(false)}
-              className="w-full text-center text-xs font-semibold text-guor-soft hover:text-guor-700 hover:underline transition-colors"
-            >
-              Seguir comprando
-            </Link>
+              <Link
+                href="/portal/productos"
+                onClick={() => onOpenChange(false)}
+                className="flex w-full py-2 items-center justify-center text-center text-xs font-bold text-muted-foreground hover:text-foreground transition-colors hover:underline"
+              >
+                Seguir comprando
+              </Link>
+            </div>
           </SheetFooter>
         )}
       </SheetContent>

@@ -10,9 +10,12 @@ export const metadata = {
 };
 
 export default async function NuevaCotizacionPage() {
+  // Usamos la server action sólo para validar acceso y detectar catálogo vacío
+  // antes de hidratar el cliente. El contexto (usePortal) se encarga
+  // del fetch de productos en el lado cliente.
   const result = await obtenerProductosParaCotizar();
 
-  // 1. Manejo en caso de error de autenticación o base de datos en las Server Actions
+  // 1. Error de autenticación o cuenta inactiva
   if (!result.success) {
     const esInactivo = result.error === 'cliente_inactivo';
 
@@ -43,7 +46,7 @@ export default async function NuevaCotizacionPage() {
     );
   }
 
-  // 2. Manejo en caso de que no existan productos listados o activos en base de datos
+  // 2. Catálogo sin existencias activas
   if (result.productos.length === 0) {
     return (
       <div className="max-w-md mx-auto my-12 p-6 border rounded-2xl text-center space-y-4 bg-slate-50/50">
@@ -65,11 +68,6 @@ export default async function NuevaCotizacionPage() {
     );
   }
 
-  // 3. Renderizado exitoso inyectando la información tipada e independiente en el Split-Screen
-  return (
-    <NuevaCotizacionClient
-      productos={result.productos}
-      categorias={result.categorias}
-    />
-  );
+  // 3. Acceso validado — el componente cliente obtiene sus datos del PortalContext
+  return <NuevaCotizacionClient />;
 }

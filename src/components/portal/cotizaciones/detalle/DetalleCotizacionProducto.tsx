@@ -2,7 +2,7 @@
 
 import { Package } from 'lucide-react';
 import { formatCurrency, formatDateLong } from '@/lib/helpers/format-helpers';
-import { EstadoBadge } from '../../EstadoBadge';
+import { EstadoBadge } from '@/components/portal/EstadoBadge';
 
 interface ProductoInfo {
     nombre: string;
