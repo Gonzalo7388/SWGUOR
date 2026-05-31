@@ -8,6 +8,7 @@ import { requireServerAuth } from '@/lib/auth/server';
 import { resolverCostoEnvioPedido } from '@/lib/helpers/portal-costo-envio.helper';
 import { resolverItemsPedido } from '@/lib/helpers/portal-pedido-items.helper';
 import { descontarStockLineaPedido } from '@/lib/helpers/producto-stock-transaction.helper';
+import { notificarClienteSobrePedido } from '@/lib/helpers/pedido-seguimiento.helper';
 
 const IGV_RATE = 0.18;
 
@@ -223,7 +224,22 @@ export async function POST(req: Request) {
         });
       }
 
+      await tx.seguimiento_pedido.create({
+        data: {
+          pedido_id: pedido.id,
+          status: 'pendiente',
+          notas: 'Compra directa registrada. Producción en cola.',
+        },
+      });
+
       return pedido;
+    });
+
+    await notificarClienteSobrePedido({
+      clienteId: sesion.cliente_id,
+      pedidoId: resultado.id,
+      titulo: 'Pedido confirmado',
+      mensaje: `Su pedido #${resultado.id} fue registrado. Revise el avance en Trazabilidad.`,
     });
 
     return NextResponse.json(

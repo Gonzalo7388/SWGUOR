@@ -6,7 +6,11 @@ import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { auditoriaService } from '@/lib/services/auditoria.service';
 
-const COTIZACIONES_APROBAR_ROLES: RolUsuario[] = ['administrador', 'gerente'];
+const COTIZACIONES_APROBAR_ROLES: RolUsuario[] = [
+  'administrador',
+  'gerente',
+  'recepcionista',
+];
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -37,7 +41,7 @@ export async function POST(req: Request, { params }: Params) {
       accion: 'ACTUALIZAR',
       tabla: 'cotizaciones',
       registro_id: BigInt(id),
-      datos_despues: { estado: 'aprobada', pedido_id: result.pedidoId },
+      datos_despues: { estado: 'convertida', pedido_id: result.pedidoId },
     });
 
     return NextResponse.json({

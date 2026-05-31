@@ -74,7 +74,7 @@ export default function PedidosPage() {
         "Fecha":     p.created_at ? new Date(p.created_at).toLocaleDateString() : "Sin fecha",
         "Cliente":   p.clientes?.razon_social ?? "Desconocido",
         "Total":     p.total ?? 0,
-        "Estado":    p.estado?.toUpperCase() ?? "SIN ESTADO",
+        "Estado":    (p.estado_label ?? p.estado)?.toUpperCase() ?? "SIN ESTADO",
       })),
       { filename: `Pedidos_GUOR_${new Date().toISOString().split("T")[0]}` }
     );
