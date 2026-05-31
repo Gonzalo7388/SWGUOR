@@ -3,11 +3,6 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
-import {
-  CreditCard,
-  Smartphone,
-  Banknote,
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PAISES_SUDAMERICA = ['Perú', 'Argentina', 'Bolivia'];
@@ -37,8 +32,6 @@ export default function PagoPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
 
-  const id = params.id;
-
   const [metodo, setMetodo] = useState(
     searchParams.get('metodo') || ''
   );
@@ -51,28 +44,57 @@ export default function PagoPage() {
     referencia: '',
   });
 
-  const [datosTarjeta, setDatosTarjeta] = useState({
-    numero: '',
-    nombre: '',
-    vencimiento: '',
-    cvv: '',
+  const [cupon, setCupon] = useState('');
+  const [descuento, setDescuento] = useState(0);
+
+ 
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success' as 'success' | 'error',
   });
 
-  const [datosTransferencia, setDatosTransferencia] =
-    useState({
-      banco: '',
-      numeroOperacion: '',
-      titular: '',
-    });
+  const totalBase = 100;
+  const totalFinal = totalBase - descuento;
 
-  const total = '100.00';
+  const mostrarToast = (message: string, type: 'success' | 'error') => {
+    setToast({ show: true, message, type });
+
+    setTimeout(() => {
+      setToast({ ...toast, show: false });
+    }, 2500);
+  };
+
+  const handleAplicarCupon = () => {
+    if (cupon.toLowerCase() === 'fifi10') {
+      setDescuento(10);
+      mostrarToast('Cupón aplicado', 'success');
+    } else {
+      setDescuento(0);
+      mostrarToast('Cupón inválido', 'error');
+    }
+  };
 
   const handleConfirmar = () => {
-    alert('Pago realizado (simulación)');
+    mostrarToast('Pago ', 'success');
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
+
+      {/*TOAST */}
+      {toast.show && (
+        <div
+          className={cn(
+            'fixed top-6 right-6 z-50 px-6 py-3 rounded-xl text-white font-bold shadow-lg transition-all',
+            toast.type === 'success'
+              ? 'bg-green-500'
+              : 'bg-red-500'
+          )}
+        >
+          {toast.message}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-8 max-w-6xl mx-auto">
 
@@ -81,79 +103,51 @@ export default function PagoPage() {
 
           {/* DIRECCIÓN */}
           <div className="bg-white p-6 rounded-2xl shadow">
-            <h2 className="font-black text-lg mb-4">
+            <h2 className="font-black text-lg mb-4 text-slate-500">
               Dirección
             </h2>
 
-            <select
-              value={datosEntrega.pais}
-              onChange={(e) =>
-                setDatosEntrega({
-                  ...datosEntrega,
-                  pais: e.target.value,
-                })
-              }
-              className="w-full mb-3 p-3 border rounded-xl"
-            >
+            <select className="w-full mb-3 p-3 border rounded-xl text-slate-500">
               {PAISES_SUDAMERICA.map((pais) => (
                 <option key={pais}>{pais}</option>
               ))}
             </select>
 
             <div className="grid grid-cols-2 gap-3">
-              <input
-                placeholder="Departamento"
-                value={datosEntrega.departamento}
-                onChange={(e) =>
-                  setDatosEntrega({
-                    ...datosEntrega,
-                    departamento: e.target.value,
-                  })
-                }
-                className="p-3 border rounded-xl"
-              />
-
-              <input
-                placeholder="Distrito"
-                value={datosEntrega.distrito}
-                onChange={(e) =>
-                  setDatosEntrega({
-                    ...datosEntrega,
-                    distrito: e.target.value,
-                  })
-                }
-                className="p-3 border rounded-xl"
-              />
+              <input placeholder="Departamento" className="p-3 border rounded-xl text-slate-500" />
+              <input placeholder="Distrito" className="p-3 border rounded-xl text-slate-500" />
             </div>
 
-            <input
-              placeholder="Dirección"
-              value={datosEntrega.direccion}
-              onChange={(e) =>
-                setDatosEntrega({
-                  ...datosEntrega,
-                  direccion: e.target.value,
-                })
-              }
-              className="w-full mt-3 p-3 border rounded-xl"
-            />
+            <input placeholder="Dirección" className="w-full mt-3 p-3 border rounded-xl text-slate-500" />
+            <input placeholder="Referencia" className="w-full mt-3 p-3 border rounded-xl text-slate-500" />
+          </div>
 
-            <input
-              placeholder="Referencia"
-              value={datosEntrega.referencia}
-              onChange={(e) =>
-                setDatosEntrega({
-                  ...datosEntrega,
-                  referencia: e.target.value,
-                })
-              }
-              className="w-full mt-3 p-3 border rounded-xl"
-            />
+          {/* PROMOCIONES */}
+          <div className="bg-white p-6 rounded-2xl shadow">
+            <h2 className="font-black text-lg mb-4 text-slate-500">
+              Promociones
+            </h2>
+
+            <div className="flex gap-3">
+              <input
+                value={cupon}
+                onChange={(e) => setCupon(e.target.value)}
+                placeholder="Ingresa tu cupón"
+                className="flex-1 p-3 border rounded-xl text-slate-500"
+              />
+
+              <button
+                onClick={handleAplicarCupon}
+                className="px-4 rounded-xl bg-[#231e1d] text-[#e4c28a] font-bold"
+              >
+                Aplicar
+              </button>
+            </div>
           </div>
 
           {/* MÉTODO */}
           <div className="bg-white p-6 rounded-2xl shadow">
-            <h2 className="font-black text-lg mb-4">
+            <h2 className="font-black text-lg mb-4 text-slate-500">
               Método de pago
             </h2>
 
@@ -169,104 +163,38 @@ export default function PagoPage() {
                       : 'border-gray-200'
                   )}
                 >
-                  <Image
-                    src={m.imagen}
-                    alt={m.nombre}
-                    width={30}
-                    height={30}
-                  />
-                  <div>
-                    <p className="font-bold">{m.nombre}</p>
-                    <p className="text-xs text-gray-400">
-                      {m.descripcion}
-                    </p>
-                  </div>
+                  <Image src={m.imagen} alt={m.nombre} width={30} height={30} />
+                  <p className="text-slate-500 font-bold">{m.nombre}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* DATOS DE PAGO */}
-          <div className="bg-white p-6 rounded-2xl shadow">
-            <h2 className="font-black text-lg mb-4">
-              Datos de pago
-            </h2>
-
-            {metodo === 'tarjeta' && (
-              <div className="space-y-3">
-                <input
-                  placeholder="Número de tarjeta"
-                  className="w-full p-3 border rounded-xl"
-                  onChange={(e) =>
-                    setDatosTarjeta({
-                      ...datosTarjeta,
-                      numero: e.target.value,
-                    })
-                  }
-                />
-                <input
-                  placeholder="Nombre"
-                  className="w-full p-3 border rounded-xl"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    placeholder="MM/AA"
-                    className="p-3 border rounded-xl"
-                  />
-                  <input
-                    placeholder="CVV"
-                    className="p-3 border rounded-xl"
-                  />
-                </div>
-              </div>
-            )}
-
-            {metodo === 'transferencia' && (
-              <div className="space-y-3">
-                <input
-                  placeholder="Banco"
-                  className="w-full p-3 border rounded-xl"
-                />
-                <input
-                  placeholder="N° operación"
-                  className="w-full p-3 border rounded-xl"
-                />
-                <input
-                  placeholder="Titular"
-                  className="w-full p-3 border rounded-xl"
-                />
-              </div>
-            )}
-
-            {metodo === 'yape' && (
-              <p className="text-sm text-gray-500">
-                Se generará un QR para pagar con Yape.
-              </p>
-            )}
-          </div>
         </div>
 
         {/* DERECHA */}
         <div className="bg-white p-6 rounded-2xl shadow h-fit sticky top-8">
-          <h2 className="font-black text-lg mb-4">
+          <h2 className="font-black text-lg mb-4 text-slate-500">
             Mis prendas (1)
           </h2>
 
-          <div className="flex justify-between text-sm mb-3">
+          <div className="flex justify-between text-sm mb-3 text-slate-500">
             <span>Producto</span>
-            <span>S/ {total}</span>
+            <span>S/ {totalBase}</span>
           </div>
+
+          {descuento > 0 && (
+            <div className="flex justify-between text-sm text-green-600">
+              <span>Descuento</span>
+              <span>-S/ {descuento}</span>
+            </div>
+          )}
 
           <hr className="my-3" />
 
-          <div className="flex justify-between text-sm">
-            <span>Subtotal</span>
-            <span>S/ {total}</span>
-          </div>
-
-          <div className="flex justify-between font-black text-lg mt-2">
+          <div className="flex justify-between font-black text-lg mt-2 text-[#231e1d]">
             <span>Total a pagar</span>
-            <span>S/ {total}</span>
+            <span>S/ {totalFinal}</span>
           </div>
 
           <button
