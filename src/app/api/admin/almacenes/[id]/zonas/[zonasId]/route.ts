@@ -4,7 +4,9 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { actualizarZonaSchema } from '@/lib/schemas/almacenes';
 
-type RouteContext = { params: Promise<{ id: string; zona_id: string }> };
+type RouteContext = {
+    params: Promise<{ id: string; zonasId: string }>;
+};
 
 type ZonaWithCount = Prisma.almacen_zonasGetPayload<{
     include: { _count: { select: { almacen_stock: true } } };
@@ -21,11 +23,14 @@ function serializeZona(z: ZonaWithCount) {
     };
 }
 
-// PUT /api/admin/almacenes/[id]/zonas/[zonaId]
+// PUT /api/admin/almacenes/[id]/zonas/[zonasId]
 export async function PUT(req: NextRequest, { params }: RouteContext) {
-    const { zona_id: zonaId } = await params;
+    // 2. Extraer 'zonasId' de la promesa
+    const { zonasId } = await params;
     let id: bigint;
-    try { id = BigInt(zonaId); } catch {
+    try {
+        id = BigInt(zonasId);
+    } catch {
         return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
     }
 
@@ -47,11 +52,14 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     }
 }
 
-// DELETE /api/admin/almacenes/[id]/zonas/[zonaId]
+// DELETE /api/admin/almacenes/[id]/zonas/[zonasId]
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
-    const { zona_id } = await params;
+    // 3. Extraer 'zonasId' de la promesa
+    const { zonasId } = await params;
     let id: bigint;
-    try { id = BigInt(zona_id); } catch {
+    try {
+        id = BigInt(zonasId);
+    } catch {
         return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
     }
 
