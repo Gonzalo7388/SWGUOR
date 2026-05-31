@@ -2,11 +2,13 @@
 
 import { Calendar, CheckCircle2, AlertTriangle, DollarSign } from 'lucide-react';
 import StatCard from '@/components/admin/common/StatCard';
+// Importamos directamente del módulo hermano del admin, manteniendo el aislamiento
+import { EstadoCotizacionFiltro } from './CotizacionesToolbar';
 
 interface CotizacionesStatsProps {
   stats: { pendientes: number; aprobadas: number; expiradas: number; totalValor: number };
-  estadoFiltro: string | null;
-  onFiltroChange: (filtro: string | null) => void;
+  estadoFiltro: EstadoCotizacionFiltro | null;
+  onFiltroChange: (filtro: EstadoCotizacionFiltro | null) => void;
 }
 
 export function CotizacionesStats({ stats, estadoFiltro, onFiltroChange }: CotizacionesStatsProps) {
@@ -38,7 +40,11 @@ export function CotizacionesStats({ stats, estadoFiltro, onFiltroChange }: Cotiz
       />
       <StatCard
         title="Valor Activo"
-        value={`S/ ${(stats.totalValor / 1000000).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`}
+        value={
+          stats.totalValor >= 1000000
+            ? `S/ ${(stats.totalValor / 1000000).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
+            : `S/ ${stats.totalValor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        }
         icon={DollarSign}
         color="blue"
         disabled

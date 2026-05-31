@@ -4,11 +4,21 @@ import { Search, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
+// Definimos los estados reales del Admin basados en tu base de datos (image_b828c8.png)
+export type EstadoCotizacionFiltro =
+  | 'borrador'
+  | 'enviada'
+  | 'aprobada'
+  | 'rechazada'
+  | 'expirada'
+  | 'convertida';
+
 interface CotizacionesToolbarProps {
   searchTerm: string;
   onSearchChange: (v: string) => void;
-  estadoFiltro: string | null;
-  onEstadoChange: (v: string | null) => void;
+  // Usamos el tipo limpio y local del admin
+  estadoFiltro: EstadoCotizacionFiltro | null;
+  onEstadoChange: (v: EstadoCotizacionFiltro | null) => void;
   loading: boolean;
   onRefresh: () => void;
 }
@@ -29,9 +39,12 @@ export function CotizacionesToolbar({
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
+
       <select
         value={estadoFiltro ?? 'todos'}
-        onChange={(e) => onEstadoChange(e.target.value === 'todos' ? null : e.target.value)}
+        onChange={(e) =>
+          onEstadoChange(e.target.value === 'todos' ? null : (e.target.value as EstadoCotizacionFiltro))
+        }
         className="h-11 px-4 border border-gray-200 rounded-xl text-xs font-bold uppercase bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
       >
         <option value="todos">Todos los estados</option>
@@ -42,6 +55,7 @@ export function CotizacionesToolbar({
         <option value="rechazada">Rechazada</option>
         <option value="expirada">Expirada</option>
       </select>
+
       <Button variant="outline" className="h-11 rounded-xl border-gray-200 hover:bg-gray-50" onClick={onRefresh}>
         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
       </Button>
