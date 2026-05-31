@@ -1113,7 +1113,7 @@ function PedidoCard({
         {/* Botón Pagar — visible solo si pago pendiente */}
         {isPending && (
           <button
-           onClick={(e) => {e.stopPropagation();router.push(`/portal/pago/${pedido.id}`);
+           onClick={(e) => {e.stopPropagation();router.push(`/portal/pago/${pedido.id}?total=${pedido.total}&unidades=${pedido.total_unidades}`);
 }}
             className={cn(
               'hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl',

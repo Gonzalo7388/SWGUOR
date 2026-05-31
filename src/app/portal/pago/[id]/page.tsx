@@ -32,6 +32,14 @@ export default function PagoPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
 
+  const totalBase = Number(searchParams.get('total')) || 0;
+  const cantidad = Number(searchParams.get('cantidad')) || 1;
+  const nombre = searchParams.get('nombre') || 'Producto';
+  const [cupon, setCupon] = useState('');
+  const [descuento, setDescuento] = useState(0);
+
+  const totalFinal = totalBase - descuento;
+
   const [metodo, setMetodo] = useState(
     searchParams.get('metodo') || ''
   );
@@ -44,18 +52,11 @@ export default function PagoPage() {
     referencia: '',
   });
 
-  const [cupon, setCupon] = useState('');
-  const [descuento, setDescuento] = useState(0);
-
- 
   const [toast, setToast] = useState({
     show: false,
     message: '',
     type: 'success' as 'success' | 'error',
   });
-
-  const totalBase = 100;
-  const totalFinal = totalBase - descuento;
 
   const mostrarToast = (message: string, type: 'success' | 'error') => {
     setToast({ show: true, message, type });
@@ -179,9 +180,9 @@ export default function PagoPage() {
           </h2>
 
           <div className="flex justify-between text-sm mb-3 text-slate-500">
-            <span>Producto</span>
-            <span>S/ {totalBase}</span>
-          </div>
+              <span>{nombre} x{cantidad}</span>
+              <span>S/ {totalBase}</span>
+            </div>
 
           {descuento > 0 && (
             <div className="flex justify-between text-sm text-green-600">
