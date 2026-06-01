@@ -1,31 +1,34 @@
-import { ubigeoINEI } from 'peru-utils';
+import { ubigeoINEI, type IUbigeo } from 'peru-utils';
 
 export interface UbigeoOption {
   code: string;
   name: string;
 }
 
+function toOption(u: IUbigeo): UbigeoOption {
+  return { code: u.code, name: u.name };
+}
+
+function isDefined(u: IUbigeo | undefined): u is IUbigeo {
+  return u !== undefined;
+}
+
 export function listarDepartamentosPeru(): UbigeoOption[] {
-  return ubigeoINEI.getDepartments().map((d) => ({
-    code: d.code,
-    name: d.name,
-  }));
+  return ubigeoINEI.getDepartments().map(toOption);
 }
 
 export function listarProvinciasPeru(departamentoCode: string): UbigeoOption[] {
   if (!departamentoCode) return [];
-  return ubigeoINEI.getProvince(departamentoCode).map((p) => ({
-    code: p.code,
-    name: p.name,
-  }));
+  return (ubigeoINEI.getProvince(departamentoCode) ?? [])
+    .filter(isDefined)
+    .map(toOption);
 }
 
 export function listarDistritosPeru(provinciaCode: string): UbigeoOption[] {
   if (!provinciaCode) return [];
-  return ubigeoINEI.getDistrict(provinciaCode).map((d) => ({
-    code: d.code,
-    name: d.name,
-  }));
+  return (ubigeoINEI.getDistrict(provinciaCode) ?? [])
+    .filter(isDefined)
+    .map(toOption);
 }
 
 export function buscarCodigoPorNombre(
@@ -34,7 +37,6 @@ export function buscarCodigoPorNombre(
 ): string | undefined {
   const objetivo = normalizarUbigeoTexto(nombre);
   if (!objetivo) return undefined;
-
   return opciones.find((o) => normalizarUbigeoTexto(o.name) === objetivo)?.code;
 }
 

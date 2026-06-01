@@ -66,9 +66,14 @@ export async function aprobarConformidadConfeccion(params: {
   }
 
   const pedido = conf.ordenes_produccion?.pedidos;
+
+  // ── Guard: cliente_id puede ser null en el esquema de Prisma ─────────────
   if (!pedido?.cliente_id) {
     throw new Error('La confección no está vinculada a un pedido válido');
   }
+
+  // A partir de aquí TypeScript sabe que cliente_id es bigint (no null).
+  const clienteId: bigint = pedido.cliente_id;
 
   if (pedido.estado === 'entregado' || pedido.estado === 'cancelado') {
     throw new Error('El pedido ya no admite conformidad de taller');
@@ -112,7 +117,7 @@ export async function aprobarConformidadConfeccion(params: {
       data: { estado: 'listo_para_despacho', updated_at: new Date() },
     });
 
-    await precargarDireccionDespachoPedido(tx, pedido.id, pedido.cliente_id);
+    await precargarDireccionDespachoPedido(tx, pedido.id, clienteId);
 
     await tx.seguimiento_pedido.create({
       data: {
@@ -124,7 +129,7 @@ export async function aprobarConformidadConfeccion(params: {
   });
 
   await crearNotificacionCliente({
-    clienteId: pedido.cliente_id,
+    clienteId,
     tipo: 'sistema',
     titulo: '¡Tu pedido está listo!',
     mensaje: '¡Tu pedido está listo! Confirma tu dirección de entrega.',

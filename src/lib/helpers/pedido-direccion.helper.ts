@@ -128,7 +128,10 @@ export async function actualizarDireccionDespachoPedido(params: {
       despachoBloqueante?.estado,
     )
   ) {
-    if (ESTADOS_PEDIDO_BLOQUEAN_DIRECCION.includes(pedido.estado)) {
+    // ── Fix: pedido.estado es EstadoPedido | null; coalesce antes de includes ─
+    if (ESTADOS_PEDIDO_BLOQUEAN_DIRECCION.includes(
+      (pedido.estado ?? 'pendiente') as EstadoPedido,
+    )) {
       return {
         ok: false as const,
         status: 422,
