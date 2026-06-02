@@ -2527,7 +2527,7 @@ enum TipoPago {
   @@schema("public")
 }
 
-enum UnidadMedida {
+  enum UnidadMedida {
   metros
   unidades
   conos
