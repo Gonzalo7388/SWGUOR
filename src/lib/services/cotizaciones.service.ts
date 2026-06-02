@@ -60,9 +60,15 @@ export interface CrearCotizacionInput {
   items: ItemInput[];
 }
 
+// FIX: Declaramos el tipo de payload de Prisma exacto que incluye la relación con cliente
+type CotizacionConCliente = Prisma.cotizacionesGetPayload<{
+  include: { cliente: true };
+}>;
+
 // ── Helpers internos ───────────────────────────────────────────────────────────
 
-function buildCotizacionRow(row: any, today: Date): CotizacionRow {
+// FIX: Reemplazado 'row: any' por el tipo exacto generado por Prisma
+function buildCotizacionRow(row: CotizacionConCliente, today: Date): CotizacionRow {
   const validaHasta = new Date(row.valida_hasta);
   validaHasta.setHours(0, 0, 0, 0);
   const estaExpirada = row.estado === EstadoCotizacion.enviada && today > validaHasta;
@@ -86,8 +92,11 @@ function buildCotizacionRow(row: any, today: Date): CotizacionRow {
 export const CotizacionesService = {
 
   async listar(estado?: string): Promise<CotizacionRow[]> {
-    const where: Record<string, unknown> = {};
-    if (estado && estado !== 'todos') where.estado = estado;
+    // FIX: Reemplazado 'Record<string, unknown>' por el tipo estricto WhereInput de Prisma
+    const where: Prisma.cotizacionesWhereInput = {};
+    if (estado && estado !== 'todos') {
+      where.estado = estado as EstadoCotizacion;
+    }
 
     const rows = await prisma.cotizaciones.findMany({
       where,
@@ -111,8 +120,15 @@ export const CotizacionesService = {
 
   async crear(input: CrearCotizacionInput): Promise<CotizacionRow> {
     const {
-      cliente_id, nombre_cliente_manual, valida_hasta, moneda,
-      tasa_impuesto, tipo_operacion, notas_internas, items, costo_envio,
+      cliente_id,
+      nombre_cliente_manual,
+      valida_hasta,
+      moneda,
+      tasa_impuesto,
+      tipo_operacion,
+      notas_internas,
+      items,
+      costo_envio,
       ...metadatos
     } = input;
 
@@ -173,7 +189,7 @@ export const CotizacionesService = {
               talla_snapshot: item.talla_snapshot,
               modelo_snapshot: item.modelo_snapshot,
               prenda_tipo_snapshot: item.prenda_tipo_snapshot,
-            })) as Prisma.cotizacion_itemsUncheckedCreateWithoutCotizacionesInput[],
+            })),
           },
         },
         include: { cliente: true },
@@ -181,7 +197,7 @@ export const CotizacionesService = {
     });
 
     // Llamamos al RPC para recalcular descuentos según las reglas de la base de datos
-    await recalcularDescuentoCotizacion(Number(cotizacion.id)).catch((err) => {
+    await recalcularDescuentoCotizacion(Number(cotizacion.id)).catch((err: unknown) => {
       console.error('Error al recalcular descuento vía RPC:', err);
     });
 
@@ -217,7 +233,7 @@ export const CotizacionesService = {
       };
     }
 
-    const updateData: Prisma.cotizacionesUpdateInput = { estado: nuevoEstado };
+    const updateData: Prisma.cotizacionesUpdateInput = { estado: nuevoEstado as EstadoCotizacion };
     if (nuevoEstado === 'aprobada') updateData.aprobado_at = new Date();
     if (motivo) {
       const prefijo = nuevoEstado === 'rechazada' ? '[RECHAZO]' : '[NOTA]';
@@ -286,7 +302,7 @@ export const CotizacionesService = {
                 prenda_tipo: item.prenda_tipo_snapshot,
                 talla: item.talla_snapshot,
               },
-            })) as Prisma.pedido_itemsUncheckedCreateWithoutPedidosInput[],
+            })),
           },
         },
       });
@@ -336,7 +352,7 @@ export const CotizacionesService = {
 
   async listarClientes() {
     const clientes = await prisma.clientes.findMany({
-      where: { activo: EstadoCliente.activo },
+      where: { estado: EstadoCliente.activo },
       select: { id: true, razon_social: true, ruc: true },
       orderBy: { razon_social: 'asc' },
     });

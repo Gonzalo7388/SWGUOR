@@ -128,15 +128,16 @@ export const REGLAS_NEGOCIO = {
 
 // ─── UTILIDADES ──────────────────────────────────────────────────────────────
 
-export function getEstadoInfo(
-  estado: string,
-  tipo: 'pedido' | 'cliente' | 'despacho' | 'cotizacion',
-): { label: string; color: string; bgColor: string } {
-  const map: Record<string, Record<string, any>> = {
+export function getEstadoInfo(estado: string, tipo: 'cotizacion' | 'pedido' | 'despacho' | 'cliente' | 'pago'): { label: string; color: string; bgColor: string } {
+  const map: Record<
+    'pedido' | 'cliente' | 'despacho' | 'cotizacion' | 'pago',
+    Record<string, { label: string; color: string; bgColor: string }>
+  > = {
     pedido: ESTADOS_PEDIDO,
     cliente: TIPOS_CLIENTE,
     despacho: ESTADOS_DESPACHO,
     cotizacion: ESTADOS_COTIZACION,
+    pago: ESTADOS_PAGO_ORDEN_COMPRA,
   };
 
   return map[tipo]?.[estado] ?? { label: estado, color: 'text-gray-500', bgColor: 'bg-gray-100' };

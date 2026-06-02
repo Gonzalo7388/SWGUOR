@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, AreaChart, Area,
@@ -13,46 +13,55 @@ import { fmtCompact } from './widgets/DashboardWidgets';
 // ─── Paleta ERP ───────────────────────────────────────────────────────────────
 const P = COMPANY_PALETTE;
 
-interface DashboardChartsProps {
-  minimal?:  boolean;
-  rol?:      RolPaleta;
-  data?:     any[];
+type VentaDataPoint = {
+  mes: string;
+  ventas: number;
+  [key: string]: any; 
 }
+
+interface DashboardChartsProps {
+  minimal?: boolean;
+  rol?:     RolPaleta;
+  data?:    VentaDataPoint[];
+}
+
+
 
 export default function DashboardCharts({
   minimal = false,
   rol,
   data: externalData,
 }: DashboardChartsProps) {
-  const [isMounted, setIsMounted]   = useState(false);
+
   const [loading, setLoading]       = useState(true);
-  const [ventasData, setVentasData] = useState<any[]>([]);
-
-  useEffect(() => { setIsMounted(true); }, []);
-
-  const fetchData = useCallback(async () => {
-    if (externalData) {
-      setVentasData(externalData);
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const res  = await fetch('/api/admin/charts?days=30');
-      const json = await res.json();
-      setVentasData(json.ventasData || []);
-    } catch (err) {
-      console.error('Error cargando gráficas:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [externalData]);
+  const [ventasData, setVentasData] = useState<VentaDataPoint[]>([]);
 
   useEffect(() => {
-    if (isMounted) fetchData();
-  }, [isMounted, fetchData]);
+    let cancelled = false;
 
-  if (!isMounted) return null;
+    const load = async () => {
+      if (externalData) {
+        if (!cancelled) {
+          setVentasData(externalData);
+          setLoading(false);
+        }
+        return;
+      }
+      try {
+        if (!cancelled) setLoading(true);
+        const res  = await fetch('/api/admin/charts?days=30');
+        const json = await res.json();
+        if (!cancelled) setVentasData(json.ventasData || []);
+      } catch (err) {
+        console.error('Error cargando gráficas:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [externalData]);
 
   const totalVentas = ventasData.reduce(
     (acc, d) => acc + (Number(d.ventas) || 0), 0
@@ -182,7 +191,12 @@ function MiniStat({ label, value, icon, accent }: {
   );
 }
 
-function ChartTooltip({ active, payload, label, accent }: any) {
+function ChartTooltip({ active, payload, label, accent }: {
+  active?:  boolean;
+  payload?: { value?: number | string }[];
+  label?:   string;
+  accent:   string;
+}) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{

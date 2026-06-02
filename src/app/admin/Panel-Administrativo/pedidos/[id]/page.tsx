@@ -1,9 +1,12 @@
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { serializeBigInt } from "@/lib/utils/serialize";
-import PedidoDetalle from "@/components/admin/pedidos/detalles/PedidoDetalle";
+import { notFound }         from "next/navigation";
+import { prisma }           from "@/lib/prisma";
+import { serializeBigInt }  from "@/lib/utils/serialize";
+import PedidoDetalle, {
+  type DetallePedidoData,
+  type TallerOption,
+} from "@/components/admin/pedidos/detalles/PedidoDetalle";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -12,59 +15,62 @@ interface PageProps {
 export default async function PedidoDetallePage({ params }: PageProps) {
   const { id } = await params;
 
+  let pedido;
+
   try {
-    const pedido = await prisma.pedidos.findUnique({
+    pedido = await prisma.pedidos.findUnique({
       where: { id: BigInt(id) },
       include: {
         clientes: {
           select: {
-            id: true,
-            ruc: true,
-            razon_social: true,
+            id:               true,
+            ruc:              true,
+            razon_social:     true,
             nombre_comercial: true,
-            telefono: true,
-            email: true,
+            telefono:         true,
+            email:            true,
           },
         },
         pedido_items: {
           include: {
-            productos: { select: { id: true, nombre: true, sku: true, imagen: true, fichas_tecnicas: true } },
-            variantes_producto: { select: { id: true, color: true, talla: true, sku: true } },
-          },
-        },
-        seguimiento_pedido: { orderBy: { created_at: 'desc' } },
-        ordenes_produccion: {
-          include: {
-            fichas_tecnicas: { select: { id: true, version: true, estado: true } },
-            talleres: { select: { id: true, nombre: true } },
-            seguimiento_produccion: {
-              where: { activo: true },
-              take: 1,
-              orderBy: { created_at: 'desc' },
+            productos: {
+              select: {
+                id:     true,
+                nombre: true,
+                sku:    true,
+                imagen: true,   // por si TabItems muestra imagen
+              },
+            },
+            variantes_producto: {   // ← esto faltaba
+              select: {
+                id:    true,
+                color: true,
+                talla: true,
+                sku:   true,
+              },
             },
           },
-          orderBy: { created_at: 'desc' },
+          orderBy: { id: "asc" },
+        },
+        seguimiento_pedido: {
+          orderBy: { created_at: "desc" },
         },
       },
     });
 
     if (!pedido) notFound();
 
-    // Talleres activos para el modal
-    const talleres = await prisma.talleres.findMany({
-      where: { estado: 'activo' },
-      orderBy: { nombre: 'asc' },
-      select: { id: true, nombre: true, especialidad: true, contacto: true, email: true },
-    });
-
-    return (
-      <PedidoDetalle
-        pedido={serializeBigInt(pedido)}
-        talleres={serializeBigInt(talleres)}
-      />
-    );
   } catch (error) {
-    console.error("Error cargando pedido:", error);
+    console.error("[PedidoDetallePage] Error cargando pedido:", error);
     notFound();
   }
+
+  const talleres: TallerOption[] = [];
+
+  return (
+    <PedidoDetalle
+      pedido={serializeBigInt(pedido) as unknown as DetallePedidoData}
+      talleres={talleres}
+    />
+  );
 }

@@ -18,7 +18,6 @@ import PedidosToolbar from "@/components/admin/pedidos/PedidosToolbar";
 
 const PedidosTable       = dynamic(() => import("@/components/admin/pedidos/PedidosTable"));
 const CreatePedidoDialog = dynamic(() => import("@/components/admin/pedidos/CreatePedidoDialog"));
-const ViewPedidoDialog   = dynamic(() => import("@/components/admin/pedidos/ViewPedidoDialog"));
 const CancelPedidoDialog = dynamic(() => import("@/components/admin/pedidos/CancelPedidoDialog"));
 
 export default function PedidosPage() {
@@ -36,8 +35,12 @@ export default function PedidosPage() {
 
   const stats = useMemo(() => ({
     total:       pedidos.length,
-    pendientes:  pedidos.filter((p: any) => ["solicitud", "cotizado", "aprobado"].includes(p.estado)).length,
-    completados: pedidos.filter((p: any) => ["finalizado", "pagado"].includes(p.estado)).length,
+    pendientes:  pedidos.filter((p: any) =>
+      ["pendiente", "en_produccion", "listo_para_despacho"].includes(p.estado)
+    ).length,
+    completados: pedidos.filter((p: any) =>
+      ["entregado", "pagado"].includes(p.estado)
+    ).length,
     cancelados:  pedidos.filter((p: any) => p.estado === "cancelado").length,
   }), [pedidos]);
 
@@ -126,8 +129,9 @@ export default function PedidosPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <PedidosTable
                 data={paginatedData}
-                onView={(p: any) => { setSelectedPedido(p); setDialogMode("view"); }}
-                onCancel={can("archive", "pedidos") ? (p: any) => { setSelectedPedido(p); setDialogMode("cancel"); } : undefined}
+                onCancel={can("archive", "pedidos") 
+                  ? (p) => { setSelectedPedido(p); setDialogMode("cancel"); } 
+                  : undefined}
               />
             </div>
 
@@ -153,9 +157,6 @@ export default function PedidosPage() {
       </div>
 
       <CreatePedidoDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSuccess={() => refetch()} />
-      {selectedPedido && dialogMode === "view" && (
-        <ViewPedidoDialog isOpen pedido={selectedPedido} onClose={() => { setSelectedPedido(null); setDialogMode(null); }} />
-      )}
       {selectedPedido && dialogMode === "cancel" && (
         <CancelPedidoDialog isOpen pedido={selectedPedido} onClose={() => { setSelectedPedido(null); setDialogMode(null); }} onSuccess={() => refetch()} />
       )}

@@ -1,11 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getDespachoActivos,
   subscribeToGrupo,
-  uploadEvidencia,
-  createIncidenciaCliente,
   type DespachoFlat,
   type SeguimientoDespacho,
   type TipoIncidenciaCliente,
@@ -13,19 +11,19 @@ import {
 } from '@/lib/services/despachos.service';
 import { aplanarDespacho } from '@/lib/helpers/despachos-helpers';
 
-// ── useDespachos ──────────────────────────────────────────────────────────────
+// ─── useDespachos ────────────────────────────────────────────────────────────
 
 interface UseDespachoState {
   despachos: DespachoFlat[];
-  cargando: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
+  cargando:  boolean;
+  error:     string | null;
+  refetch:   () => Promise<void>;
 }
 
 export function useDespachos(): UseDespachoState {
   const [despachos, setDespachos] = useState<DespachoFlat[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando]   = useState(true);
+  const [error, setError]         = useState<string | null>(null);
 
   const cleanupRefs = useRef<(() => void)[]>([]);
 
@@ -33,7 +31,7 @@ export function useDespachos(): UseDespachoState {
     setCargando(true);
     setError(null);
     try {
-      const raw = await getDespachoActivos();
+      const raw  = await getDespachoActivos();
       const plano = raw.map(aplanarDespacho);
       setDespachos(plano);
     } catch (err: unknown) {
@@ -43,91 +41,108 @@ export function useDespachos(): UseDespachoState {
     }
   }, []);
 
-  // Realtime: escucha nuevos seguimientos en cada grupo activo
-  useEffect(() => {
-    if (!despachos.length) return;
+  // ✓ useMemo evita recalcular la cadena en cada render y estabiliza
+  //   la dependencia del efecto de suscripciones.
+  const idsActivos = useMemo(
+    () =>
+      despachos
+        .filter(d => d.estado === 'en_ruta' || d.estado === 'preparando')
+        .map(d => d.id),
+    [despachos],
+  );
 
+  // Cadena estable para comparación en el efecto (evita objetos array como dep)
+  const idsKey = idsActivos.join(',');
+
+  useEffect(() => {
+    if (!idsKey) return;
+
+    // Limpiar suscripciones anteriores antes de crear las nuevas
     cleanupRefs.current.forEach(fn => fn());
     cleanupRefs.current = [];
 
-    const subs = despachos
-      .filter(d => d.estado === 'en_ruta' || d.estado === 'preparando')
-      .map(d =>
-        subscribeToGrupo(d.id, (seguimiento: SeguimientoDespacho) => {
-          setDespachos(prev =>
-            prev.map(item =>
-              item.id === d.id
-                ? { ...item, estado: seguimiento.status, ultimo_estado: seguimiento }
-                : item,
-            ),
-          );
-        }),
-      );
-
-    cleanupRefs.current = subs;
+    cleanupRefs.current = idsActivos.map(id =>
+      subscribeToGrupo(id, (seg: SeguimientoDespacho) => {
+        setDespachos(prev =>
+          prev.map(item =>
+            item.id === id
+              ? { ...item, estado: seg.status, ultimo_estado: seg }
+              : item,
+          ),
+        );
+      }),
+    );
 
     return () => {
       cleanupRefs.current.forEach(fn => fn());
       cleanupRefs.current = [];
     };
-  }, [despachos.map(d => d.id).join(',')]);
+    // idsActivos se recrea cuando cambia idsKey, así que usar idsKey
+    // como dep es suficiente y evita el array como dependencia inestable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    let mounted = true;
+    cargar().catch(() => { if (!mounted) return; });
+    return () => { mounted = false; };
+  }, [cargar]);
 
   return { despachos, cargando, error, refetch: cargar };
 }
 
-// ── useIncidencia ─────────────────────────────────────────────────────────────
+// ─── useIncidencia ───────────────────────────────────────────────────────────
 
-type Status = 'idle' | 'loading' | 'success' | 'error';
+type IncidenciaStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface SubmitPayload {
-  tipo: TipoIncidenciaCliente;
-  severidad: SeveridadIncidencia;
+  tipo:        TipoIncidenciaCliente;
+  severidad:   SeveridadIncidencia;
   descripcion: string;
-  foto: File | null;
+  foto:        File | null;
 }
 
-export function useIncidencia() {
-  const [status, setStatus] = useState<Status>('idle');
-  const [errorMsg, setError] = useState('');
+interface UseIncidenciaReturn {
+  status:   IncidenciaStatus;
+  errorMsg: string;
+  submit:   (pedidoId: number, payload: SubmitPayload) => Promise<void>;
+  reset:    () => void;
+}
 
-  async function submit(pedidoId: number | undefined, payload: SubmitPayload) {
-    if (!pedidoId) {
-      setError('No se encontró el pedido asociado.');
-      setStatus('error');
-      return;
-    }
+export function useIncidencia(): UseIncidenciaReturn {
+  const [status, setStatus]     = useState<IncidenciaStatus>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
 
+  const reset = useCallback(() => {
+    setStatus('idle');
+    setErrorMsg('');
+  }, []);
+
+  const submit = useCallback(async (pedidoId: number, payload: SubmitPayload) => {
     setStatus('loading');
-    setError('');
-
+    setErrorMsg('');
     try {
-      const evidencia_url: string[] = [];
-      if (payload.foto) {
-        const url = await uploadEvidencia(pedidoId, payload.foto);
-        evidencia_url.push(url);
+      const form = new FormData();
+      form.append('pedido_id',  String(pedidoId));
+      form.append('tipo',       payload.tipo);
+      form.append('severidad',  payload.severidad);
+      form.append('descripcion', payload.descripcion);
+      if (payload.foto) form.append('foto', payload.foto);
+
+      const res = await fetch('/api/incidencias', { method: 'POST', body: form });
+
+      if (!res.ok) {
+        // ✓ Intentar leer mensaje del servidor antes de lanzar genérico
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message ?? `Error ${res.status}`);
       }
 
-      await createIncidenciaCliente({
-        pedido_id: pedidoId,
-        tipo: payload.tipo,
-        severidad: payload.severidad,
-        descripcion: payload.descripcion,
-        evidencia_url,
-      });
-
       setStatus('success');
-    } catch (err: any) {
-      setError(err.message || 'Error al enviar la incidencia.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'No se pudo enviar el reporte.');
       setStatus('error');
     }
-  }
-
-  function reset() {
-    setStatus('idle');
-    setError('');
-  }
+  }, []);
 
   return { status, errorMsg, submit, reset };
 }

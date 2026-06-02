@@ -10,7 +10,7 @@ import {
   type PedidoConSeguimiento,
   type EstadoPedido,
 } from '@/lib/services/seguimiento-pedido.service';
-import { usePortal } from '../_contexts/PortalContext';
+import { usePortal } from '@/lib/hooks/usePortal';
 
 // ─── Config de Etapas ─────────────────────────────────────────────────────────
 
