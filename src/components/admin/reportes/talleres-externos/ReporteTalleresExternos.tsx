@@ -166,7 +166,7 @@ export default function ReporteTalleresExternos() {
 
           <div className="lg:col-span-2">
             {data && (
-              <ReporteTalleresChart data={data.data} />
+              <ReporteTalleresChart resumen={data.resumen} />
             )}
           </div>
 
