@@ -4,6 +4,22 @@ import { Package } from 'lucide-react';
 import { formatCurrency, formatDateLong } from '@/lib/helpers/format-helpers';
 import { EstadoBadge } from '@/components/portal/EstadoBadge';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** "palo_rosa" → "Palo Rosa" */
+function capitalizarColor(texto: string): string {
+    return texto
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
+/** "xl" → "XL" */
+function formatearTalla(talla: string): string {
+    return talla.toUpperCase();
+}
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+
 interface ProductoInfo {
     nombre: string;
     sku: string;
@@ -26,6 +42,8 @@ interface DetalleCotizacionProductosProps {
     fechaCreacion: string;
     items: CotizacionItem[];
 }
+
+// ── Componente ────────────────────────────────────────────────────────────────
 
 export function DetalleCotizacionProductos({
     numero,
@@ -53,7 +71,10 @@ export function DetalleCotizacionProductos({
                     >
                         {numero}
                     </h1>
-                    <p className="text-sm font-medium mt-1 opacity-60" style={{ color: 'var(--guor-dark)' }}>
+                    <p
+                        className="text-sm font-medium mt-1 opacity-60"
+                        style={{ color: 'var(--guor-dark)' }}
+                    >
                         Generado el {formatDateLong(fechaCreacion)}
                     </p>
                 </div>
@@ -91,25 +112,42 @@ export function DetalleCotizacionProductos({
                         style={{ borderColor: 'var(--guor-stone)' }}
                     >
                         {items.map((item) => (
-                            <tr key={item.id} className="group transition-colors hover:bg-neutral-50/50">
+                            <tr
+                                key={item.id}
+                                className="group transition-colors hover:bg-neutral-50/50"
+                            >
                                 <td className="py-6">
                                     <div className="flex items-center gap-4">
-                                        {/* Icono placeholder con la paleta corporativa */}
+
+                                        {/* Thumbnail del producto */}
                                         <div
-                                            className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 border"
+                                            className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden"
                                             style={{
                                                 backgroundColor: 'var(--guor-cream)',
                                                 borderColor: 'var(--guor-stone)',
                                             }}
                                         >
-                                            <Package
-                                                size={24}
-                                                style={{ color: 'var(--guor-gold)' }}
-                                            />
+                                            {item.productos?.imagen ? (
+                                                <img
+                                                    src={item.productos.imagen}
+                                                    alt={item.productos.nombre}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <Package
+                                                    size={24}
+                                                    style={{ color: 'var(--guor-gold)' }}
+                                                />
+                                            )}
                                         </div>
+
+                                        {/* Info */}
                                         <div>
-                                            <p className="font-bold text-base" style={{ color: 'var(--guor-dark)' }}>
-                                                {item.productos?.nombre || 'Producto sin nombre'}
+                                            <p
+                                                className="font-bold text-base"
+                                                style={{ color: 'var(--guor-dark)' }}
+                                            >
+                                                {item.productos?.nombre ?? 'Producto sin nombre'}
                                             </p>
                                             <p
                                                 className="text-[10px] font-bold uppercase tracking-tight opacity-60"
@@ -121,20 +159,28 @@ export function DetalleCotizacionProductos({
                                                 className="text-[10px] mt-0.5 opacity-50 font-medium"
                                                 style={{ color: 'var(--guor-dark)' }}
                                             >
-                                                {item.color_snapshot} · {item.talla_snapshot}
+                                                {capitalizarColor(item.color_snapshot)}
+                                                {' · '}
+                                                {formatearTalla(item.talla_snapshot)}
                                             </p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="py-6 text-center font-bold text-base" style={{ color: 'var(--guor-dark)' }}>
+
+                                <td
+                                    className="py-6 text-center font-bold text-base"
+                                    style={{ color: 'var(--guor-dark)' }}
+                                >
                                     {item.cantidad}
                                 </td>
+
                                 <td
                                     className="py-6 text-right font-medium"
                                     style={{ color: 'var(--guor-dark)' }}
                                 >
                                     {formatCurrency(item.precio_unitario_snapshot)}
                                 </td>
+
                                 <td
                                     className="py-6 text-right font-black text-base"
                                     style={{ color: 'var(--guor-dark)' }}
