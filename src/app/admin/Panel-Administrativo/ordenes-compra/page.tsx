@@ -15,7 +15,7 @@ import { useOrdenesCompra } from '@/lib/hooks/useOrdenesCompra';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { ESTADOS_ORDEN_COMPRA } from '@/lib/constants/estados';
 import type { OrdenCompraRow } from '@/components/admin/ordenes-compra/types';
-import { exportToExcel } from '@/lib/utils/export-utils';
+import { exportToExcel, exportToPDF } from '@/lib/utils/export-utils';
 import { EstadoOrdenCompra } from '@prisma/client';
 
 export default function OrdenesCompraPage() {
@@ -106,12 +106,36 @@ export default function OrdenesCompraPage() {
       toast.error('No hay datos para exportar');
       return;
     }
+    const toastId = toast.loading('Preparando PDF...');
     try {
       setExportingPDF(true);
-      toast.success('PDF generado exitosamente');
+      const fecha = new Date().toISOString().split('T')[0];
+      await exportToPDF(
+        [['N° OC', 'Proveedor', 'Cotización', 'Total', 'F. prometida', 'Estado', 'Pago']],
+        filtered.map((o) => [
+          `OC-${o.id.toString().padStart(6, '0')}`,
+          o.proveedores?.razon_social ?? `Prov. #${o.proveedor_id}`,
+          o.cotizaciones_proveedor?.numero_externo
+            ? `#${o.cotizaciones_proveedor.numero_externo}`
+            : o.cotizacion_proveedor_id
+              ? `COT-${o.cotizacion_proveedor_id}`
+              : 'Manual',
+          `S/ ${Number(o.total_orden).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+          o.fecha_prometida ? new Date(o.fecha_prometida).toLocaleDateString('es-PE') : '—',
+          ESTADOS_ORDEN_COMPRA[o.estado as EstadoOrdenCompra]?.label || o.estado,
+          o.estado_pago,
+        ]),
+        {
+          filename: `Ordenes_de_Compra_SWGUOR_${fecha}`,
+          title: 'ÓRDENES DE COMPRA',
+          subtitle: 'Gestión integral de compras, proveedores y control de gastos',
+          orientation: 'landscape',
+        },
+      );
+      toast.success('PDF descargado correctamente', { id: toastId });
     } catch (error) {
       console.error(error);
-      toast.error('Error al exportar a PDF');
+      toast.error('Error al exportar a PDF', { id: toastId });
     } finally {
       setExportingPDF(false);
     }
