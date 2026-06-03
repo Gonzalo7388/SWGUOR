@@ -1,32 +1,48 @@
 "use client";
 
 import { memo } from "react";
-import { Scissors, Plus } from "lucide-react";
+import { Scissors } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ESTADO_CONFECCION } from "@/lib/schemas/confecciones";
 import ConfeccionRow from "@/components/admin/confecciones/ConfeccionesRow";
 
 export type ConfeccionRow_T = {
-  id:             number;
-  pedido_id:      number;
-  pedido?:        { id: number; } | null;
-  taller?:        { id: number; nombre: string } | null;
-  prenda:         string;
-  cantidad:       number;
+  id: number;
+  pedido_id: number;
+  pedido?: { id: number } | null;
+  talleres?: { id: number; nombre: string } | null;
+  prenda: string;
+  cantidad: number;
   costo_unitario: number | null;
-  fecha_entrega:  string | null;
-  prioridad:      "baja" | "media" | "alta" | "urgente";
-  estado:         typeof ESTADO_CONFECCION[number];
-  created_at:     string;
+  fecha_entrega: string | null;
+  prioridad: "baja" | "media" | "alta" | "urgente";
+  estado: typeof ESTADO_CONFECCION[number];
+  created_at: string;
+  ordenes_produccion?: {
+    id: number;
+    estado: string;
+    cantidad_solicitada: number;
+    pedidos?: {
+      id: number;
+      estado: string;
+      clientes?: {
+        id: number;
+        razon_social: string;
+        nombre_comercial: string;
+      };
+    };
+  };
 };
 
 interface ConfeccionesTableProps {
-  data:           ConfeccionRow_T[];
-  isLoading:      boolean;
+  data: ConfeccionRow_T[];
+  isLoading: boolean;
   onEstadoChange: (id: number, estado: ConfeccionRow_T["estado"]) => void;
+  onDelete?: (id: number) => void;
+  onEdit?: (orden: ConfeccionRow_T) => void;
 }
 
-function ConfeccionesTable({ data, isLoading, onEstadoChange }: ConfeccionesTableProps) {
+function ConfeccionesTable({ data, isLoading, onEstadoChange, onDelete, onEdit }: ConfeccionesTableProps) {
   return (
     <div className="overflow-x-auto pb-4">
       <table className="w-full border-separate border-spacing-y-3">
@@ -74,6 +90,7 @@ function ConfeccionesTable({ data, isLoading, onEstadoChange }: ConfeccionesTabl
                   <div className="flex justify-end gap-2">
                     <Skeleton className="h-9 w-9 rounded-xl" />
                     <Skeleton className="h-9 w-9 rounded-xl" />
+                    <Skeleton className="h-9 w-9 rounded-xl" />
                   </div>
                 </td>
               </tr>
@@ -94,12 +111,13 @@ function ConfeccionesTable({ data, isLoading, onEstadoChange }: ConfeccionesTabl
               <ConfeccionRow
                 key={orden.id}
                 orden={orden}
-                onEstadoChange={onEstadoChange}
+                onDelete={onDelete}
+                onEdit={onEdit}
               />
             ))
           )}
         </tbody>
-      </table>
+       </table>
     </div>
   );
 }
