@@ -218,7 +218,18 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                 ]);
 
                 if (reglasRes.data) setReglas(reglasRes.data);
-                if (productosRes.data) setProductos(productosRes.data as ProductoPortal[]);
+                if (productosRes.data) {
+                    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                    const normalized = productosRes.data.map((p: any) => ({
+                        ...p,
+                        imagen: p.imagen
+                            ? p.imagen.startsWith('http')
+                                ? p.imagen
+                                : `${base}/storage/v1/object/public/productos/${p.imagen}`
+                            : null,
+                    }));
+                    setProductos(normalized as ProductoPortal[]);
+                }
                 if (categoriasRes.data) setCategorias(categoriasRes.data);
                 if (costosRes.data) {
                     setCostosEnvio(costosRes.data.map(c => ({ id: c.id, zona: c.zona as ZonaEnvio, costo: Number(c.costo), activo: c.activo })));
@@ -267,7 +278,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     const esClienteNuevo = cliente?.tipo_cliente === 'nuevo';
 
-    // Manejador expuesto para refetch manual desde componentes de la UI (ej: botón refrescar pedido)
     const refetchSeguimiento = useCallback(async () => {
         if (cliente?.id) {
             await cargarSeguimientoYDespachos(cliente.id);
