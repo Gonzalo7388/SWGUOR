@@ -9,7 +9,15 @@ export const metadata = {
   description: 'Configure productos, proponga precios unitarios y envíe requerimientos al equipo comercial.',
 };
 
-export default async function NuevaCotizacionPage() {
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function NuevaCotizacionPage({ searchParams }: PageProps) {
+  // ── 1. Capturar el parámetro de recotización de la URL de forma segura ──
+  const resolvedSearchParams = await searchParams;
+  const recotizarId = typeof resolvedSearchParams.recotizar === 'string' ? resolvedSearchParams.recotizar : undefined;
+
   // Usamos la server action sólo para validar acceso y detectar catálogo vacío
   // antes de hidratar el cliente. El contexto (usePortal) se encarga
   // del fetch de productos en el lado cliente.
@@ -68,6 +76,6 @@ export default async function NuevaCotizacionPage() {
     );
   }
 
-  // 3. Acceso validado — el componente cliente obtiene sus datos del PortalContext
-  return <NuevaCotizacionClient />;
+  // 3. Acceso validado — Le inyectamos la prop con el ID origen al cliente
+  return <NuevaCotizacionClient recotizarId={recotizarId} />;
 }

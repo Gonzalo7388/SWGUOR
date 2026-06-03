@@ -149,112 +149,58 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     // Función independiente para refrescar pedidos y despachos de forma asíncrona
     const cargarSeguimientoYDespachos = useCallback(async (clienteId: number) => {
+        if (!clienteId) return; // Seguridad extra
+        
         setLoadingSeguimiento(true);
         const supabase = getSupabaseBrowserClient();
+        
         try {
-            // 1. OBTENER PEDIDOS + SU HISTORIAL DE ESTADOS (seguimiento_pedido)
+            // 1. OBTENER PEDIDOS
             const { data: pedidosData, error: pedidosError } = await supabase
                 .from('pedidos')
                 .select(`
-                    id, 
-                    codigo_pedido:id, 
-                    fecha_compra:created_at, 
-                    monto_total:total, 
-                    estado_pago, 
-                    estado_pedido:estado,
-                    historial:seguimiento_pedido (
-                        id,
-                        pedido_id,
-                        status,
-                        notas,
-                        created_at
-                    )
+                    id, codigo_pedido:id, fecha_compra:created_at, monto_total:total, 
+                    estado_pago, estado_pedido:estado,
+                    historial:seguimiento_pedido ( id, pedido_id, status, notas, created_at )
                 `)
                 .eq('cliente_id', clienteId)
                 .order('created_at', { ascending: false })
-                .order('created_at', { foreignTable: 'seguimiento_pedido', ascending: true }) // Cronológico
-                .limit(10);
+                .order('created_at', { foreignTable: 'seguimiento_pedido', ascending: true });
 
             if (pedidosError) throw pedidosError;
+            setPedidosSeguimiento((pedidosData as any) || []);
 
-            if (pedidosData) {
-                const pedidosFormateados = pedidosData.map((p: any) => ({
-                    ...p,
-                    items_count: p.items_count ?? 0,
-                    historial: p.historial || []
-                })) as PedidoSeguimiento[];
-
-                setPedidosSeguimiento(pedidosFormateados);
-            }
-
-            // 2. OBTENER DESPACHOS + HISTORIAL DEL GRUPO (despachos -> despachos_grupo_pedidos -> despachos_grupos -> seguimiento_despachos)
-            // Usamos la relación declarada 'pedidos' para filtrar por cliente.
-            // Mediante 'despachos_grupo_pedidos' enlazamos al grupo y traemos su seguimiento.
+            // 2. OBTENER DESPACHOS
             const { data: despachosData, error: despachosError } = await supabase
                 .from('despachos')
                 .select(`
-                    id,
-                    pedido_id,
-                    fecha_despacho,
-                    direccion_entrega,
-                    fecha_entrega,
-                    estado,
-                    created_at,
-                    updated_at,
-                    pedidos!inner(cliente_id),
+                    id, pedido_id, fecha_despacho, direccion_entrega, fecha_entrega, estado, created_at, updated_at,
                     vinculo_grupo:despachos_grupo_pedidos (
                         grupo:despachos_grupos (
-                            historial:seguimiento_despachos (
-                                id,
-                                grupo_despacho_id,
-                                status,
-                                notas,
-                                created_at
-                            )
+                            historial:seguimiento_despachos ( id, grupo_despacho_id, status, notas, created_at )
                         )
                     )
                 `)
                 .eq('pedidos.cliente_id', clienteId)
-                .not('estado', 'eq', 'entregado')
-                .order('created_at', { foreignTable: 'despachos_grupo_pedidos.despachos_grupos.seguimiento_despachos', ascending: true });
+                .not('estado', 'eq', 'entregado');
 
             if (despachosError) throw despachosError;
 
-            if (despachosData) {
-                const despachosFormateados = despachosData.map((d: any) => {
-                    // Extraemos el historial aplanando la estructura anidada de la tabla intermedia B2B
-                    let historialGrupo: HitoSeguimientoDespacho[] = [];
+            // Formateo seguro de despachos
+            const despachosFormateados = (despachosData || []).map((d: any) => ({
+                ...d,
+                historial_grupo: d.vinculo_grupo?.[0]?.grupo?.historial || []
+            }));
 
-                    if (d.vinculo_grupo && d.vinculo_grupo.length > 0) {
-                        // Si el despacho pertenece a un grupo consolidado, extraemos sus hitos de estatus
-                        const grupoData = d.vinculo_grupo[0]?.grupo;
-                        if (grupoData && grupoData.historial) {
-                            historialGrupo = grupoData.historial;
-                        }
-                    }
-
-                    return {
-                        id: d.id,
-                        pedido_id: d.pedido_id,
-                        fecha_despacho: d.fecha_despacho,
-                        direccion_entrega: d.direccion_entrega,
-                        fecha_entrega: d.fecha_entrega,
-                        estado: d.estado,
-                        created_at: d.created_at,
-                        updated_at: d.updated_at,
-                        historial_grupo: historialGrupo
-                    };
-                }) as DespachoPortal[];
-
-                setDespachosActivos(despachosFormateados);
-            }
+            setDespachosActivos(despachosFormateados);
 
         } catch (error) {
-            console.error('Error detallado cargando despachos/seguimiento en el Portal:', error);
+            // Aquí evitamos que el error "suba" y bloquee el provider
+            console.warn('Advertencia: No se pudieron cargar los seguimientos:', error);
         } finally {
             setLoadingSeguimiento(false);
         }
-    }, []);
+    }, []); // Dependencias vacías, el clienteId viene por parámetro
 
     // Inicialización del Portal B2B con consulta única optimizada
     useEffect(() => {

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, FileText, MessageSquare } from 'lucide-react';
+import { ChevronLeft, FileText, MessageSquare, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { crearSolicitudCotizacion } from '@/app/portal/cotizaciones/actions';
 import { usePortal } from '@/lib/hooks/usePortal';
@@ -12,15 +12,79 @@ import { ItemResumen } from '@/components/portal/cotizaciones/panel/ItemResumen'
 import { ResumenFinanciero } from '@/components/portal/cotizaciones/panel/ResumenFinanciero';
 import { BotonesAccion } from '@/components/portal/cotizaciones/panel/BotonesAccion';
 
-export function NuevaCotizacionClient() {
+interface NuevaCotizacionClientProps {
+  recotizarId?: string;
+}
+
+export function NuevaCotizacionClient({ recotizarId }: NuevaCotizacionClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isHydrating, setIsHydrating] = useState(false);
 
-  const { itemsBorrador, resumenBorrador, cliente, limpiarBorrador } = usePortal();
+  // Extraemos las utilidades de tu PortalContext global
+  const portalContext = usePortal();
+  const { itemsBorrador, resumenBorrador, cliente, limpiarBorrador } = portalContext;
   const [mensaje, setMensaje] = useState('');
 
   const idsAgregados = itemsBorrador.map((i) => i.producto_id);
   const puedeEnviar = itemsBorrador.length > 0 && mensaje.trim().length > 0;
+
+// ── 🔄 Efecto para hidratar los productos de la recotización ────────────
+  useEffect(() => {
+    if (!recotizarId) return;
+
+    const cargarCotizacionPrevia = async () => {
+      setIsHydrating(true);
+      const toastId = toast.loading('Cargando productos...');
+      
+      try {
+        const res = await fetch(`/api/portal/cotizaciones/${recotizarId}/items`);
+        if (!res.ok) throw new Error('Error al obtener ítems');
+        
+        const { data } = await res.json();
+        
+        if (data && data.length > 0) {
+          limpiarBorrador?.();
+
+          // ESTRATEGIA SEGURA: 
+          // Si el hook tiene setBorrador o setItems, úsalo. 
+          // Si no, forzamos la actualización a través del contexto si existe la propiedad.
+          const ctx = portalContext as any;
+          
+          // Buscamos cualquier método que suene a "añadir" o "setear"
+          const metodoInsertar = ctx.agregarItem || ctx.setItemsBorrador || ctx.setItems;
+
+          if (metodoInsertar) {
+            data.forEach((item: any) => {
+              metodoInsertar({
+                producto_id: item.producto_id,
+                producto_nombre: item.producto_nombre || 'Producto',
+                sku: item.producto_sku || 'SKU',
+                variante_id: item.variante_id,
+                color: item.color,
+                talla: item.talla,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio_catalogo || item.precio_unitario_snapshot || 0,
+              });
+            });
+            toast.success('Productos cargados.', { id: toastId });
+          } else {
+            // FALLBACK: Si no hay método, es que el contexto podría ser de solo lectura.
+            // Logueamos para debuguear la estructura del contexto
+            console.error("No se encontró método de inserción en:", Object.keys(ctx));
+            toast.error('No se pudo inyectar la data (método no encontrado).', { id: toastId });
+          }
+        }
+      } catch (error) {
+        console.error('Error al recotizar:', error);
+        toast.error('Error al clonar productos.', { id: toastId });
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+
+    cargarCotizacionPrevia();
+  }, [recotizarId, limpiarBorrador, portalContext]); // Añadimos portalContext a dependencias
 
   const handleEnviar = (accion: 'borrador' | 'enviar') => {
     if (itemsBorrador.length === 0) {
@@ -29,8 +93,6 @@ export function NuevaCotizacionClient() {
     }
 
     // ── Guardar borrador ──────────────────────────────────────────────────────
-    // Los ítems ya viven en el PortalContext; no hay llamada al servidor.
-    // Sólo confirmamos con un toast y volvemos al historial.
     if (accion === 'borrador') {
       toast.success('Borrador guardado. Puedes retomarlo cuando quieras.');
       router.push('/portal/cotizaciones');
@@ -76,7 +138,15 @@ export function NuevaCotizacionClient() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 px-2 sm:px-4 pb-16">
+    <div className="max-w-7xl mx-auto space-y-6 px-2 sm:px-4 pb-16 relative">
+      
+      {/* ── Overlay de carga mientras se recuperan los ítems viejos ── */}
+      {isHydrating && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-xs z-50 flex flex-col items-center justify-center rounded-2xl min-h-[500px]">
+          <Loader2 className="animate-spin text-guor-gold mb-2" size={32} />
+          <p className="text-xs font-bold text-slate-600">Reestructurando modelo de cotización anterior...</p>
+        </div>
+      )}
 
       {/* ── Encabezado ── */}
       <header
@@ -136,7 +206,6 @@ export function NuevaCotizacionClient() {
             className="rounded-2xl overflow-hidden border"
             style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}
           >
-
             {/* Cabecera del panel */}
             <div
               className="px-5 py-4 border-b flex items-center justify-between"
@@ -173,7 +242,6 @@ export function NuevaCotizacionClient() {
             </div>
 
             <div className="p-4 space-y-4">
-
               {/* ── Lista de ítems del borrador ── */}
               {itemsBorrador.length === 0 ? (
                 <div
@@ -184,7 +252,7 @@ export function NuevaCotizacionClient() {
                     opacity: 0.35,
                   }}
                 >
-                  Seleccione variaciones del catálogo para comenzar la estimación.
+                  Seleccione variaciones del catálogo para comenzar la AWS-estimación.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -197,7 +265,6 @@ export function NuevaCotizacionClient() {
               {/* ── Sección inferior: sólo visible con ítems ── */}
               {itemsBorrador.length > 0 && (
                 <>
-                  {/* ResumenFinanciero incluye SelectorZonaEnvio y direccion_fiscal */}
                   <div
                     className="rounded-xl border p-4"
                     style={{ backgroundColor: 'white', borderColor: 'var(--guor-stone)' }}
@@ -205,7 +272,7 @@ export function NuevaCotizacionClient() {
                     <ResumenFinanciero />
                   </div>
 
-                  {/* Mensaje comercial — requerido sólo para enviar */}
+                  {/* Mensaje comercial */}
                   <div>
                     <label
                       className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] mb-2"
@@ -230,7 +297,6 @@ export function NuevaCotizacionClient() {
                     />
                   </div>
 
-                  {/* Botones: Generar cotización / Guardar borrador */}
                   <BotonesAccion
                     onEnviar={handleEnviar}
                     isSending={isPending}

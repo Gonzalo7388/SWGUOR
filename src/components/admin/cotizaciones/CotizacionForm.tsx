@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useState, useMemo } from 'react';
+import React, { useId, useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
@@ -29,9 +29,11 @@ interface CotizacionFormProps {
     precio: number;
     variantes?: { id: number; color: string; talla: string; sku: string }[];
   }[];
+  // CUS_32: Propiedad opcional para recibir la cotización origen a clonar / recotizar
+  cotizacionOrigen?: any;
 }
 
-export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
+export function CotizacionForm({ clientes, productos, cotizacionOrigen }: CotizacionFormProps) {
   const router      = useRouter();
   const formId      = useId();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +68,65 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
       items:                 [],
     },
   });
+
+  // ── CUS_32: Efecto para hidratar el formulario al Recotizar ─────────────────
+  useEffect(() => {
+    if (!cotizacionOrigen) return;
+
+    // 1. Extraemos y limpiamos las notas y metadatos encriptados del ERP
+    let notasLimpias = cotizacionOrigen.notas_internas || '';
+    let metadataParsed: Record<string, any> = {};
+
+    if (notasLimpias.includes('[ERP_META]:')) {
+      try {
+        const parts = notasLimpias.split('[ERP_META]:');
+        notasLimpias = parts[0].trim();
+        metadataParsed = JSON.parse(parts[1].trim());
+      } catch (e) {
+        console.error("Error al deserializar metadatos de recotización:", e);
+      }
+    }
+
+    // 2. Mapeamos de forma estructurada los productos e ítems para la tabla derecha
+    const itemsClonados = (cotizacionOrigen.items || []).map((it: any) => ({
+      producto_id:     it.producto_id,
+      variante_id:     it.variante_id || undefined,
+      cantidad:        it.cantidad,
+      precio_unitario: it.precio_unitario,
+    }));
+
+    // 3. Reseteamos los valores reactivos del formulario con la data histórica
+    form.reset({
+      cliente_id:            cotizacionOrigen.cliente_id ? String(cotizacionOrigen.cliente_id) : '',
+      nombre_cliente_manual: cotizacionOrigen.nombre_cliente_manual || '',
+      moneda:                cotizacionOrigen.moneda || 'PEN',
+      tasa_impuesto:         cotizacionOrigen.tasa_impuesto || 'IGV',
+      tipo_operacion:        cotizacionOrigen.tipo_operacion || 'Venta interna',
+      valida_hasta:          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+      notas_internas:        notasLimpias,
+      items:                 itemsClonados,
+      
+      // Metadatos recuperados del bloque JSON estructurado
+      empresa:               metadataParsed.empresa || 'Modas y Estilos Guor S.a.C.',
+      contacto:              metadataParsed.contacto || '',
+      tipo_destino:          metadataParsed.tipo_destino || '',
+      vendedor:              metadataParsed.vendedor || '',
+      tipo_venta:            metadataParsed.tipo_venta || '',
+      unidad_negocio:        metadataParsed.unidad_negocio || '',
+      forma_pago:            metadataParsed.forma_pago || '',
+      metodo:                metadataParsed.metodo || '',
+      direccion_entrega:     metadataParsed.direccion_entrega || '',
+      direccion_factura:     metadataParsed.direccion_factura || '',
+      condicion_entrega:     metadataParsed.condicion_entrega || '',
+      tiempo_entrega:        metadataParsed.tiempo_entrega || '',
+      idioma:                metadataParsed.idioma || 'Español',
+      referencia:            metadataParsed.referencia || '',
+      probabilidad:          metadataParsed.probabilidad || '',
+      fecha_cierre:          metadataParsed.fecha_cierre || '',
+    });
+
+    toast.success(`Campos e ítems cargados desde la cotización original.`);
+  }, [cotizacionOrigen, form]);
 
   // ── Cálculo de totales en tiempo real ──────────────────────────────────────
   const watchedItems        = useWatch({ control: form.control, name: 'items' });

@@ -12,7 +12,7 @@ import {
   Receipt, Banknote, Smartphone, FileText,
 } from 'lucide-react';
 
-import { usePortal } from '@/app/portal/_contexts/PortalContext';
+import { usePortal } from '@/lib/hooks/usePortal';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { EstadoBadge } from '@/components/portal/EstadoBadge';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
