@@ -623,4 +623,35 @@ export const CotizacionesService = {
       }))
     );
   },
+  // ── Nueva función para recuperar ítems limpios a recotizar ───────────────
+  async obtenerItemsParaRecotizar(id: string) {
+    const row = await prisma.cotizaciones.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        cotizacion_items: {
+          include: {
+            productos: { select: { id: true, nombre: true, sku: true, precio: true } },
+            variantes_producto: { select: { id: true, color: true, talla: true, sku: true } },
+          },
+          orderBy: { id: 'asc' },
+        },
+      },
+    });
+
+    if (!row) return null;
+
+    return serializeBigInt(
+      row.cotizacion_items.map((item) => ({
+        producto_id: Number(item.producto_id),
+        producto_nombre: item.productos?.nombre ?? 'Producto',
+        producto_sku: item.productos?.sku ?? '—',
+        precio_catalogo: Number(item.productos?.precio ?? 0),
+        variante_id: item.variante_id ? Number(item.variante_id) : null,
+        color: item.color_snapshot || item.variantes_producto?.color || 'N/A',
+        talla: item.talla_snapshot || item.variantes_producto?.talla || 'N/A',
+        cantidad: item.cantidad,
+        precio_unitario_snapshot: Number(item.precio_unitario_snapshot),
+      }))
+    );
+  },
 };

@@ -1,5 +1,3 @@
-// ─── Tipos compartidos del módulo de pedidos ─────────────────────────────────
-// Importar desde aquí en todos los componentes del módulo.
 
 export type EstadoPedido =
     | 'pendiente'
@@ -25,10 +23,10 @@ export interface Pedido {
 }
 
 export interface PedidoFilaDB {
-    id: string;
+    id: number;
     total: number;
-    estado: string;
-    created_at: string;
+    estado: string | null;
+    created_at: string | null;
     total_unidades: number;
     moneda: string;
     monto_pagado: number;
@@ -36,10 +34,10 @@ export interface PedidoFilaDB {
 }
 
 export interface CotizacionHistorial {
-    id: string;
+    id: number;
     numero: string;
-    created_at: string;
-    costo_envio: number;
-    total: number;
-    estado: string;
+    created_at: string | null;
+    costo_envio: number | null;
+    total: number | null;
+    estado: string | null;
 }
