@@ -15,15 +15,15 @@ import { aplanarDespacho } from '@/lib/helpers/despachos-helpers';
 
 interface UseDespachoState {
   despachos: DespachoFlat[];
-  cargando:  boolean;
-  error:     string | null;
-  refetch:   () => Promise<void>;
+  cargando: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export function useDespachos(): UseDespachoState {
   const [despachos, setDespachos] = useState<DespachoFlat[]>([]);
-  const [cargando, setCargando]   = useState(true);
-  const [error, setError]         = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const cleanupRefs = useRef<(() => void)[]>([]);
 
@@ -31,7 +31,7 @@ export function useDespachos(): UseDespachoState {
     setCargando(true);
     setError(null);
     try {
-      const raw  = await getDespachoActivos();
+      const raw = await getDespachoActivos();
       const plano = raw.map(aplanarDespacho);
       setDespachos(plano);
     } catch (err: unknown) {
@@ -41,8 +41,6 @@ export function useDespachos(): UseDespachoState {
     }
   }, []);
 
-  // ✓ useMemo evita recalcular la cadena en cada render y estabiliza
-  //   la dependencia del efecto de suscripciones.
   const idsActivos = useMemo(
     () =>
       despachos
@@ -96,21 +94,21 @@ export function useDespachos(): UseDespachoState {
 type IncidenciaStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface SubmitPayload {
-  tipo:        TipoIncidenciaCliente;
-  severidad:   SeveridadIncidencia;
+  tipo: TipoIncidenciaCliente;
+  severidad: SeveridadIncidencia;
   descripcion: string;
-  foto:        File | null;
+  foto: File | null;
 }
 
 interface UseIncidenciaReturn {
-  status:   IncidenciaStatus;
+  status: IncidenciaStatus;
   errorMsg: string;
-  submit:   (pedidoId: number, payload: SubmitPayload) => Promise<void>;
-  reset:    () => void;
+  submit: (pedidoId: number, payload: SubmitPayload) => Promise<void>;
+  reset: () => void;
 }
 
 export function useIncidencia(): UseIncidenciaReturn {
-  const [status, setStatus]     = useState<IncidenciaStatus>('idle');
+  const [status, setStatus] = useState<IncidenciaStatus>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
   const reset = useCallback(() => {
@@ -123,9 +121,9 @@ export function useIncidencia(): UseIncidenciaReturn {
     setErrorMsg('');
     try {
       const form = new FormData();
-      form.append('pedido_id',  String(pedidoId));
-      form.append('tipo',       payload.tipo);
-      form.append('severidad',  payload.severidad);
+      form.append('pedido_id', String(pedidoId));
+      form.append('tipo', payload.tipo);
+      form.append('severidad', payload.severidad);
       form.append('descripcion', payload.descripcion);
       if (payload.foto) form.append('foto', payload.foto);
 

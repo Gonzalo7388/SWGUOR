@@ -63,7 +63,7 @@ const CULQI_CONFIG = {
 };
 
 const CheckoutImplement = () => {
-  const [amount, setAmount] = useState(10000); // 100.00
+  const [amount, setAmount] = useState(10000); 
   const [error, setError] = useState("");
   const scriptsLoadedRef = useRef<boolean>(false);
   const culqiInstanceRef = useRef<CulqiInstance | null>(null);

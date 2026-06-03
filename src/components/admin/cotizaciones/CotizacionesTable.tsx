@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { CotizacionActions } from './CotizacionActions';
 import type { CotizacionRow } from '@/lib/services/cotizaciones.service';
 
-const ESTADO_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  borrador:   { bg: 'bg-slate-100',   text: 'text-slate-600',   label: 'Borrador'   },
-  enviada:    { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Enviada'    },
-  aprobada:   { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Aprobada'   },
-  convertida: { bg: 'bg-blue-100',    text: 'text-blue-700',    label: 'Convertida' },
-  rechazada:  { bg: 'bg-red-100',     text: 'text-red-700',     label: 'Rechazada'  },
-  expirada:   { bg: 'bg-orange-100',  text: 'text-orange-700',  label: 'Expirada'   },
+export const ESTADO_BADGE: Record<string, { bg: string; text: string; label: string }> = {
+  borrador: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Borrador' },
+  enviada: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Enviada' },
+  aprobada: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Aprobada' },
+  convertida: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Convertida' },
+  rechazada: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rechazada' },
+  expirada: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Expirada' },
 };
 
 interface CotizacionesTableProps {

@@ -30,6 +30,7 @@ export default function DespachosPage() {
   const [searchTerm, setSearchTerm]     = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [currentPage, setCurrentPage]   = useState(0);
+  const [iniciandoId, setIniciandoId]   = useState<number | null>(null);
 
   const canView = can('view', 'despachos');
 
@@ -57,6 +58,23 @@ export default function DespachosPage() {
       setLoading(false);
     }
   }, [canView]);
+
+  const handleIniciarRuta = useCallback(async (despachoId: number) => {
+    setIniciandoId(despachoId);
+    try {
+      const res = await fetch(`/api/admin/despachos/${despachoId}/iniciar-ruta`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo iniciar la ruta');
+      toast.success('Despacho en ruta — ya puede confirmar la entrega');
+      await cargarDatos();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al iniciar ruta');
+    } finally {
+      setIniciandoId(null);
+    }
+  }, [cargarDatos]);
 
   useEffect(() => { if (!authLoading) cargarDatos(); }, [authLoading, cargarDatos]);
 
@@ -109,6 +127,8 @@ export default function DespachosPage() {
         <DespachoTable
           despachos={paginated}
           loading={loading}
+          iniciandoId={iniciandoId}
+          onIniciarRuta={handleIniciarRuta}
         />
       </div>
     </div>

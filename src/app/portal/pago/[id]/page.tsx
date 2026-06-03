@@ -6,8 +6,6 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import CheckoutImplement from '@/components/CheckoutImplement';
 
-
-
 const PAISES_SUDAMERICA = [
   'Argentina',
   'Bolivia',

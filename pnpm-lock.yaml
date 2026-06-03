@@ -65,12 +65,15 @@ importers:
       '@react-pdf/renderer':
         specifier: ^4.4.1
         version: 4.5.1(react@19.2.1)
+<<<<<<< HEAD
+=======
       '@stripe/stripe-js':
         specifier: ^9.6.0
         version: 9.7.0
       '@supabase/auth-helpers-nextjs':
         specifier: ^0.15.0
         version: 0.15.0(@supabase/supabase-js@2.106.1)
+>>>>>>> cliente
       '@supabase/ssr':
         specifier: ^0.8.0
         version: 0.8.0(@supabase/supabase-js@2.106.1)
@@ -120,8 +123,16 @@ importers:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       nodemailer:
+<<<<<<< HEAD
+        specifier: ^6.10.1
+        version: 6.10.1
+      peru-utils:
+        specifier: ^3.2.0
+        version: 3.2.0
+=======
         specifier: ^8.0.6
         version: 8.0.7
+>>>>>>> cliente
       pg:
         specifier: ^8.20.0
         version: 8.21.0
@@ -162,6 +173,15 @@ importers:
         specifier: ^4.2.1
         version: 4.4.3
     devDependencies:
+<<<<<<< HEAD
+      '@eslint/eslintrc':
+        specifier: ^3.3.5
+        version: 3.3.5
+      '@prisma/config':
+        specifier: ^7.8.0
+        version: 7.8.0
+=======
+>>>>>>> cliente
       '@types/leaflet':
         specifier: ^1.9.21
         version: 1.9.21
@@ -1713,6 +1733,13 @@ packages:
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+  '@supabase/auth-js@2.106.2':
+    resolution: {integrity: sha512-VcAjUErkHkhC5Jaf+g/G1qbkQrFh8edaCdHa7pxJmHUjkWKjT7UnYCtPA89XV0N0GIYRkEqJZw5V62CtOxTmBQ==}
+=======
+=======
+>>>>>>> cliente
   '@stripe/stripe-js@9.7.0':
     resolution: {integrity: sha512-r1ElolvWXM4aYnZZVHvKW3EDL8JcwEuIgTuWxlB5lvC+YsvjkQ0gX35x9d8dTDubX395fViLVqkaolVs1PmIQQ==}
     engines: {node: '>=12.16'}
@@ -1725,6 +1752,10 @@ packages:
 
   '@supabase/auth-js@2.106.1':
     resolution: {integrity: sha512-7eyheXfAGwkB9bZewJPs+N3UYt6kra2JG6mIxNEgbkvcO15PLD1e75PTIUEYYl3zrifm3GrpShVl7QZxKrXO/w==}
+<<<<<<< HEAD
+>>>>>>> cliente
+=======
+>>>>>>> cliente
     engines: {node: '>=20.0.0'}
 
   '@supabase/cli-darwin-arm64@2.101.0':
@@ -3594,6 +3625,9 @@ packages:
 
   performance-now@2.1.0:
     resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
+
+  peru-utils@3.2.0:
+    resolution: {integrity: sha512-SARDTj0CjbHTWb+/hS064+vpRTTmyN7bqhB2952wu+de82phDT3rCTvS9dN/gLVcYJqrICfIfgmyLxRd+hOUqQ==}
 
   pg-cloudflare@1.4.0:
     resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
@@ -5972,6 +6006,12 @@ snapshots:
 
   '@standard-schema/utils@0.3.0': {}
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+  '@supabase/auth-js@2.106.2':
+=======
+=======
+>>>>>>> cliente
   '@stripe/stripe-js@9.7.0': {}
 
   '@supabase/auth-helpers-nextjs@0.15.0(@supabase/supabase-js@2.106.1)':
@@ -5980,6 +6020,10 @@ snapshots:
       cookie: 1.1.1
 
   '@supabase/auth-js@2.106.1':
+<<<<<<< HEAD
+>>>>>>> cliente
+=======
+>>>>>>> cliente
     dependencies:
       tslib: 2.8.1
 
@@ -8025,6 +8069,8 @@ snapshots:
   performance-now@2.1.0:
     optional: true
 
+  peru-utils@3.2.0: {}
+
   pg-cloudflare@1.4.0:
     optional: true
 
@@ -8677,11 +8723,21 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+  styled-jsx@5.1.6(react@19.2.1):
+=======
+=======
+>>>>>>> cliente
   stripe@22.1.1(@types/node@20.19.41):
     optionalDependencies:
       '@types/node': 20.19.41
 
   styled-jsx@5.1.6(@babel/core@7.29.0)(react@19.2.1):
+<<<<<<< HEAD
+>>>>>>> cliente
+=======
+>>>>>>> cliente
     dependencies:
       client-only: 0.0.1
       react: 19.2.1

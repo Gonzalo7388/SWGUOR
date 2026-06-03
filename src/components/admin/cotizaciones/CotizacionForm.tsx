@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useState, useMemo } from 'react';
+import React, { useId, useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
@@ -22,10 +22,18 @@ import { ResumenFinanciero } from './ResumenFinanciero';
 
 interface CotizacionFormProps {
   clientes:  { id: number; razon_social: string | null; ruc: string }[];
-  productos: { id: number; nombre: string; sku: string; precio: number }[];
+  productos: {
+    id: number;
+    nombre: string;
+    sku: string;
+    precio: number;
+    variantes?: { id: number; color: string; talla: string; sku: string }[];
+  }[];
+  // CUS_32: Propiedad opcional para recibir la cotización origen a clonar / recotizar
+  cotizacionOrigen?: any;
 }
 
-export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
+export function CotizacionForm({ clientes, productos, cotizacionOrigen }: CotizacionFormProps) {
   const router      = useRouter();
   const formId      = useId();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,6 +69,65 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
     },
   });
 
+  // ── CUS_32: Efecto para hidratar el formulario al Recotizar ─────────────────
+  useEffect(() => {
+    if (!cotizacionOrigen) return;
+
+    // 1. Extraemos y limpiamos las notas y metadatos encriptados del ERP
+    let notasLimpias = cotizacionOrigen.notas_internas || '';
+    let metadataParsed: Record<string, any> = {};
+
+    if (notasLimpias.includes('[ERP_META]:')) {
+      try {
+        const parts = notasLimpias.split('[ERP_META]:');
+        notasLimpias = parts[0].trim();
+        metadataParsed = JSON.parse(parts[1].trim());
+      } catch (e) {
+        console.error("Error al deserializar metadatos de recotización:", e);
+      }
+    }
+
+    // 2. Mapeamos de forma estructurada los productos e ítems para la tabla derecha
+    const itemsClonados = (cotizacionOrigen.items || []).map((it: any) => ({
+      producto_id:     it.producto_id,
+      variante_id:     it.variante_id || undefined,
+      cantidad:        it.cantidad,
+      precio_unitario: it.precio_unitario,
+    }));
+
+    // 3. Reseteamos los valores reactivos del formulario con la data histórica
+    form.reset({
+      cliente_id:            cotizacionOrigen.cliente_id ? String(cotizacionOrigen.cliente_id) : '',
+      nombre_cliente_manual: cotizacionOrigen.nombre_cliente_manual || '',
+      moneda:                cotizacionOrigen.moneda || 'PEN',
+      tasa_impuesto:         cotizacionOrigen.tasa_impuesto || 'IGV',
+      tipo_operacion:        cotizacionOrigen.tipo_operacion || 'Venta interna',
+      valida_hasta:          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+      notas_internas:        notasLimpias,
+      items:                 itemsClonados,
+      
+      // Metadatos recuperados del bloque JSON estructurado
+      empresa:               metadataParsed.empresa || 'Modas y Estilos Guor S.a.C.',
+      contacto:              metadataParsed.contacto || '',
+      tipo_destino:          metadataParsed.tipo_destino || '',
+      vendedor:              metadataParsed.vendedor || '',
+      tipo_venta:            metadataParsed.tipo_venta || '',
+      unidad_negocio:        metadataParsed.unidad_negocio || '',
+      forma_pago:            metadataParsed.forma_pago || '',
+      metodo:                metadataParsed.metodo || '',
+      direccion_entrega:     metadataParsed.direccion_entrega || '',
+      direccion_factura:     metadataParsed.direccion_factura || '',
+      condicion_entrega:     metadataParsed.condicion_entrega || '',
+      tiempo_entrega:        metadataParsed.tiempo_entrega || '',
+      idioma:                metadataParsed.idioma || 'Español',
+      referencia:            metadataParsed.referencia || '',
+      probabilidad:          metadataParsed.probabilidad || '',
+      fecha_cierre:          metadataParsed.fecha_cierre || '',
+    });
+
+    toast.success(`Campos e ítems cargados desde la cotización original.`);
+  }, [cotizacionOrigen, form]);
+
   // ── Cálculo de totales en tiempo real ──────────────────────────────────────
   const watchedItems        = useWatch({ control: form.control, name: 'items' });
   const watchedTipoOp       = useWatch({ control: form.control, name: 'tipo_operacion' });
@@ -84,7 +151,10 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
   const simboloMoneda = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : 'S/';
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  const onSubmit = async (data: CreateCotizacionInput) => {
+  const onSubmit = async (
+    data: CreateCotizacionInput,
+    estadoInicial: 'borrador' | 'enviada' = 'borrador',
+  ) => {
     try {
       setIsSubmitting(true);
 
@@ -118,6 +188,7 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
         tipo_operacion:        tipo_operacion || undefined,
         notas_internas:        notasCompletas,
         items,
+        estado_inicial:        estadoInicial,
       });
 
       if (!result.success) {
@@ -125,7 +196,11 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
         return;
       }
 
-      toast.success(`Cotización ${result.data?.cotizacion_id} creada exitosamente`);
+      const msg =
+        estadoInicial === 'enviada'
+          ? `Cotización ${result.data?.cotizacion_id} enviada a revisión`
+          : `Cotización ${result.data?.cotizacion_id} guardada como borrador`;
+      toast.success(msg);
       router.push('/admin/Panel-Administrativo/cotizaciones');
     } catch {
       toast.error('Error inesperado al crear la cotización');
@@ -138,7 +213,7 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
     <Form {...form}>
       <form
         id={`${formId}-cotizacion-form`}
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit((data) => onSubmit(data, 'borrador'))}
         className="space-y-6"
       >
         {/* ── Datos Generales ── */}
@@ -176,12 +251,25 @@ export function CotizacionForm({ clientes, productos }: CotizacionFormProps) {
             type="submit"
             form={`${formId}-cotizacion-form`}
             disabled={isSubmitting}
-            className="h-11 px-8 bg-slate-900 hover:bg-slate-800 font-bold uppercase rounded-xl gap-2"
+            variant="outline"
+            className="h-11 px-6 font-bold uppercase rounded-xl gap-2"
           >
             {isSubmitting ? (
-              <><Loader2 size={15} className="animate-spin" /> Creando...</>
+              <><Loader2 size={15} className="animate-spin" /> Guardando...</>
             ) : (
-              <><Save size={15} /> Crear Cotización</>
+              <><Save size={15} /> Guardar borrador</>
+            )}
+          </Button>
+          <Button
+            type="button"
+            disabled={isSubmitting}
+            className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase rounded-xl gap-2"
+            onClick={form.handleSubmit((data) => onSubmit(data, 'enviada'))}
+          >
+            {isSubmitting ? (
+              <><Loader2 size={15} className="animate-spin" /> Enviando...</>
+            ) : (
+              'Enviar a revisión'
             )}
           </Button>
         </div>

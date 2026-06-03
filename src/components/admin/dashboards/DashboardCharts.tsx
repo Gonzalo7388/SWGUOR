@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
 import { TrendingUp, ShoppingCart, Package } from 'lucide-react';
-import type { RolPaleta } from './widgets/DashboardUtils';
+import type { ROLE_PALETTES } from './widgets/DashboardUtils';
 import { COMPANY_PALETTE } from './widgets/DashboardUtils';
 import { fmtCompact } from './widgets/DashboardWidgets';
 
@@ -16,13 +16,13 @@ const P = COMPANY_PALETTE;
 type VentaDataPoint = {
   mes: string;
   ventas: number;
-  [key: string]: any; 
+  [key: string]: any;
 }
 
 interface DashboardChartsProps {
   minimal?: boolean;
-  rol?:     RolPaleta;
-  data?:    VentaDataPoint[];
+  rol?: keyof typeof ROLE_PALETTES;
+  data?: VentaDataPoint[];
 }
 
 
@@ -33,7 +33,7 @@ export default function DashboardCharts({
   data: externalData,
 }: DashboardChartsProps) {
 
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [ventasData, setVentasData] = useState<VentaDataPoint[]>([]);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function DashboardCharts({
       }
       try {
         if (!cancelled) setLoading(true);
-        const res  = await fetch('/api/admin/charts?days=30');
+        const res = await fetch('/api/admin/charts?days=30');
         const json = await res.json();
         if (!cancelled) setVentasData(json.ventasData || []);
       } catch (err) {
@@ -69,22 +69,28 @@ export default function DashboardCharts({
 
   return (
     <div style={{
-      background:   P.bg,
-      border:       `1px solid ${P.border}`,
+      background: P.bg,
+      border: `1px solid ${P.border}`,
       borderRadius: 12,
-      padding:      '20px 24px',
-      boxShadow:    '0 1px 3px 0 rgb(0 0 0 / 0.07)',
+      padding: '20px 24px',
+      boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.07)',
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', marginBottom: 20 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'center', marginBottom: 20
+      }}>
         <div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: P.text,
-            textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+          <p style={{
+            fontSize: 13, fontWeight: 700, color: P.text,
+            textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2
+          }}>
             Actividad
           </p>
-          <p style={{ fontSize: 10, color: P.muted, textTransform: 'uppercase',
-            letterSpacing: '0.05em' }}>
+          <p style={{
+            fontSize: 10, color: P.muted, textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
             Rendimiento {rol ? rol.replace('_', ' ') : 'Institucional'}
           </p>
         </div>
@@ -100,8 +106,10 @@ export default function DashboardCharts({
       {/* Gráfico */}
       <div style={{ width: '100%', height: minimal ? 180 : 300 }}>
         {loading ? (
-          <div style={{ height: '100%', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <div style={{
+            height: '100%', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', gap: 6
+          }}>
             {[0, 1, 2].map((i) => (
               <div key={i} style={{
                 width: 6, height: 6, borderRadius: '50%',
@@ -111,8 +119,10 @@ export default function DashboardCharts({
             ))}
           </div>
         ) : ventasData.length === 0 ? (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', fontSize: 12, color: P.muted, fontWeight: 500 }}>
+          <div style={{
+            height: '100%', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: 12, color: P.muted, fontWeight: 500
+          }}>
             Sin datos para mostrar
           </div>
         ) : (
@@ -120,8 +130,8 @@ export default function DashboardCharts({
             <AreaChart data={ventasData} margin={{ top: 8, right: 8, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradErp" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor={P.accent} stopOpacity={0.12} />
-                  <stop offset="95%" stopColor={P.accent} stopOpacity={0}    />
+                  <stop offset="5%" stopColor={P.accent} stopOpacity={0.12} />
+                  <stop offset="95%" stopColor={P.accent} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={P.border} />
@@ -133,7 +143,7 @@ export default function DashboardCharts({
               <YAxis
                 tickFormatter={(v) => {
                   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-                  if (v >= 1_000)     return `${(v / 1_000).toFixed(0)}k`;
+                  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
                   return String(v);
                 }}
                 tick={{ fontSize: 10, fontWeight: 600, fill: P.muted }}
@@ -163,9 +173,9 @@ export default function DashboardCharts({
           gap: 16, marginTop: 20,
           paddingTop: 16, borderTop: `1px solid ${P.border}`,
         }}>
-          <MiniStat label="Ventas"  value={fmtCompact(totalVentas)} icon={<TrendingUp  size={13} />} accent={P.accent} />
-          <MiniStat label="Pedidos" value="48"                       icon={<ShoppingCart size={13} />} accent={P.accent} />
-          <MiniStat label="Meta"    value="92%"                      icon={<Package      size={13} />} accent={P.green}  />
+          <MiniStat label="Ventas" value={fmtCompact(totalVentas)} icon={<TrendingUp size={13} />} accent={P.accent} />
+          <MiniStat label="Pedidos" value="48" icon={<ShoppingCart size={13} />} accent={P.accent} />
+          <MiniStat label="Meta" value="92%" icon={<Package size={13} />} accent={P.green} />
         </div>
       )}
     </div>
@@ -179,8 +189,10 @@ function MiniStat({ label, value, icon, accent }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: accent }}>
         {icon}
-        <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '0.08em', color: '#64748b' }}>
+        <span style={{
+          fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.08em', color: '#64748b'
+        }}>
           {label}
         </span>
       </div>
@@ -192,10 +204,10 @@ function MiniStat({ label, value, icon, accent }: {
 }
 
 function ChartTooltip({ active, payload, label, accent }: {
-  active?:  boolean;
+  active?: boolean;
   payload?: { value?: number | string }[];
-  label?:   string;
-  accent:   string;
+  label?: string;
+  accent: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -206,8 +218,10 @@ function ChartTooltip({ active, payload, label, accent }: {
       padding: '7px 11px',
       boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
     }}>
-      <p style={{ fontSize: 9, color: accent, textTransform: 'uppercase',
-        letterSpacing: '0.08em', marginBottom: 3 }}>{label}</p>
+      <p style={{
+        fontSize: 9, color: accent, textTransform: 'uppercase',
+        letterSpacing: '0.08em', marginBottom: 3
+      }}>{label}</p>
       <p style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>
         {fmtCompact(Number(payload[0].value ?? 0))}
       </p>
