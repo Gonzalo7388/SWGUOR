@@ -38,9 +38,17 @@ interface CotizacionDetalle {
   monto_descuento: number;
   igv: number;
   costo_envio: number | null;
+  zona_envio: string | null;
   total: number;
   notas_internas: string | null;
   cotizacion_items: CotizacionItem[];
+  clientes: {
+    razon_social?: string;
+    ruc?: string | number;
+    telefono?: string;
+    email?: string;
+    direccion_fiscal?: string;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -88,6 +96,7 @@ export default function DetalleCotizacionPage() {
         {
           ...cot,
           costo_envio: cot.costo_envio ?? undefined,
+          zona_envio: cot.zona_envio ?? undefined,
           notas_internas: cot.notas_internas ?? undefined,
         },
         cot.cotizacion_items,
@@ -126,8 +135,13 @@ export default function DetalleCotizacionPage() {
         cotizacionId={cot.id}
         numero={cot.numero}
         estado={cot.estado}
+        fechaCreacion={cot.created_at}
+        total={cot.total}
+        clienteNombre={cot.clientes?.razon_social ?? 'Cliente General'}
+        clienteRUC={cot.clientes?.ruc ? String(cot.clientes.ruc) : undefined}
         onVolver={() => router.push('/portal/cotizaciones')}
         onDescargarPDF={handleDescargarPDF}
+        descargandoPDF={descargando}
         onConvertida={(_pedidoId, numeroPedido) => {
           toast.success(`Pedido ${numeroPedido} creado. Redirigiendo...`);
           router.push('/portal/pedidos');

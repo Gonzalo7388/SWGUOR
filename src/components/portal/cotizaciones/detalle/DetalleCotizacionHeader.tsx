@@ -14,14 +14,17 @@ import {
 } from '@/app/portal/cotizaciones/cotizacion-errors';
 
 interface DetalleCotizacionHeaderProps {
-    cotizacionId: number;
     numero: string;
     estado: string;
+    fechaCreacion: string;           // ← nuevo
+    total: number;                   // ← nuevo
+    clienteNombre: string;           // ← nuevo
+    clienteRUC?: string;             // ← nuevo
+    cotizacionId: number;
     onVolver: () => void;
     onDescargarPDF?: () => void;
-    /** Llamado tras una conversión exitosa con el id del pedido creado */
+    descargandoPDF?: boolean;
     onConvertida?: (pedidoId: number, numeroPedido: string) => void;
-    /** Llamado tras una recotización exitosa con el id de la nueva cotización */
     onRecotizada?: (nuevaCotizacionId: number) => void;
 }
 
@@ -29,8 +32,13 @@ export function DetalleCotizacionHeader({
     cotizacionId,
     numero,
     estado,
+    fechaCreacion,
+    total,
+    clienteNombre,
+    clienteRUC,
     onVolver,
     onDescargarPDF,
+    descargandoPDF,
     onConvertida,
     onRecotizada,
 }: DetalleCotizacionHeaderProps) {
@@ -124,6 +132,7 @@ export function DetalleCotizacionHeader({
                 {onDescargarPDF && (
                     <button
                         onClick={onDescargarPDF}
+                        disabled={cargando || descargandoPDF}
                         className="flex items-center gap-2 px-5 py-2.5 border rounded-lg text-sm font-semibold transition-all hover:opacity-90"
                         style={{
                             borderColor: 'var(--guor-stone)',
@@ -167,6 +176,29 @@ export function DetalleCotizacionHeader({
                         {convirtiendo ? 'Procesando...' : 'Aprobar y Confirmar Pedido'}
                     </button>
                 )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2 p-4 bg-stone-50 rounded-lg border border-stone-100">
+                    <div>
+                        <span className="block text-xs text-gray-500 font-medium uppercase">Cotización</span>
+                        <span className="text-sm font-bold text-gray-800">{numero}</span>
+                    </div>
+                    <div>
+                        <span className="block text-xs text-gray-500 font-medium uppercase">Cliente</span>
+                        <span className="text-sm font-semibold text-gray-800 block">{clienteNombre}</span>
+                        {clienteRUC && <span className="text-xs text-gray-400">RUC: {clienteRUC}</span>}
+                    </div>
+                    <div>
+                        <span className="block text-xs text-gray-500 font-medium uppercase">Fecha Emisión</span>
+                        <span className="text-sm font-medium text-gray-800">{fechaCreacion}</span>
+                    </div>
+                    <div>
+                        <span className="block text-xs text-gray-500 font-medium uppercase">Total</span>
+                        <span className="text-base font-bold text-gray-900">
+                            {/* Formateador básico de moneda, puedes adaptarlo a tu divisa */}
+                            {new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(total)}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     );

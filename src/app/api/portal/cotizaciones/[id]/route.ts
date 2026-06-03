@@ -48,13 +48,20 @@ export async function GET(
       );
     }
 
-    const cotizacion = await prisma.cotizaciones.findFirst({
-      where: {
-        id: BigInt(id),
-        cliente_id: sesion.cliente_id,   // ← seguridad: solo ve sus propias cotizaciones
-      },
+    const cotizacion = await prisma.cotizaciones.findUnique({
+      where: { id: BigInt(id) },
       include: {
-        cliente: {
+        cotizacion_items: {
+          include: {
+            productos: {
+              select: { id: true, nombre: true, sku: true, imagen: true },
+            },
+            variantes_producto: {
+              select: { color: true, talla: true },
+            },
+          },
+        },
+        cliente: {                        // ← corregir: era "cliente", debe ser "clientes"
           select: {
             razon_social: true,
             ruc: true,
@@ -63,13 +70,11 @@ export async function GET(
             direccion_fiscal: true,
           },
         },
-        cotizacion_items: {
-          include: {
-            productos: {
-              select: { id: true, nombre: true, sku: true, imagen: true },
-            },
+        zona_envio: {                     // ← agregar join con zona
+          select: {
+            zona: true,
+            costo: true,
           },
-          orderBy: { id: 'asc' },
         },
       },
     });
@@ -84,9 +89,10 @@ export async function GET(
     // Mapear items para que buildCotizacionPDFData tenga el campo "descripcion"
     const cotizacionMapeada = {
       ...serializeBigInt(cotizacion),
+      zona_envio: cotizacion.costo_envio,
       cotizacion_items: cotizacion.cotizacion_items.map(item => ({
         ...serializeBigInt(item),
-        descripcion: item.productos?.nombre ?? item.modelo_snapshot ?? '—',
+        descripcion: item.productos?.nombre ?? '—',
       })),
     };
 
