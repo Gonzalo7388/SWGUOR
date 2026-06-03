@@ -17,6 +17,10 @@ import { usePortal } from '@/lib/hooks/usePortal';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  DireccionDespachoPeruFields,
+  esDireccionDespachoPeruValida,
+} from '@/components/shared/DireccionDespachoPeruFields';
 
 export default function ConfirmarCompraPage() {
   const items = useCartStore((s) => s.items);
@@ -42,6 +46,11 @@ export default function ConfirmarCompraPage() {
 
     if (itemsValidos.length === 0) {
       toast.error('No hay productos con variantes válidas seleccionadas.');
+      return;
+    }
+
+    if (!esDireccionDespachoPeruValida(direccion)) {
+      toast.error('Complete departamento, provincia, distrito y ubicación exacta de entrega.');
       return;
     }
 
@@ -254,16 +263,11 @@ export default function ConfirmarCompraPage() {
             >
               Dirección de despacho
             </label>
-            <textarea
+            <DireccionDespachoPeruFields
               value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              rows={2}
-              className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none border"
-              style={{
-                backgroundColor: 'white',
-                borderColor: 'var(--guor-stone)',
-                color: 'var(--guor-dark)',
-              }}
+              onChange={setDireccion}
+              variant="portal"
+              showPreview={false}
             />
           </div>
 

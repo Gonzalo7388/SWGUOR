@@ -3,6 +3,8 @@ import { serializeBigInt } from '@/lib/utils/serialize';
 import { Prisma, EstadoCotizacion, EstadoProducto, EstadoCliente } from '@prisma/client';
 import { calcularTotalesCotizacion } from '@/lib/logic/cotizaciones-logic';
 import { recalcularDescuentoCotizacion } from '@/lib/helpers/rpc-helpers';
+import { notificarClienteSobrePedido } from '@/lib/helpers/pedido-seguimiento.helper';
+import { crearNotificacionCliente } from '@/lib/helpers/crear-notificacion.helper';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -396,10 +398,10 @@ export const CotizacionesService = {
 
     if (!cotizacion) return { success: false, error: 'Cotización no encontrada' };
 
-    if (!['enviada', 'borrador'].includes(cotizacion.estado ?? '')) {
+    if (cotizacion.estado !== 'enviada') {
       return {
         success: false,
-        error: `No se puede aprobar una cotización con estado '${cotizacion.estado}'`,
+        error: `Solo se pueden aprobar cotizaciones en estado 'enviada' (actual: '${cotizacion.estado}')`,
       };
     }
 
@@ -460,18 +462,6 @@ export const CotizacionesService = {
       const costoEnvio = Number(cotizacion.costo_envio ?? 0);
       const total = subtotalNeto + igv + costoEnvio;
 
-      await tx.cotizaciones.update({
-        where: { id: BigInt(id) },
-        data: {
-          subtotal: new Prisma.Decimal(subtotalBruto),
-          igv: new Prisma.Decimal(igv),
-          total: new Prisma.Decimal(total),
-          costo_total_estimado: new Prisma.Decimal(total),
-          estado: 'aprobada',
-          aprobado_at: new Date(),
-        },
-      });
-
       const totalUnidades = itemsActualizados.reduce(
         (sum, item) => sum + item.cantidad,
         0,
@@ -484,12 +474,15 @@ export const CotizacionesService = {
           estado: 'pendiente',
           prioridad: 'normal',
           notas_pedido: cotizacion.notas_internas ?? null,
+          direccion_despacho: cotizacion.direccion_despacho ?? null,
           total_unidades: totalUnidades,
           subtotal: new Prisma.Decimal(subtotalBruto),
           igv: new Prisma.Decimal(igv),
           total: new Prisma.Decimal(total),
           total_estimado: new Prisma.Decimal(total),
+          monto_descuento: new Prisma.Decimal(montoDescuento),
           costo_envio: cotizacion.costo_envio ?? new Prisma.Decimal(0),
+          saldo_pendiente: new Prisma.Decimal(total),
           moneda: cotizacion.moneda ?? 'PEN',
           pedido_items: {
             create: itemsActualizados.map((item) => ({
@@ -509,8 +502,38 @@ export const CotizacionesService = {
         },
       });
 
-      return { pedidoId: Number(pedido.id) };
+      await tx.seguimiento_pedido.create({
+        data: {
+          pedido_id: pedido.id,
+          status: 'pendiente',
+          notas:
+            'Cotización aprobada y convertida en pedido de producción.',
+        },
+      });
+
+      await tx.cotizaciones.update({
+        where: { id: BigInt(id) },
+        data: {
+          subtotal: new Prisma.Decimal(subtotalBruto),
+          igv: new Prisma.Decimal(igv),
+          total: new Prisma.Decimal(total),
+          costo_total_estimado: new Prisma.Decimal(total),
+          estado: 'convertida',
+          aprobado_at: new Date(),
+        },
+      });
+
+      return { pedidoId: Number(pedido.id), clienteId: cotizacion.cliente_id };
     });
+
+    if (result.clienteId) {
+      await notificarClienteSobrePedido({
+        clienteId: result.clienteId,
+        pedidoId: BigInt(result.pedidoId),
+        titulo: 'Cotización aprobada',
+        mensaje: `Su cotización fue aprobada y se generó el pedido #${result.pedidoId}. Puede seguir el avance en Trazabilidad.`,
+      });
+    }
 
     return { success: true, pedidoId: result.pedidoId };
   },
@@ -519,8 +542,11 @@ export const CotizacionesService = {
     const cotizacion = await prisma.cotizaciones.findUnique({ where: { id: BigInt(id) } });
     if (!cotizacion) return { success: false, error: 'Cotización no encontrada' };
 
-    if (!['enviada', 'borrador'].includes(cotizacion.estado ?? '')) {
-      return { success: false, error: `No se puede rechazar con estado '${cotizacion.estado}'` };
+    if (cotizacion.estado !== 'enviada') {
+      return {
+        success: false,
+        error: `Solo se pueden rechazar cotizaciones en estado 'enviada' (actual: '${cotizacion.estado}')`,
+      };
     }
 
     await prisma.cotizaciones.update({
@@ -532,6 +558,21 @@ export const CotizacionesService = {
           : cotizacion.notas_internas,
       },
     });
+
+    if (cotizacion.cliente_id) {
+      await crearNotificacionCliente({
+        clienteId: cotizacion.cliente_id,
+        tipo: 'sistema',
+        referencia_tipo: 'COTIZACION',
+        referencia_id: cotizacion.id,
+        url_destino: '/portal/cotizaciones',
+        titulo: 'Cotización rechazada',
+        mensaje:
+          motivo?.trim()
+            ? `Su cotización fue rechazada. Motivo: ${motivo.trim()}`
+            : 'Su cotización fue rechazada. Contacte a su asesor comercial para más detalle.',
+      });
+    }
 
     return { success: true };
   },

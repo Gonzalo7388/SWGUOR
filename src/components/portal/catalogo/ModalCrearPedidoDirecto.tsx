@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { X, ClipboardList } from 'lucide-react';
+import {
+  DireccionDespachoPeruFields,
+  esDireccionDespachoPeruValida,
+} from '@/components/shared/DireccionDespachoPeruFields';
 
 interface ModalCrearPedidoDirectoProps {
   isOpen: boolean;
@@ -41,8 +45,8 @@ export function ModalCrearPedidoDirecto({
     e.preventDefault();
     setErrorLocal(null);
 
-    if (!direccionDespacho.trim()) {
-      setErrorLocal('La dirección de despacho definitivo es obligatoria.');
+    if (!esDireccionDespachoPeruValida(direccionDespacho)) {
+      setErrorLocal('Complete departamento, provincia, distrito y la ubicación exacta.');
       return;
     }
 
@@ -119,14 +123,11 @@ export function ModalCrearPedidoDirecto({
               <label className="text-[10px] font-black uppercase tracking-wider block" style={{ color: 'var(--guor-dark)' }}>
                 Dirección de Despacho / Entrega <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
-                required
-                placeholder="Ej. Av. Industrial 450, Ate, Lima"
+              <DireccionDespachoPeruFields
                 value={direccionDespacho}
-                onChange={(e) => setDireccionDespacho(e.target.value)}
-                className="w-full px-3.5 py-2 text-xs border rounded-xl bg-white focus:outline-hidden focus:ring-1 focus:ring-amber-500 transition-all placeholder:opacity-40"
-                style={{ borderColor: 'var(--guor-stone)' }}
+                onChange={setDireccionDespacho}
+                variant="portal"
+                showPreview={false}
               />
             </div>
 

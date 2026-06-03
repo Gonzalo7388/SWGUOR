@@ -46,7 +46,7 @@ export function useNotificationsPortal(userId?: number) {
         if (!userId) return;
         setLoading(true);
         try {
-            const res = await fetch('/api/portal/notificaciones');
+            const res = await fetch('/api/notificaciones?limite=15');
             if (!res.ok) return;
 
             const response: NotificacionesApiResponse = await res.json();
@@ -113,7 +113,7 @@ export function useNotificationsPortal(userId?: number) {
     // ── Marcar una como leída ──────────────────────────────────────────────────
     const markAsRead = useCallback(async (id: number) => {
         try {
-            const res = await fetch(`/api/portal/notificaciones/${id}`, {
+            const res = await fetch(`/api/notificaciones/${id}/leer`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -132,7 +132,7 @@ export function useNotificationsPortal(userId?: number) {
     const markAllAsRead = useCallback(async () => {
         if (!userId || unreadCount === 0) return;
         try {
-            const res = await fetch('/api/portal/notificaciones', {
+            const res = await fetch('/api/notificaciones', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
             });

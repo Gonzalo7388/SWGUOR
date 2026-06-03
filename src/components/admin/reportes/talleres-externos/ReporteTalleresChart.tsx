@@ -2,81 +2,98 @@
 
 import {
   ResponsiveContainer,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
+  PieChart,
+  Pie,
+  Cell,
   Tooltip,
-  Bar,
+  Legend,
 } from 'recharts';
 
 import type {
-  ReporteTallerItem,
+  ReporteTallerResumen,
 } from '@/types/reporte-talleres';
 
 interface Props {
-  data: ReporteTallerItem[];
+  resumen: ReporteTallerResumen;
 }
 
+const COLORS = [
+  '#22c55e', // completado
+  '#eab308', // proceso
+  '#ef4444', // retrasado
+  '#9ca3af', // pendiente
+];
+
 export default function ReporteTalleresChart({
-  data,
+  resumen,
 }: Props) {
+
+  const data = [
+    {
+      name: 'Completado',
+      value: resumen.completado,
+    },
+    {
+      name: 'En Proceso',
+      value: resumen.enProceso,
+    },
+    {
+      name: 'Retrasado',
+      value: resumen.retrasado,
+    },
+    {
+      name: 'Pendiente',
+      value: resumen.pendiente,
+    },
+  ];
+
   return (
     <div className="rounded-3xl border border-[#e4c28a]/20 bg-[#fbddd3] p-6 shadow-sm">
 
       <div className="mb-6">
 
         <h3 className="text-xl font-bold text-[#231e1d]">
-          Progreso por Taller
+          Estado de Pedidos
         </h3>
 
         <p className="mt-1 text-sm text-[#231e1d]/60">
-          Seguimiento de avance de producción
+          Distribución de pedidos según su estado actual.
         </p>
 
       </div>
 
-      <div className="h-[380px]">
+      <div className="h-[420px]">
 
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+        >
 
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{
-              top: 10,
-              right: 20,
-              left: 20,
-              bottom: 10,
-            }}
-          >
+          <PieChart>
 
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#e4c28a"
-            />
-
-            <XAxis
-              type="number"
-              tick={{ fill: '#231e1d' }}
-            />
-
-            <YAxis
-              dataKey="taller"
-              type="category"
-              width={140}
-              tick={{ fill: '#231e1d', fontSize: 12 }}
-            />
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={90}
+              outerRadius={140}
+              paddingAngle={3}
+            >
+              {data.map((_, index) => (
+                <Cell
+                  key={index}
+                  fill={COLORS[index]}
+                />
+              ))}
+            </Pie>
 
             <Tooltip />
 
-            <Bar
-              dataKey="avance"
-              radius={[0, 10, 10, 0]}
-              fill="#b5854b"
-            />
+            <Legend />
 
-          </BarChart>
+          </PieChart>
 
         </ResponsiveContainer>
 

@@ -90,9 +90,7 @@ export function CotizacionDetalleModal({
     };
   }, [open, cotizacionId]);
 
-  const puedeGestionar = detalle
-    ? ['borrador', 'enviada'].includes(detalle.estado)
-    : false;
+  const puedeGestionar = detalle?.estado === 'enviada';
 
   const resumen = useMemo(() => {
     if (!detalle) return { subtotal: 0, igv: 0, total: 0 };
@@ -169,13 +167,13 @@ export function CotizacionDetalleModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white text-slate-900 border-slate-200">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+            <DialogTitle className="flex items-center gap-2 text-xl font-black text-slate-900">
               <Eye className="w-5 h-5 text-indigo-600" />
               Detalle de cotización
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-600">
               {detalle?.numero ?? 'Cargando…'}
               {detalle?.origen && (
                 <Badge variant="outline" className="ml-2 text-[10px] uppercase">
@@ -230,11 +228,11 @@ export function CotizacionDetalleModal({
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50">
-                      <TableHead>Producto</TableHead>
-                      <TableHead>Variante</TableHead>
-                      <TableHead className="text-center">Cant.</TableHead>
-                      <TableHead className="text-right">Precio unitario</TableHead>
-                      <TableHead className="text-right">Subtotal</TableHead>
+                      <TableHead className="text-slate-700 font-bold">Producto</TableHead>
+                      <TableHead className="text-slate-700 font-bold">Variante</TableHead>
+                      <TableHead className="text-center text-slate-700 font-bold">Cant.</TableHead>
+                      <TableHead className="text-right text-slate-700 font-bold">Precio unitario</TableHead>
+                      <TableHead className="text-right text-slate-700 font-bold">Subtotal</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -247,24 +245,24 @@ export function CotizacionDetalleModal({
                           ? item.precio_unitario
                           : precio;
                       return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <p className="font-semibold text-sm">{item.producto_nombre}</p>
-                            <p className="text-[10px] text-slate-400">{item.producto_sku}</p>
+                        <TableRow key={item.id} className="bg-white">
+                          <TableCell className="text-slate-900">
+                            <p className="font-semibold text-sm text-slate-900">{item.producto_nombre}</p>
+                            <p className="text-[10px] text-slate-500">{item.producto_sku}</p>
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-sm text-slate-800">
                             {item.color} · {item.talla}
                           </TableCell>
-                          <TableCell className="text-center font-bold">
+                          <TableCell className="text-center font-bold text-slate-900">
                             {item.cantidad}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right text-slate-900">
                             {puedeGestionar ? (
                               <Input
                                 type="number"
                                 min={0}
                                 step="0.01"
-                                className="h-9 w-28 ml-auto text-right font-bold"
+                                className="h-9 w-28 ml-auto text-right font-bold text-slate-900 bg-white border-slate-300"
                                 value={precios[item.id] ?? ''}
                                 onChange={(e) =>
                                   setPrecios((prev) => ({
@@ -274,12 +272,12 @@ export function CotizacionDetalleModal({
                                 }
                               />
                             ) : (
-                              <span className="font-bold">
+                              <span className="font-bold text-slate-900">
                                 S/ {unit.toFixed(2)}
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right font-bold">
+                          <TableCell className="text-right font-bold text-slate-900">
                             S/ {(unit * item.cantidad).toFixed(2)}
                           </TableCell>
                         </TableRow>
@@ -289,16 +287,16 @@ export function CotizacionDetalleModal({
                 </Table>
               </div>
 
-              <div className="flex justify-end gap-4 text-sm">
+              <div className="flex justify-end gap-4 text-sm text-slate-800">
                 <p>
                   Subtotal ref.:{' '}
-                  <strong>S/ {resumen.subtotal.toFixed(2)}</strong>
+                  <strong className="text-slate-900">S/ {resumen.subtotal.toFixed(2)}</strong>
                 </p>
                 <p>
-                  IGV: <strong>S/ {resumen.igv.toFixed(2)}</strong>
+                  IGV: <strong className="text-slate-900">S/ {resumen.igv.toFixed(2)}</strong>
                 </p>
                 <p>
-                  Total: <strong>S/ {resumen.total.toFixed(2)}</strong>
+                  Total: <strong className="text-slate-900">S/ {resumen.total.toFixed(2)}</strong>
                 </p>
               </div>
 
@@ -345,7 +343,7 @@ export function CotizacionDetalleModal({
       </Dialog>
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-md rounded-2xl bg-white text-slate-900">
           <DialogHeader>
             <DialogTitle className="text-lg font-black text-red-600">
               Rechazar cotización

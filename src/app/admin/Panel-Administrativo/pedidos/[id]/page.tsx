@@ -1,19 +1,30 @@
-import { notFound }         from "next/navigation";
-import { prisma }           from "@/lib/prisma";
-import { serializeBigInt }  from "@/lib/utils/serialize";
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
+import { serializeBigInt } from '@/lib/utils/serialize';
+import { getServerAuthUser } from '@/lib/auth/server';
 import PedidoDetalle, {
   type DetallePedidoData,
-  type TallerOption,
-} from "@/components/admin/pedidos/detalles/PedidoDetalle";
+} from '@/components/admin/pedidos/detalles/PedidoDetalle';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+const ROLES_CAMBIO_ESTADO = ['administrador', 'gerente'] as const;
+
 export default async function PedidoDetallePage({ params }: PageProps) {
   const { id } = await params;
+
+  const auth = await getServerAuthUser();
+  if (!auth.success) {
+    notFound();
+  }
+
+  const puedeCambiarEstado = ROLES_CAMBIO_ESTADO.includes(
+    auth.user.rol as (typeof ROLES_CAMBIO_ESTADO)[number],
+  );
 
   let pedido;
 
@@ -23,54 +34,79 @@ export default async function PedidoDetallePage({ params }: PageProps) {
       include: {
         clientes: {
           select: {
-            id:               true,
-            ruc:              true,
-            razon_social:     true,
+            id: true,
+            ruc: true,
+            razon_social: true,
             nombre_comercial: true,
-            telefono:         true,
-            email:            true,
+            telefono: true,
+            email: true,
+            tipo_cliente: true,
+          },
+        },
+        cotizacion: {
+          select: {
+            id: true,
+            numero: true,
           },
         },
         pedido_items: {
           include: {
             productos: {
               select: {
-                id:     true,
+                id: true,
                 nombre: true,
-                sku:    true,
-                imagen: true,   // por si TabItems muestra imagen
+                sku: true,
+                imagen: true,
               },
             },
-            variantes_producto: {   // ← esto faltaba
+            variantes_producto: {
               select: {
-                id:    true,
+                id: true,
                 color: true,
                 talla: true,
-                sku:   true,
+                sku: true,
               },
             },
           },
-          orderBy: { id: "asc" },
+          orderBy: { id: 'asc' },
         },
         seguimiento_pedido: {
-          orderBy: { created_at: "desc" },
+          orderBy: { created_at: 'asc' },
         },
       },
     });
 
     if (!pedido) notFound();
-
   } catch (error) {
-    console.error("[PedidoDetallePage] Error cargando pedido:", error);
+    console.error('[PedidoDetallePage] Error cargando pedido:', error);
     notFound();
   }
 
-  const talleres: TallerOption[] = [];
+  const serializado = serializeBigInt(pedido) as Record<string, unknown>;
+
+  const pedidoFormateado: DetallePedidoData = {
+    ...(serializado as unknown as DetallePedidoData),
+    seguimiento_pedido: (
+      (serializado.seguimiento_pedido as Array<Record<string, unknown>>) ?? []
+    ).map((s) => ({
+      id: String(s.id),
+      estado: String(s.status ?? s.estado ?? 'pendiente'),
+      notas: (s.notas as string | null) ?? null,
+      created_at: (s.created_at as string | null) ?? null,
+      created_by: (s.creado_por as string | null) ?? null,
+    })),
+    cotizacion: serializado.cotizacion
+      ? {
+          id: String((serializado.cotizacion as { id: unknown }).id),
+          numero: String((serializado.cotizacion as { numero: string }).numero),
+        }
+      : null,
+  };
 
   return (
     <PedidoDetalle
-      pedido={serializeBigInt(pedido) as unknown as DetallePedidoData}
-      talleres={talleres}
+      pedido={pedidoFormateado}
+      puedeCambiarEstado={puedeCambiarEstado}
     />
   );
 }

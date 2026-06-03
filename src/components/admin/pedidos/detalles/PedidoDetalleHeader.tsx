@@ -1,7 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Calendar, Hash, TrendingUp } from 'lucide-react';
+import {
+  ArrowLeft,
+  ShoppingBag,
+  Calendar,
+  Hash,
+  TrendingUp,
+  Package,
+  Truck,
+} from 'lucide-react';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 import { COMPANY_PALETTE } from '@/components/admin/dashboards/widgets/DashboardUtils';
 import { Badge } from './PedidoDetalleUI';
 import {
@@ -19,6 +28,9 @@ interface PedidoDetalleHeaderProps {
 }
 
 export function PedidoDetalleHeader({ pedido }: PedidoDetalleHeaderProps) {
+  const { hasRole } = usePermissions();
+  const puedeDespacho = hasRole(['administrador', 'gerente']);
+
   const estadoCfg    = ESTADO_CONFIG[pedido.estado]       ?? { label: pedido.estado,    color: 'bg-stone-50 text-stone-500 border-stone-200', icon: undefined };
   const prioridadCfg = PRIORIDAD_CONFIG[pedido.prioridad] ?? { label: pedido.prioridad, color: 'bg-stone-50 text-stone-500 border-stone-200' };
   const EstadoIcon   = estadoCfg.icon;
@@ -58,6 +70,23 @@ export function PedidoDetalleHeader({ pedido }: PedidoDetalleHeaderProps) {
             </div>
           </div>
         </div>
+
+        {puedeDespacho && pedido.estado === 'listo_para_despacho' && (
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <Link
+              href={`/admin/Panel-Administrativo/pedidos/${pedido.id}/empaque`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+            >
+              <Package size={14} /> Empaque y despacho
+            </Link>
+            <Link
+              href={`/admin/Panel-Administrativo/pedidos/${pedido.id}/entrega`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              <Truck size={14} /> Confirmar entrega
+            </Link>
+          </div>
+        )}
 
         {/* KPI chips */}
         <div className="flex gap-3 flex-shrink-0">

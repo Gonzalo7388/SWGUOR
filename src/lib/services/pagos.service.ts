@@ -59,7 +59,7 @@ export const pagosService = {
     return prisma.pagos.update({
       where: { id_uuid },
       data: {
-        estado: 'pagado',
+        estado: EstadoPago.pago_parcial,
         verificado_at: new Date(),
         verificado_por: verificadoPor ?? null,
       },
@@ -69,7 +69,7 @@ export const pagosService = {
   rechazar: async (id_uuid: string, motivo: string): Promise<pagos> => {
     return prisma.pagos.update({
       where: { id_uuid },
-      data: { estado: 'anulado', notas: motivo },
+      data: { estado: EstadoPago.anulado, notas: motivo },
     });
   },
 
@@ -86,7 +86,7 @@ export const pagosService = {
 
   obtenerPendientes: async (): Promise<pagos[]> => {
     return prisma.pagos.findMany({
-      where: { estado: 'pendiente' },
+      where: { estado: EstadoPago.pendiente },
       orderBy: { fecha_pago: 'asc' },
     });
   },
@@ -94,7 +94,7 @@ export const pagosService = {
   obtenerVerificados: async (desde: Date, hasta: Date): Promise<pagos[]> => {
     return prisma.pagos.findMany({
       where: {
-        estado: 'pagado',
+        estado: EstadoPago.pagado,
         fecha_pago: { gte: desde, lte: hasta },
       },
       orderBy: { fecha_pago: 'desc' },

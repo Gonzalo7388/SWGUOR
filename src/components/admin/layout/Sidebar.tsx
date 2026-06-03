@@ -56,11 +56,27 @@ const GESTION_OPERATIVA: NavGroup = {
     },
     {
       title: 'Reportes',
+      icon: BarChart3,
+      roles: ['gerente', 'administrador', 'ayudante', 'representante_taller'],
+
+  subItems: [
+
+    {
+      title: 'Talleres Externos',
       href: '/admin/Panel-Administrativo/reportes/talleres-externos',
       icon: BarChart3,
       resource: 'dashboard' as RecursoKey,
-      roles: ['gerente', 'administrador', 'ayudante'],
     },
+
+    {
+      title: 'Incidencias',
+      href: '/admin/Panel-Administrativo/reportes/incidencias',
+      icon: Bell,
+      resource: 'dashboard' as RecursoKey,
+    },
+
+  ],
+},
     {
       title: 'Catálogo',
       icon: Package,
