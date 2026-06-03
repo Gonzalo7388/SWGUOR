@@ -150,10 +150,10 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     // Función independiente para refrescar pedidos y despachos de forma asíncrona
     const cargarSeguimientoYDespachos = useCallback(async (clienteId: number) => {
         if (!clienteId) return; // Seguridad extra
-        
+
         setLoadingSeguimiento(true);
         const supabase = getSupabaseBrowserClient();
-        
+
         try {
             // 1. OBTENER PEDIDOS
             const { data: pedidosData, error: pedidosError } = await supabase
@@ -315,8 +315,14 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     }, [storeItemsCarrito, productos]);
 
     // ── 4. MEMOS DE RESÚMENES FINANCIEROS ──
-    const resumenBorrador = useMemo(() => calcularResumen(itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo), [itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo]);
-    const resumenCarrito = useMemo(() => calcularResumen(itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo), [itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo]);
+    const resumenBorrador = useMemo(
+        () => calcularResumen(itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio),
+        [itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio],
+    );
+    const resumenCarrito = useMemo(
+        () => calcularResumen(itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio),
+        [itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio],
+    );
 
     // ── 5. ACCIONES CONECTADAS DIRECTAMENTE A ZUSTAND ──
     const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => {

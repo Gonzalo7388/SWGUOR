@@ -22,6 +22,7 @@ interface ItemCotizacionAPI {
   cantidad: number;
   precio_catalogo: number;
   precio_unitario_snapshot: number;
+  imagen: string | null;
 }
 
 interface NuevaCotizacionClientProps {
