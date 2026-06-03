@@ -24,6 +24,7 @@ export async function GET(req: Request) {
     // 2. Extraer y limpiar parámetros de búsqueda y filtros relacionales
     const producto_id = desinfectarParametro(searchParams.get('producto_id'));
     const taller_id = desinfectarParametro(searchParams.get('taller_id'));
+    const pedido_id = desinfectarParametro(searchParams.get('pedido_id'));
     const search = desinfectarParametro(searchParams.get('search'));
 
     // 3. Capturar de manera cruzada filtros operativos (etapa vs estado)
@@ -42,6 +43,7 @@ export async function GET(req: Request) {
     const result = await OrdenesProduccionService.listar({
       producto_id,
       taller_id,
+      pedido_id,
       estado, // Si es undefined, el servicio no inyectará la regla strict string al enum nativo
       etapa,  // Pasa limpio como string | undefined resolviendo el sub-where
       search,
