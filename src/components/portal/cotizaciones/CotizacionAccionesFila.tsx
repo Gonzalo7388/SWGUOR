@@ -6,9 +6,11 @@ import { Eye, Edit3, Download, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportCotizacionIndividualToPDF, buildCotizacionPDFData } from '@/lib/utils/export-utils';
 import {
-    recotizarCotizacion,
-    mensajeErrorRecotizacion,
+    recotizarCotizacion
 } from '@/app/portal/cotizaciones/actions';
+import {
+    mensajeErrorRecotizacion
+} from '@/app/portal/cotizaciones/cotizacion-errors';
 import type { EstadoCotizacion } from '@prisma/client';
 
 export interface CotizacionFila {

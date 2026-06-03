@@ -12,6 +12,18 @@ import { ItemResumen } from '@/components/portal/cotizaciones/panel/ItemResumen'
 import { ResumenFinanciero } from '@/components/portal/cotizaciones/panel/ResumenFinanciero';
 import { BotonesAccion } from '@/components/portal/cotizaciones/panel/BotonesAccion';
 
+interface ItemCotizacionAPI {
+  producto_id: number;
+  producto_nombre: string;
+  producto_sku: string;
+  variante_id: number | null;
+  color: string | null;
+  talla: string | null;
+  cantidad: number;
+  precio_catalogo: number;
+  precio_unitario_snapshot: number;
+}
+
 interface NuevaCotizacionClientProps {
   recotizarId?: string;
 }
@@ -29,51 +41,37 @@ export function NuevaCotizacionClient({ recotizarId }: NuevaCotizacionClientProp
   const idsAgregados = itemsBorrador.map((i) => i.producto_id);
   const puedeEnviar = itemsBorrador.length > 0 && mensaje.trim().length > 0;
 
-// ── 🔄 Efecto para hidratar los productos de la recotización ────────────
   useEffect(() => {
     if (!recotizarId) return;
 
     const cargarCotizacionPrevia = async () => {
       setIsHydrating(true);
       const toastId = toast.loading('Cargando productos...');
-      
+
       try {
         const res = await fetch(`/api/portal/cotizaciones/${recotizarId}/items`);
         if (!res.ok) throw new Error('Error al obtener ítems');
-        
-        const { data } = await res.json();
-        
+
+        const { data }: { data: ItemCotizacionAPI[] } = await res.json();
+
         if (data && data.length > 0) {
           limpiarBorrador?.();
 
-          // ESTRATEGIA SEGURA: 
-          // Si el hook tiene setBorrador o setItems, úsalo. 
-          // Si no, forzamos la actualización a través del contexto si existe la propiedad.
-          const ctx = portalContext as any;
-          
-          // Buscamos cualquier método que suene a "añadir" o "setear"
-          const metodoInsertar = ctx.agregarItem || ctx.setItemsBorrador || ctx.setItems;
-
-          if (metodoInsertar) {
-            data.forEach((item: any) => {
-              metodoInsertar({
-                producto_id: item.producto_id,
-                producto_nombre: item.producto_nombre || 'Producto',
-                sku: item.producto_sku || 'SKU',
-                variante_id: item.variante_id,
-                color: item.color,
-                talla: item.talla,
-                cantidad: item.cantidad,
-                precio_unitario: item.precio_catalogo || item.precio_unitario_snapshot || 0,
-              });
+          data.forEach((item) => {
+            portalContext.agregarACotizacion({
+              producto_id: item.producto_id,
+              nombre: item.producto_nombre,
+              sku: item.producto_sku,
+              imagen: null,               // la API no devuelve imagen; se puede añadir después
+              variante_id: item.variante_id ?? 0,
+              color: item.color ?? '',
+              talla: item.talla ?? '',
+              cantidad: item.cantidad,
+              precio_unitario: item.precio_catalogo || item.precio_unitario_snapshot || 0,
             });
-            toast.success('Productos cargados.', { id: toastId });
-          } else {
-            // FALLBACK: Si no hay método, es que el contexto podría ser de solo lectura.
-            // Logueamos para debuguear la estructura del contexto
-            console.error("No se encontró método de inserción en:", Object.keys(ctx));
-            toast.error('No se pudo inyectar la data (método no encontrado).', { id: toastId });
-          }
+          });
+
+          toast.success('Productos cargados.', { id: toastId });
         }
       } catch (error) {
         console.error('Error al recotizar:', error);
@@ -84,7 +82,7 @@ export function NuevaCotizacionClient({ recotizarId }: NuevaCotizacionClientProp
     };
 
     cargarCotizacionPrevia();
-  }, [recotizarId, limpiarBorrador, portalContext]); // Añadimos portalContext a dependencias
+  }, [recotizarId]);
 
   const handleEnviar = (accion: 'borrador' | 'enviar') => {
     if (itemsBorrador.length === 0) {
@@ -139,7 +137,7 @@ export function NuevaCotizacionClient({ recotizarId }: NuevaCotizacionClientProp
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-2 sm:px-4 pb-16 relative">
-      
+
       {/* ── Overlay de carga mientras se recuperan los ítems viejos ── */}
       {isHydrating && (
         <div className="absolute inset-0 bg-white/60 backdrop-blur-xs z-50 flex flex-col items-center justify-center rounded-2xl min-h-[500px]">

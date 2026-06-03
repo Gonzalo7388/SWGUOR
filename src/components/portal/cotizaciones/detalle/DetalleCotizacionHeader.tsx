@@ -6,10 +6,12 @@ import { ArrowLeft, Download, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     convertirCotizacionAPedido,
-    mensajeErrorConversion,
-    recotizarCotizacion,
-    mensajeErrorRecotizacion,
+    recotizarCotizacion
 } from '@/app/portal/cotizaciones/actions';
+import {
+    mensajeErrorConversion,
+    mensajeErrorRecotizacion
+} from '@/app/portal/cotizaciones/cotizacion-errors';
 
 interface DetalleCotizacionHeaderProps {
     cotizacionId: number;
