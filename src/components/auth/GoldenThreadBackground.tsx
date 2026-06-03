@@ -11,19 +11,18 @@ interface ThreadParticle {
 }
 
 const GoldenThreadBackground = () => {
-  // El estado se calcula una sola vez al instanciar el componente, sin gatillar efectos secundarios.
-  const [particles] = useState<ThreadParticle[]>(() => {
-    // Si estamos en el servidor durante el SSR de Next.js, iniciamos vacío
-    if (typeof window === "undefined") return [];
+  const [particles, setParticles] = useState<ThreadParticle[]>([]);
 
-    // Si ya estamos en el cliente, generamos las partículas instantáneamente
-    return [...Array(12)].map(() => ({
-      left:     `${Math.random() * 100}%`,
-      top:      `${Math.random() * 100}%`,
-      duration: 12 + Math.random() * 10,
-      delay:    Math.random() * 5,
-    }));
-  });
+  useEffect(() => {
+    setParticles(
+      [...Array(12)].map(() => ({
+        left:     `${Math.random() * 100}%`,
+        top:      `${Math.random() * 100}%`,
+        duration: 12 + Math.random() * 10,
+        delay:    Math.random() * 5,
+      })),
+    );
+  }, []);
 
   const mouseX = useMotionValue<number>(0);
   const mouseY = useMotionValue<number>(0);

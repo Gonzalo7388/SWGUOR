@@ -35,9 +35,21 @@ export function VariantePicker({ producto, isOpen, onClose, onAgregar }: Catalog
 
     const moqRequerido = producto?.moq || 400;
     const variantes = useMemo<VarianteRaw[]>(() => {
-        const reglas = producto?.reglas_descuento as unknown as ReglasDescuentoJson | null;
-        return reglas?.variantes ?? [];
-    }, [producto?.reglas_descuento]);
+        const datosVariantes = (producto?.variantes ?? producto?.variantes_producto ?? []) as Array<{
+            id: number;
+            color?: string;
+            talla?: string;
+            stock?: number;
+            stock_disponible?: number;
+        }>;
+
+        return datosVariantes.map((v) => ({
+            id: v.id,
+            color: v.color || 'Estándar',
+            talla: v.talla || 'U',
+            stock: Number(v.stock ?? v.stock_disponible ?? 0),
+        }));
+    }, [producto?.variantes, producto?.variantes_producto]);
 
     const colores = variantes.length > 0
         ? [...new Set(variantes.map((v) => v.color))]
@@ -106,7 +118,13 @@ export function VariantePicker({ producto, isOpen, onClose, onAgregar }: Catalog
         const varianteEncontrada = variantes.find(
             (v) => v.color === colorSeleccionado && v.talla === tallaSeleccionada
         );
-        const varianteId = varianteEncontrada?.id ?? producto.id;
+
+        if (!varianteEncontrada) {
+            setErrorLocal('La combinación seleccionada no se encuentra disponible.');
+            return;
+        }
+
+        const varianteId = varianteEncontrada.id;
 
         setLoading(true);
         try {
