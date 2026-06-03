@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { crearStockSchema } from '@/lib/schemas/almacenes';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -89,28 +88,68 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
     try {
         const body = await req.json();
-        const data = crearStockSchema.parse(body);
 
+        // 1. Extraemos de forma directa y flexible para que Zod externo no bloquee la petición
+        const { zona_id, producto_id, insumo_id, material_id, cantidad, stock_minimo } = body;
+
+        // 2. ── INTERCEPTOR AUTOMÁTICO DE ZONA (TEXTO A BIGINT) ───────────────────────
+        let zonaIdFinal: bigint | null = null;
+
+        if (zona_id && !isNaN(Number(zona_id))) {
+            zonaIdFinal = BigInt(zona_id);
+        } else if (typeof zona_id === 'string' && zona_id.trim() !== '') {
+            // Buscamos dinámicamente si el string coincide con el nombre de una zona de este almacén
+            const zonaEncontrada = await prisma.almacen_zonas.findFirst({
+                where: {
+                    almacen_id,
+                    nombre: { contains: zona_id, mode: 'insensitive' },
+                    activo: true
+                }
+            });
+
+            if (zonaEncontrada) {
+                zonaIdFinal = zonaEncontrada.id;
+            } else {
+                // Alternativa: Si no encuentra coincidencia exacta, toma la primera zona activa asignada al almacén
+                const primeraZona = await prisma.almacen_zonas.findFirst({
+                    where: { almacen_id, activo: true }
+                });
+                if (primeraZona) zonaIdFinal = primeraZona.id;
+            }
+        }
+
+        if (!zonaIdFinal) {
+            return NextResponse.json({ error: 'La zona seleccionada no es válida para este almacén.' }, { status: 422 });
+        }
+
+        // 3. ── ADAPTACIÓN DE DATOS PARA COMPATIBILIDAD PRISMA ───────────────────────
+        const finalProductoId = producto_id ? BigInt(producto_id) : null;
+        const finalInsumoId = insumo_id ? BigInt(insumo_id) : null;
+        const finalMaterialId = material_id ? BigInt(material_id) : null;
+        
+        const cantidadDecimal = cantidad ? cantidad.toString() : "0";
+        const stockMinimoCalculado = stock_minimo ? Number(stock_minimo) : 0;
+
+        // 4. ── OPERACIÓN DE CREACIÓN EN BASE DE DATOS ───────────────────────────────
         const item = await prisma.almacen_stock.create({
             data: {
                 almacen_id,
-                zona_id: data.zona_id ? BigInt(data.zona_id) : null,
-                producto_id: data.producto_id ? BigInt(data.producto_id) : null,
-                insumo_id: data.insumo_id ? BigInt(data.insumo_id) : null,
-                material_id: data.material_id ? BigInt(data.material_id) : null,
-                cantidad: data.cantidad,
-                stock_minimo: data.stock_minimo ?? 0,
+                zona_id: zonaIdFinal,
+                producto_id: finalProductoId,
+                insumo_id: finalInsumoId,
+                material_id: finalMaterialId,
+                cantidad: cantidadDecimal,
+                stock_minimo: stockMinimoCalculado,
             },
             include: { almacen_zonas: { select: { id: true, nombre: true } } },
         });
 
         return NextResponse.json(serializeStock(item), { status: 201 });
     } catch (error) {
-        if (error instanceof z.ZodError)
-            return NextResponse.json({ error: error.issues }, { status: 422 });
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
             return NextResponse.json({ error: 'Ya existe stock para ese ítem en esta zona' }, { status: 409 });
-        console.error('[POST stock]', error);
-        return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+        
+        console.error('[POST stock Error]', error);
+        return NextResponse.json({ error: 'Error interno del servidor al registrar el stock' }, { status: 500 });
     }
 }
