@@ -4,34 +4,29 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import CheckoutImplement from '@/components/CheckoutImplement';
 
-const PAISES_SUDAMERICA = ['Perú', 'Argentina', 'Bolivia'];
 
-const METODOS_PAGO = [
-  {
-    id: 'yape',
-    nombre: 'Yape',
-    descripcion: 'Pago inmediato con código QR',
-    imagen: '/images/yape.png',
-  },
-  {
-    id: 'tarjeta',
-    nombre: 'Tarjeta',
-    descripcion: 'Visa, Mastercard',
-    imagen: '/images/visa.png',
-  },
-  {
-    id: 'transferencia',
-    nombre: 'Transferencia',
-    descripcion: 'BCP, Interbank, BBVA',
-    imagen: '/images/transferencia.png',
-  },
+
+const PAISES_SUDAMERICA = [
+  'Argentina',
+  'Bolivia',
+  'Brasil',
+  'Chile',
+  'Colombia',
+  'Ecuador',
+  'Guyana',
+  'Paraguay',
+  'Perú',
+  'Surinam',
+  'Uruguay',
+  'Venezuela',
 ];
+
 
 export default function PagoPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-
   const totalBase = Number(searchParams.get('total')) || 0;
   const cantidad = Number(searchParams.get('cantidad')) || 1;
   const nombre = searchParams.get('nombre') || 'Producto';
@@ -40,9 +35,6 @@ export default function PagoPage() {
 
   const totalFinal = totalBase - descuento;
 
-  const [metodo, setMetodo] = useState(
-    searchParams.get('metodo') || ''
-  );
 
   const [datosEntrega, setDatosEntrega] = useState({
     pais: 'Perú',
@@ -152,25 +144,13 @@ export default function PagoPage() {
               Método de pago
             </h2>
 
-            <div className="grid grid-cols-2 gap-4">
-              {METODOS_PAGO.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMetodo(m.id)}
-                  className={cn(
-                    'p-4 rounded-xl border flex items-center gap-3',
-                    metodo === m.id
-                      ? 'border-black'
-                      : 'border-gray-200'
-                  )}
-                >
-                  <Image src={m.imagen} alt={m.nombre} width={30} height={30} />
-                  <p className="text-slate-500 font-bold">{m.nombre}</p>
-                </button>
-              ))}
+            <div className="border rounded-xl p-4">
+             <CheckoutImplement />
             </div>
-          </div>
 
+    
+          </div>
+              
         </div>
 
         {/* DERECHA */}

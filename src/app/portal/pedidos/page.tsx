@@ -17,7 +17,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { EstadoBadge } from '@/components/portal/EstadoBadge';
 import { formatCurrency } from '@/lib/helpers/format-helpers';
 import { cn } from '@/lib/utils';
-import { stripePromise } from '@/lib/stripe';
+
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -367,43 +367,7 @@ function ModalPago({
   
   const handleConfirmar = async () => {
   try {
-    setPaso('procesando');
-
-    const response = await fetch('/api/stripe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        total: Number(pedido.total),
-      }),
-    });
-
-    const data = await response.json();
-
-    const stripe = await stripePromise;
-
-    if (!stripe) {
-      setPaso('error');
-      return;
-    }
-
-    const result = await stripe.confirmCardPayment(
-      data.clientSecret,
-      {
-        payment_method: {
-          card: {
-            token: 'tok_visa',
-          },
-        },
-      }
-    );
-
-    if (result.error) {
-      console.error(result.error);
-      setPaso('error');
-      return;
-    }
+    setPaso('procesando'); 
 
     setPaso('confirmacion');
 
