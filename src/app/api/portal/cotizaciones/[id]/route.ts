@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { requireServerAuth } from '@/lib/auth/server';
 
 // ─────────────────────────────────────────────────────────────
-// Helper: obtener cliente autenticado (igual que en route principal)
+// Helper: obtener cliente autenticado
 // ─────────────────────────────────────────────────────────────
 async function obtenerClienteSesion() {
   const auth = await requireServerAuth();
@@ -31,7 +31,6 @@ async function obtenerClienteSesion() {
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/portal/cotizaciones/[id]
-// Devuelve el detalle completo con items y datos del cliente
 // ─────────────────────────────────────────────────────────────
 export async function GET(
   req: Request,
@@ -61,7 +60,7 @@ export async function GET(
             },
           },
         },
-        cliente: {                        // ← corregir: era "cliente", debe ser "clientes"
+        cliente: { // Se mantiene "cliente" según tu relación de Prisma
           select: {
             razon_social: true,
             ruc: true,
@@ -70,7 +69,7 @@ export async function GET(
             direccion_fiscal: true,
           },
         },
-        zona_envio: {                     // ← agregar join con zona
+        zona_envio: {
           select: {
             zona: true,
             costo: true,
@@ -86,10 +85,25 @@ export async function GET(
       );
     }
 
-    // Mapear items para que buildCotizacionPDFData tenga el campo "descripcion"
+    // ─────────────────────────────────────────────────────────
+    // MAPEO CORRECTO PARA EL FRONTEND Y EL PDF
+    // ─────────────────────────────────────────────────────────
     const cotizacionMapeada = {
       ...serializeBigInt(cotizacion),
-      zona_envio: cotizacion.costo_envio,
+
+      // 1. Forzamos "clientes" en plural para que page.tsx lo lea correctamente
+      clientes: cotizacion.cliente ? {
+        razon_social: cotizacion.cliente.razon_social,
+        ruc: cotizacion.cliente.ruc,
+        telefono: cotizacion.cliente.telefono,
+        email: cotizacion.cliente.email,
+        direccion_fiscal: cotizacion.cliente.direccion_fiscal,
+      } : null,
+
+      // 2. Extraemos el nombre de la zona de envío de la relación relacional
+      zona_envio: cotizacion.zona_envio?.zona ?? 'Lima Metoditana / Local',
+
+      // 3. Mapeamos los items
       cotizacion_items: cotizacion.cotizacion_items.map(item => ({
         ...serializeBigInt(item),
         descripcion: item.productos?.nombre ?? '—',
