@@ -27,11 +27,8 @@ export const OrdenesProduccionService = {
       where.estado = estado as Prisma.ordenes_produccionWhereInput['estado'];
     }
 
-<<<<<<< HEAD
-=======
     if (pedido_id) where.pedido_id = BigInt(pedido_id);
-    
->>>>>>> 7428ab848a7310e784d082f607ccb0c6274e9d99
+
     // Filtrar por etapa del seguimiento más reciente
     if (etapa && etapa !== 'all') {
       where.seguimiento_produccion = {
