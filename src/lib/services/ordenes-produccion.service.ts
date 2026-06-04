@@ -15,17 +15,17 @@ export const OrdenesProduccionService = {
   }) {
     const { producto_id, taller_id, estado, etapa, search, page = 1, limit = 10 } = params || {};
     const skip = (page - 1) * limit;
-    
+
     // FIX: Tipado estricto con el contrato WhereInput nativo de Prisma en lugar de 'any'
     const where: Prisma.ordenes_produccionWhereInput = {};
 
     if (producto_id) where.producto_id = BigInt(producto_id);
     if (taller_id) where.taller_id = BigInt(taller_id);
-    
+
     if (estado && estado !== 'todos' && estado !== 'all') {
       where.estado = estado as Prisma.ordenes_produccionWhereInput['estado'];
     }
-    
+
     // Filtrar por etapa del seguimiento más reciente
     if (etapa && etapa !== 'all') {
       where.seguimiento_produccion = {
@@ -122,7 +122,8 @@ export const OrdenesProduccionService = {
           fecha_entrega: data.fecha_entrega ? new Date(data.fecha_entrega) : null,
           notas: data.notas ?? null,
           creado_por: data.creado_por ? BigInt(data.creado_por) : null,
-          estado: 'borrador', // Asignación segura de string directo compatible con el Enum nativo
+          estado: 'borrador',
+          etapa: 'corte',
         },
         include: {
           productos: { select: { id: true, nombre: true, sku: true } },
@@ -190,9 +191,9 @@ export const OrdenesProduccionService = {
       if (data.etapa === 'completada') {
         await tx.ordenes_produccion.update({
           where: { id: BigInt(data.orden_id) },
-          data: { 
-            estado: 'completada', 
-            updated_at: new Date() 
+          data: {
+            estado: 'completada',
+            updated_at: new Date()
           },
         });
       }

@@ -247,6 +247,7 @@ export async function registrarCortePedidoCompletado(params: {
           taller_id: taller.id,
           ficha_id: ficha.id,
           estado: 'confirmada',
+          etapa: 'corte',
           cantidad_solicitada: pedido.total_unidades ?? 0,
           pedido_id: params.pedidoId,
           creado_por: params.usuarioId,
@@ -376,19 +377,19 @@ export async function obtenerDatosFichaParaCorte(productoId: bigint) {
         d.porcentaje_desperdicio != null ? Number(d.porcentaje_desperdicio) : null,
       material: d.materiales
         ? {
-            nombre: d.materiales.nombre,
-            tipo: d.materiales.tipo,
-            composicion: d.materiales.composicion,
-            color: d.materiales.color,
-            unidad: d.materiales.unidad_medida,
-          }
+          nombre: d.materiales.nombre,
+          tipo: d.materiales.tipo,
+          composicion: d.materiales.composicion,
+          color: d.materiales.color,
+          unidad: d.materiales.unidad_medida,
+        }
         : null,
       insumo: d.insumo
         ? {
-            nombre: d.insumo.nombre,
-            tipo: d.insumo.tipo,
-            unidad: d.insumo.unidad_medida,
-          }
+          nombre: d.insumo.nombre,
+          tipo: d.insumo.tipo,
+          unidad: d.insumo.unidad_medida,
+        }
         : null,
       observaciones: d.observaciones,
     })),

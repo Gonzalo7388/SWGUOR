@@ -4,15 +4,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client'],
-
-  // ─── BLOQUE AÑADIDO PARA IGNORAR ERRORES EN EL BUILD ───
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
-  // ───────────────────────────────────────────────────────
 
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -54,7 +48,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-           value: `
+            value: `
                  default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.culqi.com
                  https://3ds.culqi.com;
                   style-src 'self' 'unsafe-inline';
