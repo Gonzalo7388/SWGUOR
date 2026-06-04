@@ -7,7 +7,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react'; // ✅ Eliminado 'Plus'
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +16,7 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 
 import ConfeccionesTable from '@/components/admin/confecciones/ConfeccionesTable';
 import ConfeccionesStats from '@/components/admin/confecciones/ConfeccionesStats';
-import { EditarOrdenModal } from '@/components/admin/confecciones/EditarOrdenModal';
-import {
-  ESTADO_CONFECCION,
-  ESTADO_LABELS
-} from '@/lib/schemas/confecciones';
+import { ESTADO_CONFECCION, ESTADO_LABELS } from '@/lib/schemas/confecciones';
 
 import type { ConfeccionRow_T } from '@/components/admin/confecciones/ConfeccionesTable';
 
@@ -40,56 +36,36 @@ export default function ConfeccionesPage() {
 
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [debouncedBusqueda, setDebouncedBusqueda] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
-
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  const [debouncedBusqueda, setDebouncedBusqueda] = useState('');
-
-  const [meta, setMeta] = useState({
-    total: 0,
-    page: 1,
-    totalPages: 1,
-  });
-
+  const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 1 });
   const [prioridadCounts, setPrioridadCounts] = useState({
-    baja: 0,
-    media: 0,
-    alta: 0,
-    urgente: 0,
+    baja: 0, media: 0, alta: 0, urgente: 0,
   });
 
-  // Estados para modales - Solo edición
-  const [editingOrden, setEditingOrden] = useState<ConfeccionRow_T | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-
+  // Debounce búsqueda
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedBusqueda(busqueda);
       setCurrentPage(0);
     }, 500);
-
     return () => clearTimeout(handler);
   }, [busqueda]);
 
+  // Reset página al cambiar filtros
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [filtroEstado, statusFilter]);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-
     try {
       const q = new URLSearchParams();
-
-      if (filtroEstado !== 'todos') {
-        q.set('estado', filtroEstado);
-      }
-
-      if (statusFilter && statusFilter !== 'todos') {
-        q.set('prioridad', statusFilter);
-      }
-
-      if (debouncedBusqueda) {
-        q.set('search', debouncedBusqueda);
-      }
-
+      if (filtroEstado !== 'todos') q.set('estado', filtroEstado);
+      if (statusFilter && statusFilter !== 'todos') q.set('prioridad', statusFilter);
+      if (debouncedBusqueda) q.set('search', debouncedBusqueda);
       q.set('page', (currentPage + 1).toString());
       q.set('limit', PAGE_SIZE.toString());
 
@@ -109,32 +85,14 @@ export default function ConfeccionesPage() {
 
       setConfecciones(confData.data);
       setTalleres(tallerData.data);
-
       setMeta({
         total: confData.meta?.total || 0,
         page: confData.meta?.page || 1,
         totalPages: confData.meta?.totalPages || 1,
       });
-
-      const allRes = await fetch(`/api/admin/confecciones?limit=10000`);
-      const allData = await allRes.json();
-
-      const counts = {
-        baja: 0,
-        media: 0,
-        alta: 0,
-        urgente: 0,
-      };
-
-      allData.data.forEach((orden: ConfeccionRow_T) => {
-        if (orden.prioridad === 'baja') counts.baja++;
-        else if (orden.prioridad === 'media') counts.media++;
-        else if (orden.prioridad === 'alta') counts.alta++;
-        else if (orden.prioridad === 'urgente') counts.urgente++;
-      });
-
-      setPrioridadCounts(counts);
-
+      setPrioridadCounts(
+        confData.prioridadCounts ?? { baja: 0, media: 0, alta: 0, urgente: 0 }
+      );
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al cargar las órdenes de confección.');
@@ -147,10 +105,6 @@ export default function ConfeccionesPage() {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [filtroEstado, statusFilter]);
-
   const stats = useMemo(
     () => ({
       total: meta.total,
@@ -162,42 +116,23 @@ export default function ConfeccionesPage() {
     [meta.total, prioridadCounts]
   );
 
-  async function handleEstadoChange(
-    id: number,
-    nuevoEstado: ConfeccionRow_T['estado']
-  ) {
+  async function handleEstadoChange(id: number, nuevoEstado: ConfeccionRow_T['estado']) {
     try {
       const res = await fetch(`/api/admin/confecciones/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          estado: nuevoEstado,
-        }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: nuevoEstado }),
       });
-
-      if (!res.ok) {
-        throw new Error();
-      }
-
-      toast.success(
-        `Estado actualizado a "${ESTADO_LABELS[nuevoEstado]}"`
-      );
-
+      if (!res.ok) throw new Error();
+      toast.success(`Estado actualizado a "${ESTADO_LABELS[nuevoEstado]}"`);
       fetchData();
     } catch {
       toast.error('Error al actualizar el estado.');
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (_id: number) => {
     fetchData();
-  };
-
-  const handleEdit = (orden: ConfeccionRow_T) => {
-    setEditingOrden(orden);
-    setShowEditModal(true);
   };
 
   if (authLoading) {
@@ -215,26 +150,20 @@ export default function ConfeccionesPage() {
     <div className="p-4 md:p-8 space-y-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Header - Sin botón Nueva Orden */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-pink-50 rounded-xl">
               <Scissors className="w-6 h-6 text-pink-600" />
             </div>
-
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Confecciones
-              </h1>
-
-              <p className="text-gray-500 text-sm">
-                Gestión de producción con talleres externos
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900">Confecciones</h1>
+              <p className="text-gray-500 text-sm">Gestión de producción con talleres externos</p>
             </div>
           </div>
         </div>
 
-        {/* Estadísticas por Prioridad */}
+        {/* Stats */}
         <ConfeccionesStats
           stats={stats}
           statusFilter={statusFilter}
@@ -246,7 +175,6 @@ export default function ConfeccionesPage() {
 
         {/* Filtros */}
         <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border shadow-sm">
-
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
             <Input
@@ -286,15 +214,15 @@ export default function ConfeccionesPage() {
           <ConfeccionesTable
             data={confecciones}
             isLoading={isLoading}
-            onEstadoChange={handleEstadoChange}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
+            talleres={talleres}
+            onRefresh={fetchData}
           />
 
           {!isLoading && meta.totalPages > 1 && (
             <div className="flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
               <p className="text-xs text-gray-500">
-                Mostrando <span className="font-bold text-gray-900">{confecciones.length}</span> de{' '}
+                Mostrando{' '}
+                <span className="font-bold text-gray-900">{confecciones.length}</span> de{' '}
                 <span className="font-bold text-gray-900">{meta.total}</span>
               </p>
               <div className="flex gap-2">
@@ -322,21 +250,6 @@ export default function ConfeccionesPage() {
           )}
         </div>
       </div>
-
-      {/* Modal de Edición */}
-      {editingOrden && (
-        <EditarOrdenModal
-          open={showEditModal}
-          onOpenChange={setShowEditModal}
-          orden={editingOrden}
-          talleres={talleres}
-          onSuccess={() => {
-            setShowEditModal(false);
-            setEditingOrden(null);
-            fetchData();
-          }}
-        />
-      )}
     </div>
   );
 }

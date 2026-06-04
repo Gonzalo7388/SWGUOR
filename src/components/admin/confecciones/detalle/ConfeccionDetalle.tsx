@@ -1,35 +1,35 @@
 "use client";
 
-import { useState }         from "react";
+import { useState } from "react";
 import { ArrowLeft, Scissors, Clock, FileText } from "lucide-react";
-import Link                 from "next/link";
-import { usePermissions }   from "@/lib/hooks/usePermissions";
+import Link from "next/link";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import { ConfeccionHeader } from "./ConfeccionHeader";
-import { ConfeccionSeguimientoTab } from "./ConfeccionSeguimientoTab";
-import { ConfeccionInfoTab }        from "./ConfeccionInfoTab";
-import { ESTADO_LABELS }    from "@/lib/schemas/confecciones";
+import ConfeccionSeguimientoTab, { type SeguimientoPayload } from "./ConfeccionSeguimientoTab";
+import { ConfeccionInfoTab } from "./ConfeccionInfoTab";
+import { ESTADO_LABELS } from "@/lib/schemas/confecciones";
 import { useConfeccionDetalle } from "@/lib/hooks/useConfecciones";
 
 const TABS = [
-  { id: "info",        label: "Información",  icon: FileText },
-  { id: "seguimiento", label: "Seguimiento",  icon: Clock    },
+  { id: "info", label: "Información", icon: FileText },
+  { id: "seguimiento", label: "Seguimiento", icon: Clock },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
 
 const ESTADO_COLORS: Record<string, string> = {
-  pendiente:  "bg-slate-100  text-slate-700",
-  en_corte:   "bg-blue-100   text-blue-700",
+  pendiente: "bg-slate-100  text-slate-700",
+  en_corte: "bg-blue-100   text-blue-700",
   en_costura: "bg-violet-100 text-violet-700",
-  acabados:   "bg-amber-100  text-amber-700",
+  acabados: "bg-amber-100  text-amber-700",
   completado: "bg-green-100  text-green-700",
-  cancelado:  "bg-red-100    text-red-700",
+  cancelado: "bg-red-100    text-red-700",
 };
 
 export default function ConfeccionDetalle({ confeccion }: { confeccion: any }) {
-  const [activeTab,    setActiveTab]    = useState<TabId>("info");
+  const [activeTab, setActiveTab] = useState<TabId>("info");
   const { can, hasRole } = usePermissions();
-    const {
+  const {
     updateEstado,
     registrarSeguimiento,
     isUpdating,
@@ -37,8 +37,6 @@ export default function ConfeccionDetalle({ confeccion }: { confeccion: any }) {
   } = useConfeccionDetalle(confeccion.id.toString());
   const seguimientos = confeccion.seguimientos ?? [];
   const estadoActual = confeccion.estado;
-
-  
 
   const puedeActualizar =
     hasRole(["administrador", "gerente", "representante_taller"]) ||
@@ -87,18 +85,16 @@ export default function ConfeccionDetalle({ confeccion }: { confeccion: any }) {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
-                activeTab === id
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === id
                   ? "bg-pink-600 text-white shadow-sm"
                   : "text-gray-400 hover:text-gray-700 hover:bg-gray-50"
-              }`}
+                }`}
             >
               <Icon size={13} />
               {label}
               {id === "seguimiento" && seguimientos.length > 0 && (
-                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                  activeTab === id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
-                }`}>
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
+                  }`}>
                   {seguimientos.length}
                 </span>
               )}
@@ -106,7 +102,7 @@ export default function ConfeccionDetalle({ confeccion }: { confeccion: any }) {
           ))}
         </div>
 
-              {/* Contenido */}
+        {/* Contenido */}
         {activeTab === "info" && (
           <ConfeccionInfoTab
             confeccion={confeccion}
@@ -122,8 +118,8 @@ export default function ConfeccionDetalle({ confeccion }: { confeccion: any }) {
             seguimientos={seguimientos}
             estadoActual={estadoActual}
             puedeActualizar={puedeActualizar}
-            isLoading={isUpdating} 
-            onUpdate={(data) => registrarSeguimiento(data)}
+            isLoading={isUpdating}
+            onUpdate={(data: SeguimientoPayload) => registrarSeguimiento(data)}
           />
         )}
       </div>

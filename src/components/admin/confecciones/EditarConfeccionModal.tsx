@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import type { ConfeccionRow_T } from "./ConfeccionesTable";
 import { Loader2 } from "lucide-react";
 
-interface EditarOrdenModalProps {
+interface EditarConfeccionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orden: ConfeccionRow_T | null;
@@ -22,25 +22,26 @@ interface EditarOrdenModalProps {
   onSuccess: () => void;
 }
 
-export function EditarOrdenModal({
+export function EditarConfeccionModal({
   open,
   onOpenChange,
   orden,
   talleres,
   onSuccess,
-}: EditarOrdenModalProps) {
+}: EditarConfeccionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formValues, setFormValues] = useState<ConfeccionFormValues | null>(null);
 
   useEffect(() => {
     if (orden && open) {
-      console.log("Datos de la orden:", orden);
       setFormValues({
-        pedido_id: orden.pedido_id,
+        orden_produccion_id: orden.ordenes_produccion?.id
+          ? Number(orden.ordenes_produccion.id)
+          : undefined,
         taller_id: orden.talleres?.id?.toString() || "",
         prenda: orden.prenda,
         cantidad: orden.cantidad,
-        costo_unitario: orden.costo_unitario || undefined,
+        costo_unitario: orden.costo_unitario ?? undefined,
         prioridad: orden.prioridad,
         estado: orden.estado,
         fecha_entrega: orden.fecha_entrega || "",
@@ -51,7 +52,7 @@ export function EditarOrdenModal({
 
   const handleSubmit = async (values: ConfeccionFormValues) => {
     if (!orden) return;
-    
+
     setIsLoading(true);
     try {
       const payload = confeccionOutputSchema.parse(values);

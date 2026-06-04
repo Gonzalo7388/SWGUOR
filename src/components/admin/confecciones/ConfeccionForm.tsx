@@ -35,7 +35,7 @@ interface ConfeccionFormProps {
   talleres: { id: string | number; nombre: string }[];
   onSubmit: (values: ConfeccionFormValues) => void;
   isLoading?: boolean;
-  defaultPedidoId?: number;
+  defaultOrdenProduccionId?: number; // reemplaza defaultPedidoId
   defaultValues?: Partial<ConfeccionFormValues>;
   isEditing?: boolean;
 }
@@ -44,14 +44,14 @@ export function ConfeccionForm({
   talleres,
   onSubmit,
   isLoading = false,
-  defaultPedidoId,
+  defaultOrdenProduccionId,
   defaultValues,
   isEditing = false,
 }: ConfeccionFormProps) {
   const form = useForm<ConfeccionFormValues>({
     resolver: zodResolver(confeccionSchema),
     defaultValues: {
-      pedido_id: defaultPedidoId ?? (undefined as unknown as number),
+      orden_produccion_id: defaultOrdenProduccionId,
       taller_id: "",
       prenda: "",
       cantidad: 1,
@@ -66,7 +66,7 @@ export function ConfeccionForm({
   useEffect(() => {
     if (defaultValues) {
       form.reset({
-        pedido_id: defaultValues.pedido_id,
+        orden_produccion_id: defaultValues.orden_produccion_id,
         taller_id: defaultValues.taller_id || "",
         prenda: defaultValues.prenda || "",
         cantidad: defaultValues.cantidad || 1,
@@ -79,28 +79,34 @@ export function ConfeccionForm({
     }
   }, [defaultValues, form]);
 
-  const labelClass = "font-bold uppercase text-[10px] italic text-gray-700"; // ✅ Agregado text-gray-700
+  const labelClass = "font-bold uppercase text-[10px] italic text-gray-700";
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {!defaultPedidoId && !isEditing && (
+
+          {/* orden_produccion_id — solo visible al crear sin contexto */}
+          {!defaultOrdenProduccionId && !isEditing && (
             <FormField
               control={form.control}
-              name="pedido_id"
+              name="orden_produccion_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClass}>ID de Pedido</FormLabel>
+                  <FormLabel className={labelClass}>ID Orden de Producción</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       min={1}
-                      placeholder="Ej: 42"
+                      placeholder="Ej: 171"
                       {...field}
                       value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                      className="h-11 text-gray-900" // ✅ Agregado text-gray-900
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === "" ? undefined : e.target.valueAsNumber
+                        )
+                      }
+                      className="h-11 text-gray-900"
                     />
                   </FormControl>
                   <FormMessage />
@@ -117,7 +123,7 @@ export function ConfeccionForm({
                 <FormLabel className={labelClass}>Taller Asignado</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-11 text-gray-900"> {/* ✅ Agregado text-gray-900 */}
+                    <SelectTrigger className="h-11 text-gray-900">
                       <SelectValue placeholder="Selecciona un taller" />
                     </SelectTrigger>
                   </FormControl>
@@ -143,7 +149,7 @@ export function ConfeccionForm({
                 <FormControl>
                   <Input
                     {...field}
-                    className="h-11 text-gray-900" // ✅ Agregado text-gray-900
+                    className="h-11 text-gray-900"
                     placeholder="Ej: Polo Oversize Black"
                     value={field.value || ""}
                   />
@@ -167,7 +173,7 @@ export function ConfeccionForm({
                     {...field}
                     value={field.value ?? ""}
                     onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                    className="h-11 text-gray-900" // ✅ Agregado text-gray-900
+                    className="h-11 text-gray-900"
                   />
                 </FormControl>
                 <FormMessage />
@@ -189,8 +195,12 @@ export function ConfeccionForm({
                     placeholder="0.00"
                     {...field}
                     value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                    className="h-11 text-gray-900" // ✅ Agregado text-gray-900
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? undefined : e.target.valueAsNumber
+                      )
+                    }
+                    className="h-11 text-gray-900"
                   />
                 </FormControl>
                 <FormMessage />
@@ -209,7 +219,7 @@ export function ConfeccionForm({
                     type="date"
                     {...field}
                     value={field.value || ""}
-                    className="h-11 text-gray-900" // ✅ Agregado text-gray-900
+                    className="h-11 text-gray-900"
                   />
                 </FormControl>
                 <FormMessage />
@@ -225,7 +235,7 @@ export function ConfeccionForm({
                 <FormLabel className={labelClass}>Prioridad</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-11 text-gray-900"> {/* ✅ Agregado text-gray-900 */}
+                    <SelectTrigger className="h-11 text-gray-900">
                       <SelectValue placeholder="Selecciona prioridad" />
                     </SelectTrigger>
                   </FormControl>
@@ -251,7 +261,7 @@ export function ConfeccionForm({
                   <FormLabel className={labelClass}>Estado</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="h-11 text-gray-900"> {/* ✅ Agregado text-gray-900 */}
+                      <SelectTrigger className="h-11 text-gray-900">
                         <SelectValue placeholder="Selecciona estado" />
                       </SelectTrigger>
                     </FormControl>
@@ -282,7 +292,7 @@ export function ConfeccionForm({
                   placeholder="Detalles de costura, avíos, tallas especiales, etc."
                   rows={3}
                   value={field.value || ""}
-                  className="text-gray-900" // ✅ Agregado text-gray-900
+                  className="text-gray-900"
                 />
               </FormControl>
               <FormMessage />
@@ -293,7 +303,7 @@ export function ConfeccionForm({
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-pink-600 hover:bg-pink-700 h-12 font-bold uppercase italic text-white" // ✅ Agregado text-white
+          className="w-full bg-pink-600 hover:bg-pink-700 h-12 font-bold uppercase italic text-white"
         >
           {isLoading ? (
             <>

@@ -15,8 +15,7 @@ export const ConfeccionesService = {
   }) {
     const { estado, taller_id, orden_produccion_id, prioridad, search, page = 1, limit = 10 } = params || {};
     const skip = (page - 1) * limit;
-    
-    // FIX: Reemplazado 'where: any' por el tipo exacto de Prisma
+
     const where: Prisma.confeccionesWhereInput = {};
 
     if (estado && estado !== 'todos') {
@@ -31,7 +30,6 @@ export const ConfeccionesService = {
     if (prioridad && prioridad !== 'todas') {
       where.prioridad = prioridad;
     }
-
     if (search) {
       where.OR = [
         { prenda: { contains: search, mode: 'insensitive' } },
@@ -42,7 +40,7 @@ export const ConfeccionesService = {
       }
     }
 
-    const [total, confecciones] = await Promise.all([
+    const [total, confecciones, prioridadRaw] = await Promise.all([
       prisma.confecciones.count({ where }),
       prisma.confecciones.findMany({
         where,
@@ -59,16 +57,27 @@ export const ConfeccionesService = {
           },
         },
         orderBy: [
-          // Urgentes primero, luego por fecha de creación
           { prioridad: 'desc' },
           { created_at: 'desc' },
         ],
       }),
+      prisma.confecciones.groupBy({
+        by: ['prioridad'],
+        _count: { _all: true },
+      }),
     ]);
+
+    const prioridadCounts = { baja: 0, media: 0, alta: 0, urgente: 0 };
+    for (const { prioridad: p, _count } of prioridadRaw) {
+      if (p in prioridadCounts) {
+        prioridadCounts[p as keyof typeof prioridadCounts] = _count._all;
+      }
+    }
 
     return {
       data: serializeBigInt(confecciones),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      prioridadCounts,
     };
   },
 
@@ -100,7 +109,6 @@ export const ConfeccionesService = {
     return confeccion ? serializeBigInt(confeccion) : null;
   },
 
-  // Solo el representante: reasignar taller, editar observaciones/notas/responsable
   async actualizar(id: string, data: Partial<{
     taller_id: string;
     responsable_id: string;
@@ -124,7 +132,6 @@ export const ConfeccionesService = {
     return serializeBigInt(confeccion);
   },
 
-  // Actualiza el estado y registra el seguimiento en una sola transacción
   async actualizarEstado(id: string, data: {
     estado: string;
     notas?: string;
@@ -138,17 +145,16 @@ export const ConfeccionesService = {
 
       if (!actual) throw new Error('Confección no encontrada');
 
-      // FIX: Reemplazado 'extra: any' asignando los campos de forma segura y estricta en el data input
       const fechaInicio = data.estado === 'en_proceso' ? new Date() : undefined;
       const fechaFin = data.estado === 'completada' ? new Date() : undefined;
 
       const confeccion = await tx.confecciones.update({
         where: { id: BigInt(id) },
-        data: { 
-          estado: data.estado as EstadoConfeccion, 
+        data: {
+          estado: data.estado as EstadoConfeccion,
           ...(fechaInicio && { fecha_inicio: fechaInicio }),
           ...(fechaFin && { fecha_fin: fechaFin }),
-          updated_at: new Date() 
+          updated_at: new Date(),
         },
       });
 

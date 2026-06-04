@@ -5,37 +5,36 @@ import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { ConfeccionForm }       from "./ConfeccionForm";
+import { ConfeccionForm } from "./ConfeccionForm";
 import { confeccionOutputSchema } from "@/lib/schemas/confecciones";
 import type { ConfeccionFormValues } from "@/lib/schemas/confecciones";
 import { toast } from "sonner";
 
-interface NuevaOrdenModalProps {
-  open:         boolean;
+interface NuevaConfeccionModalProps {
+  open: boolean;
   onOpenChange: (open: boolean) => void;
-  talleres:     { id: string | number; nombre: string }[];
-  pedidoId?:    number;   // si se abre desde un pedido específico
-  onSuccess:    () => void;
+  talleres: { id: string | number; nombre: string }[];
+  ordenProduccionId?: number; // si se abre desde una orden de producción específica
+  onSuccess: () => void;
 }
 
-export function NuevaOrdenModal({
-  open, onOpenChange, talleres, pedidoId, onSuccess,
-}: NuevaOrdenModalProps) {
+export function NuevaConfeccionModal({
+  open, onOpenChange, talleres, ordenProduccionId, onSuccess,
+}: NuevaConfeccionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(values: ConfeccionFormValues) {
     setIsLoading(true);
     try {
-      // Transformar con el output schema (convierte fecha, taller_id)
       const payload = confeccionOutputSchema.parse(values);
 
       const res = await fetch("/api/admin/confecciones", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
+        body: JSON.stringify({
           ...payload,
-          // Si el modal se abre desde un pedido, sobreescribir pedido_id
-          ...(pedidoId ? { pedido_id: pedidoId } : {}),
+          // Si el modal se abre desde una orden de producción, tiene precedencia
+          ...(ordenProduccionId ? { orden_produccion_id: ordenProduccionId } : {}),
         }),
       });
 
@@ -44,8 +43,9 @@ export function NuevaOrdenModal({
         throw new Error(err?.error ?? "Error al crear la orden");
       }
 
-      toast.success("Orden de producción creada");
+      toast.success("Orden de confección creada");
       onSuccess();
+      onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error inesperado");
     } finally {
@@ -61,7 +61,7 @@ export function NuevaOrdenModal({
             Nueva Orden de Confección
           </DialogTitle>
           <DialogDescription>
-            Completa los datos para generar la orden de producción con el taller.
+            Completa los datos para generar la orden con el taller.
           </DialogDescription>
         </DialogHeader>
 
@@ -69,7 +69,7 @@ export function NuevaOrdenModal({
           talleres={talleres}
           onSubmit={handleSubmit}
           isLoading={isLoading}
-          defaultPedidoId={pedidoId}
+          defaultOrdenProduccionId={ordenProduccionId}
         />
       </DialogContent>
     </Dialog>

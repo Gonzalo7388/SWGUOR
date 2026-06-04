@@ -1,15 +1,14 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Scissors } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ESTADO_CONFECCION } from "@/lib/schemas/confecciones";
 import ConfeccionRow from "@/components/admin/confecciones/ConfeccionesRow";
+import { CerrarConfeccionModal } from "@/components/admin/confecciones/CerrarConfeccionModal";
 
 export type ConfeccionRow_T = {
   id: number;
-  pedido_id: number;
-  pedido?: { id: number } | null;
   talleres?: { id: number; nombre: string } | null;
   prenda: string;
   cantidad: number;
@@ -37,88 +36,96 @@ export type ConfeccionRow_T = {
 interface ConfeccionesTableProps {
   data: ConfeccionRow_T[];
   isLoading: boolean;
-  onEstadoChange: (id: number, estado: ConfeccionRow_T["estado"]) => void;
-  onDelete?: (id: number) => void;
-  onEdit?: (orden: ConfeccionRow_T) => void;
+  talleres: { id: string | number; nombre: string }[]; // ← nuevo
+  onRefresh: () => void;
 }
 
-function ConfeccionesTable({ data, isLoading, onEstadoChange, onDelete, onEdit }: ConfeccionesTableProps) {
+function ConfeccionesTable({
+  data,
+  isLoading,
+  talleres,
+  onRefresh,
+}: ConfeccionesTableProps) {
+
   return (
-    <div className="overflow-x-auto pb-4">
-      <table className="w-full border-separate border-spacing-y-3">
-        <thead>
-          <tr className="text-left">
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Orden</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Taller</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Cantidad</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Prioridad</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Entrega</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <tr key={`sk-${i}`}>
-                <td className="bg-white border-y border-l border-slate-100 py-5 px-6 rounded-l-2xl shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-11 w-11 rounded-xl" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-3 w-24" />
-                      <Skeleton className="h-3 w-20" />
+    <>
+      <div className="overflow-x-auto pb-4">
+        <table className="w-full border-separate border-spacing-y-3">
+          <thead>
+            <tr className="text-left">
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Orden</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Taller</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Cantidad</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Prioridad</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Entrega</th>
+              <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`sk-${i}`}>
+                  <td className="bg-white border-y border-l border-slate-100 py-5 px-6 rounded-l-2xl shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-11 w-11 rounded-xl" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
-                  <Skeleton className="h-6 w-24 mx-auto rounded-lg" />
-                </td>
-                <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
-                  <Skeleton className="h-5 w-12 mx-auto rounded-md" />
-                </td>
-                <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
-                  <Skeleton className="h-6 w-16 mx-auto rounded-full" />
-                </td>
-                <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
-                  <Skeleton className="h-6 w-20 mx-auto rounded-full" />
-                </td>
-                <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
-                  <Skeleton className="h-4 w-24 mx-auto rounded-md" />
-                </td>
-                <td className="bg-white border-y border-r border-slate-100 py-5 px-6 rounded-r-2xl text-right shadow-sm">
-                  <div className="flex justify-end gap-2">
-                    <Skeleton className="h-9 w-9 rounded-xl" />
-                    <Skeleton className="h-9 w-9 rounded-xl" />
-                    <Skeleton className="h-9 w-9 rounded-xl" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-6 w-24 mx-auto rounded-lg" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-5 w-12 mx-auto rounded-md" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-6 w-16 mx-auto rounded-full" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-6 w-20 mx-auto rounded-full" />
+                  </td>
+                  <td className="bg-white border-y border-slate-100 py-5 px-6 text-center shadow-sm">
+                    <Skeleton className="h-4 w-24 mx-auto rounded-md" />
+                  </td>
+                  <td className="bg-white border-y border-r border-slate-100 py-5 px-6 rounded-r-2xl text-right shadow-sm">
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-9 w-9 rounded-xl" />
+                      <Skeleton className="h-9 w-9 rounded-xl" />
+                      <Skeleton className="h-9 w-9 rounded-xl" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : data.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
+                  <div className="flex flex-col items-center gap-3">
+                    <Scissors className="w-12 h-12 text-slate-200" />
+                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">
+                      No hay órdenes de confección
+                    </p>
                   </div>
                 </td>
               </tr>
-            ))
-          ) : data.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="bg-white rounded-2xl border border-slate-100 py-16 text-center shadow-sm">
-                <div className="flex flex-col items-center gap-3">
-                  <Scissors className="w-12 h-12 text-slate-200" />
-                  <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">
-                    No hay órdenes de confección
-                  </p>
-                </div>
-              </td>
-            </tr>
-          ) : (
-            data.map((orden) => (
-              <ConfeccionRow
-                key={orden.id}
-                orden={orden}
-                onDelete={onDelete}
-                onEdit={onEdit}
-              />
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+            ) : (
+              data.map((orden) => (
+                <ConfeccionRow
+                  key={orden.id}
+                  orden={orden}
+                  talleres={talleres}   // ← nuevo
+                  onRefresh={onRefresh} // ← nuevo
+                />
+
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

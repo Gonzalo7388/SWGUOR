@@ -3,12 +3,14 @@ import { TalleresService } from '@/lib/services/talleres.service';
 import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import { auditoriaService } from '@/lib/services/auditoria.service';
+import { RolUsuario } from '@/lib/constants/roles';
 
-const TALLERES_ROLES: any = ['administrador', 'gerente'];
+const ROLES_LECTURA: RolUsuario[] = ['administrador', 'gerente', 'representante_taller'];
+const ROLES_ESCRITURA: RolUsuario[] = ['administrador', 'gerente'];
 
 // GET /api/admin/talleres
 export async function GET() {
-  const auth = await requireServerRole(TALLERES_ROLES);
+  const auth = await requireServerRole(ROLES_LECTURA);
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
@@ -22,7 +24,7 @@ export async function GET() {
 
 // POST /api/admin/talleres
 export async function POST(req: Request) {
-  const auth = await requireServerRole(TALLERES_ROLES);
+  const auth = await requireServerRole(ROLES_ESCRITURA);
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
@@ -54,7 +56,7 @@ export async function POST(req: Request) {
 
 // PUT /api/admin/talleres
 export async function PUT(req: Request) {
-  const auth = await requireServerRole(TALLERES_ROLES);
+  const auth = await requireServerRole(ROLES_ESCRITURA);
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
@@ -91,7 +93,7 @@ export async function PUT(req: Request) {
 
 // DELETE /api/admin/talleres?id=xxx — soft delete
 export async function DELETE(req: Request) {
-  const auth = await requireServerRole(TALLERES_ROLES);
+  const auth = await requireServerRole(ROLES_ESCRITURA);
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
