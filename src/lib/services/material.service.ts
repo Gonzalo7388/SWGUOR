@@ -9,6 +9,7 @@ export const MaterialesService = {
     tipo?:      string;
     busqueda?:  string;
     bajo_stock?: boolean;
+    proveedor_id?: string;
     sort?:      'asc' | 'desc';
   }) {
     // FIX: Tipado estricto utilizando el contrato WhereInput nativo de Prisma
@@ -20,11 +21,15 @@ export const MaterialesService = {
     if (params?.busqueda) {
       where.nombre = { contains: params.busqueda, mode: 'insensitive' };
     }
+    if (params?.proveedor_id) {
+      where.proveedor_id = BigInt(params.proveedor_id);
+    }
 
     const materiales = await prisma.materiales.findMany({
       where,
       include: {
         proveedores: { select: { id: true, razon_social: true } },
+        _count: { select: { ordenes_compra_items: true } },
       },
       orderBy: params?.sort
         ? { precio_unitario: params.sort }
@@ -44,6 +49,34 @@ export const MaterialesService = {
     const material = await prisma.materiales.findUnique({
       where:   { id: BigInt(id) },
       include: { proveedores: { select: { id: true, razon_social: true } } },
+    });
+    return material ? serializeBigInt(material) : null;
+  },
+
+  async obtenerDetalleCompras(id: string) {
+    const material = await prisma.materiales.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        proveedores: { select: { id: true, razon_social: true, ruc: true } },
+        almacenes: { select: { id: true, nombre: true } },
+        ordenes_compra_items: {
+          include: {
+            ordenes_compra: {
+              select: {
+                id: true,
+                estado: true,
+                estado_pago: true,
+                total_orden: true,
+                fecha_prometida: true,
+                created_at: true,
+                proveedores: { select: { id: true, razon_social: true } },
+              },
+            },
+          },
+          orderBy: { id: 'desc' },
+        },
+        _count: { select: { ordenes_compra_items: true, movimientos_inventario: true } },
+      },
     });
     return material ? serializeBigInt(material) : null;
   },

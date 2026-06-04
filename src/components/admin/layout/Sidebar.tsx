@@ -10,7 +10,7 @@ import {
   Bell, BarChart3, LucideIcon, ChevronDown,
   Settings, Truck, Package, Grid3x3, DollarSign, FileText,
   Building2, ShieldCheck, UserSquare, Briefcase, MessageSquare, History,
-  ChevronRight,
+  ChevronRight, Layers,
   ShoppingBag,
   Tag,
 } from 'lucide-react';
@@ -145,6 +145,18 @@ const GESTION_LOGISTICA: NavGroup = {
           href: '/admin/Panel-Administrativo/ordenes-compra',
           icon: ShoppingBag,
           resource: 'ordenes_compra' as RecursoKey,
+        },
+        {
+          title: 'Insumos',
+          href: '/admin/Panel-Administrativo/insumos',
+          icon: Package,
+          resource: 'insumo' as RecursoKey,
+        },
+        {
+          title: 'Materiales',
+          href: '/admin/Panel-Administrativo/materiales',
+          icon: Layers,
+          resource: 'materiales' as RecursoKey,
         },
         {
           title: 'Proveedores Cotizaciones',

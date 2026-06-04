@@ -20,7 +20,11 @@ export async function fetchInsumos(params?: {
 
   const res = await fetch(`${API}?${query.toString()}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Error al cargar insumos");
-  return res.json();
+  const json = await res.json();
+  return {
+    insumos: json.data?.insumos ?? [],
+    proveedores: json.data?.proveedores ?? [],
+  };
 }
 
 export async function fetchInsumoById(id: string): Promise<any> {

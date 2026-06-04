@@ -5,8 +5,8 @@ import { MaterialesService } from '@/lib/services/material.service';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 
-const MATERIALES_LECTURA_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller'];
-const MATERIALES_ESCRITURA_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador'];
+const MATERIALES_LECTURA_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador', 'representante_taller', 'almacenero'];
+const MATERIALES_ESCRITURA_ROLES: RolUsuario[] = ['administrador', 'gerente', 'disenador', 'cortador', 'almacenero'];
 
 export async function GET(req: Request) {
   const auth = await requireServerRole(MATERIALES_LECTURA_ROLES);
@@ -20,6 +20,7 @@ export async function GET(req: Request) {
       tipo: searchParams.get('tipo') ?? undefined,
       busqueda: searchParams.get('busqueda') ?? undefined,
       bajo_stock: searchParams.get('stockBajo') === 'true',
+      proveedor_id: searchParams.get('proveedor_id') ?? undefined,
     });
 
     return NextResponse.json({ success: true, data });
