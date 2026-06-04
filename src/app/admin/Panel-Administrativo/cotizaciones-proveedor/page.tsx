@@ -33,6 +33,7 @@ import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import StatCard from '@/components/admin/common/StatCard';
 import { useCotizacionesProveedorList } from '@/lib/hooks/useCotizacionesProveedor';
 import { formatMontoCotizacion } from '@/components/admin/cotizaciones-proveedor/cotizacion-proveedor-utils';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 
 const PAGE_SIZE = 10;
 
@@ -48,6 +49,7 @@ interface CotizacionRow {
 
 export default function CotizacionesProveedorPage() {
   const router = useRouter();
+  const { can } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,14 +76,25 @@ export default function CotizacionesProveedorPage() {
   );
 
   const totalPages = pagination?.totalPages ?? 1;
+  const canView = can('view', 'cotizaciones_proveedor');
+  const canCreate = can('create', 'cotizaciones_proveedor');
+
+  if (!canView) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No tienes permisos para ver cotizaciones de proveedor.
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
         <AdminPageHeader
           title="Cotizaciones Proveedor"
-          description="Registro manual y seguimiento de cotizaciones recibidas"
+          description="Registre cotizaciones con extracción IA desde PDF (CUS_44) o carga manual"
           actionLabel="Nueva Cotización"
+          showAction={canCreate}
           onAction={() =>
             router.push('/admin/Panel-Administrativo/cotizaciones-proveedor/nueva')
           }

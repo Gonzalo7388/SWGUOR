@@ -59,7 +59,7 @@ const nextConfig: NextConfig = {
                  wss://*.supabase.co
                   https://js.culqi.com
                 https://3ds.culqi.com;
-                frame-src
+                frame-src 'self'
                 https://js.culqi.com
                  https://checkout.culqi.com
                 https://3ds.culqi.com
@@ -91,6 +91,19 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/api/fichas-tecnicas/archivo',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self'",
+          },
+        ],
+      },
+      {
+        source: '/api/admin/ordenes-compra/:id/documento/preview',
         headers: [
           {
             key: 'X-Frame-Options',

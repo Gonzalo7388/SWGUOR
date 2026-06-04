@@ -72,3 +72,8 @@ export async function cancelarOrdenCompra(id: string | number) {
 export function formatNumeroOc(id: string | number): string {
   return `OC-${id}`;
 }
+
+/** URL same-origin para previsualizar el PDF en iframe (evita bloqueo X-Frame-Options de Storage). */
+export function getOrdenCompraPdfPreviewUrl(ordenId: string | number): string {
+  return `/api/admin/ordenes-compra/${ordenId}/documento/preview`;
+}

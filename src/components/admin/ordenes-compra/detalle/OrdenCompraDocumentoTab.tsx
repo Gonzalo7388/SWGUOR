@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FileText, RefreshCw, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { getOrdenCompraPdfPreviewUrl } from '@/lib/helpers/ordenes-compra-helpers';
 
 interface Props {
   ordenId: string | number;
@@ -13,7 +14,12 @@ interface Props {
 
 export function OrdenCompraDocumentoTab({ ordenId, pdfUrl, onRegenerated }: Props) {
   const [regenerating, setRegenerating] = useState(false);
-  const [url, setUrl] = useState(pdfUrl ?? '');
+  const [documentReady, setDocumentReady] = useState(!!pdfUrl);
+  const [previewKey, setPreviewKey] = useState(0);
+
+  const previewUrl = getOrdenCompraPdfPreviewUrl(ordenId);
+  const previewSrc = `${previewUrl}?t=${previewKey}`;
+  const downloadUrl = `${previewUrl}?download=1&t=${previewKey}`;
 
   const handleRegenerar = async () => {
     setRegenerating(true);
@@ -23,7 +29,8 @@ export function OrdenCompraDocumentoTab({ ordenId, pdfUrl, onRegenerated }: Prop
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error al generar documento');
-      setUrl(`${json.data.pdf_url}?t=${Date.now()}`);
+      setDocumentReady(true);
+      setPreviewKey((k) => k + 1);
       toast.success('Documento actualizado');
       onRegenerated?.();
     } catch (e: unknown) {
@@ -33,7 +40,7 @@ export function OrdenCompraDocumentoTab({ ordenId, pdfUrl, onRegenerated }: Prop
     }
   };
 
-  const displayUrl = url || pdfUrl;
+  const showPreview = documentReady || !!pdfUrl;
 
   return (
     <div className="space-y-4">
@@ -60,14 +67,14 @@ export function OrdenCompraDocumentoTab({ ordenId, pdfUrl, onRegenerated }: Prop
             <RefreshCw className={`w-4 h-4 mr-1 ${regenerating ? 'animate-spin' : ''}`} />
             Regenerar
           </Button>
-          {displayUrl && (
+          {showPreview && (
             <>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="rounded-xl"
-                onClick={() => window.open(displayUrl, '_blank', 'noopener,noreferrer')}
+                onClick={() => window.open(previewSrc, '_blank', 'noopener,noreferrer')}
               >
                 <ExternalLink className="w-4 h-4 mr-1" />
                 Abrir
@@ -78,10 +85,12 @@ export function OrdenCompraDocumentoTab({ ordenId, pdfUrl, onRegenerated }: Prop
                 className="rounded-xl bg-amber-700 hover:bg-amber-800"
                 onClick={() => {
                   const link = document.createElement('a');
-                  link.href = displayUrl;
+                  link.href = downloadUrl;
                   link.download = `orden-compra-${ordenId}.pdf`;
                   link.rel = 'noopener noreferrer';
+                  document.body.appendChild(link);
                   link.click();
+                  link.remove();
                 }}
               >
                 <Download className="w-4 h-4 mr-1" />
@@ -92,11 +101,11 @@ export function OrdenCompraDocumentoTab({ ordenId, pdfUrl, onRegenerated }: Prop
         </div>
       </div>
 
-      {displayUrl ? (
+      {showPreview ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-100 overflow-hidden shadow-inner min-h-[70vh]">
           <iframe
             title="Orden de compra PDF"
-            src={`${displayUrl}${displayUrl.includes('?') ? '&' : '?'}t=${Date.now()}`}
+            src={previewSrc}
             className="w-full h-[75vh] bg-white"
           />
         </div>

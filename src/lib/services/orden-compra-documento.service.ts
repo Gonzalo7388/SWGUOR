@@ -16,6 +16,19 @@ export function getOrdenCompraPdfPublicUrl(ordenId: string | number): string {
   return data.publicUrl;
 }
 
+export async function descargarPdfOrdenCompraDesdeStorage(
+  ordenId: string | number,
+): Promise<Buffer | null> {
+  const supabase = createAdminClient();
+  const path = ordenCompraPdfStoragePath(ordenId);
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET_DOCUMENTOS)
+    .download(path);
+
+  if (error || !data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
 export async function ordenCompraPdfExists(
   ordenId: string | number,
 ): Promise<boolean> {
