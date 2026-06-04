@@ -29,14 +29,23 @@ import { fetchProveedores } from '@/lib/helpers/proveedores-helpers';
 import { fetchMateriales } from '@/lib/helpers/materiales-helpers';
 import { fetchInsumos } from '@/lib/helpers/inventario-helpers';
 import { useOrdenesCompra } from '@/lib/hooks/useOrdenesCompra';
-import { type MaterialCatalogo } from '@/lib/schemas/material'; 
+import { type MaterialCatalogo } from '@/lib/schemas/material';
+import {
+  LABEL_TIPO_IMPUESTO_OC,
+  TASA_IGV_PEN,
+  TIPO_IMPUESTO_OC,
+  type TipoImpuestoOc,
+} from '@/lib/constants/ordenes-compra';
+import type { OrdenCompraExtraccion } from '@/lib/schemas/orden-compra-extraccion';
+import { OrdenCompraPdfExtractor } from '@/components/admin/ordenes-compra/OrdenCompraPdfExtractor';
 
 const itemFormSchema = z.object({
   tipo: z.enum(['material', 'insumo']),
-  ref_id: z.string().min(1, 'Seleccione un ítem'), 
+  ref_id: z.string().min(1, 'Seleccione un ítem'),
   cantidad_pedida: z.number({ message: 'Cantidad inválida' }).positive('Cantidad inválida'),
   precio_unitario: z.number({ message: 'Precio inválido' }).nonnegative('Precio inválido'),
-  notas: z.string().optional(), 
+  tipo_impuesto: z.enum([TIPO_IMPUESTO_OC.IGV, TIPO_IMPUESTO_OC.SIN_IGV]).default(TIPO_IMPUESTO_OC.IGV),
+  notas: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -74,8 +83,14 @@ export function OrdenCompraForm({
 
   const [proveedores, setProveedores] = useState<{ id: string; razon_social: string }[]>([]);
   const [materiales, setMateriales] = useState<ItemCatalogo[]>([]);
-  const [insumos, setInsumos] = useState<ItemCatalogo[]>([]); 
-  const [loadingCatalogos, setLoadingCatalogos] = useState(true); 
+  const [insumos, setInsumos] = useState<ItemCatalogo[]>([]);
+  const [loadingCatalogos, setLoadingCatalogos] = useState(true);
+  const [proveedorExtraccion, setProveedorExtraccion] = useState<{
+    matched: boolean;
+    nombre?: string | null;
+    ruc?: string | null;
+    extraido?: string | null;
+  } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema), 
@@ -83,9 +98,16 @@ export function OrdenCompraForm({
       proveedor_id: proveedorIdPreselect ?? '', 
       fecha_prometida: '', 
       notas: '', 
-      items: [ 
-        { tipo: 'insumo', ref_id: '', cantidad_pedida: 1, precio_unitario: 0, notas: '' }, 
-      ], 
+      items: [
+        {
+          tipo: 'insumo',
+          ref_id: '',
+          cantidad_pedida: 1,
+          precio_unitario: 0,
+          tipo_impuesto: TIPO_IMPUESTO_OC.IGV,
+          notas: '',
+        },
+      ],
     },
   });
 
@@ -135,9 +157,65 @@ export function OrdenCompraForm({
   }, []);
 
   const subtotal = (watchedItems ?? []).reduce(
-    (acc, item) => acc + (item?.cantidad_pedida || 0) * (item?.precio_unitario || 0), 
-    0, 
+    (acc, item) => acc + (item?.cantidad_pedida || 0) * (item?.precio_unitario || 0),
+    0,
   );
+
+  const igvTotal = (watchedItems ?? []).reduce((acc, item) => {
+    const linea = (item?.cantidad_pedida || 0) * (item?.precio_unitario || 0);
+    if (item?.tipo_impuesto === TIPO_IMPUESTO_OC.IGV) {
+      return acc + linea * TASA_IGV_PEN;
+    }
+    return acc;
+  }, 0);
+
+  const totalConImpuesto = subtotal + igvTotal;
+
+  const aplicarExtraccion = (data: OrdenCompraExtraccion) => {
+    if (data.proveedor_id && data.proveedor_nombre) {
+      form.setValue('proveedor_id', data.proveedor_id, { shouldValidate: true });
+      setProveedores((prev) => {
+        if (prev.some((p) => p.id === data.proveedor_id)) return prev;
+        return [
+          { id: data.proveedor_id!, razon_social: data.proveedor_nombre! },
+          ...prev,
+        ];
+      });
+      setProveedorExtraccion({
+        matched: true,
+        nombre: data.proveedor_nombre,
+        ruc: data.proveedor_ruc ?? null,
+      });
+    } else if (data.proveedor_sin_match) {
+      setProveedorExtraccion({
+        matched: false,
+        extraido: data.proveedor_razon_extraida || data.proveedor_ruc_extraido || null,
+        ruc: data.proveedor_ruc_extraido ?? null,
+      });
+    } else {
+      setProveedorExtraccion(null);
+    }
+
+    if (data.notas) {
+      const prev = form.getValues('notas');
+      form.setValue('notas', prev ? `${prev}\n${data.notas}` : data.notas);
+    }
+
+    if (data.fecha_prometida) {
+      form.setValue('fecha_prometida', data.fecha_prometida);
+    }
+
+    const itemsForm = data.items.map((item) => ({
+      tipo: (item.tipo ?? 'insumo') as 'material' | 'insumo',
+      ref_id: item.ref_id ?? '',
+      cantidad_pedida: item.cantidad > 0 ? item.cantidad : 1,
+      precio_unitario: item.precio_unitario,
+      tipo_impuesto: (item.tipo_impuesto ?? TIPO_IMPUESTO_OC.IGV) as TipoImpuestoOc,
+      notas: item.sin_match ? item.descripcion : '',
+    }));
+
+    form.setValue('items', itemsForm.length > 0 ? itemsForm : form.getValues('items'));
+  };
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -220,23 +298,39 @@ export function OrdenCompraForm({
                 <FormItem>
                   <FormLabel>Proveedor *</FormLabel>
                   <Select
-                    value={field.value} 
-                    onValueChange={field.onChange} 
-                    disabled={modoCotizacion} 
+                    value={field.value}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      setProveedorExtraccion(null);
+                    }}
+                    disabled={modoCotizacion}
                   >
                     <FormControl>
-                      <SelectTrigger> 
-                        <SelectValue placeholder="Seleccionar proveedor" /> 
-                      </SelectTrigger> 
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar proveedor" />
+                      </SelectTrigger>
                     </FormControl>
-                    <SelectContent> 
+                    <SelectContent>
                       {proveedores.map((p) => (
-                        <SelectItem key={p.id} value={p.id}> 
-                          {p.razon_social} 
-                        </SelectItem> 
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.razon_social}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {proveedorExtraccion?.matched && (
+                    <p className="text-xs text-emerald-700">
+                      Vinculado desde PDF: {proveedorExtraccion.nombre}
+                      {proveedorExtraccion.ruc ? ` (RUC ${proveedorExtraccion.ruc})` : ''}
+                    </p>
+                  )}
+                  {proveedorExtraccion && !proveedorExtraccion.matched && (
+                    <p className="text-xs text-amber-700">
+                      PDF: {proveedorExtraccion.extraido ?? 'Proveedor no identificado'}
+                      {proveedorExtraccion.ruc ? ` · RUC ${proveedorExtraccion.ruc}` : ''}
+                      {' — '}selecciónelo manualmente.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -274,8 +368,10 @@ export function OrdenCompraForm({
 
         {!modoCotizacion && (
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 space-y-6">
+            <OrdenCompraPdfExtractor onExtracted={aplicarExtraccion} />
+
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight"> 
+              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">
                 Ítems
               </h2>
               <Button
@@ -283,16 +379,17 @@ export function OrdenCompraForm({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  append({ 
-                    tipo: 'insumo', 
-                    ref_id: '', 
-                    cantidad_pedida: 1, 
-                    precio_unitario: 0, 
-                    notas: '', 
+                  append({
+                    tipo: 'insumo',
+                    ref_id: '',
+                    cantidad_pedida: 1,
+                    precio_unitario: 0,
+                    tipo_impuesto: TIPO_IMPUESTO_OC.IGV,
+                    notas: '',
                   })
                 }
               >
-                <Plus className="w-4 h-4 mr-1" /> Agregar 
+                <Plus className="w-4 h-4 mr-1" /> Agregar
               </Button>
             </div>
 
@@ -325,25 +422,30 @@ export function OrdenCompraForm({
                     )}
                   />
                   <FormField
-                    control={form.control} 
+                    control={form.control}
                     name={`items.${index}.ref_id`}
                     render={({ field: f }) => (
-                      <FormItem className="md:col-span-4">
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Producto</FormLabel>
-                        <Select value={f.value} onValueChange={f.onChange}> 
+                        <Select value={f.value} onValueChange={f.onChange}>
                           <FormControl>
-                            <SelectTrigger> 
-                              <SelectValue placeholder="Seleccionar" /> 
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {opciones.map((o) => ( 
-                              <SelectItem key={o.id} value={String(o.id)}> 
-                                {o.nombre} 
-                              </SelectItem> 
+                            {opciones.map((o) => (
+                              <SelectItem key={o.id} value={String(o.id)}>
+                                {o.nombre}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                        {watchedItems?.[index]?.notas && !f.value && (
+                          <p className="text-xs text-amber-600 truncate" title={watchedItems[index]?.notas}>
+                            PDF: {watchedItems[index]?.notas}
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -375,12 +477,12 @@ export function OrdenCompraForm({
                     name={`items.${index}.precio_unitario`}
                     render={({ field: f }) => (
                       <FormItem className="md:col-span-2">
-                        <FormLabel>P. unit.</FormLabel> 
+                        <FormLabel>P. unit.</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
-                            step="0.01" 
-                            min="0" 
+                            step="0.01"
+                            min="0"
                             {...f}
                             value={Number.isNaN(f.value) ? '' : f.value}
                             onChange={(e) => f.onChange(e.target.valueAsNumber)}
@@ -390,8 +492,33 @@ export function OrdenCompraForm({
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="md:col-span-2 flex items-end">
+
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.tipo_impuesto`}
+                    render={({ field: f }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Impuesto</FormLabel>
+                        <Select value={f.value} onValueChange={f.onChange}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={TIPO_IMPUESTO_OC.IGV}>
+                              {LABEL_TIPO_IMPUESTO_OC.igv}
+                            </SelectItem>
+                            <SelectItem value={TIPO_IMPUESTO_OC.SIN_IGV}>
+                              {LABEL_TIPO_IMPUESTO_OC.sin_igv}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="md:col-span-1 flex items-end">
                     <Button
                       type="button"
                       variant="ghost"
@@ -407,9 +534,20 @@ export function OrdenCompraForm({
               );
             })}
 
-            <p className="text-right text-lg font-black text-slate-900">
-              Total: S/ {subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })} 
-            </p>
+            <div className="text-right space-y-1 text-sm text-slate-600">
+              <p>
+                Subtotal: S/ {subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              </p>
+              <p>
+                IGV (18%): S/ {igvTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-lg font-black text-slate-900">
+                Total: S/ {totalConImpuesto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-xs text-slate-400">
+                El impuesto es referencial en pantalla; no se guarda en la orden.
+              </p>
+            </div>
           </div>
         )}
 
