@@ -4,16 +4,15 @@ import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOrdenesProduccion } from '@/lib/hooks/useOrdenProduccion';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Timer, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
-import StatCard from '@/components/admin/common/StatCard';
-import OrdenFilters from '@/components/admin/ordenes/OrdenFilters';
-import OrdenesSkeleton from '@/components/admin/ordenes/OrdenSkeleton';
-import OrdenesTable from '@/components/admin/ordenes/OrdenesTable';
+import { OrdenesProduccionToolbar } from '@/components/admin/ordenes-produccion/OrdenesProduccionToolbar';
+import { OrdenesProduccionStats } from '@/components/admin/ordenes-produccion/OrdenesProduccionStats';
+import OrdenesSkeleton from '@/components/admin/ordenes-produccion/OrdenSkeleton';
+import OrdenesTable from '@/components/admin/ordenes-produccion/OrdenesTable';
 
-// Imports Dinámicos
-const OrdenFormDialog = dynamic(() => import('@/components/admin/ordenes/OrdenFormDialog'));
+const OrdenFormDialog = dynamic(() => import('@/components/admin/ordenes-produccion/OrdenFormDialog'));
 
 export default function OrdenesProduccionPage() {
   const router = useRouter();
@@ -31,10 +30,9 @@ export default function OrdenesProduccionPage() {
     }, 500);
     return () => clearTimeout(handler);
   }, [searchTerm]);
-
   const { ordenes, meta, isLoading } = useOrdenesProduccion({
     search: debouncedSearch,
-    etapa: etapaFilter,
+    etapa: etapaFilter === 'all' ? '' : etapaFilter,
     page,
     limit,
   });
@@ -42,13 +40,21 @@ export default function OrdenesProduccionPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState<any>(null);
 
-  const stats = useMemo(() => ({
-    total: meta.total,
-    enProceso: etapaFilter === 'costura' ? meta.total : (meta as any).enProceso ?? 0,
-    completadas: etapaFilter === 'entrega' ? meta.total : (meta as any).completadas ?? 0,
-  }), [meta, etapaFilter]);
+  // Inicialización defensiva de Meta para evitar errores si la API aún no responde
+  const safeMeta = useMemo(() => ({
+    total: meta?.total ?? 0,
+    totalPages: meta?.totalPages ?? 1,
+    page: meta?.page ?? 1,
+    enProceso: (meta as any)?.enProceso ?? 0,
+    completadas: (meta as any)?.completadas ?? 0,
+  }), [meta]);
 
-  // Manejadores de Rutas Dinámicas para Detalle y Etapas
+  const stats = useMemo(() => ({
+    total: safeMeta.total,
+    enProceso: etapaFilter === 'costura' ? safeMeta.total : safeMeta.enProceso,
+    completadas: etapaFilter === 'entrega' ? safeMeta.total : safeMeta.completadas,
+  }), [safeMeta, etapaFilter]);
+
   const handleViewDetalle = (id: string | number) => {
     router.push(`/admin/Panel-Administrativo/ordenes-produccion/${id}`);
   };
@@ -57,7 +63,9 @@ export default function OrdenesProduccionPage() {
     router.push(`/admin/Panel-Administrativo/ordenes-produccion/${id}/etapas`);
   };
 
-  if (isLoading && ordenes.length === 0) {
+  // Corrección en la condición del Skeleton: No verifiques "ordenes.length" 
+  // si está vacío inicialmente, porque si no hay datos nunca saldrá del esqueleto.
+  if (isLoading) {
     return <OrdenesSkeleton />;
   }
 
@@ -73,77 +81,57 @@ export default function OrdenesProduccionPage() {
         />
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            title="Total Órdenes"
-            value={stats.total}
-            icon={ClipboardList}
-            color="pink"
-            isActive={activeFilter === 'all'}
-            onClick={() => { setActiveFilter('all'); setEtapaFilter('all'); }}
-          />
-          <StatCard
-            title="En Costura"
-            value={stats.enProceso}
-            icon={Timer}
-            color="orange"
-            isActive={activeFilter === 'costura'}
-            onClick={() => { setActiveFilter('costura'); setEtapaFilter('costura'); }}
-          />
-          <StatCard
-            title="Completadas"
-            value={stats.completadas}
-            icon={CheckCircle2}
-            color="emerald"
-            isActive={activeFilter === 'entrega'}
-            onClick={() => { setActiveFilter('entrega'); setEtapaFilter('entrega'); }}
-          />
-        </div>
+        <OrdenesProduccionStats
+          stats={stats}
+          activeFilter={activeFilter}
+          onFilterChange={(active, etapa) => {
+            setActiveFilter(active);
+            setEtapaFilter(etapa);
+          }}
+        />
 
         {/* Filtros */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-          <OrdenFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            etapaFilter={etapaFilter}
-            onEtapaChange={setEtapaFilter}
-            onClear={() => {
-              setSearchTerm('');
-              setEtapaFilter('all');
-              setActiveFilter('all');
-            }}
-          />
-        </div>
+        <OrdenesProduccionToolbar
+          searchTerm={searchTerm}
+          etapaFilter={etapaFilter}
+          onSearchChange={setSearchTerm}
+          onEtapaChange={setEtapaFilter}
+          onClear={() => {
+            setSearchTerm('');
+            setEtapaFilter('all');
+            setActiveFilter('all');
+          }}
+        />
 
-        {/* Tabla — Soluciona el error de onEtapas */}
+        {/* Tabla */}
         <OrdenesTable
-          data={ordenes}
+          data={ordenes || []}
           onView={handleViewDetalle}
           onEtapas={handleViewEtapas}
           onEdit={(orden) => { setSelectedOrden(orden); setIsFormOpen(true); }}
         />
 
         {/* Paginación */}
-        {!isLoading && meta.totalPages > 1 && (
+        {!isLoading && safeMeta.totalPages > 1 && (
           <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <p className="text-xs text-slate-500">
-              Página <span className="font-bold text-slate-900">{meta.page}</span> de <span className="font-bold text-slate-900">{meta.totalPages}</span>
-              {' '} ({meta.total} registros)
+              Página <span className="font-bold text-slate-900">{safeMeta.page}</span> de <span className="font-bold text-slate-900">{safeMeta.totalPages}</span>
+              {' '} ({safeMeta.total} registros)
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline" size="sm"
                 className="rounded-xl"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={meta.page === 1}
+                disabled={safeMeta.page === 1}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline" size="sm"
                 className="rounded-xl"
-                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
-                disabled={meta.page === meta.totalPages}
+                onClick={() => setPage(p => Math.min(safeMeta.totalPages, p + 1))}
+                disabled={safeMeta.page === safeMeta.totalPages}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

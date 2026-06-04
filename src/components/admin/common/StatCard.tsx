@@ -7,53 +7,54 @@ interface StatCardProps {
   title: string;
   value: number;
   icon: LucideIcon;
-  color?: "pink" | "blue" | "emerald" | "slate" | "sky" | "orange" | "red";
+  color?: "indigo" | "slate" | "emerald" | "amber" | "pink" | "orange" | "blue";
   isActive?: boolean;
   onClick?: () => void;
+  disabled?: boolean; // 👈 Agregado aquí
 }
 
-const colorVariants = {
-  pink: {
-    bg: "bg-pink-50",
-    text: "text-pink-600",
-    border: "border-pink-100",
-    active: "ring-2 ring-pink-500 shadow-lg",
-  },
-  blue: {
-    bg: "bg-blue-50",
-    text: "text-blue-600",
-    border: "border-blue-100",
-    active: "ring-2 ring-blue-500 shadow-lg",
-  },
-  emerald: {
-    bg: "bg-emerald-50",
-    text: "text-emerald-600",
-    border: "border-emerald-100",
-    active: "ring-2 ring-emerald-500 shadow-lg",
+const colorStyles = {
+  indigo: {
+    active: "border-indigo-500 ring-indigo-50 bg-indigo-50/50",
+    iconActive: "bg-indigo-600 text-white",
+    iconIdle: "bg-slate-50 text-indigo-600 border border-slate-100",
+    textActive: "text-indigo-600",
   },
   slate: {
-    bg: "bg-slate-50",
-    text: "text-slate-600",
-    border: "border-slate-100",
-    active: "ring-2 ring-slate-500 shadow-lg",
+    active: "border-slate-500 ring-slate-50 bg-slate-50/50",
+    iconActive: "bg-slate-700 text-white",
+    iconIdle: "bg-slate-50 text-slate-600 border border-slate-100",
+    textActive: "text-slate-700",
   },
-  sky: {
-    bg: "bg-sky-50",
-    text: "text-sky-600",
-    border: "border-sky-100",
-    active: "ring-2 ring-sky-500 shadow-lg",
+  emerald: {
+    active: "border-emerald-500 ring-emerald-50 bg-emerald-50/50",
+    iconActive: "bg-emerald-600 text-white",
+    iconIdle: "bg-slate-50 text-emerald-600 border border-slate-100",
+    textActive: "text-emerald-600",
+  },
+  amber: {
+    active: "border-amber-500 ring-amber-50 bg-amber-50/40",
+    iconActive: "bg-amber-500 text-white",
+    iconIdle: "bg-slate-50 text-amber-600 border border-slate-100",
+    textActive: "text-amber-600",
+  },
+  pink: {
+    active: "border-pink-500 ring-pink-50 bg-pink-50/50",
+    iconActive: "bg-pink-600 text-white",
+    iconIdle: "bg-slate-50 text-pink-600 border border-slate-100",
+    textActive: "text-pink-600",
   },
   orange: {
-    bg: "bg-orange-50",
-    text: "text-orange-600",
-    border: "border-orange-100",
-    active: "ring-2 ring-orange-500 shadow-lg",
+    active: "border-orange-500 ring-orange-50 bg-orange-50/50",
+    iconActive: "bg-orange-600 text-white",
+    iconIdle: "bg-slate-50 text-orange-600 border border-slate-100",
+    textActive: "text-orange-600",
   },
-  red: {
-    bg: "bg-red-50",
-    text: "text-red-600",
-    border: "border-red-100",
-    active: "ring-2 ring-red-500 shadow-lg",
+  blue: {
+    active: "border-blue-500 ring-blue-50 bg-blue-50/50",
+    iconActive: "bg-blue-600 text-white",
+    iconIdle: "bg-slate-50 text-blue-600 border border-slate-100",
+    textActive: "text-blue-600",
   },
 };
 
@@ -61,35 +62,71 @@ export default function StatCard({
   title,
   value,
   icon: Icon,
-  color = "pink",
+  color = "slate",
   isActive = false,
   onClick,
+  disabled = false, // Ahora TypeScript ya no se quejará de esto
 }: StatCardProps) {
-  const colors = colorVariants[color];
+  const s = colorStyles[color] ?? colorStyles.slate;
+  const isClickable = !!onClick && !disabled;
 
   return (
-    <button
-      onClick={onClick}
+    <div
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onClick={isClickable ? onClick : undefined}
+      onKeyDown={isClickable
+        ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }
+        : undefined
+      }
+      aria-pressed={isClickable ? isActive : undefined}
+      aria-disabled={disabled || undefined}
       className={cn(
-        "bg-white rounded-2xl border p-6 shadow-sm transition-all text-left w-full",
-        "hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
-        colors.border,
-        isActive && colors.active
+        // Base
+        "group p-5 rounded-2xl border bg-white flex items-center gap-4 w-full",
+        "transition-all duration-300 select-none",
+        // Sombra base
+        "shadow-[0_4px_20px_-4px_rgba(148,163,184,0.08)]",
+        // Clickable idle
+        isClickable && !isActive && [
+          "cursor-pointer border-slate-100",
+          "hover:shadow-lg hover:-translate-y-1 active:scale-[0.97]",
+        ],
+        // Active
+        isActive && [
+          "cursor-pointer ring-4 shadow-xl scale-[1.02] z-10",
+          s.active,
+        ],
+        // Non-clickable (solo display)
+        !isClickable && "cursor-default border-slate-100/80",
+        // Disabled
+        disabled && "opacity-50 cursor-not-allowed pointer-events-none",
       )}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">
-            {title}
-          </p>
-          <p className="text-3xl font-black text-slate-900 mt-2">
-            {value.toLocaleString("es-PE")}
-          </p>
-        </div>
-        <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", colors.bg)}>
-          <Icon className={cn("h-6 w-6", colors.text)} />
-        </div>
+      {/* Ícono */}
+      <div
+        className={cn(
+          "p-3 rounded-xl flex-shrink-0 transition-all duration-300",
+          isActive
+            ? cn(s.iconActive, "rotate-3")
+            : cn(s.iconIdle, isClickable && "group-hover:rotate-3"),
+        )}
+      >
+        <Icon className="w-5 h-5 stroke-[2.2]" />
       </div>
-    </button>
+
+      {/* Texto */}
+      <div className="text-left space-y-0.5 overflow-hidden">
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest truncate">
+          {title}
+        </p>
+        <p className={cn(
+          "text-2xl font-black tracking-tight font-sans transition-colors duration-300",
+          isActive ? s.textActive : "text-slate-900",
+        )}>
+          {value}
+        </p>
+      </div>
+    </div>
   );
 }

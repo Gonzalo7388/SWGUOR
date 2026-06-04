@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, UserPlus, Download } from "lucide-react";
+import { ShieldCheck, UserPlus, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { usuarios } from "@prisma/client";
+import { exportToExcel, exportToPDF } from "@/lib/utils/export-utils";
 
 import UsuariosTable from "@/components/admin/usuarios/UsuarioTable";
 import UsuarioFilters, {
@@ -21,6 +22,8 @@ export default function UsuariosPage() {
 
   const [usuarios, setUsuarios] = useState<usuarios[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
   const [filters, setFilters] = useState<UsuarioFiltrosState>(EMPTY_FILTERS);
   const [statusFilter, setStatusFilter] = useState<"activo" | "inactivo" | null>(null);
 
@@ -62,6 +65,69 @@ export default function UsuariosPage() {
     });
   }, [usuarios, filters, statusFilter]);
 
+  const handleExportExcel = async () => {
+    if (filtered.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Preparando Excel...");
+    try {
+      setExportingExcel(true);
+      await exportToExcel(
+        filtered.map((u) => ({
+          "EMAIL": u.email ?? "—",
+          "ROL": u.rol ?? "—",
+          "ESTADO": u.estado ?? "—",
+          "ÚLTIMO ACCESO": u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE') : '—',
+        })),
+        {
+          filename: `Usuarios_GUOR_${new Date().toISOString().split("T")[0]}`,
+          sheetName: "Usuarios",
+        },
+      );
+      toast.success("Excel descargado correctamente", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al exportar a Excel", { id: toastId });
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (filtered.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Preparando PDF...");
+    try {
+      setExportingPDF(true);
+      await exportToPDF(
+        [["EMAIL", "ROL", "ÚLTIMO ACCESO", "ESTADO"]],
+        filtered.map((u) => [
+          u.email ?? "—",
+          u.rol ?? "—",
+          u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE') : '—',
+          u.estado ?? '—',
+        ]),
+        {
+          title: "DIRECTORIO DE USUARIOS",
+          subtitle: "Modas y Estilos GUOR S.A.C.",
+          filename: `Usuarios_GUOR_${new Date().toISOString().split("T")[0]}`,
+          orientation: "landscape",
+        },
+      );
+      toast.success("PDF descargado correctamente", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al exportar a PDF", { id: toastId });
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -80,9 +146,24 @@ export default function UsuariosPage() {
 
           <div className="flex items-center gap-2 w-full md:w-auto">
             {can("export", "usuarios") && (
-              <Button variant="outline" className="h-11 gap-2 border-slate-200 rounded-xl hover:bg-white font-bold text-slate-600 transition-all active:scale-95">
-                <Download size={18} /> Exportar
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 border-emerald-200 rounded-xl hover:bg-emerald-50 font-bold text-emerald-700 transition-all active:scale-95"
+                  onClick={handleExportExcel}
+                  disabled={loading || exportingExcel || filtered.length === 0}
+                >
+                  <FileSpreadsheet size={18} /> {exportingExcel ? "Excel..." : "Excel"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 border-red-200 rounded-xl hover:bg-red-50 font-bold text-red-700 transition-all active:scale-95"
+                  onClick={handleExportPDF}
+                  disabled={loading || exportingPDF || filtered.length === 0}
+                >
+                  <FileText size={18} /> {exportingPDF ? "PDF..." : "PDF"}
+                </Button>
+              </div>
             )}
             {can("create", "usuarios") && (
               <Button 

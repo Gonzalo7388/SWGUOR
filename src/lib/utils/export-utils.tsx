@@ -1,12 +1,18 @@
 import * as XLSX from "exceljs";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTable, { UserOptions } from "jspdf-autotable";
 import { pdf, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { ProductoStockResumen } from '@/lib/hooks/useStockResumen';
 
 // =====================================================
 // INTERFACES Y TIPOS
 // =====================================================
+
+interface jsPDFWithAutoTable extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+}
 
 interface ExcelExportConfig {
   filename: string;
@@ -29,10 +35,87 @@ interface PDFImageConfig extends PDFExportConfig {
   excludeFields?: string[];
 }
 
+// Interfaces específicas para el dominio de datos
+interface ProductoBase {
+  id: string | number;
+  sku?: string;
+  nombre?: string;
+  precio?: string | number;
+  estado?: string;
+  categorias?: { nombre?: string };
+}
+
+interface CategoriaBase {
+  nombre: string;
+  descripcion?: string | null;
+  activo?: boolean;
+  created_at: string | Date;
+}
+
+interface VentaBase {
+  codigo_pedido?: string;
+  numero_comprobante?: string;
+  orden_id?: string | number;
+  created_at: string | Date;
+  subtotal?: string | number;
+  impuestos?: string | number;
+  total?: string | number;
+  estado_pedido: string;
+  cliente?: { nombre?: string };
+  ordenes?: {
+    metodo_pago?: string;
+    estado?: string;
+    clientes?: { razon_social?: string };
+  };
+}
+
+interface ConfeccionBase {
+  id: string | number;
+  cliente?: string;
+  taller?: string;
+  estado?: string;
+  fecha_entrega?: string;
+  total_prendas?: number;
+  prioridad?: string;
+}
+
+interface PersonalBase {
+  nombre_completo?: string;
+  cargo: string;
+  dni?: string;
+  telefono?: string;
+  estado?: boolean;
+  fecha_income?: string | Date; // mapeado internamente
+  fecha_ingreso?: string | Date;
+  usuarios?: {
+    email?: string;
+    rol?: string;
+    ultimo_acceso?: string | Date;
+  };
+}
+
+interface ClienteBase {
+  ruc?: string;
+  razon_social?: string;
+  nombre_comercial?: string;
+  email?: string;
+  telefono?: string;
+  tipo_cliente?: string;
+  direccion_fiscal?: string;
+  activo?: boolean;
+  created_at?: string | Date;
+  ultimo_pedido_en?: string | Date;
+  clientes?: ClienteBase; // Por compatibilidad con la estructura anidada u.clientes ?? u
+  estado?: string;
+  usuarios?: {
+    email?: string;
+    rol?: string;
+    ultimo_acceso?: string | Date;
+  };
+}
+
 // =====================================================
 // HELPER: descarga un blob como archivo
-// ─ Aplica document.body.appendChild/removeChild para
-//   compatibilidad con Firefox y Safari
 // =====================================================
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -70,8 +153,8 @@ const drawHeaderWithLogo = async (doc: jsPDF, title: string, subtitle?: string):
     const img = new Image();
     img.src = '/logo.png';
 
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
       img.onerror = reject;
       setTimeout(() => reject(new Error('Timeout loading logo')), 1500);
     });
@@ -107,7 +190,7 @@ const drawHeaderWithLogo = async (doc: jsPDF, title: string, subtitle?: string):
 // EXPORTACIÓN A EXCEL — GENÉRICO
 // =====================================================
 
-export const exportToExcel = async (data: any[], config: ExcelExportConfig) => {
+export const exportToExcel = async (data: Record<string, unknown>[], config: ExcelExportConfig) => {
   if (data.length === 0) return;
 
   const workbook = new XLSX.Workbook();
@@ -130,26 +213,26 @@ export const exportToExcel = async (data: any[], config: ExcelExportConfig) => {
 // =====================================================
 
 export const prepareProductosForExcel = (
-  productos: any[],
+  productos: ProductoBase[],
   stockResumen: ProductoStockResumen[] = [],
 ) => {
   return productos.map(p => ({
     'SKU': p.sku ?? '---',
     'Producto': p.nombre ?? '---',
     'Categoría': p.categorias?.nombre ?? 'General',
-    'Stock Real': stockResumen.find(s => s.producto_id === Number(p.id))?.stock_total_adicional ?? p.stock ?? 0,
+    'Stock Real': stockResumen.find(s => s.producto_id === Number(p.id))?.stock_total_adicional ?? (typeof p.precio === 'number' ? p.precio : 0),
     'Precio (S/.)': Number(p.precio ?? 0).toFixed(2),
     'Estado': p.estado === 'activo' ? 'Activo' : 'Inactivo',
   }));
 };
 
 export const exportProductosToExcel = async (
-  productos: any[],
+  productos: ProductoBase[],
   stockResumen: ProductoStockResumen[] = [],
   filename: string,
 ) => {
   const data = prepareProductosForExcel(productos, stockResumen);
-  await exportToExcel(data, { filename, sheetName: 'Inventario' });
+  await exportToExcel(data as unknown as Record<string, unknown>[], { filename, sheetName: 'Inventario' });
 };
 
 // =====================================================
@@ -158,7 +241,7 @@ export const exportProductosToExcel = async (
 
 export const exportToPDF = async (
   headers: string[][],
-  body: any[][],
+  body: string[][],
   config: PDFExportConfig,
 ) => {
   const doc = new jsPDF({ orientation: config.orientation ?? 'portrait' });
@@ -174,7 +257,7 @@ export const exportToPDF = async (
     rowPageBreak: 'auto',
     showHead: 'everyPage',
     margin: { top: 40, bottom: 20 },
-  });
+  } as UserOptions);
 
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
@@ -218,7 +301,12 @@ const styles = StyleSheet.create({
 // EXPORTACIÓN A PDF — CATEGORÍAS (@react-pdf/renderer)
 // =====================================================
 
-const CategoriasDocument = ({ data, config }: any) => {
+interface DocumentProps<T> {
+  data: T[];
+  config: { title: string; filename: string };
+}
+
+const CategoriasDocument = ({ data, config }: DocumentProps<CategoriaBase>) => {
   const colWidths = ['25%', '40%', '15%', '20%'];
   return (
     <Document>
@@ -238,7 +326,7 @@ const CategoriasDocument = ({ data, config }: any) => {
               </View>
             ))}
           </View>
-          {data.map((item: any, rowIndex: number) => (
+          {data.map((item, rowIndex) => (
             <View key={rowIndex} style={rowIndex % 2 === 0 ? styles.tableRow : styles.tableRowStriped}>
               <View style={[styles.tableCol, { width: colWidths[0] }]}><Text style={styles.tableCell}>{item.nombre ?? '---'}</Text></View>
               <View style={[styles.tableCol, { width: colWidths[1] }]}><Text style={styles.tableCell}>{item.descripcion ?? 'Sin descripción'}</Text></View>
@@ -252,7 +340,7 @@ const CategoriasDocument = ({ data, config }: any) => {
   );
 };
 
-export const exportCategoriasToPDF = async (data: any[], config: { title: string; filename: string }) => {
+export const exportCategoriasToPDF = async (data: CategoriaBase[], config: { title: string; filename: string }) => {
   if (!data || data.length === 0) return;
   if (typeof window === 'undefined') return;
 
@@ -266,7 +354,13 @@ export const exportCategoriasToPDF = async (data: any[], config: { title: string
 // EXPORTACIÓN A PDF — INVENTARIO (@react-pdf/renderer)
 // =====================================================
 
-const InventarioDocument = ({ data, categorias, config }: any) => {
+interface InventarioDocumentProps {
+  data: (ProductoBase & { categoria_id?: string | number; stock?: number })[];
+  categorias: { id: string | number; nombre: string }[];
+  config: PDFExportConfig;
+}
+
+const InventarioDocument = ({ data, categorias, config }: InventarioDocumentProps) => {
   const colWidths = ['15%', '35%', '20%', '10%', '10%', '10%'];
   return (
     <Document>
@@ -286,9 +380,9 @@ const InventarioDocument = ({ data, categorias, config }: any) => {
               </View>
             ))}
           </View>
-          {data.map((item: any, rowIndex: number) => {
+          {data.map((item, rowIndex) => {
             const cat = categorias.find(
-              (c: any) => String(c.id).replace(/\D/g, '') === String(item.categoria_id).replace(/\D/g, ''),
+              (c) => String(c.id).replace(/\D/g, '') === String(item.categoria_id).replace(/\D/g, ''),
             )?.nombre ?? 'General';
             const stockVal = Number(item.stock ?? 0);
             const estLabel = stockVal === 0 ? 'Agotado' : stockVal <= 5 ? 'Bajo' : 'Disponible';
@@ -310,7 +404,11 @@ const InventarioDocument = ({ data, categorias, config }: any) => {
   );
 };
 
-export const exportInventarioToPDF = async (data: any[], categorias: any[], config: PDFExportConfig) => {
+export const exportInventarioToPDF = async (
+  data: (ProductoBase & { categoria_id?: string | number; stock?: number })[],
+  categorias: { id: string | number; nombre: string }[],
+  config: PDFExportConfig
+) => {
   if (!data || data.length === 0) return;
   if (typeof window === 'undefined') return;
 
@@ -324,7 +422,7 @@ export const exportInventarioToPDF = async (data: any[], categorias: any[], conf
 // EXPORTACIÓN A PDF — CON IMÁGENES (CATÁLOGO)
 // =====================================================
 
-export const exportToPDFWithImages = async (data: any[], config: PDFImageConfig) => {
+export const exportToPDFWithImages = async (data: Record<string, unknown>[], config: PDFImageConfig) => {
   if (data.length === 0) return;
 
   const doc = new jsPDF({ orientation: config.orientation ?? 'portrait' });
@@ -357,7 +455,7 @@ export const exportToPDFWithImages = async (data: any[], config: PDFImageConfig)
   const tableRows = await Promise.all(
     data.map(item =>
       Promise.all(
-        displayKeys.map(key => (key === imageKey ? getImageData(item[key]) : String(item[key] ?? '-'))),
+        displayKeys.map(key => (key === imageKey ? getImageData(item[key] as string) : String(item[key] ?? '-'))),
       ),
     ),
   );
@@ -373,18 +471,18 @@ export const exportToPDFWithImages = async (data: any[], config: PDFImageConfig)
     styles: { valign: 'middle', fontSize: 8 },
     columnStyles: { [imageColIndex]: { cellWidth: 30, fontSize: 0.1, textColor: [255, 246, 228] } },
     headStyles: { fillColor: [219, 39, 119] },
-    didDrawCell: data => {
-      if (data.column.index === imageColIndex && data.cell.section === 'body') {
-        const imgRaw = data.cell.raw as string;
+    didDrawCell: (cellData) => {
+      if (cellData.column.index === imageColIndex && cellData.cell.section === 'body') {
+        const imgRaw = cellData.cell.raw as string;
         if (imgRaw?.startsWith('data:image')) {
-          doc.addImage(imgRaw, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+          doc.addImage(imgRaw, 'JPEG', cellData.cell.x + 5, cellData.cell.y + 2, 20, 20);
         }
       }
     },
-    didParseCell: data => {
-      if (data.section === 'body') data.row.height = 25;
+    didParseCell: (cellData) => {
+      if (cellData.section === 'body') cellData.row.height = 25;
     },
-  });
+  } as UserOptions);
 
   doc.save(`${config.filename}.pdf`);
 };
@@ -393,7 +491,7 @@ export const exportToPDFWithImages = async (data: any[], config: PDFImageConfig)
 // HELPERS ESPECÍFICOS DE PREPARACIÓN
 // =====================================================
 
-export const exportProductosToPDFWithImages = async (productos: any[]) => {
+export const exportProductosToPDFWithImages = async (productos: (ProductoBase & { imagen_url?: string; stock?: number })[]) => {
   const productosFiltrados = productos.filter(p => Number(p.stock) > 400);
   if (productosFiltrados.length === 0) {
     throw new Error('No hay productos con stock superior a 400 unidades.');
@@ -414,30 +512,30 @@ export const exportProductosToPDFWithImages = async (productos: any[]) => {
   });
 };
 
-export const prepareVentasForPDF = (ventas: any[]) => {
+export const prepareVentasForPDF = (ventas: VentaBase[]) => {
   const headers = [['CÓDIGO', 'CLIENTE', 'FECHA', 'ESTADO', 'TOTAL']];
   const body = ventas.map(v => [
-    v.codigo_pedido,
+    v.codigo_pedido ?? '---',
     v.cliente?.nombre ?? 'Público General',
     new Date(v.created_at).toLocaleDateString('es-PE'),
     v.estado_pedido.toUpperCase(),
-    formatCurrency(Number(v.total)),
+    formatCurrency(Number(v.total ?? 0)),
   ]);
   return { headers, body };
 };
 
-export const prepareVentasForExcel = (ventas: any[]) => {
+export const prepareVentasForExcel = (ventas: VentaBase[]) => {
   return ventas.map(v => ({
-    'Código': v.codigo_pedido,
+    'Código': v.codigo_pedido ?? '---',
     'Cliente': v.cliente?.nombre ?? 'Público General',
     'Fecha': new Date(v.created_at).toLocaleDateString('es-PE'),
-    'Subtotal': Number(v.subtotal),
-    'Total': Number(v.total),
+    'Subtotal': Number(v.subtotal ?? 0),
+    'Total': Number(v.total ?? 0),
     'Estado': v.estado_pedido.toUpperCase(),
   }));
 };
 
-export const prepareCategoriasForExcel = (categorias: any[]) => {
+export const prepareCategoriasForExcel = (categorias: CategoriaBase[]) => {
   return categorias.map(c => ({
     'Nombre de Categoría': c.nombre,
     'Descripción': c.descripcion ?? 'Sin descripción',
@@ -446,7 +544,7 @@ export const prepareCategoriasForExcel = (categorias: any[]) => {
   }));
 };
 
-export const exportVentasDetailedPDF = async (ventas: any[], config: PDFExportConfig) => {
+export const exportVentasDetailedPDF = async (ventas: VentaBase[], config: PDFExportConfig) => {
   if (ventas.length === 0) return;
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -477,7 +575,7 @@ export const exportVentasDetailedPDF = async (ventas: any[], config: PDFExportCo
   });
 
   autoTable(doc, {
-    head: [['COMPROBANTE', 'CLIENTE', 'RUC', 'FECHA', 'MÉTODO', 'ESTADO', 'SUBTOTAL', 'IGV', 'TOTAL']],
+    head: [['COMPROBANTE', 'CLIENTE', 'FECHA', 'MÉTODO', 'ESTADO', 'SUBTOTAL', 'IGV', 'TOTAL']],
     body,
     startY,
     styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', halign: 'center' },
@@ -485,9 +583,9 @@ export const exportVentasDetailedPDF = async (ventas: any[], config: PDFExportCo
     columnStyles: { 1: { halign: 'left', cellWidth: 'auto' }, 7: { halign: 'right', fontStyle: 'bold' } },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     margin: { left: 14, right: 14 },
-  });
+  } as UserOptions);
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const finalY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY ?? (startY + 20);
   const pageWidth = doc.internal.pageSize.width;
   const margin = 14;
 
@@ -524,7 +622,7 @@ export const exportVentasDetailedPDF = async (ventas: any[], config: PDFExportCo
 // HELPERS ESPECÍFICOS PARA CONFECCIONES
 // =====================================================
 
-export const prepareConfeccionesForExcel = (data: any[]) => {
+export const prepareConfeccionesForExcel = (data: ConfeccionBase[]) => {
   return data.map(c => ({
     'ID Orden': c.id,
     'Cliente': c.cliente ?? 'Sin Cliente',
@@ -536,7 +634,7 @@ export const prepareConfeccionesForExcel = (data: any[]) => {
   }));
 };
 
-export const prepareConfeccionesForPDF = (data: any[]) => {
+export const prepareConfeccionesForPDF = (data: ConfeccionBase[]) => {
   const headers = [['ORDEN', 'CLIENTE', 'TALLER', 'ESTADO', 'ENTREGA', 'CANT.']];
   const body = data.map(c => [
     `#${c.id}`,
@@ -544,12 +642,12 @@ export const prepareConfeccionesForPDF = (data: any[]) => {
     c.taller ?? 'Interno',
     (c.estado ?? 'Pendiente').toUpperCase(),
     c.fecha_entrega ?? 'Pnd.',
-    c.total_prendas ?? 0,
+    String(c.total_prendas ?? 0),
   ]);
   return { headers, body };
 };
 
-export const exportConfeccionesDetailedPDF = async (data: any[], config: PDFExportConfig) => {
+export const exportConfeccionesDetailedPDF = async (data: ConfeccionBase[], config: PDFExportConfig) => {
   if (!data || data.length === 0) return;
 
   const doc = new jsPDF({ orientation: config.orientation ?? 'portrait', unit: 'mm', format: 'a4' });
@@ -558,7 +656,7 @@ export const exportConfeccionesDetailedPDF = async (data: any[], config: PDFExpo
   const stats = {
     total: data.length,
     prendas: data.reduce((acc, curr) => acc + (Number(curr.total_prendas) || 0), 0),
-    enProceso: data.filter(c => ['cortando', 'confeccionando', 'escalado'].includes(c.estado)).length,
+    enProceso: data.filter(c => c.estado && ['cortando', 'confeccionando', 'escalado'].includes(c.estado)).length,
   };
 
   const { headers, body } = prepareConfeccionesForPDF(data);
@@ -571,9 +669,9 @@ export const exportConfeccionesDetailedPDF = async (data: any[], config: PDFExpo
     headStyles: { fillColor: [219, 39, 119], textColor: 255 },
     columnStyles: { 1: { halign: 'left', cellWidth: 'auto' }, 2: { halign: 'left' } },
     alternateRowStyles: { fillColor: [250, 250, 250] },
-  });
+  } as UserOptions);
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const finalY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY ?? (startY + 20);
   const pageWidth = doc.internal.pageSize.width;
 
   doc.setFillColor(245, 245, 245);
@@ -608,7 +706,16 @@ export const exportConfeccionesDetailedPDF = async (data: any[], config: PDFExpo
 // EXPORTACIÓN A PDF — COTIZACIONES (@react-pdf/renderer)
 // =====================================================
 
-const CotizacionesDocument = ({ data, config }: any) => {
+interface CotizacionDocData {
+  cotizacion_id?: string | number;
+  cliente?: string;
+  monto?: number;
+  estado?: string;
+  fecha_vencimiento?: string;
+  descripcion?: string;
+}
+
+const CotizacionesDocument = ({ data, config }: DocumentProps<CotizacionDocData>) => {
   const colWidths = ['18%', '22%', '15%', '12%', '13%', '20%'];
   return (
     <Document>
@@ -628,7 +735,7 @@ const CotizacionesDocument = ({ data, config }: any) => {
               </View>
             ))}
           </View>
-          {data.map((item: any, rowIndex: number) => (
+          {data.map((item, rowIndex) => (
             <View key={rowIndex} style={rowIndex % 2 === 0 ? styles.tableRow : styles.tableRowStriped}>
               <View style={[styles.tableCol, { width: colWidths[0] }]}><Text style={styles.tableCell}>{item.cotizacion_id ?? '---'}</Text></View>
               <View style={[styles.tableCol, { width: colWidths[1] }]}><Text style={styles.tableCell}>{item.cliente ?? 'Sin cliente'}</Text></View>
@@ -644,7 +751,7 @@ const CotizacionesDocument = ({ data, config }: any) => {
   );
 };
 
-export const exportCotizacionesToPDF = async (data: any[], config: { title: string; filename: string }) => {
+export const exportCotizacionesToPDF = async (data: CotizacionDocData[], config: { title: string; filename: string }) => {
   if (!data || data.length === 0) return;
   if (typeof window === 'undefined') return;
 
@@ -668,20 +775,57 @@ const CARGO_LABELS_MAP: Record<string, string> = {
   representante_taller: 'Rep. de Taller',
 };
 
-export const exportPersonalToExcel = async (data: any[], config?: { filename?: string }) => {
+export interface PersonalExportInput {
+  nombre_completo?: string | null;
+  cargo?: string | null;
+  dni?: string | null;
+  telefono?: string | number | null;
+  estado?: string | boolean | null;
+  fecha_ingreso?: string | Date | null;
+  usuarios?: {
+    email?: string | null;
+    rol?: string | null;
+    ultimo_acceso?: string | Date | null;
+  } | null;
+}
+
+export const exportPersonalToExcel = async (
+  data: PersonalExportInput[],
+  config?: { filename?: string }
+) => {
   if (!data || data.length === 0) return;
-  const rows = data.map(p => ({
-    'NOMBRE COMPLETO': p.nombre_completo ?? '—',
-    'CARGO': CARGO_LABELS_MAP[p.cargo] ?? p.cargo ?? '—',
-    'DNI': p.dni ?? '—',
-    'TELÉFONO': p.telefono ?? '—',
-    'EMAIL': p.usuarios?.email ?? '—',
-    'ROL SISTEMA': p.usuarios?.rol ?? '—',
-    'ESTADO': p.estado !== false ? 'ACTIVO' : 'INACTIVO',
-    'FECHA INGRESO': p.fecha_ingreso ? new Date(p.fecha_ingreso).toLocaleDateString('es-PE') : '—',
-    'ÚLTIMO ACCESO': p.usuarios?.ultimo_acceso ? new Date(p.usuarios.ultimo_acceso).toLocaleDateString('es-PE') : '—',
-  }));
-  await exportToExcel(rows, {
+
+  const rows = data.map(p => {
+    // 1. Procesamiento seguro del Cargo buscando en tu mapa de etiquetas
+    const cargoKey = p.cargo ?? '';
+    const cargoLabel = cargoKey && typeof CARGO_LABELS_MAP !== 'undefined'
+      ? (CARGO_LABELS_MAP as Record<string, string>)[cargoKey] ?? cargoKey
+      : cargoKey;
+
+    // 2. Procesamiento semántico del Estado (por si viene como String o Boolean)
+    let estadoLabel = 'INACTIVO';
+    if (p.estado === 'activo' || p.estado === true) {
+      estadoLabel = 'ACTIVO';
+    } else if (p.estado === 'suspendido') {
+      estadoLabel = 'SUSPENDIDO';
+    } else if (p.estado) {
+      estadoLabel = String(p.estado).toUpperCase();
+    }
+
+    return {
+      'NOMBRE COMPLETO': p.nombre_completo || '—',
+      'CARGO': cargoLabel || '—',
+      'DNI': p.dni || '—',
+      'TELÉFONO': p.telefono || '—',
+      'EMAIL': p.usuarios?.email || '—',
+      'ROL SISTEMA': p.usuarios?.rol || '—',
+      'ESTADO': estadoLabel,
+      'FECHA INGRESO': p.fecha_ingreso ? new Date(p.fecha_ingreso).toLocaleDateString('es-PE') : '—',
+      'ÚLTIMO ACCESO': p.usuarios?.ultimo_acceso ? new Date(p.usuarios.ultimo_acceso).toLocaleDateString('es-PE') : '—',
+    };
+  });
+
+  await exportToExcel(rows as Record<string, unknown>[], {
     filename: config?.filename ?? `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
     sheetName: 'Personal Interno',
   });
@@ -691,12 +835,12 @@ export const exportPersonalToExcel = async (data: any[], config?: { filename?: s
 // EXPORTACIÓN PERSONAL — PDF
 // =====================================================
 
-export const exportPersonalToPDF = async (data: any[], config?: { filename?: string }) => {
+export const exportPersonalToPDF = async (data: PersonalBase[], config?: { filename?: string }) => {
   if (!data || data.length === 0) return;
   const headers = [['NOMBRE', 'CARGO', 'DNI', 'TELÉFONO', 'EMAIL', 'ESTADO']];
   const body = data.map(p => [
     p.nombre_completo ?? '—',
-    CARGO_LABELS_MAP[p.cargo] ?? p.cargo ?? '—',
+    p.cargo ? (CARGO_LABELS_MAP[p.cargo] ?? p.cargo) : '—',
     p.dni ?? '—',
     p.telefono ?? '—',
     p.usuarios?.email ?? '—',
@@ -714,7 +858,7 @@ export const exportPersonalToPDF = async (data: any[], config?: { filename?: str
 // EXPORTACIÓN CLIENTES — EXCEL
 // =====================================================
 
-export const exportClientesToExcel = async (data: any[], config?: { filename?: string }) => {
+export const exportClientesToExcel = async (data: ClienteBase[], config?: { filename?: string }) => {
   if (!data || data.length === 0) return;
   const rows = data.map(u => {
     const c = u.clientes ?? u;
@@ -726,12 +870,12 @@ export const exportClientesToExcel = async (data: any[], config?: { filename?: s
       'TELÉFONO': c.telefono ?? '—',
       'TIPO': String(c.tipo_cliente ?? '—').toUpperCase(),
       'DIRECCIÓN FISCAL': c.direccion_fiscal ?? '—',
-      'ESTADO': String(u.estado ?? c.activo ?? '—').toUpperCase(),
+      'ESTADO': String(u.estado ?? (c.activo ? 'ACTIVO' : 'INACTIVO')).toUpperCase(),
       'REGISTRADO': c.created_at ? new Date(c.created_at).toLocaleDateString('es-PE') : '—',
-      'ÚLTIMO ACCESO': u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE') : '—',
+      'ÚLTIMO ACCESO': u.usuarios?.ultimo_acceso ? new Date(u.usuarios.ultimo_acceso).toLocaleDateString('es-PE') : '—',
     };
   });
-  await exportToExcel(rows, {
+  await exportToExcel(rows as unknown as Record<string, unknown>[], {
     filename: config?.filename ?? `Clientes_GUOR_${new Date().toISOString().split('T')[0]}`,
     sheetName: 'Clientes',
   });
@@ -741,7 +885,7 @@ export const exportClientesToExcel = async (data: any[], config?: { filename?: s
 // EXPORTACIÓN CLIENTES — PDF
 // =====================================================
 
-export const exportClientesToPDF = async (data: any[], config?: { filename?: string }) => {
+export const exportClientesToPDF = async (data: ClienteBase[], config?: { filename?: string }) => {
   if (!data || data.length === 0) return;
   const headers = [['RUC', 'RAZÓN SOCIAL', 'EMAIL', 'TELÉFONO', 'TIPO', 'ESTADO']];
   const body = data.map(u => {
@@ -752,7 +896,7 @@ export const exportClientesToPDF = async (data: any[], config?: { filename?: str
       u.email ?? c.email ?? '—',
       c.telefono ?? '—',
       String(c.tipo_cliente ?? '—').toUpperCase(),
-      String(u.estado ?? c.activo ?? '—').toUpperCase(),
+      String(u.estado ?? (c.activo ? 'ACTIVO' : 'INACTIVO')).toUpperCase(),
     ];
   });
   await exportToPDF(headers, body, {
@@ -767,7 +911,7 @@ export const exportClientesToPDF = async (data: any[], config?: { filename?: str
 // EXPORTACIÓN CLIENTES (ClienteListItem) — EXCEL
 // =====================================================
 
-export const exportClientesListToExcel = async (data: any[], config?: { filename?: string }) => {
+export const exportClientesListToExcel = async (data: ClienteBase[], config?: { filename?: string }) => {
   if (!data || data.length === 0) return;
   const rows = data.map(c => ({
     'RUC': c.ruc ?? '—',
@@ -782,7 +926,7 @@ export const exportClientesListToExcel = async (data: any[], config?: { filename
     'ÚLTIMO PEDIDO': c.ultimo_pedido_en ? new Date(c.ultimo_pedido_en).toLocaleDateString('es-PE') : 'Sin pedidos',
     'ÚLTIMO ACCESO': c.usuarios?.ultimo_acceso ? new Date(c.usuarios.ultimo_acceso).toLocaleDateString('es-PE') : '—',
   }));
-  await exportToExcel(rows, {
+  await exportToExcel(rows as unknown as Record<string, unknown>[], {
     filename: config?.filename ?? `Clientes_GUOR_${new Date().toISOString().split('T')[0]}`,
     sheetName: 'Clientes',
   });
@@ -792,7 +936,7 @@ export const exportClientesListToExcel = async (data: any[], config?: { filename
 // EXPORTACIÓN CLIENTES (ClienteListItem) — PDF
 // =====================================================
 
-export const exportClientesListToPDF = async (data: any[], config?: { filename?: string }) => {
+export const exportClientesListToPDF = async (data: ClienteBase[], config?: { filename?: string }) => {
   if (!data || data.length === 0) return;
   const headers = [['RUC', 'RAZÓN SOCIAL', 'EMAIL', 'TELÉFONO', 'TIPO', 'ESTADO', 'ÚLTIMO PEDIDO']];
   const body = data.map(c => [
@@ -813,7 +957,7 @@ export const exportClientesListToPDF = async (data: any[], config?: { filename?:
 };
 
 // =====================================================
-// COTIZACIÓN INDIVIDUAL — TIPOS Y ESTILOS
+// COTIZACIÓN INDIVIDUAL — TIPOS Y ESTILOS EN LIMPIO
 // =====================================================
 
 const COLOR = {
@@ -859,7 +1003,7 @@ export interface CotizacionPDFData {
 }
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, color: COLOR.texto, paddingTop: 0, paddingBottom: 36, paddingHorizontal: 0 },
+  page: { fontFamily: 'Helvetica', fontSize: 9, color: COLOR.texto, paddingTop: 0, paddingBottom: 45, paddingHorizontal: 0 },
   headerStrip: { backgroundColor: COLOR.ocreLight, paddingHorizontal: 36, paddingVertical: 20, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', borderBottomWidth: 3, borderBottomColor: COLOR.ocre },
   headerLeft: { flexDirection: 'column', gap: 3 },
   empresa: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: COLOR.negro, letterSpacing: 0.5 },
@@ -898,8 +1042,12 @@ const S = StyleSheet.create({
   totalesDiscount: { color: '#16a34a' },
   totalFinalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: COLOR.negro },
   totalFinalLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLOR.blanco },
-  totalFinalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLOR.ocreLight },
-  notasWrap: { marginHorizontal: 36, marginTop: 16, padding: 10, backgroundColor: COLOR.ocreLight, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLOR.ocre },
+  totalFinalValue: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: COLOR.ocreLight },
+  letrasWrap: { marginHorizontal: 36, marginTop: 12, padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, borderWidth: 1, borderColor: COLOR.linea },
+  letrasTitulo: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: COLOR.gris, textTransform: 'uppercase', marginBottom: 2 },
+  letrasTexto: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: COLOR.negro },
+  letrasSubtexto: { fontSize: 7.5, color: COLOR.gris, marginTop: 2, lineHeight: 1.2 },
+  notasWrap: { marginHorizontal: 36, marginTop: 14, padding: 10, backgroundColor: COLOR.ocreLight, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLOR.ocre },
   notasTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: COLOR.ocreDark, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 },
   notasBullet: { fontSize: 8, color: COLOR.gris, marginBottom: 2 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLOR.negro, paddingVertical: 9, paddingHorizontal: 36, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -912,9 +1060,106 @@ const fmt = (n: number) =>
 
 const dash = (v?: string | null) => v ?? '—';
 
+// Función para convertir números a letras de forma precisa (Soles)
+function numeroALetras(num: number): string {
+  const Unidades = (num: number) => {
+    switch (num) {
+      case 1: return 'UN'; case 2: return 'DOS'; case 3: return 'TRES'; case 4: return 'CUATRO'; case 5: return 'CINCO';
+      case 6: return 'SEIS'; case 7: return 'SIETE'; case 8: return 'OCHO'; case 9: return 'NUEVE';
+    }
+    return '';
+  };
+
+  const DecenasAnd = (strSin: string, numUnidades: number) => numUnidades > 0 ? strSin + ' Y ' + Unidades(numUnidades) : strSin;
+
+  const Decenas = (num: number) => {
+    const decena = Math.floor(num / 10);
+    const unidad = num - decena * 10;
+    switch (decena) {
+      case 1:
+        switch (unidad) {
+          case 0: return 'DIEZ'; case 1: return 'ONCE'; case 2: return 'DOCE'; case 3: return 'TRECE'; case 4: return 'CATORCE'; case 5: return 'QUINCE';
+          default: return 'DIECI' + Unidades(unidad);
+        }
+      case 2: return unidad === 0 ? 'VEINTE' : 'VEINTI' + Unidades(unidad);
+      case 3: return DecenasAnd('TREINTA', unidad);
+      case 4: return DecenasAnd('CUARENTA', unidad);
+      case 5: return DecenasAnd('CINCUENTA', unidad);
+      case 6: return DecenasAnd('SESENTA', unidad);
+      case 7: return DecenasAnd('SETENTA', unidad);
+      case 8: return DecenasAnd('OCHENTA', unidad);
+      case 9: return DecenasAnd('NOVENTA', unidad);
+      case 0: return Unidades(unidad);
+    }
+    return '';
+  };
+
+  const Centenas = (num: number) => {
+    const centena = Math.floor(num / 100);
+    const decena = num - centena * 100;
+    switch (centena) {
+      case 1: return decena > 0 ? 'CIENTO ' + Decenas(decena) : 'CIEN';
+      case 2: return 'DOSCIENTOS ' + Decenas(decena);
+      case 3: return 'TRESCIENTOS ' + Decenas(decena);
+      case 4: return 'CUATROCIENTOS ' + Decenas(decena);
+      case 5: return 'QUINIENTOS ' + Decenas(decena);
+      case 6: return 'SEISCIENTOS ' + Decenas(decena);
+      case 7: return 'SETECIENTOS ' + Decenas(decena);
+      case 8: return 'OCHOCIENTOS ' + Decenas(decena);
+      case 9: return 'NOVECIENTOS ' + Decenas(decena);
+      case 0: return Decenas(decena);
+    }
+    return '';
+  };
+
+  const Seccion = (num: number, divisor: number, strSingular: string, strPlural: string) => {
+    const cientos = Math.floor(num / divisor);
+    const resto = num - cientos * divisor;
+    let letras = '';
+    if (cientos > 0) {
+      if (cientos > 1) letras = Centenas(cientos) + ' ' + strPlural;
+      else letras = strSingular;
+    } else {
+      letras = Centenas(resto);
+    }
+    if (resto > 0) letras += '';
+    return letras;
+  };
+
+  const Miles = (num: number) => {
+    const divisor = 1000;
+    const cientos = Math.floor(num / divisor);
+    const resto = num - cientos * divisor;
+    const strMiles = Seccion(num, divisor, 'UN MIL', 'MIL');
+    const strCentenas = Centenas(resto);
+    if (strMiles === '') return strCentenas;
+    return strMiles + ' ' + strCentenas;
+  };
+
+  const Millones = (num: number) => {
+    const divisor = 1000000;
+    const cientos = Math.floor(num / divisor);
+    const resto = num - cientos * divisor;
+    const strMillones = Seccion(num, divisor, 'UN MILLON', 'MILLONES');
+    const strMiles = Miles(resto);
+    if (strMillones === '') return strMiles;
+    return strMillones + ' ' + strMiles;
+  };
+
+  const entero = Math.floor(num);
+  const centavos = Math.round((num - entero) * 100);
+  const centavosStr = centavos < 10 ? '0' + centavos : centavos;
+
+  if (entero === 0) return `CERO Y ${centavosStr}/100 SOLES`;
+
+  const letrasLetras = Millones(entero).trim().replace(/ +/g, ' ');
+  return `SON: ${letrasLetras} Y ${centavosStr}/100 SOLES`;
+}
+
 const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
   <Document title={`Cotización ${d.numero}`} author="Modas y Estilos GUOR S.A.C." subject="Cotización comercial">
     <Page size="A4" style={S.page}>
+      {/* HEADER */}
       <View style={S.headerStrip}>
         <View style={S.headerLeft}>
           <Text style={S.empresa}>MODAS Y ESTILOS GUOR S.A.C.</Text>
@@ -929,19 +1174,32 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         </View>
       </View>
 
+      {/* DATOS DEL CLIENTE Y CONDICIONES */}
       <View style={S.sectionRow}>
         <View style={S.card}>
           <Text style={S.cardTitle}>Datos del Cliente</Text>
-          {[['Cliente', d.cliente_nombre, true], ['RUC', d.cliente_ruc], ['Tel', d.cliente_telefono], ['Email', d.cliente_email], ['Dir', d.cliente_direccion]].map(([label, value, bold], i) => (
+          {[
+            ['Cliente', d.cliente_nombre, true],
+            ['RUC', d.cliente_ruc],
+            ['Tel', d.cliente_telefono],
+            ['Email', d.cliente_email],
+            ['Dir', d.cliente_direccion]
+          ].map(([label, value, bold], i) => (
             <View key={i} style={S.cardRow}>
-              <Text style={S.cardLabel}>{label}</Text>
+              <Text style={S.cardLabel}>{String(label)}</Text>
               <Text style={bold ? S.cardValue : S.cardValueNormal}>{dash(value as string)}</Text>
             </View>
           ))}
         </View>
         <View style={S.card}>
           <Text style={S.cardTitle}>Condiciones</Text>
-          {[['Moneda', d.moneda], ['Vigencia', '7 días calendario'], ['IGV', '18% incluido'], ['Envío', d.zona_envio], ['Forma de pago', 'A convenir']].map(([label, value], i) => (
+          {[
+            ['Moneda', d.moneda],
+            ['Vigencia', '7 días calendario'],
+            ['IGV', '18% incluido'],
+            ['Envío', d.zona_envio],
+            ['Forma de pago', 'A convenir']
+          ].map(([label, value], i) => (
             <View key={i} style={S.cardRow}>
               <Text style={S.cardLabel}>{label}</Text>
               <Text style={S.cardValueNormal}>{dash(value as string)}</Text>
@@ -950,6 +1208,7 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         </View>
       </View>
 
+      {/* TABLA DE PRODUCTOS */}
       <View style={S.tableWrap}>
         <View style={S.tableHead}>
           {(['#', 'Descripción', 'Talla', 'Color', 'Cant.', 'P. Unit.', 'Total'] as const).map((h, i) => (
@@ -969,6 +1228,7 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         ))}
       </View>
 
+      {/* CUADRO DE TOTALES (SOLO UNA VEZ) */}
       <View style={S.totalesWrap}>
         <View style={S.totalesBox}>
           <View style={S.totalesRow}><Text style={S.totalesLabel}>Subtotal</Text><Text style={S.totalesValue}>{fmt(d.subtotal)}</Text></View>
@@ -986,6 +1246,14 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         </View>
       </View>
 
+      {/* BLOQUE CONSOLIDADO: MONTO EN LETRAS, MONEDA E IGV */}
+      <View style={S.letrasWrap}>
+        <Text style={S.letrasTitulo}>Monto en letras</Text>
+        <Text style={S.letrasTexto}>{numeroALetras(d.total)}</Text>
+        <Text style={S.letrasSubtexto}>Moneda: Soles (PEN)  |  Especificación tributaria: Los montos y precios expresados en esta cotización cuentan con el Impuesto General a las Ventas (18% IGV incluido).</Text>
+      </View>
+
+      {/* OBSERVACIONES */}
       <View style={S.notasWrap}>
         <Text style={S.notasTitle}>Observaciones</Text>
         <Text style={S.notasBullet}>• Precios sujetos a disponibilidad de stock.</Text>
@@ -994,6 +1262,7 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         {d.notas && <Text style={S.notasBullet}>• {d.notas}</Text>}
       </View>
 
+      {/* FOOTER */}
       <View style={S.footer} fixed>
         <Text style={S.footerText}>+51 908 801 912  |  modasyestilosguor@gmail.com  |  www.modas-y-estilos-guor.pe</Text>
         <Text style={S.footerBrand}>GUOR S.A.C.</Text>

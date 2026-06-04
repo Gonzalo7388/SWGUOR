@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, UserPlus, Download } from "lucide-react";
+import { Users, UserPlus, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { EstadoPersonal } from "@prisma/client";
@@ -16,13 +16,15 @@ import PersonalFilters, {
 import StatsPersonal from "@/components/admin/personal/StatsPersonal";
 import PersonalFormModal from "@/components/admin/personal/PersonalFormModal";
 import { PersonalSuspendModal, PersonalDetailModal } from "@/components/admin/personal/PersonalModals";
-import { exportPersonalToExcel } from "@/lib/utils/export-utils";
+import { exportPersonalToExcel, exportPersonalToPDF } from "@/lib/utils/export-utils";
 
 export default function PersonalPage() {
   const { can } = usePermissions();
 
   const [personal, setPersonal] = useState<PersonalRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
   const [filters, setFilters] = useState<PersonalFiltrosState>(EMPTY_PERSONAL_FILTERS);
 
   const [statusFilter, setStatusFilter] = useState<EstadoPersonal | null>(null);
@@ -33,6 +35,7 @@ export default function PersonalPage() {
   const [detalleTarget, setDetalleTarget] = useState<PersonalRow | null>(null);
   const [isSuspending, setIsSuspending] = useState(false);
   const selectedPersonal = suspenderTarget;
+
   // ── Fetch ─────────────────────────────────────────────────────
   const fetchPersonal = useCallback(async () => {
     setLoading(true);
@@ -41,8 +44,10 @@ export default function PersonalPage() {
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Error al cargar personal");
       setPersonal(body.data ?? []);
-    } catch (e: any) {
-      toast.error(e.message ?? "Error inesperado");
+    } catch (e) {
+      // CORRECCIÓN TS 1005: Un solo bloque catch seguro y bien estructurado
+      const error = e instanceof Error ? e : new Error("Error inesperado");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -50,13 +55,65 @@ export default function PersonalPage() {
 
   useEffect(() => { fetchPersonal(); }, [fetchPersonal]);
 
+  // ── CORRECCIÓN ESTRICTA PARA EXPORTACIÓN ──
   const handleExportExcel = async () => {
+    if (filtered.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Preparando Excel...");
     try {
-      await exportPersonalToExcel(filtered, {
+      setExportingExcel(true);
+      // CORRECCIÓN TS 2345: Saneamos convirtiendo nulos/indefinidos a "" para cumplir con el contrato de exportación
+      const datosSaneados = filtered.map((p) => ({
+        ...p,
+        nombre_completo: p.nombre_completo ?? "",
+        dni: p.dni ?? "",
+        telefono: p.telefono ? String(p.telefono) : "",
+        cargo: p.cargo ?? "",
+        estado: p.estado ?? "",
+      }));
+
+      await exportPersonalToExcel(datosSaneados, {
         filename: `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
       });
-    } catch (e: any) {
-      toast.error(e.message ?? "Error al exportar");
+      toast.success("Excel descargado correctamente", { id: toastId });
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error("Error al exportar");
+      toast.error(error.message, { id: toastId });
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (filtered.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Preparando PDF...");
+    try {
+      setExportingPDF(true);
+      const datosSaneados = filtered.map((p) => ({
+        ...p,
+        nombre_completo: p.nombre_completo ?? "",
+        dni: p.dni ?? "",
+        telefono: p.telefono ? String(p.telefono) : "",
+        cargo: p.cargo ?? "",
+        estado: p.estado ?? "",
+      }));
+
+      await exportPersonalToPDF(datosSaneados, {
+        filename: `Personal_GUOR_${new Date().toISOString().split('T')[0]}`,
+      });
+      toast.success("PDF descargado correctamente", { id: toastId });
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error("Error al exportar");
+      toast.error(error.message, { id: toastId });
+    } finally {
+      setExportingPDF(false);
     }
   };
 
@@ -82,8 +139,9 @@ export default function PersonalPage() {
       );
       setSuspenderTarget(null);
       fetchPersonal(); // recargar lista
-    } catch (error: any) {
-      toast.error(error.message ?? 'Error al actualizar estado');
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error('Error al actualizar estado');
+      toast.error(err.message);
     } finally {
       setIsSuspending(false);
     }
@@ -138,15 +196,26 @@ export default function PersonalPage() {
 
         <div className="flex items-center gap-2">
           {can("export", "personal") && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-slate-600 border-slate-200 hover:bg-slate-50"
-              onClick={handleExportExcel}
-              disabled={loading || filtered.length === 0}
-            >
-              <Download className="w-4 h-4" /> Exportar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                onClick={handleExportExcel}
+                disabled={loading || exportingExcel || filtered.length === 0}
+              >
+                <FileSpreadsheet className="w-4 h-4" /> {exportingExcel ? "Excel..." : "Excel"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-red-700 border-red-200 hover:bg-red-50"
+                onClick={handleExportPDF}
+                disabled={loading || exportingPDF || filtered.length === 0}
+              >
+                <FileText className="w-4 h-4" /> {exportingPDF ? "PDF..." : "PDF"}
+              </Button>
+            </div>
           )}
           {can("create", "personal") && (
             <Button
