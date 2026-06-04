@@ -205,9 +205,9 @@ export function ConfeccionForm({
               <FormItem>
                 <FormLabel className={labelClass}>Fecha de Entrega</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="date" 
-                    {...field} 
+                  <Input
+                    type="date"
+                    {...field}
                     value={field.value || ""}
                     className="h-11 text-gray-900" // ✅ Agregado text-gray-900
                   />

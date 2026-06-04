@@ -2,20 +2,16 @@
 
 import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, Scissors, Calendar, Pencil, Trash2 } from "lucide-react";
+
 import {
-  Eye,
-  ChevronRight,
-  Scissors,
-  Calendar,
-  Pencil,
-  XCircle,
-  ClipboardCheck,
-  Trash2
-} from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { usePermissions } from "@/lib/hooks/usePermissions";
 import { ESTADO_LABELS, PRIORIDAD_LABELS } from "@/lib/schemas/confecciones";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -49,41 +45,28 @@ interface ConfeccionRowProps {
   orden: ConfeccionRow_T;
   onDelete?: (id: number) => void;
   onEdit?: (orden: ConfeccionRow_T) => void;
-  onEstadoChange?: (id: number, nuevoEstado: ConfeccionRow_T["estado"]) => void;
-  siguientes?: string[];
 }
 
-const ConfeccionRow = memo(({
-  orden,
-  onDelete,
-  onEdit,
-  onEstadoChange,
-  siguientes = []
-}: ConfeccionRowProps) => {
+const ConfeccionRow = memo(({ orden, onDelete, onEdit }: ConfeccionRowProps) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const { hasRole, can } = usePermissions(); // Ejecución correcta del hook
-
   const iniciales = (orden.prenda ?? "??").substring(0, 2).toUpperCase();
 
-  const puedeActualizar =
-    hasRole(["administrador", "gerente", "representante_taller", "disenador"]) ||
-    can("update_status", "confecciones");
-  const puedeConformidad = hasRole(["ayudante", "administrador", "gerente"]);
-
-  // Función de eliminación encapsulada correctamente
   const handleDelete = async () => {
+    if (!onDelete) return;
+
     try {
-      const res = await fetch(`/api/confecciones/${orden.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/confecciones/${orden.id}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         throw new Error("Error al eliminar");
       }
 
       toast.success("Orden eliminada correctamente");
-      onDelete?.(orden.id);
+      onDelete(orden.id);
       setShowDeleteConfirm(false);
     } catch (error) {
       toast.error("Error al eliminar la orden");
@@ -93,7 +76,6 @@ const ConfeccionRow = memo(({
   return (
     <>
       <tr className="group transition-all duration-200">
-        {/* Prenda */}
         <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md group-hover:bg-slate-50 transition-all">
           <div className="flex items-center gap-4">
             <div className="h-11 w-11 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center font-black text-sm border border-pink-100 uppercase group-hover:scale-110 transition-transform shrink-0">
@@ -121,7 +103,6 @@ const ConfeccionRow = memo(({
           </div>
         </td>
 
-        {/* Taller */}
         <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
           <div className="inline-flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tight">
             <Scissors size={10} />
@@ -129,7 +110,6 @@ const ConfeccionRow = memo(({
           </div>
         </td>
 
-        {/* Cantidad */}
         <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
           <div className="flex flex-col items-center">
             <span className="text-lg font-black text-slate-900">
@@ -139,7 +119,6 @@ const ConfeccionRow = memo(({
           </div>
         </td>
 
-        {/* Prioridad */}
         <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
           <Badge
             variant="outline"
@@ -150,7 +129,6 @@ const ConfeccionRow = memo(({
           </Badge>
         </td>
 
-        {/* Estado */}
         <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
           <Badge
             variant="outline"
@@ -160,7 +138,6 @@ const ConfeccionRow = memo(({
           </Badge>
         </td>
 
-        {/* Fecha entrega */}
         <td className="bg-white border-y border-slate-100 text-center shadow-sm group-hover:bg-slate-50 transition-all">
           {orden.fecha_entrega ? (
             <div className="inline-flex items-center gap-1.5 text-slate-600 text-[11px] font-semibold">
@@ -172,99 +149,31 @@ const ConfeccionRow = memo(({
           )}
         </td>
 
-        {/* Acciones */}
         <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm group-hover:bg-slate-50 transition-all">
           <div className="flex justify-end items-center gap-2">
-            {/* Ver detalle */}
-            <Button
-              variant="outline" size="icon"
-              onClick={() => setOpen(true)}
-              className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-pink-600 hover:bg-pink-50"
-              title="Ver detalle de modal"
-            >
+            <Button variant="outline" size="icon" onClick={() => setOpen(true)}>
               <Eye size={16} />
             </Button>
-
-            {/* Ver detalle en página externa opcional */}
             <Button
-              variant="outline" size="icon"
-              onClick={() => router.push(`/admin/Panel-Administrativo/confecciones/${orden.id}`)}
-              className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-pink-600 hover:bg-pink-50"
-              title="Ver detalle completo"
+              variant="outline"
+              size="icon"
+              onClick={() => onEdit?.(orden)}
+              className="text-blue-600 hover:text-blue-700"
             >
-              <Eye size={16} />
+              <Pencil size={16} />
             </Button>
-
-            {puedeConformidad && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => router.push(`/ayudante/confecciones/${orden.id}`)}
-                className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
-                title="Conformidad de taller"
-              >
-                <ClipboardCheck size={16} />
-              </Button>
-            )}
-
-            {/* Editar */}
-            {puedeActualizar && (
-              <Button
-                variant="outline" size="icon"
-                onClick={() => onEdit?.(orden)}
-                className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-                title="Editar orden"
-              >
-                <Pencil size={16} />
-              </Button>
-            )}
-
-            {/* Avanzar estado rápido */}
-            {puedeActualizar && siguientes.filter(s => s !== "cancelado").map((sig) => (
-              <Button
-                key={sig}
-                variant="outline" size="icon"
-                onClick={() => onEstadoChange?.(orden.id, sig as ConfeccionRow_T["estado"])}
-                className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
-                title={`Avanzar a ${ESTADO_LABELS[sig as keyof typeof ESTADO_LABELS] ?? sig}`}
-              >
-                <ChevronRight size={16} />
-              </Button>
-            ))}
-
-            {/* Cancelar */}
-            {puedeActualizar && !["completada", "cancelada"].includes(orden.estado) && (
-              <Button
-                variant="outline" size="icon"
-                onClick={() => {
-                  if (confirm("¿Estás seguro de cancelar esta orden?")) {
-                    onEstadoChange?.(orden.id, "cancelada");
-                  }
-                }}
-                className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                title="Cancelar orden"
-              >
-                <XCircle size={16} />
-              </Button>
-            )}
-
-            {/* Eliminar */}
-            {puedeActualizar && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="h-9 w-9 rounded-xl border-slate-200 text-red-600 hover:text-red-700 hover:bg-red-50"
-                title="Eliminar orden"
-              >
-                <Trash2 size={16} />
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-red-600 hover:text-red-700"
+            >
+              <Trash2 size={16} />
+            </Button>
           </div>
         </td>
       </tr>
 
-      {/* Diálogo de Confirmación de Eliminación */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -285,7 +194,6 @@ const ConfeccionRow = memo(({
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de Detalles */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl rounded-3xl bg-white [&>button]:text-black [&>button]:hover:text-gray-700">
           <DialogHeader>

@@ -117,7 +117,7 @@ function ConfeccionesTable({ data, isLoading, onEstadoChange, onDelete, onEdit }
             ))
           )}
         </tbody>
-       </table>
+      </table>
     </div>
   );
 }

@@ -7,10 +7,10 @@ interface StatCardProps {
   title: string;
   value: number;
   icon: LucideIcon;
-  color?: "indigo" | "slate" | "emerald" | "amber" | "pink" | "orange" | "blue";
+  color?: "indigo" | "slate" | "emerald" | "amber" | "pink" | "orange" | "blue" | "red";
   isActive?: boolean;
   onClick?: () => void;
-  disabled?: boolean; // 👈 Agregado aquí
+  disabled?: boolean;
 }
 
 const colorStyles = {
@@ -56,6 +56,12 @@ const colorStyles = {
     iconIdle: "bg-slate-50 text-blue-600 border border-slate-100",
     textActive: "text-blue-600",
   },
+  red: {
+    active: "border-red-500 ring-red-50 bg-red-50/50",
+    iconActive: "bg-red-600 text-white",
+    iconIdle: "bg-slate-50 text-red-600 border border-slate-100",
+    textActive: "text-red-600",
+  }
 };
 
 export default function StatCard({

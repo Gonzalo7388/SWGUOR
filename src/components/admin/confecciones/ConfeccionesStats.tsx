@@ -1,17 +1,23 @@
 'use client';
 
-import { Scissors, Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Scissors, Clock, TrendingUp, AlertTriangle, Flame } from 'lucide-react';
 import StatCard from '@/components/admin/common/StatCard';
 
 interface ConfeccionesStatsProps {
-  stats: { total: number; activas: number; urgentes: number; completadas: number };
+  stats: {
+    total: number;
+    prioridadBaja: number;
+    prioridadMedia: number;
+    prioridadAlta: number;
+    prioridadUrgente: number;
+  };
   statusFilter: string | null;
   onFilterChange: (filter: string | null) => void;
 }
 
 export default function ConfeccionesStats({ stats, statusFilter, onFilterChange }: ConfeccionesStatsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
       <StatCard
         title="Total Órdenes"
         value={stats.total}
@@ -21,28 +27,36 @@ export default function ConfeccionesStats({ stats, statusFilter, onFilterChange 
         onClick={() => onFilterChange(null)}
       />
       <StatCard
-        title="En Producción"
-        value={stats.activas}
-        icon={Zap}
-        color="blue"
-        isActive={statusFilter === 'activas'}
-        onClick={() => onFilterChange('activas')}
+        title="Prioridad Baja"
+        value={stats.prioridadBaja}
+        icon={Clock}
+        color="slate"
+        isActive={statusFilter === 'baja'}
+        onClick={() => onFilterChange('baja')}
       />
       <StatCard
-        title="Urgentes"
-        value={stats.urgentes}
+        title="Prioridad Media"
+        value={stats.prioridadMedia}
+        icon={TrendingUp}
+        color="blue"
+        isActive={statusFilter === 'media'}
+        onClick={() => onFilterChange('media')}
+      />
+      <StatCard
+        title="Prioridad Alta"
+        value={stats.prioridadAlta}
         icon={AlertTriangle}
         color="orange"
-        isActive={statusFilter === 'urgentes'}
-        onClick={() => onFilterChange('urgentes')}
+        isActive={statusFilter === 'alta'}
+        onClick={() => onFilterChange('alta')}
       />
       <StatCard
-        title="Completadas"
-        value={stats.completadas}
-        icon={CheckCircle2}
-        color="emerald"
-        isActive={statusFilter === 'completadas'}
-        onClick={() => onFilterChange('completadas')}
+        title="Prioridad Urgente"
+        value={stats.prioridadUrgente}
+        icon={Flame}
+        color="red"
+        isActive={statusFilter === 'urgente'}
+        onClick={() => onFilterChange('urgente')}
       />
     </div>
   );
