@@ -43,6 +43,30 @@ export function useOrdenesProduccion(options?: { page?: number; limit?: number; 
   const { data, isLoading, refetch } = useQuery({
     queryKey: [ORDENES_KEY, page, limit, search, etapa],
     queryFn: async () => {
+      // Primero intentamos usar el endpoint del servidor (incluye validación de sesión/roles)
+      try {
+        const params = new URLSearchParams();
+        if (search) params.set('search', String(search));
+        if (etapa) params.set('etapa', String(etapa));
+        params.set('page', String(page));
+        params.set('limit', String(limit));
+
+        const res = await fetch(`/api/admin/ordenes-produccion?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          return { ordenes: json.ordenes || [], meta: json.meta || { total: 0, page, limit, totalPages: 1, enProceso: 0, completadas: 0 } };
+        }
+        // Si la respuesta no está ok (ej. 401), caemos al fallback hacia Supabase
+        console.warn('[useOrdenesProduccion] Server API returned', res.status);
+      } catch (err) {
+        console.warn('[useOrdenesProduccion] Error calling server API, falling back to Supabase', err);
+      }
+
+      // Fallback: consultar directamente a Supabase (antiguo comportamiento)
       // 1. Obtenemos todas las órdenes con su producto relacionado y el seguimiento de producción más reciente
       const { data: todasLasOrdenes, error: errGlobal } = await supabase
         .from('ordenes_produccion')

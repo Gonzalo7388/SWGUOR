@@ -3,18 +3,9 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, Search, RefreshCw,
-  FileSpreadsheet, FileText
+  Plus, FileSpreadsheet, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import { OrdenesCompraStats } from '@/components/admin/ordenes-compra/OrdenesCompraStats';
@@ -24,7 +15,7 @@ import { useOrdenesCompra } from '@/lib/hooks/useOrdenesCompra';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { ESTADOS_ORDEN_COMPRA } from '@/lib/constants/estados';
 import type { OrdenCompraRow } from '@/components/admin/ordenes-compra/types';
-import { exportToExcel } from '@/lib/utils/export-utils';
+import { exportToExcel, exportToPDF } from '@/lib/utils/export-utils';
 import { EstadoOrdenCompra } from '@prisma/client';
 
 export default function OrdenesCompraPage() {
@@ -115,12 +106,36 @@ export default function OrdenesCompraPage() {
       toast.error('No hay datos para exportar');
       return;
     }
+    const toastId = toast.loading('Preparando PDF...');
     try {
       setExportingPDF(true);
-      toast.success('PDF generado exitosamente');
+      const fecha = new Date().toISOString().split('T')[0];
+      await exportToPDF(
+        [['N° OC', 'Proveedor', 'Cotización', 'Total', 'F. prometida', 'Estado', 'Pago']],
+        filtered.map((o) => [
+          `OC-${o.id.toString().padStart(6, '0')}`,
+          o.proveedores?.razon_social ?? `Prov. #${o.proveedor_id}`,
+          o.cotizaciones_proveedor?.numero_externo
+            ? `#${o.cotizaciones_proveedor.numero_externo}`
+            : o.cotizacion_proveedor_id
+              ? `COT-${o.cotizacion_proveedor_id}`
+              : 'Manual',
+          `S/ ${Number(o.total_orden).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`,
+          o.fecha_prometida ? new Date(o.fecha_prometida).toLocaleDateString('es-PE') : '—',
+          ESTADOS_ORDEN_COMPRA[o.estado as EstadoOrdenCompra]?.label || o.estado,
+          o.estado_pago,
+        ]),
+        {
+          filename: `Ordenes_de_Compra_SWGUOR_${fecha}`,
+          title: 'ÓRDENES DE COMPRA',
+          subtitle: 'Gestión integral de compras, proveedores y control de gastos',
+          orientation: 'landscape',
+        },
+      );
+      toast.success('PDF descargado correctamente', { id: toastId });
     } catch (error) {
       console.error(error);
-      toast.error('Error al exportar a PDF');
+      toast.error('Error al exportar a PDF', { id: toastId });
     } finally {
       setExportingPDF(false);
     }
@@ -187,43 +202,6 @@ export default function OrdenesCompraPage() {
               <FileText className="w-4 h-4 mr-2 text-red-600" />
               {exportingPDF ? 'Exportando...' : 'Exportar PDF'}
             </Button>
-            {canCreate && (
-              <Button
-                className="bg-rose-600 hover:bg-rose-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95 rounded-xl"
-                onClick={() => router.push('/admin/Panel-Administrativo/ordenes-compra/nueva')}
-              >
-                <Plus className="w-5 h-5" /> Nueva orden
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Botones de acción para exportar con los colores solicitados */}
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-slate-500">
-
-            {/* BOTÓN EXPORTAR EXCEL CON TUS COLORES */}
-            <Button
-              variant="outline"
-              onClick={handleExportExcel}
-              disabled={exportingExcel || isLoading}
-              className="h-11 rounded-xl border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 font-medium transition-all"
-            >
-              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
-              {exportingExcel ? 'Exportando...' : 'Excel'}
-            </Button>
-
-            {/* BOTÓN EXPORTAR PDF CON TUS COLORES */}
-            <Button
-              variant="outline"
-              onClick={handleExportPDF}
-              disabled={exportingPDF || isLoading}
-              className="h-11 rounded-xl border-red-200 hover:bg-red-50 hover:text-red-700 text-gray-600 font-medium transition-all"
-            >
-              <FileText className="w-4 h-4 mr-2 text-red-600" />
-              {exportingPDF ? 'Exportando...' : 'PDF'}
-            </Button>
-
             {canCreate && (
               <Button
                 className="bg-rose-600 hover:bg-rose-700 shadow-lg font-bold gap-2 h-11 px-6 text-white transition-all active:scale-95 rounded-xl"

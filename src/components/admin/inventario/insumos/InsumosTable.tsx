@@ -10,10 +10,10 @@ interface InventarioTableProps {
     tipo: string;
     categoria_insumo?: string;
     unidad_medida: string;
-    stock_actual: any; // Se deja en any o number/Decimal debido a las mutaciones de Prisma
-    stock_minimo: any;
-    stock_maximo?: any;
-    precio_unitario?: any;
+    stock_actual: number;
+    stock_minimo: number;
+    stock_maximo?: number;
+    precio_unitario?: number;
     created_at?: Date | string;
     updated_at?: Date | string | null;
     proveedor_id?: bigint | number | null;
@@ -29,7 +29,7 @@ interface InventarioTableProps {
 }
 
 export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit, canDelete }: InventarioTableProps) {
-  
+
   const getStockStatus = (actual: number, minimo: number) => {
     if (actual <= 0) return { label: 'Agotado', style: 'bg-red-50 text-red-700 border-red-100' };
     if (actual <= minimo) return { label: 'Bajo Stock', style: 'bg-amber-50 text-amber-700 border-amber-100' };
@@ -80,7 +80,7 @@ export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit,
 
                 {/* Categoría */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
-                   <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 text-[9px] font-black uppercase border border-slate-100">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 text-[9px] font-black uppercase border border-slate-100">
                     {item.tipo}
                   </span>
                 </td>
@@ -118,25 +118,25 @@ export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit,
                 <td className="bg-white border-y border-r border-slate-100 px-6 rounded-r-2xl text-right shadow-sm group-hover:shadow-md transition-all">
                   <div className="flex justify-end gap-2">
                     {canEdit && (
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
+                      <Button
+                        variant="outline"
+                        size="icon"
                         onClick={() => onEdit(item)}
                         title="Gestionar Stock y Precios"
                         className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 cursor-pointer transition-all active:scale-90"
                       >
-                        <Edit2 size={16}/>
+                        <Edit2 size={16} />
                       </Button>
                     )}
 
                     {canDelete && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => onDelete(item)}
                         className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-all active:scale-90"
                       >
-                        <Trash2 size={16}/>
+                        <Trash2 size={16} />
                       </Button>
                     )}
 

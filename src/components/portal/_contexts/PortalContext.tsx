@@ -150,10 +150,10 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     // Función independiente para refrescar pedidos y despachos de forma asíncrona
     const cargarSeguimientoYDespachos = useCallback(async (clienteId: number) => {
         if (!clienteId) return; // Seguridad extra
-        
+
         setLoadingSeguimiento(true);
         const supabase = getSupabaseBrowserClient();
-        
+
         try {
             // 1. OBTENER PEDIDOS
             const { data: pedidosData, error: pedidosError } = await supabase
@@ -218,7 +218,18 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                 ]);
 
                 if (reglasRes.data) setReglas(reglasRes.data);
-                if (productosRes.data) setProductos(productosRes.data as ProductoPortal[]);
+                if (productosRes.data) {
+                    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                    const normalized = productosRes.data.map((p: any) => ({
+                        ...p,
+                        imagen: p.imagen
+                            ? p.imagen.startsWith('http')
+                                ? p.imagen
+                                : `${base}/storage/v1/object/public/productos/${p.imagen}`
+                            : null,
+                    }));
+                    setProductos(normalized as ProductoPortal[]);
+                }
                 if (categoriasRes.data) setCategorias(categoriasRes.data);
                 if (costosRes.data) {
                     setCostosEnvio(costosRes.data.map(c => ({ id: c.id, zona: c.zona as ZonaEnvio, costo: Number(c.costo), activo: c.activo })));
@@ -267,7 +278,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     const esClienteNuevo = cliente?.tipo_cliente === 'nuevo';
 
-    // Manejador expuesto para refetch manual desde componentes de la UI (ej: botón refrescar pedido)
     const refetchSeguimiento = useCallback(async () => {
         if (cliente?.id) {
             await cargarSeguimientoYDespachos(cliente.id);
@@ -315,8 +325,14 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     }, [storeItemsCarrito, productos]);
 
     // ── 4. MEMOS DE RESÚMENES FINANCIEROS ──
-    const resumenBorrador = useMemo(() => calcularResumen(itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo), [itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo]);
-    const resumenCarrito = useMemo(() => calcularResumen(itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo), [itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo]);
+    const resumenBorrador = useMemo(
+        () => calcularResumen(itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio),
+        [itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio],
+    );
+    const resumenCarrito = useMemo(
+        () => calcularResumen(itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio),
+        [itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio],
+    );
 
     // ── 5. ACCIONES CONECTADAS DIRECTAMENTE A ZUSTAND ──
     const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => {

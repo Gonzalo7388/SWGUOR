@@ -7,13 +7,14 @@ export const OrdenesProduccionService = {
   async listar(params?: {
     producto_id?: string;
     taller_id?: string;
+    pedido_id?: string;
     estado?: string;
     etapa?: string;
     search?: string;
     page?: number;
     limit?: number;
   }) {
-    const { producto_id, taller_id, estado, etapa, search, page = 1, limit = 10 } = params || {};
+    const { producto_id, taller_id, pedido_id, estado, etapa, search, page = 1, limit = 10 } = params || {};
     const skip = (page - 1) * limit;
     
     // FIX: Tipado estricto con el contrato WhereInput nativo de Prisma en lugar de 'any'
@@ -25,6 +26,8 @@ export const OrdenesProduccionService = {
     if (estado && estado !== 'todos' && estado !== 'all') {
       where.estado = estado as Prisma.ordenes_produccionWhereInput['estado'];
     }
+
+    if (pedido_id) where.pedido_id = BigInt(pedido_id);
     
     // Filtrar por etapa del seguimiento más reciente
     if (etapa && etapa !== 'all') {

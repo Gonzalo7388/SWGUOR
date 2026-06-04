@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { createJSONStorage, persist, PersistOptions } from 'zustand/middleware';
 
 export type ZonaEnvio = 'cercana_sjl' | 'media' | 'lejana';
 
@@ -27,6 +27,31 @@ type QuotationState = {
     actualizarZonaEnvio: (zona: ZonaEnvio) => void;
 };
 
+type PersistedQuotationState = Pick<QuotationState, 'itemsBorrador' | 'zonaEnvio'>;
+
+const persistOptions: PersistOptions<QuotationState, PersistedQuotationState> = {
+    name: 'b2b-quotation-storage',
+    storage: createJSONStorage(() => localStorage),
+    partialize: (state) => ({
+        itemsBorrador: state.itemsBorrador,
+        zonaEnvio: state.zonaEnvio,
+    }),
+    version: 2,
+    migrate: (persistedState, version) => {
+        const base = persistedState as Partial<PersistedQuotationState>;
+        if (version < 2) {
+            return {
+                itemsBorrador: [],
+                zonaEnvio: base.zonaEnvio ?? 'cercana_sjl',
+            } satisfies PersistedQuotationState;
+        }
+        return {
+            itemsBorrador: base.itemsBorrador ?? [],
+            zonaEnvio: base.zonaEnvio ?? 'cercana_sjl',
+        } satisfies PersistedQuotationState;
+    },
+};
+
 export const useQuotationStore = create<QuotationState>()(
     persist(
         (set) => ({
@@ -38,19 +63,17 @@ export const useQuotationStore = create<QuotationState>()(
                     const idx = state.itemsBorrador.findIndex((i) => i.variante_id === item.variante_id);
                     if (idx >= 0) {
                         const next = [...state.itemsBorrador];
-                        next[idx].cantidad += cantidad;
+                        next[idx] = { ...next[idx], cantidad: next[idx].cantidad + cantidad };
                         return { itemsBorrador: next };
                     }
                     return { itemsBorrador: [...state.itemsBorrador, { ...item, cantidad }] };
                 });
             },
-
             removeItemFromBorrador: (variante_id) => {
                 set((state) => ({
                     itemsBorrador: state.itemsBorrador.filter((i) => i.variante_id !== variante_id),
                 }));
             },
-
             updateBorradorQuantity: (variante_id, cantidad) => {
                 set((state) => ({
                     itemsBorrador: state.itemsBorrador.map((i) =>
@@ -58,15 +81,9 @@ export const useQuotationStore = create<QuotationState>()(
                     ),
                 }));
             },
-
             clearBorrador: () => set({ itemsBorrador: [] }),
-
             actualizarZonaEnvio: (zona) => set({ zonaEnvio: zona }),
         }),
-        {
-            name: 'b2b-quotation-storage',
-            // Como el borrador original usaba sessionStorage, puedes mantenerlo aquí:
-            storage: createJSONStorage(() => localStorage),
-        }
-    )
-);
+        persistOptions,
+    ),
+);  

@@ -52,7 +52,7 @@ function UbigeoSelect({
   triggerClassName,
 }: UbigeoSelectProps) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 min-w-0">
       <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
         {label}
       </label>
@@ -227,8 +227,8 @@ export function DireccionDespachoPeruFields({
   ]);
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className={cn('space-y-4', className)}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
         <UbigeoSelect
           label="Departamento"
           placeholder="Seleccionar departamento"
@@ -237,7 +237,7 @@ export function DireccionDespachoPeruFields({
           disabled={disabled}
           loading={cargandoDepartamentos}
           onChange={handleDepartamentoChange}
-          triggerClassName={variant === 'portal' ? 'h-10 text-xs rounded-xl' : undefined}
+          triggerClassName={variant === 'portal' ? 'h-12 w-full !w-full text-xs rounded-xl' : 'w-full !w-full'}
         />
         <UbigeoSelect
           label="Provincia"
@@ -247,7 +247,7 @@ export function DireccionDespachoPeruFields({
           disabled={disabled || !departamentoCode}
           loading={cargandoProvincias}
           onChange={handleProvinciaChange}
-          triggerClassName={variant === 'portal' ? 'h-10 text-xs rounded-xl' : undefined}
+          triggerClassName={variant === 'portal' ? 'h-12 w-full !w-full text-xs rounded-xl' : 'w-full !w-full'}
         />
         <UbigeoSelect
           label="Distrito"
@@ -257,11 +257,11 @@ export function DireccionDespachoPeruFields({
           disabled={disabled || !provinciaCode}
           loading={cargandoDistritos}
           onChange={handleDistritoChange}
-          triggerClassName={variant === 'portal' ? 'h-10 text-xs rounded-xl' : undefined}
+          triggerClassName={variant === 'portal' ? 'h-12 w-full !w-full text-xs rounded-xl' : 'w-full !w-full'}
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
           Ubicación exacta <span className="text-rose-500">*</span>
         </label>
@@ -269,8 +269,8 @@ export function DireccionDespachoPeruFields({
           value={ubicacionExacta}
           onChange={(e) => handleExactaChange(e.target.value)}
           disabled={disabled}
-          rows={variant === 'portal' ? 2 : 3}
-          className={inputClass}
+          rows={variant === 'portal' ? 3 : 4}
+          className={cn(inputClass, 'resize-none')}
           placeholder="Ej. Av. Industrial 450, Mz B Lt 3, urbanización, referencia…"
         />
         <p className="text-[10px] text-slate-500">

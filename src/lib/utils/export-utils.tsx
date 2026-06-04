@@ -220,7 +220,7 @@ export const prepareProductosForExcel = (
     'SKU': p.sku ?? '---',
     'Producto': p.nombre ?? '---',
     'Categoría': p.categorias?.nombre ?? 'General',
-    'Stock Real': stockResumen.find(s => s.producto_id === Number(p.id))?.stock_total_adicional ?? (typeof p.precio === 'number' ? p.precio : 0), 
+    'Stock Real': stockResumen.find(s => s.producto_id === Number(p.id))?.stock_total_adicional ?? (typeof p.precio === 'number' ? p.precio : 0),
     'Precio (S/.)': Number(p.precio ?? 0).toFixed(2),
     'Estado': p.estado === 'activo' ? 'Activo' : 'Inactivo',
   }));
@@ -405,8 +405,8 @@ const InventarioDocument = ({ data, categorias, config }: InventarioDocumentProp
 };
 
 export const exportInventarioToPDF = async (
-  data: (ProductoBase & { categoria_id?: string | number; stock?: number })[], 
-  categorias: { id: string | number; nombre: string }[], 
+  data: (ProductoBase & { categoria_id?: string | number; stock?: number })[],
+  categorias: { id: string | number; nombre: string }[],
   config: PDFExportConfig
 ) => {
   if (!data || data.length === 0) return;
@@ -790,7 +790,7 @@ export interface PersonalExportInput {
 }
 
 export const exportPersonalToExcel = async (
-  data: PersonalExportInput[], 
+  data: PersonalExportInput[],
   config?: { filename?: string }
 ) => {
   if (!data || data.length === 0) return;
@@ -957,7 +957,7 @@ export const exportClientesListToPDF = async (data: ClienteBase[], config?: { fi
 };
 
 // =====================================================
-// COTIZACIÓN INDIVIDUAL — TIPOS Y ESTILOS
+// COTIZACIÓN INDIVIDUAL — TIPOS Y ESTILOS EN LIMPIO
 // =====================================================
 
 const COLOR = {
@@ -1003,7 +1003,7 @@ export interface CotizacionPDFData {
 }
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, color: COLOR.texto, paddingTop: 0, paddingBottom: 36, paddingHorizontal: 0 },
+  page: { fontFamily: 'Helvetica', fontSize: 9, color: COLOR.texto, paddingTop: 0, paddingBottom: 45, paddingHorizontal: 0 },
   headerStrip: { backgroundColor: COLOR.ocreLight, paddingHorizontal: 36, paddingVertical: 20, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', borderBottomWidth: 3, borderBottomColor: COLOR.ocre },
   headerLeft: { flexDirection: 'column', gap: 3 },
   empresa: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: COLOR.negro, letterSpacing: 0.5 },
@@ -1042,8 +1042,12 @@ const S = StyleSheet.create({
   totalesDiscount: { color: '#16a34a' },
   totalFinalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: COLOR.negro },
   totalFinalLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLOR.blanco },
-  totalFinalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLOR.ocreLight },
-  notasWrap: { marginHorizontal: 36, marginTop: 16, padding: 10, backgroundColor: COLOR.ocreLight, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLOR.ocre },
+  totalFinalValue: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: COLOR.ocreLight },
+  letrasWrap: { marginHorizontal: 36, marginTop: 12, padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, borderWidth: 1, borderColor: COLOR.linea },
+  letrasTitulo: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: COLOR.gris, textTransform: 'uppercase', marginBottom: 2 },
+  letrasTexto: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: COLOR.negro },
+  letrasSubtexto: { fontSize: 7.5, color: COLOR.gris, marginTop: 2, lineHeight: 1.2 },
+  notasWrap: { marginHorizontal: 36, marginTop: 14, padding: 10, backgroundColor: COLOR.ocreLight, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: COLOR.ocre },
   notasTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: COLOR.ocreDark, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 },
   notasBullet: { fontSize: 8, color: COLOR.gris, marginBottom: 2 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLOR.negro, paddingVertical: 9, paddingHorizontal: 36, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -1056,9 +1060,106 @@ const fmt = (n: number) =>
 
 const dash = (v?: string | null) => v ?? '—';
 
+// Función para convertir números a letras de forma precisa (Soles)
+function numeroALetras(num: number): string {
+  const Unidades = (num: number) => {
+    switch (num) {
+      case 1: return 'UN'; case 2: return 'DOS'; case 3: return 'TRES'; case 4: return 'CUATRO'; case 5: return 'CINCO';
+      case 6: return 'SEIS'; case 7: return 'SIETE'; case 8: return 'OCHO'; case 9: return 'NUEVE';
+    }
+    return '';
+  };
+
+  const DecenasAnd = (strSin: string, numUnidades: number) => numUnidades > 0 ? strSin + ' Y ' + Unidades(numUnidades) : strSin;
+
+  const Decenas = (num: number) => {
+    const decena = Math.floor(num / 10);
+    const unidad = num - decena * 10;
+    switch (decena) {
+      case 1:
+        switch (unidad) {
+          case 0: return 'DIEZ'; case 1: return 'ONCE'; case 2: return 'DOCE'; case 3: return 'TRECE'; case 4: return 'CATORCE'; case 5: return 'QUINCE';
+          default: return 'DIECI' + Unidades(unidad);
+        }
+      case 2: return unidad === 0 ? 'VEINTE' : 'VEINTI' + Unidades(unidad);
+      case 3: return DecenasAnd('TREINTA', unidad);
+      case 4: return DecenasAnd('CUARENTA', unidad);
+      case 5: return DecenasAnd('CINCUENTA', unidad);
+      case 6: return DecenasAnd('SESENTA', unidad);
+      case 7: return DecenasAnd('SETENTA', unidad);
+      case 8: return DecenasAnd('OCHENTA', unidad);
+      case 9: return DecenasAnd('NOVENTA', unidad);
+      case 0: return Unidades(unidad);
+    }
+    return '';
+  };
+
+  const Centenas = (num: number) => {
+    const centena = Math.floor(num / 100);
+    const decena = num - centena * 100;
+    switch (centena) {
+      case 1: return decena > 0 ? 'CIENTO ' + Decenas(decena) : 'CIEN';
+      case 2: return 'DOSCIENTOS ' + Decenas(decena);
+      case 3: return 'TRESCIENTOS ' + Decenas(decena);
+      case 4: return 'CUATROCIENTOS ' + Decenas(decena);
+      case 5: return 'QUINIENTOS ' + Decenas(decena);
+      case 6: return 'SEISCIENTOS ' + Decenas(decena);
+      case 7: return 'SETECIENTOS ' + Decenas(decena);
+      case 8: return 'OCHOCIENTOS ' + Decenas(decena);
+      case 9: return 'NOVECIENTOS ' + Decenas(decena);
+      case 0: return Decenas(decena);
+    }
+    return '';
+  };
+
+  const Seccion = (num: number, divisor: number, strSingular: string, strPlural: string) => {
+    const cientos = Math.floor(num / divisor);
+    const resto = num - cientos * divisor;
+    let letras = '';
+    if (cientos > 0) {
+      if (cientos > 1) letras = Centenas(cientos) + ' ' + strPlural;
+      else letras = strSingular;
+    } else {
+      letras = Centenas(resto);
+    }
+    if (resto > 0) letras += '';
+    return letras;
+  };
+
+  const Miles = (num: number) => {
+    const divisor = 1000;
+    const cientos = Math.floor(num / divisor);
+    const resto = num - cientos * divisor;
+    const strMiles = Seccion(num, divisor, 'UN MIL', 'MIL');
+    const strCentenas = Centenas(resto);
+    if (strMiles === '') return strCentenas;
+    return strMiles + ' ' + strCentenas;
+  };
+
+  const Millones = (num: number) => {
+    const divisor = 1000000;
+    const cientos = Math.floor(num / divisor);
+    const resto = num - cientos * divisor;
+    const strMillones = Seccion(num, divisor, 'UN MILLON', 'MILLONES');
+    const strMiles = Miles(resto);
+    if (strMillones === '') return strMiles;
+    return strMillones + ' ' + strMiles;
+  };
+
+  const entero = Math.floor(num);
+  const centavos = Math.round((num - entero) * 100);
+  const centavosStr = centavos < 10 ? '0' + centavos : centavos;
+
+  if (entero === 0) return `CERO Y ${centavosStr}/100 SOLES`;
+
+  const letrasLetras = Millones(entero).trim().replace(/ +/g, ' ');
+  return `SON: ${letrasLetras} Y ${centavosStr}/100 SOLES`;
+}
+
 const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
   <Document title={`Cotización ${d.numero}`} author="Modas y Estilos GUOR S.A.C." subject="Cotización comercial">
     <Page size="A4" style={S.page}>
+      {/* HEADER */}
       <View style={S.headerStrip}>
         <View style={S.headerLeft}>
           <Text style={S.empresa}>MODAS Y ESTILOS GUOR S.A.C.</Text>
@@ -1073,14 +1174,15 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         </View>
       </View>
 
+      {/* DATOS DEL CLIENTE Y CONDICIONES */}
       <View style={S.sectionRow}>
         <View style={S.card}>
           <Text style={S.cardTitle}>Datos del Cliente</Text>
           {[
-            ['Cliente', d.cliente_nombre, true], 
-            ['RUC', d.cliente_ruc], 
-            ['Tel', d.cliente_telefono], 
-            ['Email', d.cliente_email], 
+            ['Cliente', d.cliente_nombre, true],
+            ['RUC', d.cliente_ruc],
+            ['Tel', d.cliente_telefono],
+            ['Email', d.cliente_email],
             ['Dir', d.cliente_direccion]
           ].map(([label, value, bold], i) => (
             <View key={i} style={S.cardRow}>
@@ -1092,10 +1194,10 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         <View style={S.card}>
           <Text style={S.cardTitle}>Condiciones</Text>
           {[
-            ['Moneda', d.moneda], 
-            ['Vigencia', '7 días calendario'], 
-            ['IGV', '18% incluido'], 
-            ['Envío', d.zona_envio], 
+            ['Moneda', d.moneda],
+            ['Vigencia', '7 días calendario'],
+            ['IGV', '18% incluido'],
+            ['Envío', d.zona_envio],
             ['Forma de pago', 'A convenir']
           ].map(([label, value], i) => (
             <View key={i} style={S.cardRow}>
@@ -1106,6 +1208,7 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         </View>
       </View>
 
+      {/* TABLA DE PRODUCTOS */}
       <View style={S.tableWrap}>
         <View style={S.tableHead}>
           {(['#', 'Descripción', 'Talla', 'Color', 'Cant.', 'P. Unit.', 'Total'] as const).map((h, i) => (
@@ -1125,6 +1228,7 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         ))}
       </View>
 
+      {/* CUADRO DE TOTALES (SOLO UNA VEZ) */}
       <View style={S.totalesWrap}>
         <View style={S.totalesBox}>
           <View style={S.totalesRow}><Text style={S.totalesLabel}>Subtotal</Text><Text style={S.totalesValue}>{fmt(d.subtotal)}</Text></View>
@@ -1142,6 +1246,14 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         </View>
       </View>
 
+      {/* BLOQUE CONSOLIDADO: MONTO EN LETRAS, MONEDA E IGV */}
+      <View style={S.letrasWrap}>
+        <Text style={S.letrasTitulo}>Monto en letras</Text>
+        <Text style={S.letrasTexto}>{numeroALetras(d.total)}</Text>
+        <Text style={S.letrasSubtexto}>Moneda: Soles (PEN)  |  Especificación tributaria: Los montos y precios expresados en esta cotización cuentan con el Impuesto General a las Ventas (18% IGV incluido).</Text>
+      </View>
+
+      {/* OBSERVACIONES */}
       <View style={S.notasWrap}>
         <Text style={S.notasTitle}>Observaciones</Text>
         <Text style={S.notasBullet}>• Precios sujetos a disponibilidad de stock.</Text>
@@ -1150,6 +1262,7 @@ const CotizacionDocument = ({ d }: { d: CotizacionPDFData }) => (
         {d.notas && <Text style={S.notasBullet}>• {d.notas}</Text>}
       </View>
 
+      {/* FOOTER */}
       <View style={S.footer} fixed>
         <Text style={S.footerText}>+51 908 801 912  |  modasyestilosguor@gmail.com  |  www.modas-y-estilos-guor.pe</Text>
         <Text style={S.footerBrand}>GUOR S.A.C.</Text>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { feedbackClienteSchema } from '@/lib/schemas/feedback-cliente';
+import { serializeBigInt } from '@/lib/utils/serialize';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     orderBy: { created_at: 'desc' },
   });
 
-  return NextResponse.json(feedbacks);
+  return NextResponse.json(serializeBigInt(feedbacks));
 }
 
 export async function POST(request: NextRequest) {
@@ -34,5 +35,5 @@ export async function POST(request: NextRequest) {
     include: { clientes: true, pedidos: true },
   });
 
-  return NextResponse.json(feedback, { status: 201 });
+  return NextResponse.json(serializeBigInt(feedback), { status: 201 });
 }
