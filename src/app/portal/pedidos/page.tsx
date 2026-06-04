@@ -141,13 +141,25 @@ export default function MisPedidosPage() {
 
   /** Desde la tarjeta: abre directamente el modal de pago */
   const handlePagarDesdeCard = useCallback((pedido: Pedido) => {
-  router.push(`/portal/pago/${pedido.id}`);
+    const params = new URLSearchParams({
+      total: String(Number(pedido.total ?? 0)),
+      cantidad: String(Number(pedido.total_unidades ?? 0)),
+      nombre: `Pedido #${pedido.id}`,
+      moneda: String(pedido.moneda ?? 'PEN'),
+    });
+    router.push(`/portal/pago/${pedido.id}?${params.toString()}`);
 }, [router]);
 
   /** Desde el modal de detalle: cierra detalle y abre pago */
   const handlePagarDesdeDetalle = useCallback((pedido: Pedido) => {
     setPedidoDetalle(null);
-    router.push(`/portal/pago/${pedido.id}`);
+    const params = new URLSearchParams({
+      total: String(Number(pedido.total ?? 0)),
+      cantidad: String(Number(pedido.total_unidades ?? 0)),
+      nombre: `Pedido #${pedido.id}`,
+      moneda: String(pedido.moneda ?? 'PEN'),
+    });
+    router.push(`/portal/pago/${pedido.id}?${params.toString()}`);
   }, [router]);
 
   // ─── Render ───────────────────────────────────────────────────────────────
