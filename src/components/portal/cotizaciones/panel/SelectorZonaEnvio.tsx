@@ -6,7 +6,6 @@ import { usePortal } from '@/lib/hooks/usePortal';
 import { type ZonaEnvio } from '@/components/portal/_contexts/PortalContext';
 
 export function SelectorZonaEnvio() {
-    // Corregido: Extraemos 'resumenBorrador' en lugar del antiguo 'resumen'
     const { zonaEnvio, actualizarZonaEnvio, resumenBorrador, costosEnvio } = usePortal();
     const zonaActual = costosEnvio.find(c => c.zona === zonaEnvio);
 

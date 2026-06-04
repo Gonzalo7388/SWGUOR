@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Building2, UserPlus, Download, RefreshCw } from "lucide-react";
+import { Building2, UserPlus, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -16,11 +16,14 @@ import StatsClientes from "@/components/admin/clientes/StatsCliente";
 import ClienteFormModal from "@/components/admin/clientes/ClienteFormModal";
 import { ClienteSuspendModal } from "@/components/admin/clientes/ClienteModals";
 import type { ClienteListItem } from "@/lib/services/clientes.service";
+import { exportClientesListToExcel, exportClientesListToPDF } from "@/lib/utils/export-utils";
 
 export default function ClientesPage() {
   const { can } = usePermissions();
   const [clientes, setClientes] = useState<ClienteListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
   const [filters, setFilters] = useState<ClienteFiltrosState>(EMPTY_CLIENTE_FILTERS);
   const [statusFilter, setStatusFilter] = useState<"activo" | "inactivo" | "conPedidos" | null>(null);
 
@@ -73,6 +76,48 @@ export default function ClientesPage() {
     });
   }, [clientes, filters, statusFilter]);
 
+  const handleExportExcel = async () => {
+    if (filtered.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Preparando Excel...");
+    try {
+      setExportingExcel(true);
+      await exportClientesListToExcel(filtered, {
+        filename: `Clientes_GUOR_${new Date().toISOString().split("T")[0]}`,
+      });
+      toast.success("Excel descargado correctamente", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al exportar a Excel", { id: toastId });
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (filtered.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Preparando PDF...");
+    try {
+      setExportingPDF(true);
+      await exportClientesListToPDF(filtered, {
+        filename: `Clientes_GUOR_${new Date().toISOString().split("T")[0]}`,
+      });
+      toast.success("PDF descargado correctamente", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al exportar a PDF", { id: toastId });
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -99,9 +144,24 @@ export default function ClientesPage() {
               <RefreshCw className={cn("w-4 h-4 text-slate-500", loading && "animate-spin")} />
             </Button>
             {can("export", "clientes") && (
-              <Button variant="outline" className="h-11 gap-2 border-slate-200 rounded-xl hover:bg-white font-bold text-slate-600 transition-all active:scale-95">
-                <Download size={18} /> Exportar
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 border-emerald-200 rounded-xl hover:bg-emerald-50 font-bold text-emerald-700 transition-all active:scale-95"
+                  onClick={handleExportExcel}
+                  disabled={loading || exportingExcel || filtered.length === 0}
+                >
+                  <FileSpreadsheet size={18} /> {exportingExcel ? "Exportando..." : "Excel"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 border-red-200 rounded-xl hover:bg-red-50 font-bold text-red-700 transition-all active:scale-95"
+                  onClick={handleExportPDF}
+                  disabled={loading || exportingPDF || filtered.length === 0}
+                >
+                  <FileText size={18} /> {exportingPDF ? "Exportando..." : "PDF"}
+                </Button>
+              </div>
             )}
             {can("create", "clientes") && (
               <Button 

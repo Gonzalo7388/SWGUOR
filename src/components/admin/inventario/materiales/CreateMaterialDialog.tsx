@@ -17,18 +17,17 @@ import { Loader2 } from 'lucide-react';
 import { type MaterialFormValues } from '@/lib/schemas/material';
 
 interface Props {
-  isOpen:    boolean;
-  onClose:   () => void;
+  isOpen: boolean;
+  onClose: () => void;
   onSuccess: () => void;
 }
 
 const UNIDADES = ['metros', 'kilos', 'yards', 'unidades'] as const;
-const TIPOS    = ['plano', 'punto', 'tejido', 'especial'] as const;
+const TIPOS = ['plano', 'punto', 'tejido', 'especial'] as const;
 
 export default function CreateMaterialDialog({ isOpen, onClose, onSuccess }: Props) {
   const { create, isCreating } = useMateriales();
 
-  // ✅ Añadimos tipado estricto al estado para que coincida con los literales válidos
   const [form, setForm] = useState<{
     nombre: string;
     tipo: 'plano' | 'punto' | 'tejido' | 'especial';
@@ -40,25 +39,25 @@ export default function CreateMaterialDialog({ isOpen, onClose, onSuccess }: Pro
     color: string;
     codigo_color: string;
     unidad_medida: 'metros' | 'unidades' | 'kilos' | 'yards';
-    stock_actual: string; // Se mantiene en el formulario para la UI
+    stock_actual: string;
     stock_minimo: string;
     precio_unitario: string;
     ubicacion_almacen: string;
     alerta_bajo_stock: boolean;
   }>({
-    nombre:            '',
-    tipo:              'plano',
-    descripcion:       '',
-    composicion:       '',
-    gramaje:           '',
-    ancho_total:       '',
-    ancho_util:        '',
-    color:             '',
-    codigo_color:      '',
-    unidad_medida:     'metros',
-    stock_actual:      '0',
-    stock_minimo:      '10',
-    precio_unitario:   '',
+    nombre: '',
+    tipo: 'plano',
+    descripcion: '',
+    composicion: '',
+    gramaje: '',
+    ancho_total: '',
+    ancho_util: '',
+    color: '',
+    codigo_color: '',
+    unidad_medida: 'metros',
+    stock_actual: '0',
+    stock_minimo: '10',
+    precio_unitario: '',
     ubicacion_almacen: '',
     alerta_bajo_stock: true,
   });
@@ -72,19 +71,19 @@ export default function CreateMaterialDialog({ isOpen, onClose, onSuccess }: Pro
 
     // ✅ Construimos el objeto MaterialFormValues con las propiedades conocidas únicamente
     const datosValidados: MaterialFormValues = {
-      nombre:            form.nombre,
-      tipo:              form.tipo,
-      unidad_medida:     form.unidad_medida,
-      stock_minimo:      Number(form.stock_minimo),
+      nombre: form.nombre,
+      tipo: form.tipo,
+      unidad_medida: form.unidad_medida,
+      stock_minimo: Number(form.stock_minimo),
       alerta_bajo_stock: form.alerta_bajo_stock,
-      descripcion:       form.descripcion || undefined,
-      composicion:       form.composicion || undefined,
-      gramaje:           form.gramaje         ? Number(form.gramaje)         : undefined,
-      ancho_total:       form.ancho_total     ? Number(form.ancho_total)     : undefined,
-      ancho_util:        form.ancho_util      ? Number(form.ancho_util)      : undefined,
-      color:             form.color           || undefined,
-      codigo_color:      form.codigo_color    || undefined,
-      precio_unitario:   form.precio_unitario ? Number(form.precio_unitario) : undefined,
+      descripcion: form.descripcion || undefined,
+      composicion: form.composicion || undefined,
+      gramaje: form.gramaje ? Number(form.gramaje) : undefined,
+      ancho_total: form.ancho_total ? Number(form.ancho_total) : undefined,
+      ancho_util: form.ancho_util ? Number(form.ancho_util) : undefined,
+      color: form.color || undefined,
+      codigo_color: form.codigo_color || undefined,
+      precio_unitario: form.precio_unitario ? Number(form.precio_unitario) : undefined,
       ubicacion_almacen: form.ubicacion_almacen || undefined,
       // Nota: Si tu backend necesita el stock inicial al crear, agrega un campo opcional "stock_inicial" en el esquema
     };

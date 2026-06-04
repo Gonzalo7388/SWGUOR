@@ -1,4 +1,6 @@
-import { ItemCotizacion, ReglaDescuento, ResumenCotizacion, ZonaEnvio, ZONAS_ENVIO } from './PortalContext';
+import type { CostoEnvioDb, ItemCotizacion, ReglaDescuento, ResumenCotizacion, ZonaEnvio } from './PortalContext';
+// ZONAS_ENVIO ya no se necesita para el costo, solo para el label
+import { ZONAS_ENVIO } from './PortalContext';
 
 const IGV = 0.18;
 
@@ -46,6 +48,7 @@ export function calcularResumen(
     zonaEnvio: ZonaEnvio,
     reglas: ReglaDescuento[],
     esClienteNuevo: boolean,
+    costosEnvio: CostoEnvioDb[],
 ): ResumenCotizacion {
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
     const total_unidades = items.reduce((s, i) => s + i.cantidad, 0);
@@ -57,7 +60,13 @@ export function calcularResumen(
     const descuento_monto = subtotal * (descuento_pct / 100);
     const base_igv = subtotal - descuento_monto;
     const igv = base_igv * IGV;
-    const costo_envio = items.length > 0 ? (ZONAS_ENVIO[zonaEnvio]?.costo ?? 0) : 0;
+    const zonaDb = costosEnvio.find(c => c.zona === zonaEnvio);
+    const costo_envio = items.length > 0
+        ? (zonaDb?.costo ?? ZONAS_ENVIO[zonaEnvio]?.costo ?? 0)
+        : 0;
+    const descripcion_envio = zonaDb
+        ? `${zonaDb.zona} — S/ ${zonaDb.costo.toFixed(2)}`
+        : (ZONAS_ENVIO[zonaEnvio]?.label ?? '');
 
     return {
         subtotal,
@@ -70,7 +79,7 @@ export function calcularResumen(
         costo_envio,
         total: base_igv + igv + costo_envio,
         descripcion_descuento,
-        descripcion_envio: ZONAS_ENVIO[zonaEnvio]?.label ?? '',
+        descripcion_envio,
         es_cliente_nuevo: esClienteNuevo,
     };
 }

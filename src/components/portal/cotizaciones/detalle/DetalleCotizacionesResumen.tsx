@@ -21,51 +21,51 @@ export function DetalleCotizacionResumen({
     notasInternas,
 }: DetalleCotizacionResumenProps) {
     return (
-        <div className="space-y-6">
-            {/* Card de análisis con IA — Adaptado a la paleta GUOR Dark */}
+        <div className="space-y-4">
+            {/* Card de análisis con IA — Más compacto y elegante */}
             <div
-                className="rounded-xl p-8 text-white shadow-lg relative overflow-hidden"
+                className="rounded-xl p-5 text-white shadow-sm relative overflow-hidden"
                 style={{
                     background: 'linear-gradient(135deg, var(--guor-dark) 0%, #1c1c1c 100%)',
                 }}
             >
-                <div className="absolute top-0 right-0 p-4 opacity-5">
-                    <Sparkles size={80} style={{ color: 'var(--guor-gold)' }} />
+                <div className="absolute top-0 right-0 p-3 opacity-5">
+                    <Sparkles size={60} style={{ color: 'var(--guor-gold)' }} />
                 </div>
 
-                <div className="flex items-center gap-3 mb-6 relative z-10">
-                    <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-                        <Sparkles size={20} style={{ color: 'var(--guor-gold)' }} />
+                <div className="flex items-center gap-2 mb-3 relative z-10">
+                    <div className="p-1.5 bg-white/5 rounded-md border border-white/10">
+                        <Sparkles size={14} style={{ color: 'var(--guor-gold)' }} />
                     </div>
-                    <h3 className="font-black text-xs uppercase tracking-widest" style={{ color: 'var(--guor-gold)' }}>
+                    <h3 className="font-black text-[10px] uppercase tracking-widest" style={{ color: 'var(--guor-gold)' }}>
                         Análisis Estratégico
                     </h3>
                 </div>
 
-                <p className="text-sm leading-relaxed italic font-medium relative z-10 opacity-90">
+                <p className="text-xs leading-relaxed italic font-medium relative z-10 opacity-90">
                     "{notasInternas ||
                         'Su volumen actual le permite acceder a la tarifa preferencial. Recomendamos aumentar el pedido para optimizar costos.'}"
                 </p>
 
                 <div
-                    className="mt-8 pt-6 border-t flex items-center justify-between text-[10px] font-bold uppercase tracking-widest relative z-10 opacity-60"
+                    className="mt-4 pt-3 border-t flex items-center justify-between text-[9px] font-bold uppercase tracking-widest relative z-10 opacity-50"
                     style={{ borderTopColor: 'rgba(255,255,255,0.1)' }}
                 >
                     <span>Smart Insight</span>
                     <div className="flex items-center gap-1">
-                        <CheckCircle2 size={12} />
+                        <CheckCircle2 size={10} />
                         <span>Optimizado</span>
                     </div>
                 </div>
             </div>
 
-            {/* Resumen Financiero */}
+            {/* Resumen Financiero — Estilizado y balanceado */}
             <div
-                className="bg-white border rounded-xl p-8 shadow-sm space-y-6"
+                className="bg-white border rounded-xl p-5 shadow-sm space-y-4"
                 style={{ borderColor: 'var(--guor-stone)' }}
             >
                 <h3
-                    className="font-black text-xs uppercase tracking-widest border-b pb-4"
+                    className="font-black text-[10px] uppercase tracking-widest border-b pb-3"
                     style={{
                         color: 'var(--guor-dark)',
                         borderColor: 'var(--guor-stone)',
@@ -74,17 +74,17 @@ export function DetalleCotizacionResumen({
                     Desglose Comercial
                 </h3>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {/* Subtotal */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-xs">
                         <span
-                            className="text-sm font-bold uppercase tracking-tight opacity-60"
+                            className="font-bold uppercase tracking-tight opacity-60"
                             style={{ color: 'var(--guor-dark)' }}
                         >
                             Subtotal Neto
                         </span>
                         <span
-                            className="font-bold"
+                            className="font-bold tabular-nums text-sm"
                             style={{ color: 'var(--guor-dark)' }}
                         >
                             {formatCurrency(subtotal)}
@@ -94,20 +94,20 @@ export function DetalleCotizacionResumen({
                     {/* Descuento */}
                     {descuento > 0 && (
                         <div
-                            className="flex justify-between items-center p-3 rounded-lg border"
+                            className="flex justify-between items-center p-2.5 rounded-lg border text-xs"
                             style={{
                                 backgroundColor: 'var(--guor-cream)',
                                 borderColor: 'var(--guor-stone)',
                             }}
                         >
                             <span
-                                className="text-xs font-black uppercase tracking-wider"
+                                className="font-black uppercase tracking-wider text-[11px]"
                                 style={{ color: 'var(--guor-gold)' }}
                             >
                                 Ahorro corporativo
                             </span>
                             <span
-                                className="font-black"
+                                className="font-black tabular-nums"
                                 style={{ color: 'var(--guor-gold)' }}
                             >
                                 -{formatCurrency(descuento)}
@@ -116,15 +116,15 @@ export function DetalleCotizacionResumen({
                     )}
 
                     {/* Impuestos */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-xs">
                         <span
-                            className="text-sm font-bold uppercase tracking-tight opacity-60"
+                            className="font-bold uppercase tracking-tight opacity-60"
                             style={{ color: 'var(--guor-dark)' }}
                         >
                             Impuestos (18%)
                         </span>
                         <span
-                            className="font-bold"
+                            className="font-bold tabular-nums text-sm"
                             style={{ color: 'var(--guor-dark)' }}
                         >
                             {formatCurrency(igv)}
@@ -132,27 +132,27 @@ export function DetalleCotizacionResumen({
                     </div>
 
                     {/* Envío */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-xs">
                         <span
-                            className="text-sm font-bold uppercase tracking-tight opacity-60"
+                            className="font-bold uppercase tracking-tight opacity-60"
                             style={{ color: 'var(--guor-dark)' }}
                         >
                             Envío
                         </span>
                         <span
-                            className="font-bold"
+                            className="font-bold tabular-nums text-sm"
                             style={{ color: 'var(--guor-dark)' }}
                         >
                             {formatCurrency(costoEnvio ?? 0)}
                         </span>
                     </div>
 
-                    {/* Total */}
+                    {/* Total - Rediseñado para tener un tamaño integrado y simétrico */}
                     <div
-                        className="pt-6 border-t"
+                        className="pt-4 border-t"
                         style={{ borderColor: 'var(--guor-stone)' }}
                     >
-                        <div className="flex justify-between items-end">
+                        <div className="flex justify-between items-center">
                             <span
                                 className="text-xs font-black uppercase tracking-widest"
                                 style={{ color: 'var(--guor-dark)' }}
@@ -160,8 +160,11 @@ export function DetalleCotizacionResumen({
                                 Total Final
                             </span>
                             <span
-                                className="text-4xl font-black leading-none"
-                                style={{ color: 'var(--guor-dark)' }}
+                                className="text-base font-black tabular-nums border-b-2 pb-0.5"
+                                style={{
+                                    color: 'var(--guor-dark)',
+                                    borderColor: 'var(--guor-gold)'
+                                }}
                             >
                                 {formatCurrency(total)}
                             </span>
@@ -169,22 +172,22 @@ export function DetalleCotizacionResumen({
                     </div>
                 </div>
 
-                {/* Aviso de condiciones — Integrado a la paleta cálida de alertas GUOR */}
+                {/* Aviso de condiciones — Reducido para no competir visualmente */}
                 <div
-                    className="rounded-xl p-4 flex gap-3 items-start border text-xs"
+                    className="rounded-lg p-3.5 flex gap-2.5 items-start border text-[11px]"
                     style={{
                         backgroundColor: 'var(--guor-cream)',
                         borderColor: 'var(--guor-stone)',
                     }}
                 >
                     <AlertCircle
-                        size={20}
+                        size={16}
                         style={{ color: 'var(--guor-gold-warm)' }}
                         className="shrink-0 mt-0.5"
                     />
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                         <p
-                            className="font-black uppercase tracking-wider"
+                            className="font-black uppercase tracking-wider text-[10px]"
                             style={{ color: 'var(--guor-gold-warm)' }}
                         >
                             Condiciones de Venta

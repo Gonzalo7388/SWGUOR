@@ -14,7 +14,8 @@
     "generate:variantes": "ts-node -P tsconfig.json scripts/generate-variantes.ts",
     "create:admin": "tsx scripts/create-admin-user.ts",
     "check:users": "tsx scripts/check-users.ts",
-    "check:users:supabase": "tsx scripts/check-users-supabase.ts"
+    "check:users:supabase": "tsx scripts/check-users-supabase.ts",
+    "generate:production-from-paid": "tsx scripts/generate-production-orders-from-paid.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^2.0.33",
