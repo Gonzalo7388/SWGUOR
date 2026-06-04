@@ -11,19 +11,22 @@ export type SeguimientoPayload = {
   notas?: string;
 };
 
+// Keys = valores exactos del enum EstadoConfeccion en la BD
 const ESTADO_COLORS: Record<string, { pill: string; dot: string }> = {
-  pendiente: { pill: "bg-slate-100  text-slate-700", dot: "bg-slate-400" },
-  en_proceso: { pill: "bg-blue-100   text-blue-700", dot: "bg-blue-500" },
+  pendiente: { pill: "bg-slate-100   text-slate-700", dot: "bg-slate-400" },
+  en_proceso: { pill: "bg-blue-100    text-blue-700", dot: "bg-blue-500" },
   completada: { pill: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
-  rechazada: { pill: "bg-amber-100  text-amber-700", dot: "bg-amber-500" },
-  cancelado: { pill: "bg-red-100    text-red-700", dot: "bg-red-500" },
+  rechazada: { pill: "bg-amber-100   text-amber-700", dot: "bg-amber-500" },
+  cancelada: { pill: "bg-red-100     text-red-700", dot: "bg-red-500" },
 };
 
+// Transiciones válidas según el enum EstadoConfeccion de la BD
 const SIGUIENTE_ESTADO: Record<string, string[]> = {
-  pendiente: ["en_proceso", "rechazada", "cancelado"],
-  en_proceso: ["completada", "rechazada", "cancelado"],
-  completada: ["cancelado"],
-  rechazada: ["pendiente", "cancelado"],
+  pendiente: ["en_proceso", "cancelada"],
+  en_proceso: ["completada", "rechazada", "cancelada"],
+  rechazada: ["pendiente", "cancelada"],
+  completada: [],
+  cancelada: [],
 };
 
 interface Props {
@@ -32,6 +35,8 @@ interface Props {
   estadoActual: string;
   puedeActualizar: boolean;
   isLoading?: boolean;
+  // onUpdate recibe solo el nuevo estado y las notas —
+  // el componente padre llama updateEstado (que hace POST y registra seguimiento)
   onUpdate: (data: SeguimientoPayload) => void;
 }
 
@@ -62,18 +67,27 @@ export default function ConfeccionSeguimientoTab({
     setShowForm(false);
   };
 
+  const handleCancel = () => {
+    setShowForm(false);
+    setEstadoNuevo("");
+    setNotas("");
+  };
+
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("es-PE", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
 
+  const getLabel = (key: string) =>
+    (ESTADO_LABELS as Record<string, string>)[key] ??
+    key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
   return (
     <div className="space-y-4">
-
-      {/* Header + acción */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
 
+        {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <GitCommitVertical size={15} className="text-violet-500" />
@@ -91,30 +105,33 @@ export default function ConfeccionSeguimientoTab({
             <button
               onClick={() => setShowForm(!showForm)}
               className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-all ${showForm
-                  ? "bg-gray-100 text-gray-500 border-gray-200"
-                  : "bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100"
+                ? "bg-gray-100 text-gray-500 border-gray-200"
+                : "bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100"
                 }`}
             >
-              <Plus size={12} className={`transition-transform ${showForm ? "rotate-45" : ""}`} />
+              <Plus
+                size={12}
+                className={`transition-transform duration-200 ${showForm ? "rotate-45" : ""}`}
+              />
               {showForm ? "Cancelar" : "Registrar cambio"}
             </button>
           )}
         </div>
 
-        {/* Formulario de nuevo seguimiento */}
+        {/* ── Formulario ── */}
         {showForm && puedeActualizar && (
           <div className="px-6 py-5 bg-gray-50/70 border-b border-gray-100 space-y-3">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
               Nuevo cambio de estado
             </p>
 
-            {/* Estado actual → nuevo */}
+            {/* Estado actual → selector */}
             <div className="flex items-center gap-3">
-              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ESTADO_COLORS[estadoActual]?.pill ?? "bg-gray-100 text-gray-600"
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 ${ESTADO_COLORS[estadoActual]?.pill ?? "bg-gray-100 text-gray-600"
                 }`}>
-                {ESTADO_LABELS[estadoActual as keyof typeof ESTADO_LABELS] ?? estadoActual}
+                {getLabel(estadoActual)}
               </span>
-              <span className="text-gray-300 text-sm">→</span>
+              <span className="text-gray-300 text-sm shrink-0">→</span>
               <select
                 value={estadoNuevo}
                 onChange={e => setEstadoNuevo(e.target.value)}
@@ -122,9 +139,7 @@ export default function ConfeccionSeguimientoTab({
               >
                 <option value="">Seleccionar nuevo estado…</option>
                 {siguientes.map(s => (
-                  <option key={s} value={s}>
-                    {ESTADO_LABELS[s as keyof typeof ESTADO_LABELS] ?? s}
-                  </option>
+                  <option key={s} value={s}>{getLabel(s)}</option>
                 ))}
               </select>
             </div>
@@ -139,7 +154,7 @@ export default function ConfeccionSeguimientoTab({
 
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => { setShowForm(false); setEstadoNuevo(""); setNotas(""); }}
+                onClick={handleCancel}
                 className="text-xs font-bold text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all"
               >
                 Cancelar
@@ -159,7 +174,7 @@ export default function ConfeccionSeguimientoTab({
           </div>
         )}
 
-        {/* Timeline */}
+        {/* ── Timeline ── */}
         <div className="px-6 py-5">
           {seguimientos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -177,9 +192,8 @@ export default function ConfeccionSeguimientoTab({
                 const isFirst = i === 0;
 
                 return (
-                  <li key={seg.id} className="flex gap-4 group">
-
-                    {/* Línea de tiempo */}
+                  <li key={seg.id} className="flex gap-4">
+                    {/* Dot + línea vertical */}
                     <div className="flex flex-col items-center shrink-0 w-4">
                       <div className={`w-3 h-3 rounded-full shrink-0 mt-1 ring-2 ring-white ${dotColor} ${isFirst ? "ring-offset-1 ring-offset-pink-200" : ""
                         }`} />
@@ -189,21 +203,21 @@ export default function ConfeccionSeguimientoTab({
                     </div>
 
                     {/* Contenido */}
-                    <div className={`pb-5 flex-1 ${i < seguimientos.length - 1 ? "" : "pb-0"}`}>
+                    <div className={`flex-1 ${i < seguimientos.length - 1 ? "pb-5" : "pb-0"}`}>
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2 flex-wrap">
                           {seg.estado_anterior && (
                             <>
                               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[seg.estado_anterior]?.pill ?? "bg-gray-100 text-gray-500"
                                 }`}>
-                                {ESTADO_LABELS[seg.estado_anterior as keyof typeof ESTADO_LABELS] ?? seg.estado_anterior}
+                                {getLabel(seg.estado_anterior)}
                               </span>
                               <span className="text-gray-300 text-[10px] font-black">→</span>
                             </>
                           )}
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[seg.estado_nuevo]?.pill ?? "bg-gray-100 text-gray-500"
                             }`}>
-                            {ESTADO_LABELS[seg.estado_nuevo as keyof typeof ESTADO_LABELS] ?? seg.estado_nuevo}
+                            {getLabel(seg.estado_nuevo)}
                           </span>
                         </div>
                         <time className="text-[10px] text-gray-400 font-mono shrink-0">
