@@ -28,7 +28,7 @@ export function resolverFechaPrometidaDesdeExtraccion(
   const explicita =
     parseIsoDate(cot.fecha_prometida) ??
     parseIsoDate(cot.fecha_entrega);
-  if (explicita) return explicita;
+  if (explicita) return ajustarFechaPrometidaMinima(explicita);
 
   const plazo = Number(cot.plazo_entrega_dias);
   if (!Number.isFinite(plazo) || plazo <= 0) return null;
@@ -36,5 +36,22 @@ export function resolverFechaPrometidaDesdeExtraccion(
   const base = parseIsoDate(cot.fecha_solicitud);
   if (!base) return null;
 
-  return addCalendarDays(base, plazo);
+  return ajustarFechaPrometidaMinima(addCalendarDays(base, plazo));
+}
+
+/** Fecha mínima permitida (hoy, zona local) para fecha prometida en OC */
+export function fechaMinimaPrometidaHoy(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Ajusta la fecha al mínimo hoy si viene en el pasado */
+export function ajustarFechaPrometidaMinima(fecha?: string | null): string | null {
+  const iso = parseIsoDate(fecha ?? null);
+  if (!iso) return null;
+  const min = fechaMinimaPrometidaHoy();
+  return iso >= min ? iso : min;
 }

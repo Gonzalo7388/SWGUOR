@@ -48,7 +48,7 @@ export default function ProveedoresPage() {
     pagination, 
     isLoading, 
     refetch,
-    save, 
+    saveAsync,
     deactivate, 
     isSaving, 
     isDeactivating,
@@ -77,10 +77,19 @@ export default function ProveedoresPage() {
     setDeleteTarget(p);
   };
 
-  const handleSave = (data: ProveedorForm) => {
-    save({ ...data, id: editingProveedor?.id });
-    setShowForm(false);
-    setEditingProveedor(null);
+  const handleSave = async (data: ProveedorForm) => {
+    try {
+      const res = await saveAsync({
+        ...data,
+        id: editingProveedor?.id ?? data.id,
+      });
+      if (res.success) {
+        setShowForm(false);
+        setEditingProveedor(null);
+      }
+    } catch {
+      toast.error('Error de conexión al guardar');
+    }
   };
 
   const handleConfirmDelete = () => {

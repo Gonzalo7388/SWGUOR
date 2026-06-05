@@ -56,7 +56,7 @@ export default function NuevaOrdenCompraPage() {
 
   return (
     <div className="p-4 md:p-8 bg-gray-50/50 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto w-full">
         <h1 className="text-2xl font-black text-slate-900 mb-8">
           {cotizacionId ? 'Generar orden de compra' : 'Nueva orden de compra'}
         </h1>

@@ -5,17 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Form,
   FormControl,
@@ -25,19 +18,21 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { fetchProveedores } from '@/lib/helpers/proveedores-helpers';
+import { fetchAllProveedoresActivos } from '@/lib/helpers/proveedores-helpers';
 import { fetchMateriales } from '@/lib/helpers/materiales-helpers';
 import { fetchInsumos } from '@/lib/helpers/inventario-helpers';
+import { SearchableDropdown } from '@/components/ui/searchable-dropdown';
 import { useOrdenesCompra } from '@/lib/hooks/useOrdenesCompra';
 import { type MaterialCatalogo } from '@/lib/schemas/material';
 import {
-  LABEL_TIPO_IMPUESTO_OC,
   TASA_IGV_PEN,
   TIPO_IMPUESTO_OC,
   type TipoImpuestoOc,
 } from '@/lib/constants/ordenes-compra';
 import type { OrdenCompraExtraccion } from '@/lib/schemas/orden-compra-extraccion';
+import { fechaMinimaPrometidaHoy } from '@/lib/helpers/orden-compra-fecha-prometida.helper';
 import { OrdenCompraPdfExtractor } from '@/components/admin/ordenes-compra/OrdenCompraPdfExtractor';
+import { OrdenCompraItemRow } from '@/components/admin/ordenes-compra/OrdenCompraItemRow';
 
 const itemFormSchema = z.object({
   tipo: z.enum(['material', 'insumo']),
@@ -50,7 +45,12 @@ const itemFormSchema = z.object({
 
 const formSchema = z.object({
   proveedor_id: z.string().min(1, 'Seleccione un proveedor'),
-  fecha_prometida: z.string().optional(),
+  fecha_prometida: z
+    .string()
+    .optional()
+    .refine((val) => !val || val >= fechaMinimaPrometidaHoy(), {
+      message: 'La fecha prometida no puede ser anterior a hoy',
+    }),
   notas: z.string().optional(),
   items: z.array(itemFormSchema).min(1, 'Agregue al menos un ítem'),
 });
@@ -69,8 +69,9 @@ interface ItemCatalogo {
 }
 
 interface ProveedorCatalogo {
-  id: string | number;
+  id: string;
   razon_social: string;
+  ruc: string;
 }
 
 export function OrdenCompraForm({
@@ -81,7 +82,7 @@ export function OrdenCompraForm({
   const router = useRouter(); 
   const { crear, crearDesdeCotizacion, isCreating } = useOrdenesCompra({ enabled: false }); 
 
-  const [proveedores, setProveedores] = useState<{ id: string; razon_social: string }[]>([]);
+  const [proveedores, setProveedores] = useState<ProveedorCatalogo[]>([]);
   const [materiales, setMateriales] = useState<ItemCatalogo[]>([]);
   const [insumos, setInsumos] = useState<ItemCatalogo[]>([]);
   const [loadingCatalogos, setLoadingCatalogos] = useState(true);
@@ -122,19 +123,13 @@ export function OrdenCompraForm({
   useEffect(() => {
     async function load() {
       try {
-        const [provRes, mats, insRes] = await Promise.all([
-          fetchProveedores(1, 200, '', 'activo'),
+        const [provList, mats, insRes] = await Promise.all([
+          fetchAllProveedoresActivos(),
           fetchMateriales(),
           fetchInsumos(),
         ]);
 
-        const provList = (provRes?.data as ProveedorCatalogo[]) ?? [];
-        setProveedores(
-          provList.map((p) => ({
-            id: String(p.id),
-            razon_social: p.razon_social,
-          })),
-        );
+        setProveedores(provList);
 
         const materialesValidos = (mats as MaterialCatalogo[]) ?? [];
         setMateriales(materialesValidos.map((m) => ({ id: m.id, nombre: m.nombre })));
@@ -175,9 +170,13 @@ export function OrdenCompraForm({
     if (data.proveedor_id && data.proveedor_nombre) {
       form.setValue('proveedor_id', data.proveedor_id, { shouldValidate: true });
       setProveedores((prev) => {
-        if (prev.some((p) => p.id === data.proveedor_id)) return prev;
+        if (!data.proveedor_id || prev.some((p) => p.id === data.proveedor_id)) return prev;
         return [
-          { id: data.proveedor_id!, razon_social: data.proveedor_nombre! },
+          {
+            id: data.proveedor_id!,
+            razon_social: data.proveedor_nombre!,
+            ruc: data.proveedor_ruc ?? '',
+          },
           ...prev,
         ];
       });
@@ -256,6 +255,13 @@ export function OrdenCompraForm({
     }
   };
 
+  const proveedorOptions = proveedores.map((p) => ({
+    value: p.id,
+    label: p.razon_social,
+    description: p.ruc ? `RUC ${p.ruc}` : undefined,
+    keywords: p.ruc,
+  }));
+
   if (loadingCatalogos) {
     return (
       <div className="flex justify-center py-20">
@@ -266,7 +272,7 @@ export function OrdenCompraForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-4xl">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-6xl w-full">
         <div className="flex items-center gap-3">
           <Button
             type="button"
@@ -295,37 +301,36 @@ export function OrdenCompraForm({
               control={form.control} 
               name="proveedor_id"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>Proveedor *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      setProveedorExtraccion(null);
-                    }}
-                    disabled={modoCotizacion}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar proveedor" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {proveedores.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.razon_social}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableDropdown
+                      options={proveedorOptions}
+                      value={field.value}
+                      onChange={(v) => {
+                        field.onChange(v);
+                        setProveedorExtraccion(null);
+                      }}
+                      disabled={modoCotizacion}
+                      placeholder="Buscar proveedor..."
+                      searchPlaceholder="Nombre o RUC..."
+                      emptyMessage="No se encontró el proveedor"
+                    />
+                  </FormControl>
                   {proveedorExtraccion?.matched && (
-                    <p className="text-xs text-emerald-700">
+                    <p
+                      className="text-xs text-emerald-700 line-clamp-2 break-words"
+                      title={proveedorExtraccion.nombre ?? undefined}
+                    >
                       Vinculado desde PDF: {proveedorExtraccion.nombre}
                       {proveedorExtraccion.ruc ? ` (RUC ${proveedorExtraccion.ruc})` : ''}
                     </p>
                   )}
                   {proveedorExtraccion && !proveedorExtraccion.matched && (
-                    <p className="text-xs text-amber-700">
+                    <p
+                      className="text-xs text-amber-700 line-clamp-2 break-words"
+                      title={proveedorExtraccion.extraido ?? undefined}
+                    >
                       PDF: {proveedorExtraccion.extraido ?? 'Proveedor no identificado'}
                       {proveedorExtraccion.ruc ? ` · RUC ${proveedorExtraccion.ruc}` : ''}
                       {' — '}selecciónelo manualmente.
@@ -341,9 +346,13 @@ export function OrdenCompraForm({
               name="fecha_prometida"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Fecha prometida</FormLabel> 
+                  <FormLabel>Fecha prometida</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} /> 
+                    <Input
+                      type="date"
+                      min={fechaMinimaPrometidaHoy()}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -393,146 +402,18 @@ export function OrdenCompraForm({
               </Button>
             </div>
 
-            {fields.map((field, index) => {
-              const tipo = watchedItems?.[index]?.tipo ?? 'insumo'; 
-              const opciones = tipo === 'material' ? materiales : insumos; 
-              return (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100"
-                >
-                  <FormField
-                    control={form.control} 
-                    name={`items.${index}.tipo`}
-                    render={({ field: f }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Tipo</FormLabel> 
-                        <Select value={f.value} onValueChange={f.onChange}> 
-                          <FormControl>
-                            <SelectTrigger> 
-                              <SelectValue /> 
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="material">Material</SelectItem> 
-                            <SelectItem value="insumo">Insumo</SelectItem> 
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.ref_id`}
-                    render={({ field: f }) => (
-                      <FormItem className="md:col-span-3">
-                        <FormLabel>Producto</FormLabel>
-                        <Select value={f.value} onValueChange={f.onChange}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {opciones.map((o) => (
-                              <SelectItem key={o.id} value={String(o.id)}>
-                                {o.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {watchedItems?.[index]?.notas && !f.value && (
-                          <p className="text-xs text-amber-600 truncate" title={watchedItems[index]?.notas}>
-                            PDF: {watchedItems[index]?.notas}
-                          </p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control} 
-                    name={`items.${index}.cantidad_pedida`}
-                    render={({ field: f }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Cantidad</FormLabel> 
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01" 
-                            min="0" 
-                            {...f}
-                            value={Number.isNaN(f.value) ? '' : f.value}
-                            onChange={(e) => f.onChange(e.target.valueAsNumber)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.precio_unitario`}
-                    render={({ field: f }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>P. unit.</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            {...f}
-                            value={Number.isNaN(f.value) ? '' : f.value}
-                            onChange={(e) => f.onChange(e.target.valueAsNumber)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.tipo_impuesto`}
-                    render={({ field: f }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Impuesto</FormLabel>
-                        <Select value={f.value} onValueChange={f.onChange}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value={TIPO_IMPUESTO_OC.IGV}>
-                              {LABEL_TIPO_IMPUESTO_OC.igv}
-                            </SelectItem>
-                            <SelectItem value={TIPO_IMPUESTO_OC.SIN_IGV}>
-                              {LABEL_TIPO_IMPUESTO_OC.sin_igv}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="md:col-span-1 flex items-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm" 
-                      className="text-red-500" 
-                      onClick={() => remove(index)} 
-                      disabled={fields.length <= 1} 
-                    >
-                      <Trash2 className="w-4 h-4" /> 
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+            {fields.map((field, index) => (
+              <OrdenCompraItemRow
+                key={field.id}
+                index={index}
+                control={form.control}
+                materiales={materiales}
+                insumos={insumos}
+                watchedItem={watchedItems?.[index]}
+                canRemove={fields.length > 1}
+                onRemove={() => remove(index)}
+              />
+            ))}
 
             <div className="text-right space-y-1 text-sm text-slate-600">
               <p>

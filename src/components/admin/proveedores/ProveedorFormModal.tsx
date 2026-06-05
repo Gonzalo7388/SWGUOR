@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,20 @@ export default function ProveedorFormModal({ proveedor, isSaving, onClose, onSav
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setForm({
+      id:                   proveedor?.id ?? '',
+      ruc:                  proveedor?.ruc ?? '',
+      razon_social:         proveedor?.razon_social ?? '',
+      contacto:             proveedor?.contacto ?? '',
+      telefono:             proveedor?.telefono ?? '',
+      email:                proveedor?.email ?? '',
+      direccion:            proveedor?.direccion ?? '',
+      categoria_suministro: (proveedor?.categoria_suministro as ProveedorForm['categoria_suministro']) ?? '',
+    });
+    setErrors({});
+  }, [proveedor]);
 
   const handleChange = (field: keyof ProveedorForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

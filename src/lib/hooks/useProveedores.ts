@@ -72,6 +72,7 @@ export function useProveedores({
 
     // acciones
     save:       (data: ProveedorForm) => saveMutation.mutate(data),
+    saveAsync:  (data: ProveedorForm) => saveMutation.mutateAsync(data),
     deactivate: (id: string)          => deactivateMutation.mutate(id),
 
     // estados de mutación
