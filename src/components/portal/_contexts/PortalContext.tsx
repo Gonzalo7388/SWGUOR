@@ -164,7 +164,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             if (!user) { setLoading(false); return; }
 
             try {
-                // 🔄 CONSULTA HACIA TUS ENDPOINTS DE NEXT.JS (Adiós RLS y tablas incorrectas)
                 const [resReglas, resProductos, resCategorias, resCostos] = await Promise.all([
                     supabase.from('reglas_descuento').select('*').eq('activo', true),
                     fetch('/api/portal/productos').then((r) => r.json()),
@@ -188,37 +187,38 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                     setCostosEnvio(resCostos.data.map(c => ({ id: c.id, zona: c.zona as ZonaEnvio, costo: Number(c.costo), activo: c.activo })));
                 }
 
-                const { data: usuarioPerfil } = await supabase
-                    .from('usuarios')
-                    .select(`id, cliente_datos:clientes!clientes_usuario_id_fkey (*)`)
-                    .eq('auth_id', user.id)
-                    .maybeSingle();
+                const resPerfil = await fetch('/api/portal/perfil').then(r => r.json());
 
-                const datosCliente = Array.isArray(usuarioPerfil?.cliente_datos)
-                    ? usuarioPerfil?.cliente_datos[0]
-                    : usuarioPerfil?.cliente_datos;
+                if (resPerfil.success && resPerfil.data) {
+                    const { cliente: datosCliente, usuario: datosUsuario } = resPerfil.data;
 
-                if (datosCliente) {
                     const clientObj: ClientePortal = {
                         id: datosCliente.id,
-                        usuario_id: usuarioPerfil!.id,
+                        usuario_id: datosUsuario.id,
                         ruc: Number(datosCliente.ruc),
                         razon_social: datosCliente.razon_social || 'Sin Razón Social',
                         direccion_fiscal: datosCliente.direccion_fiscal || 'Sin Dirección',
-                        email: datosCliente.email,
-                        telefono: datosCliente.telefono ? Number(datosCliente.telefono.replace(/\D/g, '')) : null,
-                        tipo_cliente: datosCliente.tipo_cliente || 'corporativo',
                         nombre_comercial: datosCliente.nombre_comercial || 'Sin Nombre Comercial',
+                        email: datosCliente.email,
+                        telefono: datosCliente.telefono
+                            ? Number(String(datosCliente.telefono).replace(/\D/g, ''))
+                            : null,
+                        tipo_cliente: datosCliente.tipo_cliente || 'corporativo',
                     };
                     setCliente(clientObj);
 
-                    const [cotRes, ordRes, dspRes] = await Promise.all([
-                        supabase.from('cotizaciones').select('id', { count: 'exact', head: true }).eq('cliente_id', datosCliente.id).in('estado', ['borrador', 'enviada', 'aprobada']),
-                        supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('cliente_id', datosCliente.id).not('estado', 'in', '(finalizado,cancelado)'),
-                        supabase.from('despachos').select('id', { count: 'exact', head: true }).eq('estado', 'en_ruta'),
-                    ]);
+                    // despachos_en_ruta no está en el route de perfil, lo pedimos aparte
+                    const dspRes = await supabase
+                        .from('despachos')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('estado', 'en_ruta');
 
-                    setStats({ cotizaciones_activas: cotRes.count ?? 0, ordenes_activas: ordRes.count ?? 0, despachos_en_ruta: dspRes.count ?? 0 });
+                    setStats({
+                        cotizaciones_activas: resPerfil.data.stats.cotizaciones ?? 0,
+                        ordenes_activas: resPerfil.data.stats.pedidos ?? 0,
+                        despachos_en_ruta: dspRes.count ?? 0,
+                    });
+
                     await cargarSeguimientoYDespachos(datosCliente.id);
                 }
             } catch (err) {
@@ -306,7 +306,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     const agregarDesdeCatalogo = useCallback((payload: AgregarPedidoPayload) => {
         const { producto } = payload;
-        const listaVariantes = (producto.variantes ?? (producto as any).variantes_producto ?? []) as Array<{
+        const listaVariantes = (producto.variantes ?? (producto).variantes_producto ?? []) as Array<{
             id: number; talla?: string; color?: string; stock?: number; stock_disponible?: number; imagen_url?: string | null;
         }>;
 
@@ -332,7 +332,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
         if (cantidadAsignada > stockMaximo) {
             toast.warning('Stock limitado', { description: `Solo se agregarán ${stockMaximo} unidades (máximo disponible en almacén).` });
-            pathway: cantidadAsignada = stockMaximo;
+            cantidadAsignada = stockMaximo;
         }
 
         useCartStore.getState().addItem({
