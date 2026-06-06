@@ -602,8 +602,20 @@ model auditoria {
   @@schema("public")
 }
 
+model categoria_insumo {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(100)
+  descripcion String?  @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  activo      Boolean?  
+  insumos    insumo[]
+
+  @@schema("public")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model categorias {
+model categorias_productos {
   id               BigInt             @id @default(autoincrement())
   nombre           String             @unique
   descripcion      String?
@@ -1207,7 +1219,7 @@ model insumo {
   id                           BigInt                         @id @default(autoincrement())
   nombre                       String
   tipo                         TipoInsumo
-  categoria_insumo             CategoriaInsumo                @default(otro)
+  categoria_id                 Int
   unidad_medida                UnidadMedida                   @default(unidades)
   stock_actual                 Decimal                        @default(0.00) @db.Decimal(12, 2)
   stock_minimo                 Decimal                        @default(0.00) @db.Decimal(12, 2)
@@ -1218,6 +1230,7 @@ model insumo {
   proveedor_id                 BigInt?
   ubicacion_almacen            String?                        @db.VarChar(100)
   alerta_bajo_stock            Boolean?                       @default(true)
+  categoria_insumo             categoria_insumo             @relation(fields: [categoria_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   cotizaciones_proveedor_items cotizaciones_proveedor_items[]
   detalle_ficha_insumos        detalle_ficha_insumos[]
   devoluciones_proveedor       devoluciones_proveedor[]
@@ -1228,7 +1241,7 @@ model insumo {
   ordenes_compra_items         ordenes_compra_items[]
   almacen_stock                almacen_stock[]
 
-  @@index([categoria_insumo], map: "idx_insumos_categoria")
+  @@index([categoria_id], map: "idx_insumos_categoria")
   @@index([proveedor_id], map: "idx_insumos_proveedor")
   @@index([stock_actual], map: "idx_insumos_stock")
   @@schema("public")
@@ -1654,7 +1667,7 @@ model productos {
   movimientos_inventario movimientos_inventario[]
   ordenes_produccion     ordenes_produccion[]
   pedido_items           pedido_items[]
-  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categorias_productos   categorias_productos?    @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
   almacen_stock            almacen_stock[]
   ordenes_produccion_items ordenes_produccion_items[]
@@ -1706,7 +1719,7 @@ model reglas_descuento {
   descuento_aplicaciones descuento_aplicaciones[]
   oferta_reglas          oferta_reglas[]
   promocion_reglas       promocion_reglas[]
-  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reglas_descuento_categoria_id")
+  categorias_productos   categorias_productos?    @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reglas_descuento_categoria_id")
 
   @@index([activo, fecha_inicio, fecha_fin], map: "idx_reglas_activas_fechas")
   @@schema("public")
@@ -1982,19 +1995,6 @@ enum Cargo {
   representante_taller
   gerente
   almacenero
-
-  @@schema("public")
-}
-
-enum CategoriaInsumo {
-  tela
-  avios
-  empaque
-  hilo
-  etiquetas
-  forro
-  otro
-  accesorios
 
   @@schema("public")
 }
@@ -2459,18 +2459,10 @@ enum TipoIncidenciaCliente {
 }
 
 enum TipoInsumo {
-  tela
-  hilo
+  materia_prima
   avio
-  boton
-  cierre
   empaque
-  otro
-  etiqueta
-  cinta
-  elastico
-  forro
-  accesorio
+  suministro
 
   @@schema("public")
 }

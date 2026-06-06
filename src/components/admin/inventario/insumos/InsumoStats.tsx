@@ -1,17 +1,16 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Database } from '@/types/database'
 import { Package, AlertTriangle, XCircle, BarChart3 } from 'lucide-react'
-
-type Insumo = Database['public']['Tables']['insumo']['Row']
+// Importamos directamente el tipo generado por Prisma en Mayúscula
+import type { insumo as Insumo } from '@prisma/client'
 
 // ─────────────────────────────────────────────────────────────
 //  Tipos
 // ─────────────────────────────────────────────────────────────
 interface InventoryStatsProps {
-  data:           Insumo[]
-  statusFilter:   string | null
+  data: Insumo[]
+  statusFilter: string | null
   onFilterChange: (filter: string | null) => void
 }
 
@@ -23,11 +22,22 @@ export default function InventoryStats({
   statusFilter,
   onFilterChange,
 }: InventoryStatsProps) {
+
   const stats = useMemo(() => {
-    const total          = data.length
-    const stockCritico   = data.filter(i => i.stock_actual > 0 && i.stock_actual <= i.stock_minimo).length
-    const sinStock       = data.filter(i => i.stock_actual <= 0).length
+    const total = data.length
+
+    // Filtrado adaptado con soporte para el tipo Decimal de Prisma mapeado a Number de JS
+    const stockCritico = data.filter(i => {
+      const actual = Number(i.stock_actual || 0)
+      const minimo = Number(i.stock_minimo || 0)
+      return actual > 0 && actual <= minimo
+    }).length
+
+    const sinStock = data.filter(i => Number(i.stock_actual || 0) <= 0).length
+
+    // Obtener la cantidad de Enums únicos en uso ('materia_prima', 'avio', etc.)
     const tiposDiferentes = new Set(data.map(i => i.tipo)).size
+
     return { total, stockCritico, sinStock, tiposDiferentes }
   }, [data])
 
@@ -38,7 +48,7 @@ export default function InventoryStats({
       <StatCard
         label="Total Insumos"
         value={stats.total}
-        sub={`${stats.tiposDiferentes} categorías distintas`}
+        sub={`${stats.tiposDiferentes} variantes de tipo`}
         icon={<Package className="w-5 h-5" />}
         isActive={statusFilter === null}
         onClick={() => onFilterChange(null)}
@@ -67,14 +77,14 @@ export default function InventoryStats({
         variant="danger"
       />
 
-      {/* ── Categorías ── no filtra ── */}
+      {/* ── Categorías / Tipos ── */}
       <StatCard
-        label="Categorías"
+        label="Tipos"
         value={stats.tiposDiferentes}
-        sub="Tipos de insumos registrados"
+        sub="Segmentos de producción"
         icon={<BarChart3 className="w-5 h-5" />}
         isActive={false}
-        onClick={() => {}}
+        onClick={() => { }}
         variant="info"
         noFilter
       />
@@ -88,44 +98,44 @@ export default function InventoryStats({
 type Variant = 'neutral' | 'warning' | 'danger' | 'info'
 
 const VARIANT_CONFIG: Record<Variant, {
-  idle:       string
-  active:     string
-  iconIdle:   string
+  idle: string
+  active: string
+  iconIdle: string
   iconActive: string
   valueColor: string
-  bar:        string
+  bar: string
 }> = {
   neutral: {
-    idle:       'border-gray-100 hover:border-blue-200 hover:shadow-blue-100',
-    active:     'border-blue-400 shadow-blue-100 ring-2 ring-blue-100',
-    iconIdle:   'bg-blue-50   text-blue-500',
-    iconActive: 'bg-blue-600  text-white',
+    idle: 'border-gray-100 hover:border-blue-200 hover:shadow-blue-100',
+    active: 'border-blue-400 shadow-blue-100 ring-2 ring-blue-100',
+    iconIdle: 'bg-blue-50   text-blue-500',
+    iconActive: 'bg-blue-600   text-white',
     valueColor: 'text-blue-700',
-    bar:        'bg-gradient-to-r from-blue-400 to-indigo-400',
+    bar: 'bg-gradient-to-r from-blue-400 to-indigo-400',
   },
   warning: {
-    idle:       'border-gray-100 hover:border-orange-200 hover:shadow-orange-100',
-    active:     'border-orange-400 shadow-orange-100 ring-2 ring-orange-100',
-    iconIdle:   'bg-orange-50  text-orange-500',
+    idle: 'border-gray-100 hover:border-orange-200 hover:shadow-orange-100',
+    active: 'border-orange-400 shadow-orange-100 ring-2 ring-orange-100',
+    iconIdle: 'bg-orange-50  text-orange-500',
     iconActive: 'bg-orange-500 text-white',
     valueColor: 'text-orange-600',
-    bar:        'bg-gradient-to-r from-orange-400 to-amber-400',
+    bar: 'bg-gradient-to-r from-orange-400 to-amber-400',
   },
   danger: {
-    idle:       'border-gray-100 hover:border-red-200 hover:shadow-red-100',
-    active:     'border-red-400 shadow-red-100 ring-2 ring-red-100',
-    iconIdle:   'bg-red-50    text-red-500',
+    idle: 'border-gray-100 hover:border-red-200 hover:shadow-red-100',
+    active: 'border-red-400 shadow-red-100 ring-2 ring-red-100',
+    iconIdle: 'bg-red-50    text-red-500',
     iconActive: 'bg-red-600   text-white',
     valueColor: 'text-red-600',
-    bar:        'bg-gradient-to-r from-red-400 to-rose-500',
+    bar: 'bg-gradient-to-r from-red-400 to-rose-500',
   },
   info: {
-    idle:       'border-gray-100 hover:border-purple-200 hover:shadow-purple-50',
-    active:     'border-purple-400 shadow-purple-50 ring-2 ring-purple-100',
-    iconIdle:   'bg-purple-50 text-purple-500',
+    idle: 'border-gray-100 hover:border-purple-200 hover:shadow-purple-50',
+    active: 'border-purple-400 shadow-purple-50 ring-2 ring-purple-100',
+    iconIdle: 'bg-purple-50 text-purple-500',
     iconActive: 'bg-purple-600 text-white',
     valueColor: 'text-purple-700',
-    bar:        'bg-gradient-to-r from-purple-400 to-violet-400',
+    bar: 'bg-gradient-to-r from-purple-400 to-violet-400',
   },
 }
 
@@ -139,13 +149,13 @@ function StatCard({
   variant,
   noFilter = false,
 }: {
-  label:     string
-  value:     number | string
-  sub:       string
-  icon:      React.ReactNode
-  isActive:  boolean
-  onClick:   () => void
-  variant:   Variant
+  label: string
+  value: number | string
+  sub: string
+  icon: React.ReactNode
+  isActive: boolean
+  onClick: () => void
+  variant: Variant
   noFilter?: boolean
 }) {
   const cfg = VARIANT_CONFIG[variant]
