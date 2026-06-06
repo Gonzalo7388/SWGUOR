@@ -8,7 +8,7 @@ export const OrdenesProduccionService = {
     producto_id?: string;
     taller_id?: string;
     pedido_id?: string;
-    estado?: string;
+    estado?: string | string[];
     etapa?: string;
     search?: string;
     page?: number;
@@ -24,7 +24,11 @@ export const OrdenesProduccionService = {
     if (taller_id) where.taller_id = BigInt(taller_id);
 
     if (estado && estado !== 'todos' && estado !== 'all') {
-      where.estado = estado as Prisma.ordenes_produccionWhereInput['estado'];
+      if (Array.isArray(estado)) {
+        where.estado = { in: estado } as Prisma.ordenes_produccionWhereInput['estado'];
+      } else {
+        where.estado = estado as Prisma.ordenes_produccionWhereInput['estado'];
+      }
     }
 
     if (pedido_id) where.pedido_id = BigInt(pedido_id);

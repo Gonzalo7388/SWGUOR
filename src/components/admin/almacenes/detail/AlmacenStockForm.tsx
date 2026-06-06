@@ -79,7 +79,7 @@ export function AlmacenStockForm({ almacenId, zonas, onSuccess, onCancel }: Alma
             try {
                 const endpoint = tipoOrigen === 'ORDEN_COMPRA'
                     ? '/api/admin/ordenes-compra?estado=confirmada,parcialmente_recibida'
-                    : '/api/admin/ordenes-produccion?estado=en_produccion,completada';
+                    : '/api/admin/ordenes-produccion?estado=en_produccion,completada&limit=100';
 
                 const res = await fetch(endpoint);
                 if (!res.ok) throw new Error();
