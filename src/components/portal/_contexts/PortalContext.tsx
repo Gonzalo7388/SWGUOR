@@ -117,38 +117,24 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             const { data: pedidosData, error: pedidosError } = await supabase
                 .from('pedidos')
                 .select(`
-                    id, codigo_pedido:id, fecha_compra:created_at, monto_total:total, 
-                    estado_pago, estado_pedido:estado,
-                    historial:seguimiento_pedido ( id, pedido_id, status, notas, created_at )
-                `)
+                id, codigo_pedido:id, fecha_compra:created_at, monto_total:total,
+                estado_pago, estado_pedido:estado,
+                historial:seguimiento_pedido ( id, pedido_id, status, notas, created_at )
+            `)
                 .eq('cliente_id', clienteId)
                 .order('created_at', { ascending: false })
-                .order('created_at', { foreignTable: 'seguimiento_pedido', ascending: true });
+                .order('created_at', { referencedTable: 'seguimiento_pedido', ascending: true });
 
             if (pedidosError) throw pedidosError;
             setPedidosSeguimiento((pedidosData as any) || []);
 
-            const { data: despachosData, error: despachosError } = await supabase
-                .from('despachos')
-                .select(`
-                    id, pedido_id, fecha_despacho, direccion_entrega, fecha_entrega, estado, created_at, updated_at,
-                    vinculo_grupo:despachos_grupo_pedidos (
-                        grupo:despachos_grupos (
-                            historial:seguimiento_despachos ( id, grupo_despacho_id, status, notas, created_at )
-                        )
-                    )
-                `)
-                .eq('pedidos.cliente_id', clienteId)
-                .not('estado', 'eq', 'entregado');
-
-            if (despachosError) throw despachosError;
-
-            const despachosFormateados = (despachosData || []).map((d: any) => ({
+            const resDespachos = await fetch('/api/portal/despachos').then(r => r.json());
+            const despachosFormateados = (Array.isArray(resDespachos) ? resDespachos : []).map((d: any) => ({
                 ...d,
-                historial_grupo: d.vinculo_grupo?.[0]?.grupo?.historial || []
+                historial_grupo: d.seguimiento_despachos || []
             }));
-
             setDespachosActivos(despachosFormateados);
+
         } catch (error) {
             console.warn('Advertencia: No se pudieron cargar los seguimientos:', error);
         } finally {
@@ -207,16 +193,15 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                     };
                     setCliente(clientObj);
 
-                    // despachos_en_ruta no está en el route de perfil, lo pedimos aparte
-                    const dspRes = await supabase
-                        .from('despachos')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('estado', 'en_ruta');
+                    const resDespachos = await fetch('/api/portal/despachos').then(r => r.json());
+                    const despachoCount = Array.isArray(resDespachos)
+                        ? resDespachos.filter((d: any) => d.estado === 'en_ruta').length
+                        : 0;
 
                     setStats({
                         cotizaciones_activas: resPerfil.data.stats.cotizaciones ?? 0,
                         ordenes_activas: resPerfil.data.stats.pedidos ?? 0,
-                        despachos_en_ruta: dspRes.count ?? 0,
+                        despachos_en_ruta: despachoCount,
                     });
 
                     await cargarSeguimientoYDespachos(datosCliente.id);
