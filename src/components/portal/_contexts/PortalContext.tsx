@@ -28,6 +28,8 @@ export interface ProductoPortal extends ProductoBase {
     tallas_disponibles: string[] | null;
     reglas_descuento: string[] | null;
     almacen_id: number | null;
+    variantes?: any[];
+    variantes_producto?: any[];
 }
 export interface ResumenCotizacion { subtotal: number; total_unidades: number; modelos_distintos: number; descuento_pct: number; descuento_monto: number; base_igv: number; igv: number; costo_envio: number; total: number; descripcion_descuento: string; descripcion_envio: string; es_cliente_nuevo: boolean; }
 export interface AgregarCotizacionPayload { variante_id: number; producto_id: number; cantidad: number; nombre: string; sku: string; imagen: string | null; color: string; talla: string; precio_unitario: number; }
@@ -40,46 +42,11 @@ export const ZONAS_ENVIO: Record<ZonaEnvio, { label: string; costo: number }> = 
     lejana: { label: 'Zona lejana', costo: 25 },
 };
 
-export interface HitoSeguimientoPedido {
-    id: number;
-    pedido_id: number;
-    status: 'pendiente' | 'procesando' | 'empaquetado' | 'listo_despacho' | 'en_transito' | 'entregado' | 'cancelado' | string;
-    notas: string | null;
-    created_at: string;
-}
+export interface HitoSeguimientoPedido { id: number; pedido_id: number; status: string; notas: string | null; created_at: string; }
+export interface HitoSeguimientoDespacho { id: number; grupo_despacho_id: number; status: string; notas: string | null; created_at: string; }
+export interface PedidoSeguimiento { id: number; codigo_pedido: string; fecha_compra: string; monto_total: number; estado_pago: string; estado_pedido: string; items_count: number; historial: HitoSeguimientoPedido[]; }
+export interface DespachoPortal { id: number; pedido_id: number; fecha_despacho: string; direccion_entrega: string; fecha_entrega: string | null; estado: string; created_at: string; updated_at: string; historial_grupo: HitoSeguimientoDespacho[]; }
 
-export interface HitoSeguimientoDespacho {
-    id: number;
-    grupo_despacho_id: number;
-    status: 'pendiente' | 'programado' | 'en_almacen' | 'en_ruta' | 'entregado' | 'incidencia' | string;
-    notas: string | null;
-    created_at: string;
-}
-
-export interface PedidoSeguimiento {
-    id: number;
-    codigo_pedido: string;
-    fecha_compra: string;
-    monto_total: number;
-    estado_pago: string;
-    estado_pedido: string;
-    items_count: number;
-    historial: HitoSeguimientoPedido[];
-}
-
-export interface DespachoPortal {
-    id: number;
-    pedido_id: number;
-    fecha_despacho: string;
-    direccion_entrega: string;
-    fecha_entrega: string | null;
-    estado: string;
-    created_at: string;
-    updated_at: string;
-    historial_grupo: HitoSeguimientoDespacho[];
-}
-
-// ── ACTUALIZACIÓN DE PORTALCTXPROPS ──────────────────────────────────────────
 export interface PortalCtxProps {
     cliente: ClientePortal | null;
     loading: boolean;
@@ -92,13 +59,10 @@ export interface PortalCtxProps {
     productos: ProductoPortal[];
     categorias: CategoriaPortal[];
     stats: { cotizaciones_activas: number; ordenes_activas: number; despachos_en_ruta: number };
-
-    // Agregados para Despachos y Seguimiento
     pedidosSeguimiento: PedidoSeguimiento[];
     despachosActivos: DespachoPortal[];
     loadingSeguimiento: boolean;
     refetchSeguimiento: () => Promise<void>;
-
     actualizarZonaEnvio: (zona: ZonaEnvio) => void;
     agregarACotizacion: (payload: AgregarCotizacionPayload) => void;
     agregarDesdeCatalogo: (payload: AgregarPedidoPayload) => void;
@@ -109,7 +73,7 @@ export interface PortalCtxProps {
     limpiarBorrador: () => void;
     limpiarCarrito: () => void;
     actualizarCliente: (updates: Partial<ClientePortal>) => void;
-    notificaciones: ReturnType<typeof useNotificationsPortal>['notificaciones'];
+    notificaciones: any[];
     unreadCount: number;
     loadingNotifs: boolean;
     markAsRead: (id: number) => Promise<void>;
@@ -121,13 +85,11 @@ export const PortalContext = createContext<PortalCtxProps | null>(null);
 export const MAX_UNIDADES = 2000;
 
 export function PortalProvider({ children }: { children: ReactNode }) {
-    // ── 1. ESTADOS REACTIVOS DESDE ZUSTAND ──
     const storeItemsBorrador = useQuotationStore((state) => state.itemsBorrador);
     const storeItemsCarrito = useCartStore((state) => state.items);
     const zonaEnvio = useQuotationStore((state) => state.zonaEnvio);
     const actualizarZonaEnvioState = useQuotationStore((state) => state.actualizarZonaEnvio);
 
-    // ── 2. ESTADOS LOCALES BASE ──
     const [cliente, setCliente] = useState<ClientePortal | null>(null);
     const [loading, setLoading] = useState(true);
     const [reglas, setReglas] = useState<ReglaDescuento[]>([]);
@@ -140,22 +102,18 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     const [productos, setProductos] = useState<ProductoPortal[]>([]);
     const [categorias, setCategorias] = useState<CategoriaPortal[]>([]);
 
-    // ── NUEVOS ESTADOS PARA SEGUIMIENTO Y DESPACHOS ──
     const [pedidosSeguimiento, setPedidosSeguimiento] = useState<PedidoSeguimiento[]>([]);
     const [despachosActivos, setDespachosActivos] = useState<DespachoPortal[]>([]);
     const [loadingSeguimiento, setLoadingSeguimiento] = useState(false);
 
     const { notificaciones, unreadCount, loading: loadingNotifs, markAsRead, markAllAsRead, refetch: refetchNotifs } = useNotificationsPortal(cliente?.usuario_id);
 
-    // Función independiente para refrescar pedidos y despachos de forma asíncrona
     const cargarSeguimientoYDespachos = useCallback(async (clienteId: number) => {
-        if (!clienteId) return; // Seguridad extra
-
+        if (!clienteId) return;
         setLoadingSeguimiento(true);
         const supabase = getSupabaseBrowserClient();
 
         try {
-            // 1. OBTENER PEDIDOS
             const { data: pedidosData, error: pedidosError } = await supabase
                 .from('pedidos')
                 .select(`
@@ -170,7 +128,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             if (pedidosError) throw pedidosError;
             setPedidosSeguimiento((pedidosData as any) || []);
 
-            // 2. OBTENER DESPACHOS
             const { data: despachosData, error: despachosError } = await supabase
                 .from('despachos')
                 .select(`
@@ -186,23 +143,20 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
             if (despachosError) throw despachosError;
 
-            // Formateo seguro de despachos
             const despachosFormateados = (despachosData || []).map((d: any) => ({
                 ...d,
                 historial_grupo: d.vinculo_grupo?.[0]?.grupo?.historial || []
             }));
 
             setDespachosActivos(despachosFormateados);
-
         } catch (error) {
-            // Aquí evitamos que el error "suba" y bloquee el provider
             console.warn('Advertencia: No se pudieron cargar los seguimientos:', error);
         } finally {
             setLoadingSeguimiento(false);
         }
-    }, []); // Dependencias vacías, el clienteId viene por parámetro
+    }, []);
 
-    // Inicialización del Portal B2B con consulta única optimizada
+    // Inicialización del Portal B2B optimizada mediante peticiones HTTP internas
     useEffect(() => {
         const init = async () => {
             const supabase = getSupabaseBrowserClient();
@@ -210,29 +164,28 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             if (!user) { setLoading(false); return; }
 
             try {
-                const [reglasRes, productosRes, categoriasRes, costosRes] = await Promise.all([
+                // 🔄 CONSULTA HACIA TUS ENDPOINTS DE NEXT.JS (Adiós RLS y tablas incorrectas)
+                const [resReglas, resProductos, resCategorias, resCostos] = await Promise.all([
                     supabase.from('reglas_descuento').select('*').eq('activo', true),
-                    supabase.from('productos').select('*, variantes:variantes_producto(*)').order('nombre', { ascending: true }),
-                    supabase.from('categorias').select('id, nombre').order('nombre', { ascending: true }),
+                    fetch('/api/portal/productos').then((r) => r.json()),
+                    fetch('/api/portal/categorias').then((r) => r.json()),
                     supabase.from('costo_envio').select('*').eq('activo', true).order('id'),
                 ]);
 
-                if (reglasRes.data) setReglas(reglasRes.data);
-                if (productosRes.data) {
-                    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-                    const normalized = productosRes.data.map((p: any) => ({
-                        ...p,
-                        imagen: p.imagen
-                            ? p.imagen.startsWith('http')
-                                ? p.imagen
-                                : `${base}/storage/v1/object/public/productos/${p.imagen}`
-                            : null,
-                    }));
-                    setProductos(normalized as ProductoPortal[]);
+                if (resReglas.data) setReglas(resReglas.data);
+
+                // Mapear los productos desde tu API route de Prisma
+                if (resProductos.success && resProductos.data) {
+                    setProductos(resProductos.data as ProductoPortal[]);
                 }
-                if (categoriasRes.data) setCategorias(categoriasRes.data);
-                if (costosRes.data) {
-                    setCostosEnvio(costosRes.data.map(c => ({ id: c.id, zona: c.zona as ZonaEnvio, costo: Number(c.costo), activo: c.activo })));
+
+                // Mapear las categorías desde tu API route de Prisma
+                if (resCategorias.success && resCategorias.data) {
+                    setCategorias(resCategorias.data as CategoriaPortal[]);
+                }
+
+                if (resCostos.data) {
+                    setCostosEnvio(resCostos.data.map(c => ({ id: c.id, zona: c.zona as ZonaEnvio, costo: Number(c.costo), activo: c.activo })));
                 }
 
                 const { data: usuarioPerfil } = await supabase
@@ -259,19 +212,20 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                     };
                     setCliente(clientObj);
 
-                    // Ejecutar carga paralela de stats y data de despachos
                     const [cotRes, ordRes, dspRes] = await Promise.all([
                         supabase.from('cotizaciones').select('id', { count: 'exact', head: true }).eq('cliente_id', datosCliente.id).in('estado', ['borrador', 'enviada', 'aprobada']),
                         supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('cliente_id', datosCliente.id).not('estado', 'in', '(finalizado,cancelado)'),
-                        supabase.from('despachos').select('id', { count: 'exact', head: true }).eq('estado', 'en_ruta'), // General o filtrado por cliente
+                        supabase.from('despachos').select('id', { count: 'exact', head: true }).eq('estado', 'en_ruta'),
                     ]);
 
                     setStats({ cotizaciones_activas: cotRes.count ?? 0, ordenes_activas: ordRes.count ?? 0, despachos_en_ruta: dspRes.count ?? 0 });
-
-                    // Disparar la carga detallada inicial de seguimiento
                     await cargarSeguimientoYDespachos(datosCliente.id);
                 }
-            } catch (err) { console.error(err); } finally { setLoading(false); }
+            } catch (err) {
+                console.error('Error inicializando el PortalProvider:', err);
+            } finally {
+                setLoading(false);
+            }
         };
         init();
     }, [cargarSeguimientoYDespachos]);
@@ -284,7 +238,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         }
     }, [cliente?.id, cargarSeguimientoYDespachos]);
 
-    // ── 3. NORMALIZACIÓN DE TIPOS Y ADAPTACIÓN PARA CALCULOS ──
     const itemsBorradorAdaptados = useMemo<ItemLineaB2B[]>(() => {
         return storeItemsBorrador.map((item) => ({
             producto_id: item.producto_id,
@@ -324,7 +277,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         });
     }, [storeItemsCarrito, productos]);
 
-    // ── 4. MEMOS DE RESÚMENES FINANCIEROS ──
     const resumenBorrador = useMemo(
         () => calcularResumen(itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio),
         [itemsBorradorAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio],
@@ -334,7 +286,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         [itemsCarritoAdaptados, zonaEnvio, reglas, esClienteNuevo, costosEnvio],
     );
 
-    // ── 5. ACCIONES CONECTADAS DIRECTAMENTE A ZUSTAND ──
     const actualizarZonaEnvio = useCallback((zona: ZonaEnvio) => {
         actualizarZonaEnvioState(zona);
     }, [actualizarZonaEnvioState]);
@@ -355,14 +306,8 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
     const agregarDesdeCatalogo = useCallback((payload: AgregarPedidoPayload) => {
         const { producto } = payload;
-
         const listaVariantes = (producto.variantes ?? (producto as any).variantes_producto ?? []) as Array<{
-            id: number;
-            talla?: string;
-            color?: string;
-            stock?: number;
-            stock_disponible?: number;
-            imagen_url?: string | null;
+            id: number; talla?: string; color?: string; stock?: number; stock_disponible?: number; imagen_url?: string | null;
         }>;
 
         let v_id: number | undefined;
@@ -381,17 +326,13 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         const stockMaximo = varianteSeleccionada?.stock_disponible ?? varianteSeleccionada?.stock ?? 0;
 
         if (stockMaximo <= 0) {
-            toast.error('Inventario agotado', {
-                description: `No hay stock disponible para la combinación elegida de ${producto.nombre}.`
-            });
+            toast.error('Inventario agotado', { description: `No hay stock disponible para la combinación elegida de ${producto.nombre}.` });
             return;
         }
 
         if (cantidadAsignada > stockMaximo) {
-            toast.warning('Stock limitado', {
-                description: `Solo se agregarán ${stockMaximo} unidades (máximo disponible en almacén).`
-            });
-            cantidadAsignada = stockMaximo;
+            toast.warning('Stock limitado', { description: `Solo se agregarán ${stockMaximo} unidades (máximo disponible en almacén).` });
+            pathway: cantidadAsignada = stockMaximo;
         }
 
         useCartStore.getState().addItem({
@@ -406,40 +347,31 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         }, cantidadAsignada);
 
         toast.success(`${producto.nombre} agregado al borrador de pedido.`);
-    }, [productos]);
+    }, []);
 
     const actualizarCantidadBorrador = useCallback((id: number, q: number) => useQuotationStore.getState().updateBorradorQuantity(id, q), []);
+
     const actualizarCantidadCarrito = useCallback((v_id: number, q: number) => {
-        // 1. Buscamos el item en el store del carrito
         const item = useCartStore.getState().items.find(i => i.variante_id === v_id);
         if (!item) return;
 
-        // 2. Buscamos el producto en nuestro estado local para leer el stock de la vista
         const prodCompleto = productos.find(p => p.id === item.producto_id);
         const listaVariantes = (prodCompleto?.variantes ?? (prodCompleto as any)?.variantes_producto ?? []) as Array<{ id: number; stock_disponible?: number }>;
         const variante = listaVariantes.find(v => v.id === v_id);
-
         const stockMaximo = variante?.stock_disponible ?? 0;
 
-        // 3. Si el usuario intenta escribir o subir a una cantidad mayor que el stock real de la vista
         if (q > stockMaximo) {
-            toast.warning('Stock insuficiente', {
-                description: `Solo quedan ${stockMaximo} unidades disponibles de este modelo.`
-            });
-            // Forzamos a que se quede en el máximo disponible
+            toast.warning('Stock insuficiente', { description: `Solo quedan ${stockMaximo} unidades disponibles de este modelo.` });
             useCartStore.getState().updateQuantity(item.producto_id, v_id, stockMaximo);
             return;
         }
-
-        // Si todo está bien, actualiza normal
         useCartStore.getState().updateQuantity(item.producto_id, v_id, q);
     }, [productos]);
+
     const eliminarDelBorrador = useCallback((id: number) => useQuotationStore.getState().removeItemFromBorrador(id), []);
     const eliminarDelCarrito = useCallback((v_id: number) => {
         const item = useCartStore.getState().items.find(i => i.variante_id === v_id);
-        if (item) {
-            useCartStore.getState().removeItem(item.producto_id, v_id);
-        }
+        if (item) useCartStore.getState().removeItem(item.producto_id, v_id);
     }, []);
     const limpiarBorrador = useCallback(() => useQuotationStore.getState().clearBorrador(), []);
     const limpiarCarrito = useCallback(() => useCartStore.getState().clearCart(), []);

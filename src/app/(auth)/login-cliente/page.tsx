@@ -36,15 +36,16 @@ export default function LoginClientePage() {
 
       const role = data.role?.toLowerCase().trim();
 
+      // Sincroniza los estados del enrutador de Next.js antes de mover la ventana
+      router.refresh();
+
       if (role === 'cliente') {
         router.push('/portal/dashboard');
-      } else {
-        router.push('/admin/Panel-Administrativo/dashboard');
       }
 
     } catch (err: any) {
       setError(err.message);
-      setLoading(false);
+      setLoading(false); // Detiene el spinner de carga si falló
     }
   };
 
@@ -64,7 +65,7 @@ export default function LoginClientePage() {
         {/* CONTENIDO */}
         <div className="relative z-10">
 
-          
+
 
           <span className="bg-[#b5854b] text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit mb-6">
             Beneficio Exclusivo B2B

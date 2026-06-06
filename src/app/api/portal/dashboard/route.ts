@@ -10,8 +10,12 @@ async function obtenerClienteSesion() {
     return { error: auth.error, status: auth.status };
   }
 
+  // auth.user.id es el string UUID que Supabase Auth genera.
+  // Buscamos directamente en la tabla 'clientes' donde 'usuario_id' guarda este string/UUID.
   const clienteDb = await prisma.clientes.findFirst({
-    where: { usuario_id: auth.user.id },
+    where: {
+      usuario_id: auth.user.id
+    },
     select: { id: true, razon_social: true, nombre_comercial: true },
   });
 
@@ -20,10 +24,10 @@ async function obtenerClienteSesion() {
   }
 
   return {
-    auth_user_id: auth.user.authId,
-    usuario_id:   auth.user.id,
-    cliente_id:   clienteDb.id,
-    cliente:      clienteDb,
+    auth_user_id: auth.user.authId || auth.user.id,
+    usuario_id: auth.user.id,
+    cliente_id: clienteDb.id,
+    cliente: clienteDb,
   };
 }
 
@@ -131,6 +135,7 @@ export async function GET() {
     const totalGastado = Number(totalGastadoAggregate?._sum?.total ?? 0);
 
     const stats = {
+      notificaciones_no_leidas: 0, // Añadido valor por defecto si lo requiere tu tipado del front
       cotizaciones_pendientes: cotStats,
       pedidos_en_produccion: pedidosEnProduccion,
       pedidos_listos: pedidosListos,

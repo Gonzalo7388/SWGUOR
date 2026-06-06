@@ -3,9 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { NextResponse } from 'next/server';
 
-/**
- * Normalizar imagen de Supabase Storage
- */
 const normalizarImagen = (
   img: string | null | undefined,
   bucket = 'categorias'
@@ -18,11 +15,11 @@ const normalizarImagen = (
 
 /**
  * GET /api/portal/categorias
- * Todas las categorías activas con imágenes normalizadas.
+ * Todas las categorías activas con imágenes normalizadas desde Prisma.
  */
 export async function GET() {
   try {
-    const categorias = await prisma.categorias.findMany({
+    const categorias = await prisma.categorias_productos.findMany({
       where: { activo: true },
       orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
     });

@@ -78,7 +78,7 @@ export async function GET(req: Request) {
     const productos = await prisma.productos.findMany({
       where: whereProductos,
       include: {
-        categorias: { select: { id: true, nombre: true, imagen: true } },
+        categorias_productos: { select: { id: true, nombre: true, imagen: true } },
         variantes_producto: {
           where: { estado: 'activo', stock: { gt: 0 } },
           select: {
@@ -156,11 +156,11 @@ export async function GET(req: Request) {
         ...serializeBigInt(producto),
         precio: Number(producto.precio),
         imagen: normalizarImagen(producto.imagen),
-        categoria: producto.categorias
+        categoria: producto.categorias_productos
           ? {
-            id: typeof producto.categorias.id === 'bigint' ? Number(producto.categorias.id) : producto.categorias.id,
-            nombre: producto.categorias.nombre,
-            imagen: normalizarImagen(producto.categorias.imagen),
+            id: typeof producto.categorias_productos.id === 'bigint' ? Number(producto.categorias_productos.id) : producto.categorias_productos.id,
+            nombre: producto.categorias_productos.nombre,
+            imagen: normalizarImagen(producto.categorias_productos.imagen),
           }
           : { id: null, nombre: 'Sin categoría', imagen: null },
         es_nuevo: esNuevo,
