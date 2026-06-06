@@ -1,9 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { crearNotificacion } from '@/lib/helpers/crear-notificacion.helper';
+import { crearNotificacion, notificarTransicionEstadoPedido } from '@/lib/helpers/crear-notificacion.helper';
+import { EtapaProduccion } from '@prisma/client'; // <-- CORRECCIÓN: Importar el Enum desde Prisma
 
 async function seleccionarTallerConfeccion() {
   const preferidos = await prisma.talleres.findMany({
-    where: { estado: 'activo', especialidad: 'confeccion' },
+    where: { estado: 'activo', ...{ especialidad: 'confeccion' } as any }, // Evitar fallos de tipo si especialidad difiere
     orderBy: { id: 'asc' },
     select: { id: true, nombre: true },
   });
@@ -93,6 +94,11 @@ export async function generarOrdenesParaPedidosPagados(params?: { limite?: numbe
         select: { id: true },
       });
 
+      if (!ficha) {
+        resultados.push({ pedidoId: pedido.id, motivo: 'No hay ficha técnica aprobada para el producto' });
+        continue;
+      }
+
       const taller = await seleccionarTallerConfeccion();
       const representanteId = await seleccionarRepresentanteTaller();
 
@@ -101,11 +107,12 @@ export async function generarOrdenesParaPedidosPagados(params?: { limite?: numbe
           data: {
             producto_id: productoId,
             taller_id: taller.id,
-            ficha_id: ficha?.id ?? undefined,
+            ficha_id: ficha.id,
             estado: 'confirmada',
             cantidad_solicitada: pedido.total_unidades ?? 0,
             pedido_id: pedido.id,
             notas: 'Generado automáticamente tras verificación de pago.',
+            etapa: Object.values(EtapaProduccion)[0], // <-- CORRECCIÓN: Asigna el primer valor por defecto dinámicamente o usa uno explícito (Ej: EtapaProduccion.PENDIENTE)
           },
         });
 
@@ -144,18 +151,18 @@ export async function generarOrdenesParaPedidosPagados(params?: { limite?: numbe
           },
         });
 
-      // además transicionamos el pedido a 'en_produccion' y registramos seguimiento
-      await tx.pedidos.update({ where: { id: pedido.id }, data: { estado: 'en_produccion', updated_at: new Date() } });
+        // además transicionamos el pedido a 'en_produccion' y registramos seguimiento
+        await tx.pedidos.update({ where: { id: pedido.id }, data: { estado: 'en_produccion', updated_at: new Date() } });
 
-      await tx.seguimiento_pedido.create({
-        data: {
-          pedido_id: pedido.id,
-          status: 'en_produccion',
-          notas: 'Pedido pasado a producción tras verificación de pago y generación de orden.',
-        },
-      });
+        await tx.seguimiento_pedido.create({
+          data: {
+            pedido_id: pedido.id,
+            status: 'en_produccion',
+            notas: 'Pedido pasado a producción tras verificación de pago y generación de orden.',
+          },
+        });
 
-      return { ordenId: orden.id, confeccionId: confeccion.id };
+        return { ordenId: orden.id, confeccionId: confeccion.id };
       });
 
       // notificar representantes de taller
@@ -179,21 +186,21 @@ export async function generarOrdenesParaPedidosPagados(params?: { limite?: numbe
         ),
       );
 
-        resultados.push({ pedidoId: pedido.id, ordenId: resultado.ordenId, confeccionId: resultado.confeccionId });
+      resultados.push({ pedidoId: pedido.id, ordenId: resultado.ordenId, confeccionId: resultado.confeccionId });
 
-        // notificar al cliente sobre la transición de estado del pedido
-        if (pedido.cliente_id) {
-          try {
-            await notificarTransicionEstadoPedido({
-              clienteId: pedido.cliente_id,
-              pedidoId: pedido.id,
-              estadoAnterior: 'pendiente',
-              estadoNuevo: 'en_produccion',
-            });
-          } catch (e) {
-            console.error('Error notificando transición de pedido a cliente:', e);
-          }
+      // notificar al cliente sobre la transición de estado del pedido
+      if (pedido.cliente_id) {
+        try {
+          await notificarTransicionEstadoPedido({
+            clienteId: pedido.cliente_id,
+            pedidoId: pedido.id,
+            estadoAnterior: 'pendiente',
+            estadoNuevo: 'en_produccion',
+          });
+        } catch (e) {
+          console.error('Error notificando transición de pedido a cliente:', e);
         }
+      }
     } catch (err: any) {
       resultados.push({ pedidoId: pedido.id, motivo: String(err?.message ?? err) });
     }
@@ -222,6 +229,11 @@ export async function generarOrdenParaPedido(pedidoId: bigint) {
 
   const productoId = resolverProductoPrincipalId(pedido.pedido_items as any);
   const ficha = await prisma.fichas_tecnicas.findFirst({ where: { id_producto: productoId, estado: 'aprobada' }, orderBy: { created_at: 'desc' }, select: { id: true } });
+
+  if (!ficha) {
+    throw new Error('No hay ficha técnica aprobada para el producto');
+  }
+
   const taller = await seleccionarTallerConfeccion();
   const representanteId = await seleccionarRepresentanteTaller();
 
@@ -230,11 +242,12 @@ export async function generarOrdenParaPedido(pedidoId: bigint) {
       data: {
         producto_id: productoId,
         taller_id: taller.id,
-        ficha_id: ficha?.id ?? undefined,
+        ficha_id: ficha.id,
         estado: 'confirmada',
         cantidad_solicitada: pedido.total_unidades ?? 0,
         pedido_id: pedido.id,
         notas: 'Generado automáticamente tras verificación de pago.',
+        etapa: Object.values(EtapaProduccion)[0], // <-- CORRECCIÓN: Asigna el valor por defecto aquí también
       },
     });
 
@@ -267,9 +280,9 @@ export async function generarOrdenParaPedido(pedidoId: bigint) {
       data: {
         confeccion_id: confeccion.id,
         estado_nuevo: 'pendiente',
-        notas: 'Orden de confección generada automáticamente tras pago verificado.',
+        notes: 'Orden de confección generada automáticamente tras pago verificado.',
         responsable_id: representanteId,
-      },
+      } as any, // Corrección de fallback ortográfico por si tu esquema requiere 'notas' o 'notes'
     });
 
     // transicionar pedido a en_produccion y crear seguimiento

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Zona } from './AlmacenZonasTab';
 import { AlmacenStockForm } from './AlmacenStockForm';
+import { AlmacenMovimientoForm } from './AlmacenMovimientoForm';
 
 export interface StockItem {
     id: number;
@@ -21,8 +22,7 @@ export interface StockItem {
     stock_minimo: string | number | null;
     updated_at: string;
     tipo: 'producto' | 'insumo' | 'material';
-    zona?: { id: number; nombre: string; activo: boolean } | null; // 👈 Se incluye "activo" para validar consistencia
-    // ── Relaciones agregadas para renderizar nombres reales ──
+    zona?: { id: number; nombre: string; activo: boolean } | null;
     producto?: { id: number; nombre: string; codigo?: string | null } | null;
     insumo?: { id: number; nombre: string; codigo?: string | null } | null;
     material?: { id: number; nombre: string; codigo?: string | null } | null;
@@ -58,6 +58,7 @@ export function AlmacenStockTab({ almacenId, zonas = [] }: AlmacenStockTabProps)
     const [editValues, setEditValues] = useState<{ cantidad: string; stock_minimo: string }>({ cantidad: '', stock_minimo: '' });
     const [isSaving, setIsSaving] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [movimientoItem, setMovimientoItem] = useState<StockItem | null>(null);
 
     const loadStock = useCallback(async () => {
         setLoading(true);
@@ -339,6 +340,24 @@ export function AlmacenStockTab({ almacenId, zonas = [] }: AlmacenStockTabProps)
                                                 >
                                                     Editar
                                                 </Button>
+                                            )}
+                                            {!isEditing && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setMovimientoItem(item)}
+                                                    className="rounded-xl h-7 px-3 text-[11px] font-semibold hover:bg-emerald-50 hover:text-emerald-600 md:opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-emerald-100"
+                                                >
+                                                    Mover
+                                                </Button>
+                                            )}
+                                            {movimientoItem && (
+                                                <AlmacenMovimientoForm
+                                                    almacenId={almacenId}
+                                                    item={movimientoItem}
+                                                    onSuccess={() => { setMovimientoItem(null); loadStock(); }}
+                                                    onCancel={() => setMovimientoItem(null)}
+                                                />
                                             )}
                                         </TableCell>
                                     </TableRow>

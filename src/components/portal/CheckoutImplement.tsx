@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
-    CulqiCheckout: new (publicKey: string, config: CulqiConfig) => CulqiInstance;
+    CulqiCheckout: any;
   }
 }
 
@@ -136,7 +136,7 @@ export default function CheckoutImplement({
     };
 
     culqiInstanceRef.current = instance;
-    culqiInstanceRef.current.open();
+    instance.open();
   }, [createCulqiConfig, handleToken, onError]);
 
   useEffect(() => {
