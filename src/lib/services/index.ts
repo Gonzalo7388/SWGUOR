@@ -12,6 +12,10 @@ export { asientosContablesService } from './asientos-contables.service';
 export { auditoriaService } from './auditoria.service';
 export { comprobantesService } from './comprobantes.service';
 export { pagosService } from './pagos.service';
+export {
+  ejecutarCierreVentaPostCulqi,
+  isCierreVentaCulqiError,
+} from './cierre-venta-culqi.service';
 
 // ── Servicios que usan Prisma directamente (sin RPC) ─────────────────────────
 export { FichasTecnicasService } from './fichas-tecnicas.service';

@@ -8,12 +8,9 @@ import {
 import {
   mapCulqiChargeHttpResponse,
   type CulqiChargeMappedResponse,
+  type CulqiChargeSuccessBody,
 } from '@/lib/helpers/culqi-response.helper';
-import {
-  assertIdempotenciaPagoPedidoEnTx,
-  PedidoNoEncontradoPagoError,
-  validarIdempotenciaPagoPedido,
-} from '@/lib/services/pago-idempotencia.service';
+import { PedidoNoEncontradoPagoError } from '@/lib/services/pago-idempotencia.service';
 import type { MetodoPago } from '@prisma/client';
 
 export class CulqiPedidoPagoError extends Error {
@@ -28,7 +25,7 @@ export class CulqiPedidoPagoError extends Error {
   }
 }
 
-export interface ProcesarCargoPedidoInput {
+export interface EjecutarCargoCulqiPedidoInput {
   pedidoId: number;
   token?: string;
   sourceId?: string;
@@ -36,19 +33,28 @@ export interface ProcesarCargoPedidoInput {
   description?: string;
 }
 
-export interface ProcesarCargoPedidoResult {
-  success: boolean;
-  httpStatus: number;
-  message: string;
-  code?: string;
-  data?: unknown;
-}
-
-interface PedidoMontoCobro {
+export interface PedidoMontoCobro {
   amountCents: number;
   amountSoles: number;
   currencyCode: CulqiCurrencyCode;
 }
+
+export type EjecutarCargoCulqiPedidoResult =
+  | {
+      success: true;
+      culqiChargeId: string;
+      culqiData: CulqiChargeSuccessBody;
+      monto: PedidoMontoCobro;
+      metodoPago: MetodoPago;
+      message: string;
+      code?: string;
+    }
+  | {
+      success: false;
+      httpStatus: number;
+      message: string;
+      code?: string;
+    };
 
 function normalizeCurrency(raw?: string | null): CulqiCurrencyCode {
   const code = (raw ?? CULQI_DEFAULT_CURRENCY).toUpperCase();
@@ -74,7 +80,7 @@ function inferMetodoPago(
   return 'visa';
 }
 
-async function resolverMontoPedidoDesdeBd(
+export async function obtenerMontoCobroPedidoDesdeBd(
   pedidoId: bigint,
 ): Promise<PedidoMontoCobro> {
   const pedido = await prisma.pedidos.findUnique({
@@ -112,7 +118,7 @@ async function resolverMontoPedidoDesdeBd(
   };
 }
 
-async function ejecutarCargoCulqi(input: {
+async function ejecutarCargoCulqiApi(input: {
   sourceId: string;
   email: string;
   amountCents: number;
@@ -146,61 +152,13 @@ async function ejecutarCargoCulqi(input: {
   return mapCulqiChargeHttpResponse(response.status, body);
 }
 
-async function registrarPagoPedidoEnBd(input: {
-  pedidoId: bigint;
-  amountSoles: number;
-  metodoPago: MetodoPago;
-  culqiChargeId?: string;
-}): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    await assertIdempotenciaPagoPedidoEnTx(tx, input.pedidoId);
-
-    const pedido = await tx.pedidos.findUnique({
-      where: { id: input.pedidoId },
-      select: { id: true, total: true, monto_pagado: true },
-    });
-
-    if (!pedido) {
-      throw new PedidoNoEncontradoPagoError();
-    }
-
-    const totalPedido = Number(pedido.total ?? 0);
-    const pagadoActual = Number(pedido.monto_pagado ?? 0);
-    const nuevoMontoPagado = pagadoActual + input.amountSoles;
-    const nuevoSaldoPendiente = Math.max(totalPedido - nuevoMontoPagado, 0);
-
-    await tx.pedidos.update({
-      where: { id: input.pedidoId },
-      data: {
-        metodo_pago: input.metodoPago,
-        monto_pagado: nuevoMontoPagado,
-        saldo_pendiente: nuevoSaldoPendiente,
-      },
-    });
-
-    await tx.pagos.create({
-      data: {
-        id_uuid: crypto.randomUUID(),
-        pedido_id: input.pedidoId,
-        monto: input.amountSoles,
-        metodo_pago: input.metodoPago,
-        tipo: 'pago_completo',
-        estado: 'pagado',
-        fecha_pago: new Date(),
-        notas: `Pago automático Culqi${
-          input.culqiChargeId ? ` (${input.culqiChargeId})` : ''
-        }`,
-      },
-    });
-  });
-}
-
 /**
- * Procesa un cargo Culqi para un pedido usando monto desde BD (no confía en el frontend).
+ * Ejecuta el cargo en Culqi usando el monto del pedido desde BD (no confía en el frontend).
+ * No valida idempotencia ni persiste en BD — eso lo orquesta el Route Handler.
  */
-export async function procesarCargoPedidoCulqi(
-  input: ProcesarCargoPedidoInput,
-): Promise<ProcesarCargoPedidoResult> {
+export async function ejecutarCargoCulqiPedido(
+  input: EjecutarCargoCulqiPedidoInput,
+): Promise<EjecutarCargoCulqiPedidoResult> {
   const pedidoId = Number(input.pedidoId);
   const paymentSource = input.sourceId ?? input.token;
   const email = input.email?.trim();
@@ -221,11 +179,9 @@ export async function procesarCargoPedidoCulqi(
     throw new CulqiPedidoPagoError('Correo del cliente requerido', 'EMAIL_REQUERIDO', 400);
   }
 
-  await validarIdempotenciaPagoPedido(pedidoId);
+  const monto = await obtenerMontoCobroPedidoDesdeBd(BigInt(pedidoId));
 
-  const monto = await resolverMontoPedidoDesdeBd(BigInt(pedidoId));
-
-  const culqiResult = await ejecutarCargoCulqi({
+  const culqiResult = await ejecutarCargoCulqiApi({
     sourceId: paymentSource,
     email,
     amountCents: monto.amountCents,
@@ -242,22 +198,25 @@ export async function procesarCargoPedidoCulqi(
     };
   }
 
-  const chargeData = culqiResult.data as Record<string, unknown>;
-  const metodoPago = inferMetodoPago(paymentSource, chargeData);
+  const culqiChargeId = culqiResult.data.id;
+  if (!culqiChargeId) {
+    throw new CulqiPedidoPagoError(
+      'Culqi no devolvió ID de transacción',
+      'CULQI_SIN_CHARGE_ID',
+      502,
+    );
+  }
 
-  await registrarPagoPedidoEnBd({
-    pedidoId: BigInt(pedidoId),
-    amountSoles: monto.amountSoles,
-    metodoPago,
-    culqiChargeId: culqiResult.data.id,
-  });
+  const chargeData = culqiResult.data as Record<string, unknown>;
 
   return {
     success: true,
-    httpStatus: 200,
+    culqiChargeId,
+    culqiData: culqiResult.data,
+    monto,
+    metodoPago: inferMetodoPago(paymentSource, chargeData),
     message: culqiResult.message,
     code: culqiResult.code,
-    data: culqiResult.data,
   };
 }
 

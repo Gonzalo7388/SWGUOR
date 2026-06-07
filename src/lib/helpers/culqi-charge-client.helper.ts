@@ -17,7 +17,16 @@ export interface CulqiChargeClientPayload {
 
 export interface CulqiChargeClientResult {
   success: boolean;
-  data?: unknown;
+  data?: {
+    pedido_id?: number;
+    pago_id?: string;
+    comprobante_id?: string;
+    numero_comprobante?: string | null;
+    pedido_estado?: string | null;
+    culqi_charge_id?: string;
+    redirect_url?: string;
+    [key: string]: unknown;
+  };
   message?: string;
   code?: string;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ export function CulqiCheckoutButton({
   onSuccess,
   onError,
 }: CulqiCheckoutButtonProps) {
+  const router = useRouter();
   const [isLoadingScripts, setIsLoadingScripts] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const checkoutRef = useRef<{ open: () => void; close: () => void } | null>(null);
@@ -91,6 +93,16 @@ export function CulqiCheckoutButton({
         }
 
         toast.success('Pago procesado correctamente');
+
+        const redirectUrl =
+          typeof result.data?.redirect_url === 'string'
+            ? result.data.redirect_url
+            : null;
+
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        }
+
         onSuccess?.(result.data);
       } catch {
         const msg = 'Error de conexión al procesar el pago';
@@ -109,6 +121,7 @@ export function CulqiCheckoutButton({
       email,
       onError,
       onSuccess,
+      router,
     ],
   );
 

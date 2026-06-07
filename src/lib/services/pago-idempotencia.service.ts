@@ -5,6 +5,7 @@ import {
   MENSAJE_PEDIDO_YA_PAGADO,
   PAGO_ESTADOS_IDEMPOTENCIA_BLOQUEADOS,
 } from '@/lib/constants/pago-idempotencia';
+import { buildNotasPagoCulqi } from '@/lib/constants/cierre-venta';
 
 export class PagoIdempotenciaError extends Error {
   readonly code: string;
@@ -50,6 +51,19 @@ async function existePagoConfirmado(
   const pago = await db.pagos.findFirst({
     where: buildPagoDuplicadoWhere(pedidoId),
     select: { id_uuid: true, estado: true, verificado_at: true },
+  });
+  return Boolean(pago);
+}
+
+/** Idempotencia por charge_id de Culqi (reintentos de webhook o doble vía checkout). */
+export async function existePagoPorCulqiChargeId(
+  db: Tx | typeof prisma,
+  culqiChargeId: string,
+): Promise<boolean> {
+  const needle = buildNotasPagoCulqi(culqiChargeId);
+  const pago = await db.pagos.findFirst({
+    where: { notas: { contains: needle } },
+    select: { id_uuid: true },
   });
   return Boolean(pago);
 }

@@ -1,81 +1,136 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { usePermissions } from '@/lib/hooks/usePermissions';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import PagosTable, { type Pago } from '@/components/admin/pagos/PagosTable';
+import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import PagoFormModal from '@/components/admin/pagos/PagoFormModal';
 import { PagoDetailModal, PagoVerifyModal } from '@/components/admin/pagos/PagoModals';
-import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
-import { PagosStats }   from '@/components/admin/pagos/PagosStats';
-import { PagosToolbar } from '@/components/admin/pagos/PagosToolbar';
+import type { Pago } from '@/components/admin/pagos/PagosTable';
+import { TesoreriaComprobanteDialog } from '@/components/admin/tesoreria/TesoreriaComprobanteDialog';
+import { TesoreriaPagosPagination } from '@/components/admin/tesoreria/TesoreriaPagosPagination';
+import { TesoreriaPagosStats } from '@/components/admin/tesoreria/TesoreriaPagosStats';
+import { TesoreriaPagosTable } from '@/components/admin/tesoreria/TesoreriaPagosTable';
 import {
-  DollarSign, CheckCircle2, Clock, Search, RefreshCw, 
-} from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+  TesoreriaPagosToolbar,
+  type TesoreriaFiltrosState,
+} from '@/components/admin/tesoreria/TesoreriaPagosToolbar';
+import type { EstadoTesoreriaFiltro } from '@/lib/constants/tesoreria-pagos';
+import { TESORERIA_PAGOS_PAGE_SIZE_DEFAULT } from '@/lib/constants/tesoreria-pagos';
+import type {
+  TesoreriaPagoFila,
+  TesoreriaPagosStats as TesoreriaStats,
+} from '@/lib/schemas/tesoreria-pagos';
 
 type ModalMode = 'create' | 'view' | 'verify' | null;
 
-export default function PagosPage() {
-  const { can } = usePermissions();
-  const [pagos, setPagos] = useState<Pago[]>([]);
+const FILTROS_INICIALES: TesoreriaFiltrosState = {
+  busqueda: '',
+  estado: 'todos',
+  metodo_pago: 'todos',
+  fecha_desde: '',
+  fecha_hasta: '',
+};
+
+function mapFilaAModalPago(row: TesoreriaPagoFila): Pago {
+  return {
+    id_uuid: row.id_uuid,
+    pedido_id: row.pedido_id,
+    monto: row.monto,
+    metodo_pago: row.metodo_pago,
+    fecha_pago: row.fecha_pago,
+    tipo: row.tipo,
+    estado: row.estado,
+    notas: row.notas,
+    created_at: row.fecha_pago,
+    pedidos: {
+      id: row.pedido.id,
+      estado: row.pedido.estado ?? 'pendiente',
+      total: row.pedido.total,
+      monto_pagado: row.pedido.monto_pagado,
+      saldo_pendiente: row.pedido.saldo_pendiente,
+      clientes: row.cliente
+        ? {
+            id: row.cliente.id,
+            razon_social: row.cliente.razon_social ?? '',
+            ruc: row.cliente.ruc,
+          }
+        : null,
+    },
+  };
+}
+
+export default function TesoreriaPagosPage() {
+  const [filas, setFilas] = useState<TesoreriaPagoFila[]>([]);
+  const [stats, setStats] = useState<TesoreriaStats>({
+    total: 0,
+    exitosos: 0,
+    pendientes: 0,
+    fallidos: 0,
+    monto_exitoso: 0,
+  });
+  const [filtros, setFiltros] = useState<TesoreriaFiltrosState>(FILTROS_INICIALES);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
-
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [estadoFilter, setEstadoFilter] = useState('todos');
+  const [comprobanteRow, setComprobanteRow] = useState<TesoreriaPagoFila | null>(null);
 
   const loadPagos = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/pagos');
-      if (!res.ok) throw new Error('Error al cargar pagos');
-      const data = await res.json();
-      setPagos(data);
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(TESORERIA_PAGOS_PAGE_SIZE_DEFAULT),
+        estado: filtros.estado,
+      });
+
+      if (filtros.busqueda.trim()) params.set('busqueda', filtros.busqueda.trim());
+      if (filtros.metodo_pago !== 'todos') params.set('metodo_pago', filtros.metodo_pago);
+      if (filtros.fecha_desde) params.set('fecha_desde', filtros.fecha_desde);
+      if (filtros.fecha_hasta) params.set('fecha_hasta', filtros.fecha_hasta);
+
+      const res = await fetch(`/api/admin/tesoreria/pagos?${params.toString()}`);
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? 'Error al cargar tesorería');
+      }
+
+      setFilas(json.data ?? []);
+      setStats(
+        json.stats ?? {
+          total: 0,
+          exitosos: 0,
+          pendientes: 0,
+          fallidos: 0,
+          monto_exitoso: 0,
+        },
+      );
+      setTotal(json.pagination?.total ?? 0);
+      setTotalPages(json.pagination?.totalPages ?? 1);
     } catch (error) {
-      toast.error('Error al cargar los datos de pagos');
+      toast.error('Error al cargar el módulo de tesorería');
       console.error(error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filtros, page]);
 
   useEffect(() => {
     loadPagos();
   }, [loadPagos]);
 
-  const stats = useMemo(() => {
-    const total = pagos.length;
-    const pendientes = pagos.filter(p => p.estado === 'pendiente').length;
-    const verificados = pagos.filter(p => p.estado === 'verificado').length;
-    const montoTotal = pagos
-      .filter(p => p.estado === 'verificado')
-      .reduce((acc, p) => acc + (typeof p.monto === 'string' ? parseFloat(p.monto) : p.monto), 0);
-    return { total, pendientes, verificados, montoTotal };
-  }, [pagos]);
-
-  const filteredPagos = useMemo(() => {
-    return pagos.filter(p => {
-      const matchesSearch =
-        String(p.pedido_id).includes(searchTerm) ||
-        (p.pedidos?.clientes?.razon_social?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (p.pedidos?.clientes?.ruc?.includes(searchTerm));
-      const matchesEstado = estadoFilter === 'todos' || p.estado === estadoFilter;
-      return matchesSearch && matchesEstado;
-    });
-  }, [pagos, searchTerm, estadoFilter]);
-
-  const handleView = (pago: Pago) => {
-    setSelectedPago(pago);
-    setModalMode('view');
+  const handleFiltroChange = (patch: Partial<TesoreriaFiltrosState>) => {
+    setFiltros((prev) => ({ ...prev, ...patch }));
+    setPage(1);
   };
 
-  const handleVerify = (pago: Pago) => {
-    setSelectedPago(pago);
-    setModalMode('verify');
+  const handleEstadoStatClick = (estado: EstadoTesoreriaFiltro) => {
+    setFiltros((prev) => ({ ...prev, estado }));
+    setPage(1);
   };
 
   const closeModal = () => {
@@ -85,61 +140,68 @@ export default function PagosPage() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
-
+      <div className="max-w-7xl mx-auto space-y-6">
         <AdminPageHeader
-          title="Pagos"
-          description="Control y verificación de pagos asociados a pedidos"
-          actionLabel="Registrar Pago"
+          title="Tesorería"
+          description="Gestión centralizada de pagos, pedidos y comprobantes electrónicos"
+          actionLabel="Registrar pago manual"
           onAction={() => setModalMode('create')}
         />
 
-        {/* Stats */}
-        <PagosStats
+        <TesoreriaPagosStats
           stats={stats}
-          estadoFilter={estadoFilter}
-          onFilterChange={setEstadoFilter}
+          estadoFilter={filtros.estado}
+          onFilterChange={handleEstadoStatClick}
         />
 
-        {/* Toolbar */}
-        <PagosToolbar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
+        <TesoreriaPagosToolbar
+          filtros={filtros}
           loading={loading}
+          onChange={handleFiltroChange}
           onRefresh={loadPagos}
         />
-        
-        {/* Table */}
-        <PagosTable
-          data={filteredPagos}
+
+        <TesoreriaPagosTable
+          data={filas}
           isLoading={loading}
-          onView={handleView}
-          onVerify={handleVerify}
+          onViewPedido={(row) => {
+            setSelectedPago(mapFilaAModalPago(row));
+            setModalMode('view');
+          }}
+          onViewComprobante={(row) => setComprobanteRow(row)}
+          onVerify={(row) => {
+            setSelectedPago(mapFilaAModalPago(row));
+            setModalMode('verify');
+          }}
+        />
+
+        <TesoreriaPagosPagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onPageChange={setPage}
         />
       </div>
 
-      {/* Modals */}
       {modalMode === 'create' && (
-        <PagoFormModal
-          onClose={closeModal}
-          onSuccess={loadPagos}
-        />
+        <PagoFormModal onClose={closeModal} onSuccess={loadPagos} />
       )}
 
       {modalMode === 'view' && selectedPago && (
-        <PagoDetailModal
-          pago={selectedPago}
-          onClose={closeModal}
-        />
+        <PagoDetailModal pago={selectedPago} onClose={closeModal} />
       )}
 
       {modalMode === 'verify' && selectedPago && (
-        <PagoVerifyModal
-          pago={selectedPago}
-          onClose={closeModal}
-          onSuccess={loadPagos}
-        />
+        <PagoVerifyModal pago={selectedPago} onClose={closeModal} onSuccess={loadPagos} />
       )}
+
+      <TesoreriaComprobanteDialog
+        row={comprobanteRow}
+        open={comprobanteRow !== null}
+        onOpenChange={(open) => {
+          if (!open) setComprobanteRow(null);
+        }}
+      />
     </div>
   );
 }
