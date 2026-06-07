@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { X, Package, MapPin, FileText, ShoppingBag } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { Pedido } from './PedidoCard';
+import { PedidoProgresoPago } from './PedidoProgresoPago';
+import { PedidoHistorialAbonos } from './PedidoHistorialAbonos';
+import type { AbonoPedido, PedidoPagosResumen } from '@/lib/schemas/portal-pedido-pagos';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +35,7 @@ interface PedidoModalDetalleProps {
     isOpen: boolean;
     onClose: () => void;
     onPagar?: (pedido: Pedido) => void;
+    onVerComprobante?: (pedidoId: number, comprobanteId: string) => void;
 }
 
 // ─── Skeleton de fila ─────────────────────────────────────────────────────────
@@ -61,9 +65,13 @@ export function PedidoModalDetalle({
     isOpen,
     onClose,
     onPagar,
+    onVerComprobante,
 }: PedidoModalDetalleProps) {
     const [items, setItems] = useState<PedidoItemDB[]>([]);
     const [loadingItems, setLoadingItems] = useState(false);
+    const [resumenPagos, setResumenPagos] = useState<PedidoPagosResumen | null>(null);
+    const [loadingPagos, setLoadingPagos] = useState(false);
+    const [errorPagos, setErrorPagos] = useState<string | null>(null);
 
     // Fetch pedido_items cuando el modal abre con un pedido válido
     useEffect(() => {
@@ -97,7 +105,56 @@ export function PedidoModalDetalle({
         fetchItems();
     }, [isOpen, pedido?.id]);
 
+    useEffect(() => {
+        if (!isOpen || !pedido?.id) {
+            setResumenPagos(null);
+            setErrorPagos(null);
+            return;
+        }
+
+        const fetchPagos = async () => {
+            setLoadingPagos(true);
+            setErrorPagos(null);
+            try {
+                const res = await fetch(`/api/portal/pedidos/${pedido.id}/pagos`);
+                const json = await res.json();
+
+                if (!res.ok || !json.success) {
+                    throw new Error(json.error ?? 'No se pudo cargar el historial de abonos');
+                }
+
+                setResumenPagos(json.data as PedidoPagosResumen);
+            } catch (err) {
+                setResumenPagos(null);
+                setErrorPagos(
+                    err instanceof Error ? err.message : 'Error al cargar abonos',
+                );
+            } finally {
+                setLoadingPagos(false);
+            }
+        };
+
+        fetchPagos();
+    }, [isOpen, pedido?.id]);
+
+    const handleVerComprobanteAbono = useCallback(
+        (abono: AbonoPedido) => {
+            if (!pedido?.id || !abono.comprobante?.id || !onVerComprobante) return;
+            onVerComprobante(pedido.id, abono.comprobante.id);
+        },
+        [pedido?.id, onVerComprobante],
+    );
+
     if (!isOpen || !pedido) return null;
+
+    const montoPagado =
+        resumenPagos?.monto_pagado ?? Number(pedido.monto_pagado ?? 0);
+    const saldoPendiente =
+        resumenPagos?.saldo_pendiente ??
+        Number(pedido.saldo_pendiente ?? Math.max(pedido.total - montoPagado, 0));
+    const monedaPagos = resumenPagos?.moneda ?? pedido.moneda ?? 'PEN';
+    const abonos = resumenPagos?.abonos ?? [];
+    const tieneSaldoPendiente = saldoPendiente > 0;
 
     const formatMoney = (amount: number) =>
         new Intl.NumberFormat('es-PE', {
@@ -159,6 +216,13 @@ export function PedidoModalDetalle({
 
                 {/* ── Body ────────────────────────────────────────────────────── */}
                 <div className="p-6 overflow-y-auto space-y-6 text-xs">
+
+                    <PedidoProgresoPago
+                        total={pedido.total}
+                        montoPagado={montoPagado}
+                        saldoPendiente={saldoPendiente}
+                        moneda={monedaPagos}
+                    />
 
                     {/* Dirección y notas */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -272,7 +336,15 @@ export function PedidoModalDetalle({
                         </div>
                     </div>
 
-                    {/* Resumen de pago */}
+                    <PedidoHistorialAbonos
+                        abonos={abonos}
+                        loading={loadingPagos}
+                        error={errorPagos}
+                        moneda={monedaPagos}
+                        onVerComprobante={onVerComprobante ? handleVerComprobanteAbono : undefined}
+                    />
+
+                    {/* Resumen fiscal */}
                     <div
                         className="p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4"
                         style={{ backgroundColor: 'var(--guor-cream)', borderColor: 'var(--guor-stone)' }}
@@ -282,20 +354,11 @@ export function PedidoModalDetalle({
                                 className="text-[9px] font-black uppercase tracking-widest opacity-50 block"
                                 style={{ color: 'var(--guor-dark)' }}
                             >
-                                Estado de Pago
+                                Resumen fiscal
                             </span>
-                            <div className="flex items-center gap-1.5">
-                                <div
-                                    className={`w-2 h-2 rounded-full ${pedido.estado_pago === 'verificado' ? 'bg-emerald-500' : 'bg-amber-500'
-                                        }`}
-                                />
-                                <span
-                                    className="font-black uppercase text-[10px] tracking-wider"
-                                    style={{ color: 'var(--guor-dark)' }}
-                                >
-                                    {pedido.estado_pago === 'verificado' ? 'Pago Verificado' : 'Pendiente de Pago'}
-                                </span>
-                            </div>
+                            <p className="text-[10px] opacity-50" style={{ color: 'var(--guor-dark)' }}>
+                                Desglose del total del pedido (incluye IGV).
+                            </p>
                         </div>
 
                         <div
@@ -344,18 +407,22 @@ export function PedidoModalDetalle({
                         Cerrar
                     </button>
 
-                    {pedido.estado_pago !== 'verificado' && onPagar && (
+                    {tieneSaldoPendiente && onPagar && (
                         <button
                             type="button"
                             onClick={() => {
-                                onPagar(pedido);
+                                onPagar({
+                                    ...pedido,
+                                    monto_pagado: montoPagado,
+                                    saldo_pendiente: saldoPendiente,
+                                });
                                 onClose();
                             }}
                             className="h-10 px-5 rounded-xl font-black uppercase tracking-widest text-white shadow-md transition-all active:scale-[0.97] flex items-center gap-1.5 hover:opacity-90 cursor-pointer"
                             style={{ backgroundColor: 'var(--guor-dark)' }}
                         >
                             <ShoppingBag size={13} style={{ color: 'var(--guor-gold)' }} />
-                            Adjuntar Comprobante
+                            {montoPagado > 0 ? 'Abonar saldo' : 'Pagar pedido'}
                         </button>
                     )}
                 </div>

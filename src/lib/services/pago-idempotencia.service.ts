@@ -72,6 +72,17 @@ export async function existePagoPorCulqiChargeId(
  * Valida idempotencia antes de tokenizar/cobrar en Culqi.
  * Bloquea si existe un pago `pagado` o con `verificado_at` (pago verificado).
  */
+function resolverSaldoPendientePedido(pedido: {
+  total: unknown;
+  monto_pagado: unknown;
+  saldo_pendiente: unknown;
+}): number {
+  const total = Number(pedido.total ?? 0);
+  const pagado = Number(pedido.monto_pagado ?? 0);
+  const saldoRegistrado = Number(pedido.saldo_pendiente ?? 0);
+  return saldoRegistrado > 0 ? saldoRegistrado : Math.max(total - pagado, 0);
+}
+
 export async function validarIdempotenciaPagoPedido(
   pedidoId: number | bigint,
 ): Promise<void> {
@@ -83,14 +94,14 @@ export async function validarIdempotenciaPagoPedido(
 
   const pedido = await prisma.pedidos.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, total: true, monto_pagado: true, saldo_pendiente: true },
   });
 
   if (!pedido) {
     throw new PedidoNoEncontradoPagoError();
   }
 
-  if (await existePagoConfirmado(prisma, id)) {
+  if (resolverSaldoPendientePedido(pedido) <= 0) {
     throw new PedidoYaPagadoError();
   }
 }
@@ -104,7 +115,16 @@ export async function assertIdempotenciaPagoPedidoEnTx(
 ): Promise<void> {
   const id = BigInt(pedidoId);
 
-  if (await existePagoConfirmado(tx, id)) {
+  const pedido = await tx.pedidos.findUnique({
+    where: { id },
+    select: { total: true, monto_pagado: true, saldo_pendiente: true },
+  });
+
+  if (!pedido) {
+    throw new PedidoNoEncontradoPagoError();
+  }
+
+  if (resolverSaldoPendientePedido(pedido) <= 0) {
     throw new PedidoYaPagadoError();
   }
 }

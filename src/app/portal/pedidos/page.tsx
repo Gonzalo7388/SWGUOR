@@ -54,6 +54,8 @@ export default function MisPedidosPage() {
         created_at: p.created_at,
         total_unidades: p.total_unidades ?? 0,
         moneda: p.moneda ?? 'PEN',
+        monto_pagado: Number(p.monto_pagado ?? 0),
+        saldo_pendiente: Number(p.saldo_pendiente ?? 0),
       }));
 
       setPedidos(pedidosFormateados);
@@ -73,26 +75,29 @@ export default function MisPedidosPage() {
     setPedidoDetalle(pedido as PedidoConDetalles);
   }, []);
 
-  const handlePagarDesdeCard = useCallback((pedido: Pedido) => {
+  const buildPagoUrl = useCallback((pedido: Pedido) => {
+    const saldo =
+      Number(pedido.saldo_pendiente ?? 0) > 0
+        ? Number(pedido.saldo_pendiente)
+        : Math.max(Number(pedido.total ?? 0) - Number(pedido.monto_pagado ?? 0), 0);
     const params = new URLSearchParams({
       total: String(Number(pedido.total ?? 0)),
+      saldo: String(saldo),
       cantidad: String(Number(pedido.total_unidades ?? 0)),
       nombre: `Pedido #${pedido.id}`,
       moneda: String(pedido.moneda ?? 'PEN'),
     });
-    router.push(`/portal/pago/${pedido.id}?${params.toString()}`);
-  }, [router]);
+    return `/portal/pago/${pedido.id}?${params.toString()}`;
+  }, []);
+
+  const handlePagarDesdeCard = useCallback((pedido: Pedido) => {
+    router.push(buildPagoUrl(pedido));
+  }, [router, buildPagoUrl]);
 
   const handlePagarDesdeDetalle = useCallback((pedido: Pedido) => {
     setPedidoDetalle(null);
-    const params = new URLSearchParams({
-      total: String(Number(pedido.total ?? 0)),
-      cantidad: String(Number(pedido.total_unidades ?? 0)),
-      nombre: `Pedido #${pedido.id}`,
-      moneda: String(pedido.moneda ?? 'PEN'),
-    });
-    router.push(`/portal/pago/${pedido.id}?${params.toString()}`);
-  }, [router]);
+    router.push(buildPagoUrl(pedido));
+  }, [router, buildPagoUrl]);
 
   return (
     <>

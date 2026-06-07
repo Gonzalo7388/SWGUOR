@@ -3,6 +3,7 @@ import { isFacturacionSimuladaError } from '@/lib/helpers/facturacion-simulada.h
 import type { CulqiCheckoutErrorResponse } from '@/lib/schemas/culqi-checkout';
 import { isCierreVentaCulqiError } from '@/lib/services/cierre-venta-culqi.service';
 import { isCulqiPedidoPagoError } from '@/lib/services/culqi-charge.service';
+import { isPaymentGatewayError } from '@/lib/services/payments/payment-gateway.error';
 import { isPagoIdempotenciaError } from '@/lib/services/pago-idempotencia.service';
 
 export function jsonCheckoutError(
@@ -16,6 +17,7 @@ export function mapCheckoutRouteError(error: unknown): NextResponse {
   if (
     isPagoIdempotenciaError(error) ||
     isCulqiPedidoPagoError(error) ||
+    isPaymentGatewayError(error) ||
     isCierreVentaCulqiError(error)
   ) {
     return jsonCheckoutError(

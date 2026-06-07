@@ -14,7 +14,7 @@ import {
   ejecutarCierreVentaPostCulqi,
   isCierreVentaCulqiError,
 } from '@/lib/services/cierre-venta-culqi.service';
-import { obtenerMontoCobroPedidoDesdeBd } from '@/lib/services/culqi-charge.service';
+import { obtenerMontoCobroPedidoDesdeBd } from '@/lib/services/payments/payment-order-amount.service';
 import {
   existePagoPorCulqiChargeId,
   isPagoIdempotenciaError,

@@ -16,6 +16,17 @@ export {
   ejecutarCierreVentaPostCulqi,
   isCierreVentaCulqiError,
 } from './cierre-venta-culqi.service';
+export {
+  createPaymentGateway,
+  getDefaultPaymentGateway,
+  CulqiAdapter,
+  StripeAdapter,
+  MercadoPagoAdapter,
+  getStripeClient,
+  getMercadoPagoPaymentClient,
+  type IPaymentGateway,
+  type PaymentGatewayId,
+} from './payments';
 
 // ── Servicios que usan Prisma directamente (sin RPC) ─────────────────────────
 export { FichasTecnicasService } from './fichas-tecnicas.service';

@@ -1,5 +1,12 @@
 import { randomUUID } from 'crypto';
-import type { comprobantes, MetodoPago, pagos, pedidos, Prisma } from '@prisma/client';
+import type {
+  comprobantes,
+  EstadoPago,
+  MetodoPago,
+  pagos,
+  pedidos,
+  Prisma,
+} from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import {
   buildNotasPagoCulqi,
@@ -13,6 +20,12 @@ import {
   determinarTipoComprobantePorDocumento,
   resolverSeriePorTipo,
 } from '@/lib/helpers/facturacion-simulada.helper';
+import {
+  calcularMontosTrasPago,
+  extraerResumenPagoPedido,
+  resolverTipoPagoCulqi,
+  validarMontoPagoParcial,
+} from '@/lib/helpers/pago-parcial.helper';
 import {
   assertIdempotenciaPagoPedidoEnTx,
   PedidoNoEncontradoPagoError,
@@ -35,6 +48,10 @@ export interface CierreVentaCulqiInput {
   monto: number;
   metodoPago: MetodoPago;
   culqiChargeId: string;
+  /** Estado del registro en `pagos.estado` (por defecto: pagado) */
+  estadoPago?: EstadoPago;
+  /** Notas personalizadas (por defecto: referencia Culqi) */
+  notas?: string;
 }
 
 export interface CierreVentaCulqiResult {
@@ -123,11 +140,27 @@ export async function ejecutarCierreVentaPostCulqi(
       );
     }
 
-    const totalPedido = Number(pedido.total ?? 0);
-    const pagadoActual = Number(pedido.monto_pagado ?? 0);
-    const nuevoMontoPagado = pagadoActual + monto;
-    const nuevoSaldoPendiente = Math.max(totalPedido - nuevoMontoPagado, 0);
-    const esPagoTotal = nuevoSaldoPendiente <= 0;
+    const resumen = extraerResumenPagoPedido(pedido);
+    const validacion = validarMontoPagoParcial(monto, resumen.saldoPendiente);
+    if (!validacion.valido) {
+      throw new CierreVentaCulqiError(
+        validacion.mensaje ?? 'Monto de pago inválido',
+        'MONTO_INVALIDO',
+      );
+    }
+
+    const {
+      monto: montoCobrado,
+      nuevoMontoPagado,
+      nuevoSaldoPendiente,
+      esPagoQueSaldaDeuda,
+    } = calcularMontosTrasPago(
+      resumen.saldoPendiente,
+      resumen.montoPagado,
+      monto,
+    );
+
+    const tipoPago = resolverTipoPagoCulqi(resumen.montoPagado, esPagoQueSaldaDeuda);
 
     const pagoId = randomUUID();
 
@@ -135,12 +168,12 @@ export async function ejecutarCierreVentaPostCulqi(
       data: {
         id_uuid: pagoId,
         pedido_id: pedidoId,
-        monto,
+        monto: montoCobrado,
         metodo_pago: input.metodoPago,
-        tipo: 'pago_completo',
-        estado: ESTADO_PAGO_CULQI_EXITOSO,
+        tipo: tipoPago,
+        estado: input.estadoPago ?? ESTADO_PAGO_CULQI_EXITOSO,
         fecha_pago: new Date(),
-        notas: buildNotasPagoCulqi(culqiChargeId),
+        notas: input.notas ?? buildNotasPagoCulqi(culqiChargeId),
       },
     });
 
@@ -150,7 +183,7 @@ export async function ejecutarCierreVentaPostCulqi(
         metodo_pago: input.metodoPago,
         monto_pagado: nuevoMontoPagado,
         saldo_pendiente: nuevoSaldoPendiente,
-        ...(esPagoTotal ? { estado: ESTADO_PEDIDO_PAGO_COMPLETO } : {}),
+        ...(esPagoQueSaldaDeuda ? { estado: ESTADO_PEDIDO_PAGO_COMPLETO } : {}),
       },
     });
 
@@ -159,7 +192,7 @@ export async function ejecutarCierreVentaPostCulqi(
     const correlativo = await obtenerProximoCorrelativoSerie(tx, serie);
 
     const comprobanteData = generarDatosComprobanteSimulado({
-      pedido: resolverDatosPedidoFacturacion(pedido, monto, esPagoTotal),
+      pedido: resolverDatosPedidoFacturacion(pedido, montoCobrado, esPagoQueSaldaDeuda),
       cliente: {
         ruc: pedido.clientes.ruc,
         razon_social: pedido.clientes.razon_social,

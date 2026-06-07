@@ -19,15 +19,12 @@ function mapHistorialAPedidoDetalle(fila: HistorialPagoFila): PedidoConDetalles 
     id: fila.pedido_id,
     total: fila.monto_total,
     estado: fila.estado_pedido as EstadoPedido,
-    estado_pago:
-      fila.estado_pago === 'pagado'
-        ? 'verificado'
-        : fila.estado_pago === 'parcial'
-          ? 'pendiente'
-          : 'pendiente',
+    estado_pago: fila.estado_pago === 'pagado' ? 'verificado' : 'pendiente',
     created_at: fila.fecha,
     total_unidades: fila.total_unidades,
     moneda: fila.moneda,
+    monto_pagado: fila.monto_pagado,
+    saldo_pendiente: fila.saldo_pendiente,
   };
 }
 
@@ -83,13 +80,11 @@ export default function MisPagosPage() {
     setPedidoDetalle(mapHistorialAPedidoDetalle(fila));
   }, []);
 
-  const handleVerComprobante = useCallback(async (fila: HistorialPagoFila) => {
-    if (!fila.comprobante?.id) return;
-
+  const abrirComprobante = useCallback(async (pedidoId: number, comprobanteId: string) => {
     try {
       const params = new URLSearchParams({
-        pedido_id: String(fila.pedido_id),
-        comprobante_id: fila.comprobante.id,
+        pedido_id: String(pedidoId),
+        comprobante_id: comprobanteId,
       });
       const res = await fetch(`/api/portal/pago/confirmacion?${params.toString()}`);
       const json = await res.json();
@@ -104,6 +99,14 @@ export default function MisPagosPage() {
       setError(err instanceof Error ? err.message : 'Error al abrir el comprobante');
     }
   }, []);
+
+  const handleVerComprobante = useCallback(
+    async (fila: HistorialPagoFila) => {
+      if (!fila.comprobante?.id) return;
+      await abrirComprobante(fila.pedido_id, fila.comprobante.id);
+    },
+    [abrirComprobante],
+  );
 
   return (
     <>
@@ -176,6 +179,7 @@ export default function MisPagosPage() {
         pedido={pedidoDetalle}
         isOpen={pedidoDetalle !== null}
         onClose={() => setPedidoDetalle(null)}
+        onVerComprobante={abrirComprobante}
       />
 
       {resumenComprobante && (

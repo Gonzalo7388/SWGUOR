@@ -9,6 +9,7 @@ import {
   formatearEtaLegible,
 } from '@/lib/helpers/pedido-seguimiento.helper';
 import { puedeClienteEditarDireccionDespacho } from '@/lib/helpers/pedido-direccion.helper';
+import { resolverEstadoPagoHistorialPortal } from '@/lib/helpers/portal-historial-pagos.helper';
 import type { EstadoPedido } from '@prisma/client';
 
 async function obtenerClienteId() {
@@ -91,16 +92,22 @@ export async function GET(req: Request) {
         p.estado,
       );
 
+      const montoPagado = Number(p.monto_pagado ?? 0);
+      const saldoPendiente = Number(p.saldo_pendiente ?? 0);
+      const estadoPagoResumen = resolverEstadoPagoHistorialPortal(
+        montoPagado,
+        saldoPendiente,
+      );
+
       return {
         id: Number(p.id),
         codigo: `ORD-${String(p.id).padStart(4, '0')}`,
         estado: p.estado ?? 'pendiente',
         total: Number(p.total),
         moneda: p.moneda ?? 'PEN',
-        estado_pago: (
-          Number(p.saldo_pendiente) <= 0 && Number(p.monto_pagado) > 0
-            ? 'verificado' : 'pendiente'
-        ),
+        monto_pagado: montoPagado,
+        saldo_pendiente: saldoPendiente,
+        estado_pago: estadoPagoResumen === 'pagado' ? 'verificado' : 'pendiente',
         cliente:
           p.clientes?.nombre_comercial ??
           p.clientes?.razon_social ??

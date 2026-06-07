@@ -1,3 +1,6 @@
+/** Monto mínimo por transacción en el portal (soles) para evitar microcargos */
+export const MONTO_MINIMO_PAGO_PARCIAL_SOLES = 10;
+
 /** Código de respuesta cuando el checkout Culqi finaliza correctamente */
 export const CODIGO_CHECKOUT_COMPLETADO = 'CHECKOUT_COMPLETADO';
 
