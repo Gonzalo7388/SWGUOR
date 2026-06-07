@@ -29,6 +29,8 @@ const CheckoutImplement = ({
       <CulqiCheckoutButton
         amount={amount}
         email={email}
+        orderId={String(pedidoId)}
+        title={`Pedido #${pedidoId}`}
         chargePayload={{ pedido_id: pedidoId }}
         buttonLabel={`Pagar con Culqi — PEN ${(amount / 100).toFixed(2)}`}
         onSuccess={() => onSuccess?.()}

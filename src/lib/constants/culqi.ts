@@ -10,6 +10,11 @@ export const CULQI_CHARGE_API_DEFAULT = '/api/culqi/charge';
 
 export const CULQI_DEFAULT_CURRENCY = 'PEN' as const;
 
+/** Convierte soles a céntimos enteros (formato exigido por Culqi Checkout). */
+export function toCulqiAmountCents(amountSoles: number): number {
+  return Math.max(0, Math.round(amountSoles * 100));
+}
+
 export type CulqiCurrencyCode = typeof CULQI_DEFAULT_CURRENCY | 'USD';
 
 export const CULQI_DEFAULT_PAYMENT_METHODS = {

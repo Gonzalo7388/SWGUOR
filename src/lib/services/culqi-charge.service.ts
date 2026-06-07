@@ -10,6 +10,11 @@ import {
   type CulqiChargeMappedResponse,
   type CulqiChargeSuccessBody,
 } from '@/lib/helpers/culqi-response.helper';
+import {
+  inferirMetodoPagoDesdeCargoCulqi,
+  type CulqiWebhookChargePayload,
+} from '@/lib/helpers/culqi-webhook.helper';
+import { getCulqiWebhookMetadataPedidoKey } from '@/lib/constants/culqi-webhook';
 import { PedidoNoEncontradoPagoError } from '@/lib/services/pago-idempotencia.service';
 import type { MetodoPago } from '@prisma/client';
 
@@ -61,25 +66,6 @@ function normalizeCurrency(raw?: string | null): CulqiCurrencyCode {
   return code === 'USD' ? 'USD' : 'PEN';
 }
 
-function inferMetodoPago(
-  paymentSource: string,
-  chargeData: Record<string, unknown>,
-): MetodoPago {
-  if (paymentSource === 'bank_transfer') {
-    return 'transferencia_bcp';
-  }
-
-  const source = chargeData.source as Record<string, unknown> | undefined;
-  const sourceType = String(source?.type ?? '').toLowerCase();
-  if (sourceType.includes('yape')) return 'yape';
-  if (sourceType.includes('plin')) return 'plin';
-
-  const iin = source?.iin as Record<string, unknown> | undefined;
-  const brand = String(iin?.card_brand ?? source?.brand ?? '').toLowerCase();
-  if (brand.includes('master')) return 'mastercard';
-  return 'visa';
-}
-
 export async function obtenerMontoCobroPedidoDesdeBd(
   pedidoId: bigint,
 ): Promise<PedidoMontoCobro> {
@@ -119,6 +105,7 @@ export async function obtenerMontoCobroPedidoDesdeBd(
 }
 
 async function ejecutarCargoCulqiApi(input: {
+  pedidoId: number;
   sourceId: string;
   email: string;
   amountCents: number;
@@ -126,6 +113,7 @@ async function ejecutarCargoCulqiApi(input: {
   description?: string;
 }): Promise<CulqiChargeMappedResponse> {
   const secretKey = getCulqiSecretKey();
+  const metadataKey = getCulqiWebhookMetadataPedidoKey();
 
   const response = await fetch(CULQI_CHARGES_ENDPOINT, {
     method: 'POST',
@@ -138,6 +126,7 @@ async function ejecutarCargoCulqiApi(input: {
       currency_code: input.currencyCode,
       email: input.email.trim(),
       source_id: input.sourceId,
+      metadata: { [metadataKey]: String(input.pedidoId) },
       ...(input.description ? { description: input.description } : {}),
     }),
   });
@@ -182,6 +171,7 @@ export async function ejecutarCargoCulqiPedido(
   const monto = await obtenerMontoCobroPedidoDesdeBd(BigInt(pedidoId));
 
   const culqiResult = await ejecutarCargoCulqiApi({
+    pedidoId,
     sourceId: paymentSource,
     email,
     amountCents: monto.amountCents,
@@ -207,14 +197,17 @@ export async function ejecutarCargoCulqiPedido(
     );
   }
 
-  const chargeData = culqiResult.data as Record<string, unknown>;
+  const chargeData = culqiResult.data as CulqiWebhookChargePayload;
 
   return {
     success: true,
     culqiChargeId,
     culqiData: culqiResult.data,
     monto,
-    metodoPago: inferMetodoPago(paymentSource, chargeData),
+    metodoPago: inferirMetodoPagoDesdeCargoCulqi({
+      ...chargeData,
+      source_id: paymentSource,
+    }),
     message: culqiResult.message,
     code: culqiResult.code,
   };

@@ -5,7 +5,9 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import CheckoutImplement from '@/components/portal/CheckoutImplement';
+import { toCulqiAmountCents } from '@/lib/constants/culqi';
+import { usePortal } from '@/lib/hooks/usePortal';
+import CheckoutImplement from '@/components/CheckoutImplement';
 import YapeForm from '@/components/portal/YapeForm';
 import Image from 'next/image';
 
@@ -20,8 +22,13 @@ type MetodoPago = 'tarjeta' | 'yape';
 export default function PagoPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const { cliente } = usePortal();
+  const pedidoId = Number(params.id);
 
   const totalBase = Number(searchParams.get('total')) || 0;
+  const saldoUrl = Number(searchParams.get('saldo'));
+  const montoAPagar =
+    Number.isFinite(saldoUrl) && saldoUrl > 0 ? saldoUrl : totalBase;
   const cantidad = Number(searchParams.get('cantidad')) || 1;
   const nombre = searchParams.get('nombre') || 'Producto';
 
@@ -43,8 +50,9 @@ export default function PagoPage() {
     type: 'success' as 'success' | 'error',
   });
 
-  const totalFinal = totalBase - descuento;
-  const totalCents = Math.round(totalFinal * 100); // Culqi usa céntimos
+  const totalFinal = Math.max(montoAPagar - descuento, 0);
+  const totalCents = toCulqiAmountCents(totalFinal);
+  const emailPago = cliente?.email?.trim() || 'cliente@guor.com';
 
   // ✅ Fix: setter funcional evita el bug de closure
   const mostrarToast = (message: string, type: 'success' | 'error') => {
@@ -189,9 +197,9 @@ export default function PagoPage() {
               {metodo === 'tarjeta' && (
                 <CheckoutImplement
                   amount={totalCents}
-                  description={`${nombre} x${cantidad}`}
-                  orderId={params.id}
-                  onSuccess={handlePagoExitoso}
+                  pedidoId={pedidoId}
+                  email={emailPago}
+                  onSuccess={() => handlePagoExitoso('ok')}
                   onError={handlePagoError}
                 />
               )}

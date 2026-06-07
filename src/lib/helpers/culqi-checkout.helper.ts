@@ -61,12 +61,17 @@ export function buildCulqiCheckoutConfig(
   input: BuildCulqiCheckoutConfigInput,
 ): CulqiCheckoutOptions {
   const client = getCulqiClientConfig();
+  const amountCents = Math.max(0, Math.round(input.amount));
+
+  if (amountCents <= 0) {
+    throw new Error('El monto para Culqi debe ser mayor a 0 céntimos');
+  }
 
   return {
     settings: {
       title: input.title ?? client.defaultTitle,
       currency: input.currency ?? CULQI_DEFAULT_CURRENCY,
-      amount: input.amount,
+      amount: amountCents,
       ...(input.orderId ?? client.defaultOrderId
         ? { order: input.orderId ?? client.defaultOrderId }
         : {}),
