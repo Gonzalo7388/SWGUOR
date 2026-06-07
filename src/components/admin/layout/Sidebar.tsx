@@ -95,8 +95,9 @@ const GESTION_OPERATIVA: NavGroup = {
       subItems: [
         { title: 'Pedidos', href: '/admin/Panel-Administrativo/pedidos', icon: ShoppingCart, resource: 'pedidos' as RecursoKey },
         { title: 'Cotizaciones', href: '/admin/Panel-Administrativo/cotizaciones', icon: FileText, resource: 'cotizaciones' as RecursoKey },
-        { title: 'Devoluciones', href: '/admin/Panel-Administrativo/devoluciones-cliente', icon: Truck, resource: 'devoluciones_clientes' as RecursoKey },
+        { title: 'Devoluciones', href: '/admin/Panel-Administrativo/devoluciones-cliente', icon: Truck, resource: 'devoluciones_cliente' as RecursoKey },
         { title: 'Tesorería', href: '/admin/Panel-Administrativo/pagos', icon: DollarSign, resource: 'pagos' as RecursoKey },
+        { title: 'Libro Diario', href: '/admin/Panel-Administrativo/asientos-contables', icon: FileText, resource: 'asientos_contables' as RecursoKey },
       ],
     },
     {
@@ -108,7 +109,7 @@ const GESTION_OPERATIVA: NavGroup = {
         { title: 'Confecciones', href: '/admin/Panel-Administrativo/confecciones', icon: Scissors, resource: 'confecciones' as RecursoKey },
         { title: 'Talleres', href: '/admin/Panel-Administrativo/talleres', icon: Building, resource: 'talleres' as RecursoKey },
         { title: 'Incidencias de Taller', href: '/admin/Panel-Administrativo/incidencias-taller', icon: Bell, resource: 'incidencias' as RecursoKey },
-        { title: 'Incidencias de Cliente', href: '/admin/Panel-Administrativo/incidencias-cliente', icon: Bell, resource: 'incidencias' as RecursoKey },
+        { title: 'Incidencias de Cliente', href: '/admin/Panel-Administrativo/incidencias-cliente', icon: Bell, resource: 'incidencias_clientes' as RecursoKey },
       ],
     },
   ]
@@ -172,6 +173,7 @@ const GESTION_LOGISTICA: NavGroup = {
       roles: ['gerente', 'administrador', 'ayudante', 'recepcionista'],
       subItems: [
         { title: 'Despachos', href: '/admin/Panel-Administrativo/despachos', icon: Truck, resource: 'despachos' as RecursoKey },
+        { title: 'Guías de Remisión', href: '/admin/Panel-Administrativo/guias-remision', icon: FileText, resource: 'despachos' as RecursoKey },
       ],
     },
   ]
