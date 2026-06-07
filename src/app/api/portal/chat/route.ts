@@ -19,7 +19,7 @@ const tools: Tool[] = [
           type: SchemaType.OBJECT,
           properties: {
             busqueda: { type: SchemaType.STRING, description: 'Nombre del producto o categoría a buscar' },
-            talla:    { type: SchemaType.STRING, description: 'Talla específica (XS, S, M, L, XL, XXL)' },
+            talla: { type: SchemaType.STRING, description: 'Talla específica (XS, S, M, L, XL, XXL)' },
           },
           required: ['busqueda'],
         } as any,
@@ -36,7 +36,7 @@ const tools: Tool[] = [
                 type: SchemaType.OBJECT,
                 properties: {
                   producto_id: { type: SchemaType.NUMBER },
-                  cantidad:    { type: SchemaType.NUMBER },
+                  cantidad: { type: SchemaType.NUMBER },
                 },
                 required: ['producto_id', 'cantidad'],
               } as any,
@@ -65,9 +65,9 @@ export async function POST(req: Request) {
     // Para personal interno, obtener nombre desde personal_interno
     const personalDb = !clienteDb
       ? await prisma.personal_interno.findFirst({
-          where: { usuario_id: auth.user.id },
-          select: { nombre_completo: true },
-        })
+        where: { usuario_id: auth.user.id },
+        select: { nombre_completo: true },
+      })
       : null;
 
     const nombreCliente =
@@ -97,17 +97,17 @@ export async function POST(req: Request) {
     const chat = model.startChat({
       tools,
       history: [
-        { role: 'user',  parts: [{ text: systemPrompt }] },
+        { role: 'user', parts: [{ text: systemPrompt }] },
         { role: 'model', parts: [{ text: `Entendido. Soy el asistente comercial de GUOR. Bienvenido/a, ${nombreCliente}. ¿En qué puedo ayudarle hoy?` }] },
         ...messages.slice(0, -1).map((m: any) => ({
-          role:  m.role === 'user' ? 'user' : 'model',
+          role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.content }],
         })),
       ],
     });
 
     const lastMsg = messages[messages.length - 1].content;
-    let result   = await chat.sendMessage(lastMsg);
+    let result = await chat.sendMessage(lastMsg);
     let response = result.response;
 
     let iterations = 0;
@@ -120,12 +120,12 @@ export async function POST(req: Request) {
         parts
           .filter((p) => p.functionCall)
           .map(async (p) => {
-            const call   = p.functionCall!;
+            const call = p.functionCall!;
             const output = await ejecutarTool(call.name, call.args);
             return { functionResponse: { name: call.name, response: output } };
           })
       );
-      result   = await chat.sendMessage(toolResponses);
+      result = await chat.sendMessage(toolResponses);
       response = result.response;
       iterations++;
     }
@@ -134,19 +134,19 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('[Portal Chat] Error completo:', {
       message: error.message,
-      status:  error.status,
+      status: error.status,
       details: error.errorDetails ?? error.cause ?? null,
     });
-  return NextResponse.json({ error: 'Error en el servidor de chat' }, { status: 500 });
+    return NextResponse.json({ error: 'Error en el servidor de chat' }, { status: 500 });
   }
 }
 
 // ─── Tool Executors ──────────────────────────────────────────────────────────
 
 const ESCALAS_DESCUENTO = [
-  { min: 400,   dcto: 0.00 },
-  { min: 1000,  dcto: 0.05 },
-  { min: 5000,  dcto: 0.12 },
+  { min: 400, dcto: 0.00 },
+  { min: 1000, dcto: 0.05 },
+  { min: 5000, dcto: 0.12 },
   { min: 10000, dcto: 0.18 },
 ];
 
@@ -156,7 +156,7 @@ async function ejecutarTool(nombre: string, args: any) {
       const where: Record<string, unknown> = { estado: 'activo' };
 
       if (args.busqueda) {
-        const categorias = await prisma.categorias.findMany({
+        const categorias = await prisma.categoria_insumo.findMany({
           where: { nombre: { contains: args.busqueda, mode: 'insensitive' } },
           select: { id: true },
         });
@@ -170,7 +170,7 @@ async function ejecutarTool(nombre: string, args: any) {
       const productos = await prisma.productos.findMany({
         where,
         include: {
-          categorias: { select: { nombre: true } },
+          categorias_productos: { select: { nombre: true } },
           variantes_producto: {
             where: { estado: 'activo', stock: { gt: 0 } },
             select: { id: true, color: true, talla: true, stock: true, precio_adicional: true, sku: true },
@@ -181,10 +181,10 @@ async function ejecutarTool(nombre: string, args: any) {
 
       return {
         productos: productos.map((p) => ({
-          id:       p.id.toString(),
-          nombre:   p.nombre,
-          categoria: p.categorias?.nombre ?? 'Sin categoría',
-          precio:   Number(p.precio),
+          id: p.id.toString(),
+          nombre: p.nombre,
+          categoria: p.categorias_productos?.nombre ?? 'Sin categoría',
+          precio: Number(p.precio),
           variantes: p.variantes_producto.map((v) => ({
             color: v.color, talla: v.talla,
             stock: v.stock,
@@ -202,23 +202,23 @@ async function ejecutarTool(nombre: string, args: any) {
       }
 
       const productoIds = args.items.map((i: any) => Number(i.producto_id)).filter(Boolean);
-      const productos   = await prisma.productos.findMany({
+      const productos = await prisma.productos.findMany({
         where: { id: { in: productoIds }, estado: 'activo' },
         select: { id: true, nombre: true, precio: true, moq: true },
       });
       const precioMap = new Map(productos.map((p) => [p.id.toString(), p]));
 
-      const subtotalBruto   = args.items.reduce((acc: number, item: any) => {
+      const subtotalBruto = args.items.reduce((acc: number, item: any) => {
         const prod = precioMap.get(String(item.producto_id));
         return acc + (prod ? Number(prod.precio) : 0) * (item.cantidad || 0);
       }, 0);
-      const totalUnidades   = args.items.reduce((s: number, i: any) => s + (i.cantidad || 0), 0);
-      const escala          = [...ESCALAS_DESCUENTO].reverse().find((r) => totalUnidades >= r.min);
-      const pctDescuento    = (escala?.dcto ?? 0) * 100;
-      const montoDescuento  = subtotalBruto * (escala?.dcto ?? 0);
+      const totalUnidades = args.items.reduce((s: number, i: any) => s + (i.cantidad || 0), 0);
+      const escala = [...ESCALAS_DESCUENTO].reverse().find((r) => totalUnidades >= r.min);
+      const pctDescuento = (escala?.dcto ?? 0) * 100;
+      const montoDescuento = subtotalBruto * (escala?.dcto ?? 0);
       const subtotalConDesc = subtotalBruto - montoDescuento;
-      const igv             = subtotalConDesc * 0.18;
-      const total           = subtotalConDesc + igv;
+      const igv = subtotalConDesc * 0.18;
+      const total = subtotalConDesc + igv;
       const escalaSiguiente = ESCALAS_DESCUENTO.find((r) => r.min > totalUnidades);
 
       return {
@@ -231,15 +231,15 @@ async function ejecutarTool(nombre: string, args: any) {
             subtotal: prod ? Number(prod.precio) * (item.cantidad || 0) : 0,
           };
         }),
-        subtotal_bruto:           Math.round(subtotalBruto   * 100) / 100,
-        total_unidades:           totalUnidades,
-        descuento_aplicado:       `${pctDescuento}%`,
-        monto_descuento:          Math.round(montoDescuento  * 100) / 100,
-        subtotal_con_descuento:   Math.round(subtotalConDesc * 100) / 100,
-        igv:                      Math.round(igv             * 100) / 100,
-        total:                    Math.round(total           * 100) / 100,
-        cumple_moq:               totalUnidades >= 400,
-        moq_estado:               totalUnidades < 400
+        subtotal_bruto: Math.round(subtotalBruto * 100) / 100,
+        total_unidades: totalUnidades,
+        descuento_aplicado: `${pctDescuento}%`,
+        monto_descuento: Math.round(montoDescuento * 100) / 100,
+        subtotal_con_descuento: Math.round(subtotalConDesc * 100) / 100,
+        igv: Math.round(igv * 100) / 100,
+        total: Math.round(total * 100) / 100,
+        cumple_moq: totalUnidades >= 400,
+        moq_estado: totalUnidades < 400
           ? `Alerta: No alcanza el mínimo de 400 unidades (actual: ${totalUnidades})`
           : 'Requisito de pedido mínimo cumplido',
         proximo_nivel: escalaSiguiente

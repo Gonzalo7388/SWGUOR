@@ -117,8 +117,14 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             const { data: pedidosData, error: pedidosError } = await supabase
                 .from('pedidos')
                 .select(`
-                id, codigo_pedido:id, fecha_compra:created_at, monto_total:total,
-                estado_pago, estado_pedido:estado,
+                id,
+                codigo_pedido:id,
+                fecha_compra:created_at,
+                monto_total:total,
+                estado_pedido:estado,
+                monto_pagado,
+                saldo_pendiente,
+                pagos ( estado, tipo, monto, fecha_pago ),
                 historial:seguimiento_pedido ( id, pedido_id, status, notas, created_at )
             `)
                 .eq('cliente_id', clienteId)

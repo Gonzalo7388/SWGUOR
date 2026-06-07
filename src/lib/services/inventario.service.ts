@@ -4,7 +4,6 @@ import {
   type ReferenciaMovimiento,
   type TipoMovimiento,
   type TipoInsumo,
-  type CategoriaInsumo,
   type UnidadMedida,
 } from '@prisma/client';
 import { Prisma } from '@prisma/client';
@@ -17,7 +16,7 @@ import {
 // ─── Interfaces públicas ───────────────────────────────────────────────────
 
 export interface ListarInsumosParams {
-  categoria_insumo?: CategoriaInsumo;
+  categoria_id?: number;
   tipo?: TipoInsumo;
   busqueda?: string;
   bajo_stock?: boolean;
@@ -27,7 +26,7 @@ export interface ListarInsumosParams {
 export interface CrearInsumoData {
   nombre: string;
   tipo: TipoInsumo;
-  categoria_insumo?: CategoriaInsumo;
+  categoria_id: number;        // ✅ requerido — FK hacia categoria_insumo
   unidad_medida?: UnidadMedida;
   stock_actual?: number;
   stock_minimo?: number;
@@ -41,7 +40,7 @@ export interface CrearInsumoData {
 export interface ActualizarInsumoData {
   nombre?: string;
   tipo?: TipoInsumo;
-  categoria_insumo?: CategoriaInsumo;
+  categoria_id?: number;       // ✅ FK hacia categoria_insumo
   unidad_medida?: UnidadMedida;
   stock_minimo?: number;
   stock_maximo?: number;
@@ -52,9 +51,7 @@ export interface ActualizarInsumoData {
 }
 
 export interface AjustarStockInput {
-  /** Relativo: +5 / -3. Excluye stock_actual. */
   stock_delta?: number;
-  /** Absoluto: valor exacto. Excluye stock_delta. */
   stock_actual?: number;
   motivo?: string;
   usuario_id?: string;
@@ -95,14 +92,17 @@ export const InventarioService = {
 
   async listar(params?: ListarInsumosParams) {
     const where: Prisma.insumoWhereInput = {
-      ...(params?.categoria_insumo && { categoria_insumo: params.categoria_insumo }),
+      ...(params?.categoria_id && { categoria_id: params.categoria_id }),  // ✅ FK
       ...(params?.tipo && { tipo: params.tipo }),
       ...(params?.busqueda && { nombre: { contains: params.busqueda, mode: 'insensitive' } }),
     };
 
     const insumos = await prisma.insumo.findMany({
       where,
-      include: { proveedores: { select: { id: true, razon_social: true } } },
+      include: {
+        categoria_insumo: { select: { id: true, nombre: true } },          // ✅ relación
+        proveedores: { select: { id: true, razon_social: true } },
+      },
       orderBy: params?.sort ? { precio_unitario: params.sort } : { nombre: 'asc' },
     });
 
@@ -116,7 +116,10 @@ export const InventarioService = {
   async obtenerPorId(id: string) {
     const insumo = await prisma.insumo.findUnique({
       where: { id: BigInt(id) },
-      include: { proveedores: { select: { id: true, razon_social: true } } },
+      include: {
+        categoria_insumo: { select: { id: true, nombre: true } },          // ✅ relación
+        proveedores: { select: { id: true, razon_social: true } },
+      },
     });
     return insumo ? serializeBigInt(insumo) : null;
   },
@@ -126,7 +129,7 @@ export const InventarioService = {
       data: {
         nombre: data.nombre,
         tipo: data.tipo,
-        categoria_insumo: data.categoria_insumo ?? 'otro',
+        categoria_id: data.categoria_id,                              // ✅ FK
         unidad_medida: data.unidad_medida ?? 'unidades',
         stock_actual: (data.stock_actual ?? 0).toString(),
         stock_minimo: (data.stock_minimo ?? 10).toString(),
@@ -144,10 +147,10 @@ export const InventarioService = {
     const insumo = await prisma.insumo.update({
       where: { id: BigInt(id) },
       data: {
-        ...(data.nombre && { nombre: data.nombre }),
-        ...(data.tipo && { tipo: data.tipo }),
-        ...(data.categoria_insumo && { categoria_insumo: data.categoria_insumo }),
-        ...(data.unidad_medida && { unidad_medida: data.unidad_medida }),
+        ...(data.nombre !== undefined && { nombre: data.nombre }),
+        ...(data.tipo !== undefined && { tipo: data.tipo }),
+        ...(data.categoria_id !== undefined && { categoria_id: data.categoria_id }),  // ✅ FK
+        ...(data.unidad_medida !== undefined && { unidad_medida: data.unidad_medida }),
         ...(data.alerta_bajo_stock !== undefined && { alerta_bajo_stock: data.alerta_bajo_stock }),
         ...(data.ubicacion_almacen !== undefined && { ubicacion_almacen: data.ubicacion_almacen }),
         ...(data.stock_minimo != null && { stock_minimo: data.stock_minimo.toString() }),
@@ -160,9 +163,6 @@ export const InventarioService = {
     return serializeBigInt(insumo);
   },
 
-  /**
-   * Ajusta el stock de un insumo y registra el movimiento en una transacción.
-   */
   async ajustarStock(id: string, input: AjustarStockInput) {
     return prisma.$transaction(async (tx) => {
       const insumo = await tx.insumo.findUniqueOrThrow({ where: { id: BigInt(id) } });
@@ -255,16 +255,15 @@ export const InventarioService = {
       orderBy: { created_at: 'desc' },
       take: params?.limite ?? 50,
     });
+
     return serializeBigInt(movimientos);
   },
 
-  // ── FUNCIONES CON RPC ──────────────────────────────────────────────────────
-
-  // FIX: Removido el parámetro '_almacenId' que no se utilizaba para limpiar la advertencia de ESLint
   async obtenerStockBajo() {
     try {
       const insumos = await prisma.insumo.findMany({
         where: { alerta_bajo_stock: true },
+        include: { categoria_insumo: { select: { id: true, nombre: true } } },
         orderBy: { stock_actual: 'asc' },
       });
       return serializeBigInt(
@@ -294,13 +293,10 @@ export const InventarioService = {
     }
   },
 
-  /**
-   * Registra un movimiento explícitamente vía RPC.
-   */
   async registrarMovimientoRPC(data: RegistrarMovimientoRPCData) {
-    const recursos = [data.insumo_id, data.producto_id, data.material_id].filter(
-      (v): v is number => v != null
-    ).length;
+    const recursos = [data.insumo_id, data.producto_id, data.material_id]
+      .filter((v): v is number => v != null).length;
+
     if (recursos === 0) throw new Error('Debe indicar insumo_id, producto_id o material_id');
     if (recursos > 1) throw new Error('Solo puede indicar un recurso a la vez');
     if (data.cantidad <= 0) throw new Error('La cantidad debe ser mayor a 0');

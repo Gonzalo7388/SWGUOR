@@ -1,12 +1,15 @@
 export const runtime = 'nodejs';
 import { PedidosService } from '@/lib/services/pedidos.service';
 import { requireServerRole } from '@/lib/auth/server';
+import { AccionAuditoria } from '@prisma/client';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { NextResponse } from 'next/server';
-
 import { auditoriaService } from '@/lib/services/auditoria.service';
 
-const PEDIDOS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller'];
+const PEDIDOS_ROLES: RolUsuario[] = [
+  'administrador', 'gerente', 'recepcionista',
+  'disenador', 'cortador', 'representante_taller'
+];
 
 // GET /api/admin/pedidos
 export async function GET(_req: Request) {
@@ -24,7 +27,6 @@ export async function GET(_req: Request) {
 }
 
 // PUT /api/admin/pedidos
-// actualizar() solo acepta: estado, prioridad, notas_pedido, notas_cliente
 export async function PUT(req: Request) {
   const auth = await requireServerRole(PEDIDOS_ROLES);
   if (!auth.success) {
@@ -57,7 +59,7 @@ export async function PUT(req: Request) {
 
     await auditoriaService.registrar({
       usuario_id: BigInt(auth.user.id),
-      accion: 'ACTUALIZAR',
+      accion: AccionAuditoria.actualizar, // ← corregido
       tabla: 'pedidos',
       registro_id: BigInt(id),
       datos_despues: pedido,

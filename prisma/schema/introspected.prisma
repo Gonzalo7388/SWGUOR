@@ -2349,6 +2349,12 @@ enum ReferenciaNotificacion {
   PAGO
   PEDIDO
   SISTEMA
+  DEVOLUCION
+  DESPACHO
+  CONFECCION
+  CLIENTE
+  INVENTARIO
+  COMPROBANTE
 
   @@schema("public")
 }
@@ -2505,6 +2511,48 @@ enum TipoNotificacion {
   confeccion_completada
   devolucion_solicitada
   sistema
+  cotizacion_aprobada
+  cotizacion_rechazada
+  pedido_confirmado
+  pedido_listo
+  pago_verificado
+  pago_rechazado
+  despacho_en_camino
+  cotizacion_creada
+  cotizacion_modificada
+  pedido_en_revision
+  pedido_modificado
+  pedido_cancelado
+  pedido_parcial
+  pago_parcial
+  nota_credito_emitida
+  orden_produccion_aprobada
+  orden_produccion_iniciada
+  orden_produccion_pausada
+  orden_produccion_cancelada
+  confeccion_iniciada
+  confeccion_en_proceso
+  confeccion_con_retraso
+  confeccion_observacion
+  stock_agotado
+  stock_repuesto
+  ingreso_tela
+  merma_registrada
+  ajuste_inventario
+  despacho_programado
+  despacho_preparando
+  despacho_entregado
+  despacho_fallido
+  despacho_devuelto
+  devolucion_aprobada
+  devolucion_rechazada
+  devolucion_recibida
+  cambio_solicitado
+  cambio_completado
+  cliente_nuevo
+  cuenta_bloqueada
+  cuenta_reactivada
+  documento_requerido
 
   @@schema("public")
 }

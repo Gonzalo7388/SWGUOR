@@ -3,18 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Notificacion } from '@/lib/schemas/notificaciones';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import type { TipoNotificacion } from '@prisma/client';
+export type TipoNotificacionAdmin = TipoNotificacion;
 
-// Interfaz para el mapeo estricto de la respuesta HTTP cruda antes de la normalización
-interface RawNotificationInput {
-  id:        string | number;
-  leido:     boolean;
-  leido_at?: string | null;
-  [key: string]: unknown;
-}
-
-// Interfaz estricta para la estructura de respuesta de la API de notificaciones
 interface NotificacionesApiResponse {
-  data: RawNotificationInput[];
+  data: Notificacion[];
   kpis?: {
     sinLeer?: number;
     [key: string]: unknown;
@@ -36,11 +29,8 @@ export function useNotifications(userId?: number) {
       if (!res.ok) return;
 
       const response: NotificacionesApiResponse = await res.json();
-      
-      const raw = response && Array.isArray(response.data) ? response.data : [];
 
-      // Mapeo seguro con conocimiento explícito del contrato de la API
-      const normalized: Notificacion[] = raw.map((n) => ({
+      const normalized: Notificacion[] = response.data.map((n) => ({
         ...n,
         id: Number(n.id),
         leido_at: n.leido_at ? new Date(n.leido_at) : null,
@@ -49,42 +39,32 @@ export function useNotifications(userId?: number) {
       setNotificaciones(normalized);
       setUnreadCount(response.kpis?.sinLeer ?? normalized.filter((n) => !n.leido).length);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('[useNotifications] fetch:', error);
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
+  // Mantener ref actualizada
   useEffect(() => {
     fetchRef.current = fetchNotifications;
   }, [fetchNotifications]);
 
-  // 1. Fetch inicial diferido + polling cada 45s de forma segura
+  // Solo fetch inicial — el realtime se encarga del resto
   useEffect(() => {
-    const inicializarNotificaciones = async () => {
-      await fetchNotifications();
-    };
+    if (!userId) return;
+    fetchNotifications();
+  }, [fetchNotifications, userId]);
 
-    inicializarNotificaciones();
-
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 45000);
-
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
-
-  // 2. Realtime — solo depende de userId, usa ref para llamar fetch
+  // Realtime con nombre de canal diferenciado del portal
   useEffect(() => {
     if (!userId) return;
 
     const supabase = getSupabaseBrowserClient();
-    const canalName = `notif_portal_${userId}`;
+    const canalName = `notif_admin_${userId}`;   // ✅ diferente al portal
 
     const existing = supabase.getChannels().find((c) => c.topic === `realtime:${canalName}`);
-    if (existing) {
-      supabase.removeChannel(existing);
-    }
+    if (existing) supabase.removeChannel(existing);
 
     const canal = supabase
       .channel(canalName)
@@ -96,22 +76,18 @@ export function useNotifications(userId?: number) {
           table: 'notificaciones',
           filter: `usuario_id=eq.${userId}`,
         },
-        () => {
-          fetchRef.current();
-        }
+        () => { fetchRef.current(); },
       )
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') {
-          console.warn(`[Notificaciones] Error en canal ${canalName}`);
+          console.warn(`[useNotifications] Error en canal ${canalName}`);
         }
       });
 
-    return () => {
-      supabase.removeChannel(canal);
-    };
+    return () => { supabase.removeChannel(canal); };
   }, [userId]);
 
-  const markAsRead = async (id: number) => {
+  const markAsRead = useCallback(async (id: number) => {
     try {
       const res = await fetch(`/api/admin/notificaciones/${id}`, {
         method: 'PATCH',
@@ -120,18 +96,18 @@ export function useNotifications(userId?: number) {
       if (!res.ok) throw new Error('No se pudo actualizar la alerta');
 
       setNotificaciones((prev) =>
-        prev.map((n) => n.id === id ? { ...n, leido: true, leido_at: new Date() } : n)
+        prev.map((n) => n.id === id ? { ...n, leido: true, leido_at: new Date() } : n),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error marking as read:', error);
+      console.error('[useNotifications] markAsRead:', error);
     }
-  };
+  }, []);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     if (!userId || unreadCount === 0) return;
     try {
-      const res = await fetch(`/api/admin/notificaciones`, {
+      const res = await fetch('/api/admin/notificaciones', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: userId }),
@@ -139,20 +115,13 @@ export function useNotifications(userId?: number) {
       if (!res.ok) throw new Error('Error al actualizar lote masivo');
 
       setNotificaciones((prev) =>
-        prev.map((n) => !n.leido ? { ...n, leido: true, leido_at: new Date() } : n)
+        prev.map((n) => !n.leido ? { ...n, leido: true, leido_at: new Date() } : n),
       );
       setUnreadCount(0);
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      console.error('[useNotifications] markAllAsRead:', error);
     }
-  };
+  }, [userId, unreadCount]);
 
-  return {
-    notificaciones,
-    unreadCount,
-    loading,
-    markAsRead,
-    markAllAsRead,
-    refetch: fetchNotifications,
-  };
+  return { notificaciones, unreadCount, loading, markAsRead, markAllAsRead, refetch: fetchNotifications };
 }

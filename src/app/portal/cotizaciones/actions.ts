@@ -475,7 +475,7 @@ export async function obtenerProductosParaCotizar(): Promise<
     prisma.productos.findMany({
       where: { estado: 'activo' },
       include: {
-        categorias: { select: { id: true, nombre: true } },
+        categorias_productos: { select: { id: true, nombre: true } },
         variantes_producto: {
           where: { estado: 'activo' },
           select: { id: true, color: true, talla: true, stock: true, precio_adicional: true, sku: true },
@@ -485,7 +485,7 @@ export async function obtenerProductosParaCotizar(): Promise<
       orderBy: { nombre: 'asc' },
       take: 200,
     }),
-    prisma.categorias.findMany({
+    prisma.categorias_productos.findMany({
       where: { activo: { not: false } },
       select: { id: true, nombre: true },
       orderBy: { nombre: 'asc' },
@@ -503,8 +503,8 @@ export async function obtenerProductosParaCotizar(): Promise<
       stock: p.stock,
       imagen: normalizarImagen(p.imagen),
       descripcion: p.descripcion,
-      categoria: p.categorias
-        ? { id: Number(p.categorias.id), nombre: p.categorias.nombre }
+      categoria: p.categorias_productos
+        ? { id: Number(p.categorias_productos.id), nombre: p.categorias_productos.nombre }
         : null,
       variantes: p.variantes_producto.map((v) => ({
         id: Number(v.id),

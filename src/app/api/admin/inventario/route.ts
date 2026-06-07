@@ -13,18 +13,15 @@ import {
   registrarMovimiento,
   listarMovimientos,
 } from '@/lib/services';
-import type { CategoriaInsumo, TipoInsumo, Rol } from '@prisma/client';
+import type { TipoInsumo, Rol } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 const INVENTARIO_ROLES: Rol[] = ['administrador', 'gerente', 'almacenero'];
 
-const CATEGORIAS_VALIDAS = new Set<CategoriaInsumo>([
-  'tela', 'avios', 'empaque', 'hilo', 'etiquetas', 'forro', 'otro', 'accesorios',
-]);
 const TIPOS_VALIDOS = new Set<TipoInsumo>([
-  'tela', 'hilo', 'avio', 'boton', 'cierre', 'empaque', 'otro',
-  'etiqueta', 'cinta', 'elastico', 'forro', 'accesorio',
+  'materia_prima', 'avio', 'empaque', 'suministro',
 ]);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -41,11 +38,13 @@ function isPrismaNotFound(err: unknown): boolean {
   );
 }
 
+// Valida que el categoria_id exista en la tabla categoria_insumo
+async function validarCategoriaId(id: number): Promise<boolean> {
+  const cat = await prisma.categoria_insumo.findUnique({ where: { id } });
+  return cat !== null;
+}
+
 // ── GET ───────────────────────────────────────────────────────────────────────
-//
-//  ?resource=insumos           → listar insumos con filtros
-//  ?resource=stock&tipo=...    → stock de un ítem específico
-//  ?resource=stock&action=bajo-stock → ítems bajo stock mínimo
 
 export async function GET(req: NextRequest) {
   const auth = await requireServerRole(INVENTARIO_ROLES);
@@ -73,21 +72,31 @@ export async function GET(req: NextRequest) {
       const tipo = searchParams.get('tipo');
       let stock;
 
-      if      (tipo === 'producto')  stock = await obtenerStockProducto(Number(itemId));
-      else if (tipo === 'insumo')    stock = await obtenerStockInsumo(Number(itemId));
-      else if (tipo === 'material')  stock = await obtenerStockMaterial(Number(itemId));
-      else return NextResponse.json({ error: 'Tipo de ítem inválido (producto | insumo | material)' }, { status: 400 });
+      if (tipo === 'producto') stock = await obtenerStockProducto(Number(itemId));
+      else if (tipo === 'insumo') stock = await obtenerStockInsumo(Number(itemId));
+      else if (tipo === 'material') stock = await obtenerStockMaterial(Number(itemId));
+      else return NextResponse.json(
+        { error: 'Tipo de ítem inválido (producto | insumo | material)' },
+        { status: 400 }
+      );
 
       return NextResponse.json({ success: true, data: stock });
     }
 
     // ── Insumos ────────────────────────────────────────────────────────────
-    const rawCategoria = searchParams.get('categoria_insumo');
-    const rawTipo      = searchParams.get('tipo');
-    const rawSort      = searchParams.get('sort');
+    const rawCategoriaId = searchParams.get('categoria_id');
+    const rawTipo = searchParams.get('tipo');
+    const rawSort = searchParams.get('sort');
 
-    if (rawCategoria && !CATEGORIAS_VALIDAS.has(rawCategoria as CategoriaInsumo))
-      return NextResponse.json({ error: `categoria_insumo inválida: ${rawCategoria}` }, { status: 400 });
+    // Validar categoria_id contra la tabla real
+    if (rawCategoriaId) {
+      if (isNaN(Number(rawCategoriaId)))
+        return NextResponse.json({ error: 'categoria_id debe ser un número' }, { status: 400 });
+
+      const existe = await validarCategoriaId(Number(rawCategoriaId));
+      if (!existe)
+        return NextResponse.json({ error: `categoria_id ${rawCategoriaId} no existe` }, { status: 400 });
+    }
 
     if (rawTipo && !TIPOS_VALIDOS.has(rawTipo as TipoInsumo))
       return NextResponse.json({ error: `tipo inválido: ${rawTipo}` }, { status: 400 });
@@ -96,14 +105,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'sort debe ser "asc" o "desc"' }, { status: 400 });
 
     const insumos = await InventarioService.listar({
-      categoria_insumo: rawCategoria ? (rawCategoria as CategoriaInsumo) : undefined,
-      tipo:             rawTipo      ? (rawTipo as TipoInsumo)           : undefined,
-      busqueda:         searchParams.get('busqueda') ?? undefined,
-      bajo_stock:       searchParams.get('bajo_stock') === 'true',
-      sort:             rawSort ? (rawSort as 'asc' | 'desc')           : undefined,
+      categoria_id: rawCategoriaId ? Number(rawCategoriaId) : undefined,
+      tipo: rawTipo ? (rawTipo as TipoInsumo) : undefined,
+      busqueda: searchParams.get('busqueda') ?? undefined,
+      bajo_stock: searchParams.get('bajo_stock') === 'true',
+      sort: rawSort ? (rawSort as 'asc' | 'desc') : undefined,
     });
 
-    return NextResponse.json({ success: true, data: { insumos, proveedores: [] } });
+    // Devolver también las categorías disponibles para el frontend
+    const categorias = await prisma.categoria_insumo.findMany({
+      where: { activo: true },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: 'asc' },
+    });
+
+    return NextResponse.json({ success: true, data: { insumos, categorias, proveedores: [] } });
 
   } catch (error) {
     console.error('[GET /inventario]', error);
@@ -115,9 +131,6 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST ──────────────────────────────────────────────────────────────────────
-//
-//  ?resource=insumos          → crear insumo
-//  ?resource=movimiento       → registrar movimiento (tipo en body: entrada | salida | ajuste)
 
 export async function POST(req: NextRequest) {
   const auth = await requireServerRole(INVENTARIO_ROLES);
@@ -126,7 +139,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const resource = new URL(req.url).searchParams.get('resource') ?? 'insumos';
-    const body     = await req.json();
+    const body = await req.json();
 
     // ── Movimiento ─────────────────────────────────────────────────────────
     if (resource === 'movimiento') {
@@ -139,29 +152,25 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
 
-      const base = {
-        tipoMovimiento: tipo,
-        referenciaId:   datos.referenciaId ? Number(datos.referenciaId) : 0,
-        cantidad:       Number(datos.cantidad),
-        motivo:         datos.motivo        ?? '',
-        productoId:     datos.productoId    ? Number(datos.productoId)    : undefined,
-        insumoId:       datos.insumoId      ? Number(datos.insumoId)      : undefined,
-        materialId:     datos.materialId    ? Number(datos.materialId)    : undefined,
-        usuarioId:      datos.usuarioId     ? Number(datos.usuarioId)     : undefined,
-        almacenId:      datos.almacenId     ? Number(datos.almacenId)     : undefined,
-      };
-
       const defaults: Record<string, string> = {
         entrada: 'ORDEN_COMPRA',
-        salida:  'ORDEN_PRODUCCION',
-        ajuste:  'AJUSTE_MANUAL',
+        salida: 'ORDEN_PRODUCCION',
+        ajuste: 'AJUSTE_MANUAL',
       };
 
       const movimiento = await registrarMovimiento({
-        ...base,
+        tipoMovimiento: tipo,
+        referenciaId: datos.referenciaId ? Number(datos.referenciaId) : 0,
+        cantidad: Number(datos.cantidad),
+        motivo: datos.motivo ?? '',
+        productoId: datos.productoId ? Number(datos.productoId) : undefined,
+        insumoId: datos.insumoId ? Number(datos.insumoId) : undefined,
+        materialId: datos.materialId ? Number(datos.materialId) : undefined,
+        usuarioId: datos.usuarioId ? Number(datos.usuarioId) : undefined,
+        almacenId: datos.almacenId ? Number(datos.almacenId) : undefined,
         referenciaType: datos.tipoReferencia ?? defaults[tipo],
         ...(tipo === 'entrada' && { costoUnitario: datos.costoUnitario ? Number(datos.costoUnitario) : undefined }),
-        ...(tipo === 'ajuste'  && { cantidad: Number(datos.cantidadNueva ?? datos.cantidad ?? 0) }),
+        ...(tipo === 'ajuste' && { cantidad: Number(datos.cantidadNueva ?? datos.cantidad ?? 0) }),
       } as any);
 
       return NextResponse.json(
@@ -185,25 +194,33 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
 
+    // Validar que categoria_id exista en la tabla
+    if (!data.categoria_id || isNaN(Number(data.categoria_id)))
+      return NextResponse.json({ error: 'categoria_id es obligatorio' }, { status: 400 });
+
+    const categoriaExiste = await validarCategoriaId(Number(data.categoria_id));
+    if (!categoriaExiste)
+      return NextResponse.json({ error: 'La categoría indicada no existe' }, { status: 400 });
+
     const insumo = await InventarioService.crear({
-      nombre:            data.nombre,
-      tipo:              data.tipo              as TipoInsumo,
-      categoria_insumo:  data.categoria_insumo  as CategoriaInsumo | undefined,
-      unidad_medida:     data.unidad_medida      as any,
-      stock_actual:      typeof data.stock_actual      === 'number' ? data.stock_actual      : undefined,
-      stock_minimo:      typeof data.stock_minimo      === 'number' ? data.stock_minimo      : undefined,
-      stock_maximo:      typeof data.stock_maximo      === 'number' ? data.stock_maximo      : undefined,
-      precio_unitario:   typeof data.precio_unitario   === 'number' ? data.precio_unitario   : undefined,
-      proveedor_id:      typeof data.proveedor_id      === 'string' ? data.proveedor_id      : undefined,
+      nombre: data.nombre,
+      tipo: data.tipo as TipoInsumo,
+      categoria_id: Number(data.categoria_id),
+      unidad_medida: data.unidad_medida as any,
+      stock_actual: typeof data.stock_actual === 'number' ? data.stock_actual : undefined,
+      stock_minimo: typeof data.stock_minimo === 'number' ? data.stock_minimo : undefined,
+      stock_maximo: typeof data.stock_maximo === 'number' ? data.stock_maximo : undefined,
+      precio_unitario: typeof data.precio_unitario === 'number' ? data.precio_unitario : undefined,
+      proveedor_id: typeof data.proveedor_id === 'string' ? data.proveedor_id : undefined,
       ubicacion_almacen: typeof data.ubicacion_almacen === 'string' ? data.ubicacion_almacen : undefined,
-      alerta_bajo_stock: typeof data.alerta_bajo_stock === 'boolean'? data.alerta_bajo_stock : undefined,
+      alerta_bajo_stock: typeof data.alerta_bajo_stock === 'boolean' ? data.alerta_bajo_stock : undefined,
     });
 
     await auditoriaService.registrar({
-      usuario_id:    BigInt(auth.user.id),
-      accion:        'crear',
-      tabla:         'insumo',
-      registro_id:   BigInt(insumo.id),
+      usuario_id: BigInt(auth.user.id),
+      accion: 'crear',
+      tabla: 'insumo',
+      registro_id: BigInt(insumo.id),
       datos_despues: insumo,
     });
 
@@ -219,8 +236,6 @@ export async function POST(req: NextRequest) {
 }
 
 // ── PUT ───────────────────────────────────────────────────────────────────────
-//
-//  Body con filtros → listar movimientos paginados
 
 export async function PUT(req: NextRequest) {
   const auth = await requireServerRole(INVENTARIO_ROLES);
@@ -233,11 +248,11 @@ export async function PUT(req: NextRequest) {
     const movimientos = await listarMovimientos({
       tipo_movimiento: body.tipoMovimiento,
       referencia_tipo: body.referenciaType,
-      almacen_id:      body.almacenId,
-      desde:           body.fechaInicio ? new Date(body.fechaInicio) : undefined,
-      hasta:           body.fechaFin    ? new Date(body.fechaFin)    : undefined,
-      limite:          body.limit ?? 50,
-      producto_id:     body.productoId,
+      almacen_id: body.almacenId,
+      desde: body.fechaInicio ? new Date(body.fechaInicio) : undefined,
+      hasta: body.fechaFin ? new Date(body.fechaFin) : undefined,
+      limite: body.limit ?? 50,
+      producto_id: body.productoId,
     });
 
     return NextResponse.json({ success: true, data: movimientos, total: movimientos.length });
@@ -249,8 +264,6 @@ export async function PUT(req: NextRequest) {
 }
 
 // ── DELETE ────────────────────────────────────────────────────────────────────
-//
-//  ?resource=insumos&id=xxx → eliminar insumo
 
 export async function DELETE(req: NextRequest) {
   const auth = await requireServerRole(INVENTARIO_ROLES);
@@ -261,15 +274,15 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
-    if (!id)               return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-    if (!/^\d+$/.test(id)) return NextResponse.json({ error: 'ID inválido' },  { status: 400 });
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    if (!/^\d+$/.test(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
     await InventarioService.eliminar(id);
 
     await auditoriaService.registrar({
-      usuario_id:  BigInt(auth.user.id),
-      accion:      'eliminar',
-      tabla:       'insumo',
+      usuario_id: BigInt(auth.user.id),
+      accion: 'eliminar',
+      tabla: 'insumo',
       registro_id: BigInt(id),
     });
 

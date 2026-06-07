@@ -1,41 +1,36 @@
 import { z } from "zod";
 import {
   TipoInsumo,
-  CategoriaInsumo,
   UnidadMedida,
   TipoMovimiento,
+  ReferenciaMovimiento,
 } from "@prisma/client";
 
 // ── 1. SUB-SCHEMAS ────────────────────────────────────────────────────────────
 
 export const movimientoSchema = z.object({
   cantidad: z.number().min(0.01, "La cantidad debe ser mayor a 0"),
-  tipo_movimiento: z.enum(TipoMovimiento),
+  tipo_movimiento: z.enum(Object.values(TipoMovimiento) as [string, ...string[]]),
   motivo: z.string().optional().nullable(),
   costo_unitario: z.number().min(0).optional().nullable(),
-  referencia_tipo: z
-    .enum(["ORDEN", "COMPRA", "AJUSTE", "VENTA"])
-    .optional()
-    .nullable(),
+  referencia_tipo: z.enum(
+    Object.values(ReferenciaMovimiento) as [string, ...string[]]
+  ).optional().nullable(),
 });
 
 // ── 2. SCHEMA PRINCIPAL ───────────────────────────────────────────────────────
 
 export const insumoSchema = z.object({
   nombre: z.string().min(2, "Mínimo 2 caracteres"),
-  tipo: z.enum(TipoInsumo),
-  categoria_insumo: z.enum(CategoriaInsumo).default("otro"),
-  unidad_medida: z.enum(UnidadMedida).default("unidades"),
+  tipo: z.enum(Object.values(TipoInsumo) as [string, ...string[]]),
+  categoria_id: z.number().int().positive("La categoría es obligatoria"), // ✅ FK
+  unidad_medida: z.enum(Object.values(UnidadMedida) as [string, ...string[]]).default("unidades"),
   stock_actual: z.number().min(0).default(0),
   stock_minimo: z.number().min(0).default(10),
   stock_maximo: z.number().min(0).optional().nullable(),
   precio_unitario: z.number().min(0).optional().nullable(),
   proveedor_id: z.number().optional().nullable(),
-  ubicacion_almacen: z
-    .string()
-    .max(100, "Máximo 100 caracteres")
-    .optional()
-    .nullable(),
+  ubicacion_almacen: z.string().max(100, "Máximo 100 caracteres").optional().nullable(),
   alerta_bajo_stock: z.boolean().default(true),
 });
 
@@ -45,22 +40,21 @@ export const ajusteStockSchema = z
     cantidad: z.number().min(0.01, "La cantidad debe ser mayor a 0"),
     motivo: z.string().min(3, "Motivo requerido"),
     costo_unitario: z.number().min(0).optional().nullable(),
-    referencia_tipo: z
-      .enum(["ORDEN", "COMPRA", "AJUSTE", "VENTA"])
-      .optional()
-      .nullable(),
+    referencia_tipo: z.enum(
+      Object.values(ReferenciaMovimiento) as [string, ...string[]]
+    ).optional().nullable(),
   })
   .refine(
     (d) => !(d.operacion === "absoluto" && d.cantidad < 0),
     { message: "El stock absoluto no puede ser negativo", path: ["cantidad"] }
   );
 
-// ── 3. OUTPUT SCHEMA (Transformación para la API) ─────────────────────────────
+// ── 3. OUTPUT SCHEMA ──────────────────────────────────────────────────────────
 
 export const insumoOutputSchema = insumoSchema.transform((d) => ({
   nombre: d.nombre,
   tipo: d.tipo,
-  categoria_insumo: d.categoria_insumo,
+  categoria_id: d.categoria_id,                           // ✅ FK
   unidad_medida: d.unidad_medida,
   stock_actual: d.stock_actual,
   stock_minimo: d.stock_minimo,

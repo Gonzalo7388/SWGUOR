@@ -19,11 +19,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     // Resolvemos la promesa de los parámetros
     const { id } = await context.params;
-    
+
     const producto = await prisma.productos.findUnique({
       where: { id: BigInt(id) },
       include: {
-        categorias: true,
+        categorias_productos: true,
         variantes_producto: true,
         fichas_tecnicas: true,
       },
@@ -89,14 +89,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     // 3. Actualización genérica
     const { categoria_id, fichas_tecnicas_id, ...rest } = body;
     const data: any = { ...rest };
-    
+
     if (categoria_id) data.categoria_id = BigInt(String(categoria_id).split(':')[0]);
     if (fichas_tecnicas_id) data.fichas_tecnicas_id = BigInt(String(fichas_tecnicas_id).split(':')[0]);
-    
+
     data.updated_at = new Date();
 
     const productoAnterior = await prisma.productos.findUnique({ where: { id } });
-    
+
     const producto = await prisma.productos.update({
       where: { id },
       data,

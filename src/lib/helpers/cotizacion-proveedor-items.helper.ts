@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { CategoriaInsumo, TipoInsumo, UnidadMedida } from '@prisma/client';
+import { TipoInsumo, UnidadMedida } from '@prisma/client'; // ← quitado CategoriaInsumo
 import type { CotizacionProveedorItemInput } from '@/lib/schemas/cotizaciones-proveedor';
 
 type Tx = Prisma.TransactionClient;
@@ -21,14 +21,14 @@ function mapUnidadMedida(unidad?: string | null): UnidadMedida {
   return UnidadMedida.unidades;
 }
 
+// ✅ Solo valores válidos del enum TipoInsumo
 function mapTipoInsumo(tipoItem?: string | null): TipoInsumo {
-  if (tipoItem === 'material') return TipoInsumo.tela;
-  return TipoInsumo.otro;
+  if (tipoItem === 'material') return TipoInsumo.materia_prima;
+  if (tipoItem === 'avio') return TipoInsumo.avio;
+  if (tipoItem === 'empaque') return TipoInsumo.empaque;
+  return TipoInsumo.suministro;
 }
 
-/**
- * CHECK solo_uno: exactamente uno entre material_id e insumo_id debe estar definido.
- */
 async function resolveItemIds(
   tx: Tx,
   item: CotizacionProveedorItemInput,
@@ -42,9 +42,7 @@ async function resolveItemIds(
     else material_id = null;
   }
 
-  if (material_id || insumo_id) {
-    return { material_id, insumo_id };
-  }
+  if (material_id || insumo_id) return { material_id, insumo_id };
 
   const descripcion = item.descripcion.trim();
 
@@ -58,29 +56,29 @@ async function resolveItemIds(
   }
 
   const insumoExacto = await tx.insumo.findFirst({
-    where: {
-      nombre: { equals: descripcion, mode: 'insensitive' },
-      proveedor_id: proveedorId,
-    },
+    where: { nombre: { equals: descripcion, mode: 'insensitive' }, proveedor_id: proveedorId },
     select: { id: true },
   });
   if (insumoExacto) return { material_id: null, insumo_id: insumoExacto.id };
 
   const insumoSimilar = await tx.insumo.findFirst({
-    where: {
-      nombre: { contains: descripcion.slice(0, 80), mode: 'insensitive' },
-      proveedor_id: proveedorId,
-    },
+    where: { nombre: { contains: descripcion.slice(0, 80), mode: 'insensitive' }, proveedor_id: proveedorId },
     select: { id: true },
     orderBy: { id: 'asc' },
   });
   if (insumoSimilar) return { material_id: null, insumo_id: insumoSimilar.id };
 
+  const categoriaDefault = await tx.categoria_insumo.findFirst({
+    where: { activo: true },
+    orderBy: { id: 'asc' },
+    select: { id: true },
+  });
+
   const insumoNuevo = await tx.insumo.create({
     data: {
       nombre: descripcion.length > 200 ? descripcion.slice(0, 200) : descripcion,
       tipo: mapTipoInsumo(item.tipo_item),
-      categoria_insumo: CategoriaInsumo.otro,
+      categoria_id: categoriaDefault?.id ?? 1, // ← Int, no enum
       unidad_medida: mapUnidadMedida(item.unidad),
       proveedor_id: proveedorId,
       precio_unitario: item.precio_unitario,

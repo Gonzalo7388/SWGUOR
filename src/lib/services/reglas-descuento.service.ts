@@ -11,7 +11,7 @@ export interface ReglasDescuentoFilters {
 }
 
 const INCLUDE_CATEGORIA = {
-  categorias: { select: { id: true, nombre: true } },
+  categorias_productos: { select: { id: true, nombre: true } },
 } as const;
 
 function toDate(value: string): Date {
@@ -38,13 +38,12 @@ export const reglasDescuentoService = {
     const page = Math.max(filters.page ?? 1, 1);
     const limit = Math.min(Math.max(filters.limit ?? 20, 1), 100);
     const skip = (page - 1) * limit;
-    const where: Prisma.reglas_descuentoWhereInput = {};
 
+    const where: Prisma.reglas_descuentoWhereInput = {};
     if (filters.activo !== undefined) where.activo = filters.activo;
     if (filters.categoria_id) where.categoria_id = filters.categoria_id;
     if (filters.busqueda) {
-      const q = filters.busqueda;
-      where.nombre = { contains: q, mode: 'insensitive' };
+      where.nombre = { contains: filters.busqueda, mode: 'insensitive' };
     }
 
     const [data, total] = await Promise.all([
