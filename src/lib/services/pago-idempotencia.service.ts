@@ -1,0 +1,109 @@
+import { prisma } from '@/lib/prisma';
+import { EstadoPago } from '@prisma/client';
+import {
+  CODIGO_PEDIDO_YA_PAGADO,
+  MENSAJE_PEDIDO_YA_PAGADO,
+  PAGO_ESTADOS_IDEMPOTENCIA_BLOQUEADOS,
+} from '@/lib/constants/pago-idempotencia';
+
+export class PagoIdempotenciaError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = 'PagoIdempotenciaError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
+export class PedidoNoEncontradoPagoError extends PagoIdempotenciaError {
+  constructor() {
+    super('Pedido no encontrado', 'PEDIDO_NO_ENCONTRADO', 404);
+  }
+}
+
+export class PedidoYaPagadoError extends PagoIdempotenciaError {
+  constructor() {
+    super(MENSAJE_PEDIDO_YA_PAGADO, CODIGO_PEDIDO_YA_PAGADO, 400);
+  }
+}
+
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+function buildPagoDuplicadoWhere(pedidoId: bigint) {
+  return {
+    pedido_id: pedidoId,
+    OR: [
+      { estado: { in: PAGO_ESTADOS_IDEMPOTENCIA_BLOQUEADOS } },
+      /** Pago verificado manualmente por tesorería */
+      { verificado_at: { not: null } },
+    ],
+  };
+}
+
+async function existePagoConfirmado(
+  db: Tx | typeof prisma,
+  pedidoId: bigint,
+): Promise<boolean> {
+  const pago = await db.pagos.findFirst({
+    where: buildPagoDuplicadoWhere(pedidoId),
+    select: { id_uuid: true, estado: true, verificado_at: true },
+  });
+  return Boolean(pago);
+}
+
+/**
+ * Valida idempotencia antes de tokenizar/cobrar en Culqi.
+ * Bloquea si existe un pago `pagado` o con `verificado_at` (pago verificado).
+ */
+export async function validarIdempotenciaPagoPedido(
+  pedidoId: number | bigint,
+): Promise<void> {
+  const id = BigInt(pedidoId);
+
+  if (id <= BigInt(0)) {
+    throw new PagoIdempotenciaError('ID de pedido inválido', 'PEDIDO_INVALIDO', 400);
+  }
+
+  const pedido = await prisma.pedidos.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+
+  if (!pedido) {
+    throw new PedidoNoEncontradoPagoError();
+  }
+
+  if (await existePagoConfirmado(prisma, id)) {
+    throw new PedidoYaPagadoError();
+  }
+}
+
+/**
+ * Revalidación dentro de transacción antes de persistir el pago (anti-duplicado concurrente).
+ */
+export async function assertIdempotenciaPagoPedidoEnTx(
+  tx: Tx,
+  pedidoId: number | bigint,
+): Promise<void> {
+  const id = BigInt(pedidoId);
+
+  if (await existePagoConfirmado(tx, id)) {
+    throw new PedidoYaPagadoError();
+  }
+}
+
+export function isPagoIdempotenciaError(error: unknown): error is PagoIdempotenciaError {
+  return error instanceof PagoIdempotenciaError;
+}
+
+/** Helper para consultas/reportes */
+export async function pedidoTienePagoConfirmado(
+  pedidoId: number | bigint,
+): Promise<boolean> {
+  return existePagoConfirmado(prisma, BigInt(pedidoId));
+}
+
+export { EstadoPago };
