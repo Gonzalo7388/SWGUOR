@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { crearDespachoPedido } from '@/lib/helpers/crear-despacho-pedido.helper';
+import { auditoriaService } from '@/lib/services/auditoria.service';
+import { AccionAuditoria } from '@prisma/client';
 
 const ROLES: RolUsuario[] = ['administrador', 'gerente'];
 
@@ -19,8 +21,16 @@ export async function POST(req: Request, { params }: Params) {
     const { id } = await params;
     const body = await req.json();
 
-    const direccion =
-      typeof body.direccion_entrega === 'string' ? body.direccion_entrega : '';
+    const direccion = typeof body.direccion_entrega === 'string'
+      ? body.direccion_entrega.trim()
+      : '';
+
+    if (!direccion) {
+      return NextResponse.json(
+        { error: 'direccion_entrega es requerida' },
+        { status: 400 }
+      );
+    }
     const fechaRaw = body.fecha_entrega_estimada;
     const fotos = Array.isArray(body.fotos)
       ? body.fotos.filter((u: unknown) => typeof u === 'string')
@@ -47,6 +57,14 @@ export async function POST(req: Request, { params }: Params) {
       creadoPorAuthId: auth.user.authId,
     });
 
+    await auditoriaService.registrar({
+      usuario_id: BigInt(auth.user.id),
+      accion: AccionAuditoria.crear,
+      tabla: 'despachos',
+      registro_id: resultado.despachoId,
+      datos_despues: { grupo_id: resultado.grupoId, direccion },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -56,7 +74,11 @@ export async function POST(req: Request, { params }: Params) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno';
-    console.error('[POST pedido empaque]', error);
+
+    if (error instanceof Error && (error as any).code === 'P2025') {
+      return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }

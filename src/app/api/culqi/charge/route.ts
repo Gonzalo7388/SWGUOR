@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
             monto: amountInSoles,
             metodo_pago: metodoPago,
             tipo: "pago_completo",
-            estado: "verificado",
+            estado: "pagado",
             fecha_pago: new Date(),
             notas: `Pago automático Culqi${
               data?.id ? ` (${String(data.id)})` : ""

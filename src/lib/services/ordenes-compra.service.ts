@@ -20,6 +20,7 @@ export type { OrdenCompraDetalle };
 export interface FiltrosOrdenCompra {
   proveedor_id?: number | bigint;
   estado?: EstadoOrdenCompra;
+  estado_in?: EstadoOrdenCompra[];
   estado_pago?: EstadoPagoOrdenCompra;
   cotizacion_proveedor_id?: number | bigint;
 }
@@ -73,10 +74,17 @@ async function assertSinOcActivaParaCotizacion(cotizacionId: bigint) {
 
 export const ordenesCompraService = {
   listar: async (filtros?: FiltrosOrdenCompra): Promise<OrdenCompraDetalle[]> => {
+    // Construir filtro de estado: soporta valor único o múltiples via `estado_in`
+    const estadoWhere = filtros?.estado_in?.length
+      ? { estado: { in: filtros.estado_in as EstadoOrdenCompra[] } }
+      : filtros?.estado
+        ? { estado: filtros.estado }
+        : {};
+
     return prisma.ordenes_compra.findMany({
       where: {
         ...(filtros?.proveedor_id && { proveedor_id: BigInt(filtros.proveedor_id) }),
-        ...(filtros?.estado && { estado: filtros.estado }),
+        ...estadoWhere,
         ...(filtros?.estado_pago && { estado_pago: filtros.estado_pago }),
         ...(filtros?.cotizacion_proveedor_id && {
           cotizacion_proveedor_id: BigInt(filtros.cotizacion_proveedor_id),

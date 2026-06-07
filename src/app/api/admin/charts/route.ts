@@ -43,7 +43,9 @@ export async function GET(req: Request) {
           nombre: true,
           stock_actual: true,
           stock_minimo: true,
-          categoria_insumo: true,
+          categoria_insumo: {
+            select: { nombre: true },
+          },
         },
         orderBy: { stock_actual: 'asc' },
       }),
@@ -95,9 +97,9 @@ export async function GET(req: Request) {
 
     const productosDetalle = productoIds.length > 0
       ? await prisma.productos.findMany({
-          where: { id: { in: productoIds } },
-          select: { id: true, nombre: true, sku: true },
-        })
+        where: { id: { in: productoIds } },
+        select: { id: true, nombre: true, sku: true },
+      })
       : [];
 
     const productosMap = new Map(productosDetalle.map((p) => [p.id.toString(), p]));
@@ -118,7 +120,7 @@ export async function GET(req: Request) {
     const stockByCategory: Record<string, { alto: number; medio: number; bajo: number }> = {};
 
     for (const item of stockLevels) {
-      const cat = item.categoria_insumo ?? 'otro';
+      const cat = item.categoria_insumo?.nombre ?? 'Sin categoría';
       if (!stockByCategory[cat]) stockByCategory[cat] = { alto: 0, medio: 0, bajo: 0 };
 
       const actual = Number(item.stock_actual);

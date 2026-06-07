@@ -3,31 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Notificacion } from '@/lib/schemas/notificaciones';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-
-// ── Tipos exclusivos del portal cliente ──────────────────────────────────────
-// Los tipos admin (stock_bajo, orden_produccion, etc.) no llegan aquí
-// porque las notificaciones se filtran por usuario_id y el cliente
-// nunca recibe esos tipos desde los triggers del admin.
-
-export type TipoNotificacionPortal =
-    | 'cotizacion_aprobada'
-    | 'cotizacion_rechazada'
-    | 'pedido_confirmado'
-    | 'pedido_listo'
-    | 'pago_verificado'
-    | 'pago_rechazado'
-    | 'despacho_en_camino'
-    | 'sistema';
-
-interface RawNotificationInput {
-    id: string | number;
-    leido: boolean;
-    leido_at?: string | null;
-    [key: string]: unknown;
-}
+import type { TipoNotificacion } from '@prisma/client';
+export type TipoNotificacionPortal = TipoNotificacion;
 
 interface NotificacionesApiResponse {
-    data: RawNotificationInput[];
+    data: Notificacion[];
     kpis?: {
         sinLeer?: number;
         [key: string]: unknown;
@@ -46,7 +26,7 @@ export function useNotificationsPortal(userId?: number) {
         if (!userId) return;
         setLoading(true);
         try {
-            const res = await fetch('/api/notificaciones?limite=15');
+            const res = await fetch('/api/portal/notificaciones?limite=15');
             if (!res.ok) return;
 
             const response: NotificacionesApiResponse = await res.json();
@@ -113,7 +93,7 @@ export function useNotificationsPortal(userId?: number) {
     // ── Marcar una como leída ──────────────────────────────────────────────────
     const markAsRead = useCallback(async (id: number) => {
         try {
-            const res = await fetch(`/api/notificaciones/${id}/leer`, {
+            const res = await fetch(`/api/portal/notificaciones/${id}/leer`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -132,7 +112,7 @@ export function useNotificationsPortal(userId?: number) {
     const markAllAsRead = useCallback(async () => {
         if (!userId || unreadCount === 0) return;
         try {
-            const res = await fetch('/api/notificaciones', {
+            const res = await fetch('/api/portal/notificaciones', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
             });

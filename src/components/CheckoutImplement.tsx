@@ -5,10 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Definición de tipos para Culqi
 declare global {
   interface Window {
-    CulqiCheckout: new (
-      publicKey: string,
-      config: CulqiConfig
-    ) => CulqiInstance;
+    CulqiCheckout: any;
   }
 }
 

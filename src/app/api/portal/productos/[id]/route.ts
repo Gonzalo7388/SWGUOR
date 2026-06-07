@@ -37,7 +37,7 @@ export async function GET(
     const producto = await prisma.productos.findUnique({
       where: { id: productoId },
       include: {
-        categorias: { select: { id: true, nombre: true, imagen: true } },
+        categorias_productos: { select: { id: true, nombre: true, imagen: true } },
         variantes_producto: {
           where: { estado: 'activo' },
           select: {
@@ -118,12 +118,12 @@ export async function GET(
       precio: Number(producto.precio),
       imagen: imagenPrincipal,
       stock_disponible: stockTotal,
-      categoria: producto.categorias
+      categoria: producto.categorias_productos
         ? {
-            id: producto.categorias.id,
-            nombre: producto.categorias.nombre,
-            imagen: normalizarImagen(producto.categorias.imagen, 'categorias'),
-          }
+          id: producto.categorias_productos.id,
+          nombre: producto.categorias_productos.nombre,
+          imagen: normalizarImagen(producto.categorias_productos.imagen, 'categorias'),
+        }
         : { id: null, nombre: 'Sin categoría', imagen: null },
       colores_disponibles: coloresDisponibles,
       tallas_disponibles: tallasDisponibles,

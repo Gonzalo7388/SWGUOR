@@ -36,7 +36,7 @@ export async function GET(
     const categoriaId = BigInt(resolvedParams.id);
 
     // ── 1. Categoría ──
-    const categoria = await prisma.categorias.findUnique({
+    const categoria = await prisma.categorias_productos.findUnique({
       where: { id: categoriaId },
     });
 

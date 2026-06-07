@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 import { confirmarEntregaPedido } from '@/lib/helpers/confirmar-entrega-pedido.helper';
+import { auditoriaService } from '@/lib/services/auditoria.service';
+import { AccionAuditoria } from '@prisma/client';
 
 const ROLES: RolUsuario[] = ['administrador', 'gerente'];
 
@@ -32,7 +34,14 @@ export async function POST(req: Request, { params }: Params) {
       emitidoPor: BigInt(auth.user.id),
       creadoPorAuthId: auth.user.authId,
     });
-
+        await auditoriaService.registrar({
+        usuario_id: BigInt(auth.user.id),
+        accion: AccionAuditoria.actualizar,
+        tabla: 'pedidos',
+        registro_id: BigInt(id),
+        datos_despues: { entrega_confirmada: true, acta_pdf_url: actaPdfUrl },
+    });
+    
     return NextResponse.json({
       success: true,
       data: {
@@ -43,6 +52,12 @@ export async function POST(req: Request, { params }: Params) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno';
     console.error('[POST pedido entrega]', error);
+
+    // Pedido o despacho no encontrado
+    if (error instanceof Error && 'code' in error && (error as any).code === 'P2025') {
+      return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }

@@ -80,38 +80,38 @@ interface ConfeccionBase {
 }
 
 interface PersonalBase {
-  nombre_completo?: string;
-  cargo: string;
-  dni?: string;
-  telefono?: string;
-  estado?: boolean;
-  fecha_income?: string | Date; // mapeado internamente
-  fecha_ingreso?: string | Date;
+  nombre_completo?: string | null;
+  cargo: string | null;
+  dni?: string | null;
+  telefono?: string | null;
+  estado?: boolean | string | null;
+  fecha_income?: string | Date | null; // mapeado internamente
+  fecha_ingreso?: string | Date | null;
   usuarios?: {
-    email?: string;
-    rol?: string;
-    ultimo_acceso?: string | Date;
-  };
+    email?: string | null;
+    rol?: string | null;
+    ultimo_acceso?: string | Date | null;
+  } | null;
 }
 
 interface ClienteBase {
-  ruc?: string;
-  razon_social?: string;
-  nombre_comercial?: string;
-  email?: string;
-  telefono?: string;
-  tipo_cliente?: string;
-  direccion_fiscal?: string;
-  activo?: boolean;
-  created_at?: string | Date;
-  ultimo_pedido_en?: string | Date;
-  clientes?: ClienteBase; // Por compatibilidad con la estructura anidada u.clientes ?? u
-  estado?: string;
+  ruc?: string | null;
+  razon_social?: string | null;
+  nombre_comercial?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  tipo_cliente?: string | null;
+  direccion_fiscal?: string | null;
+  activo?: boolean | string | null;
+  created_at?: string | Date | null;
+  ultimo_pedido_en?: string | Date | null;
+  clientes?: ClienteBase | null;
+  estado?: string | null;
   usuarios?: {
-    email?: string;
-    rol?: string;
-    ultimo_acceso?: string | Date;
-  };
+    email?: string | null;
+    rol?: string | null;
+    ultimo_acceso?: string | Date | null;
+  } | null;
 }
 
 // =====================================================

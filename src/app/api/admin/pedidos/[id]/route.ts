@@ -3,6 +3,7 @@ import { PedidosService } from '@/lib/services/pedidos.service';
 import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import { auditoriaService } from '@/lib/services/auditoria.service';
+import { AccionAuditoria } from '@prisma/client'; // ← agregar
 import type { RolUsuario } from '@/lib/constants/roles';
 
 const PEDIDOS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'recepcionista', 'disenador', 'cortador', 'representante_taller'];
@@ -48,10 +49,10 @@ export async function PUT(
 
     const { estado, prioridad, notas_pedido, notas_cliente } = body;
     const data = {
-      ...(estado && { estado }),
-      ...(prioridad  && { prioridad }),
-      ...(notas_pedido  && { notas_pedido }),
-      ...(notas_cliente  && { notas_cliente }),
+      ...(estado !== undefined && { estado }),
+      ...(prioridad !== undefined && { prioridad }),
+      ...(notas_pedido !== undefined && { notas_pedido }),
+      ...(notas_cliente !== undefined && { notas_cliente }),
     };
 
     if (Object.keys(data).length === 0) {
@@ -65,7 +66,7 @@ export async function PUT(
 
     await auditoriaService.registrar({
       usuario_id: BigInt(auth.user.id),
-      accion: 'ACTUALIZAR',
+      accion: AccionAuditoria.actualizar, // ← corregido
       tabla: 'pedidos',
       registro_id: BigInt(id),
       datos_despues: pedido,

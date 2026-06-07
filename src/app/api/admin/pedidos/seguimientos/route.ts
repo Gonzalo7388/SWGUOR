@@ -1,10 +1,19 @@
 export const runtime = 'nodejs';
 import { PedidosService } from '@/lib/services/pedidos.service';
 import { NextResponse } from 'next/server';
+import { requireServerRole } from '@/lib/auth/server';
+import type { RolUsuario } from '@/lib/constants/roles';
+
+const PEDIDOS_ROLES: RolUsuario[] = [
+  'administrador', 'gerente', 'recepcionista',
+  'disenador', 'cortador', 'representante_taller'
+];
 
 // GET /api/admin/pedidos/seguimiento?pedido_id=xxx
-// obtenerPorId ya incluye seguimiento_pedido ordenado por created_at desc
 export async function GET(req: Request) {
+  const auth = await requireServerRole(PEDIDOS_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const { searchParams } = new URL(req.url);
     const pedido_id = searchParams.get('pedido_id');
@@ -27,6 +36,9 @@ export async function GET(req: Request) {
 
 // POST /api/admin/pedidos/seguimiento
 export async function POST(req: Request) {
+  const auth = await requireServerRole(PEDIDOS_ROLES);
+  if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await req.json();
     const { pedido_id, status, notas, creado_por } = body;
@@ -38,7 +50,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'status requerido' }, { status: 400 });
     }
 
-    const seg = await PedidosService.registrarSeguimiento({ pedido_id, status, notas, creado_por });
+    const seg = await PedidosService.registrarSeguimiento({
+      pedido_id,
+      status,
+      notas,
+      creado_por,
+    });
+
     return NextResponse.json({ success: true, data: seg }, { status: 201 });
   } catch (error: any) {
     console.error('[POST /pedidos/seguimiento]', error);

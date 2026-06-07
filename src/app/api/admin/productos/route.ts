@@ -39,13 +39,13 @@ export async function GET(req: Request) {
           ...(talla && { variantes_producto: { some: { talla } } }),
         },
         include: {
-          categorias: true,
+          categorias_productos: true,
           variantes_producto: true,
           fichas_tecnicas: true,
         },
         orderBy: { nombre: 'asc' },
       }),
-      prisma.categorias.findMany({ orderBy: { nombre: 'asc' } }),
+      prisma.categorias_productos.findMany({ orderBy: { nombre: 'asc' } }),
     ]);
 
     return NextResponse.json(

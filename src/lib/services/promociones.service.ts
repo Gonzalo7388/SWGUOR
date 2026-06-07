@@ -14,7 +14,7 @@ const INCLUDE_REGLAS = {
     orderBy: { prioridad: 'asc' as const },
     include: {
       reglas_descuento: {
-        include: { categorias: { select: { id: true, nombre: true } } },
+        include: { categorias_productos: { select: { id: true, nombre: true } } }, // ✅
       },
     },
   },

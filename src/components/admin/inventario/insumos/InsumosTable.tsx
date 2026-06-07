@@ -7,19 +7,24 @@ interface InventarioTableProps {
   data: {
     id: bigint | number | string;
     nombre: string;
-    tipo: string;
-    categoria_insumo?: string;
+    descripcion?: string | null;
+    tipo: "materia_prima" | "avio" | "empaque" | "suministro" | string;
+    categoria_id: number;
+    // Agregamos la relación que viene resuelta desde Prisma u objeto extendido
+    categoria_insumo?: {
+      id: number;
+      nombre: string;
+    } | null;
     unidad_medida: string;
-    stock_actual: number;
-    stock_minimo: number;
-    stock_maximo?: number;
-    precio_unitario?: number;
+    stock_actual: number | string;
+    stock_minimo: number | string;
+    stock_maximo?: number | string | null;
+    precio_unitario?: number | string | null;
     created_at?: Date | string;
     updated_at?: Date | string | null;
     proveedor_id?: bigint | number | null;
     ubicacion_almacen?: string | null;
     alerta_bajo_stock?: boolean | null;
-    almacen_id?: bigint | number | null;
   }[];
   loading?: boolean;
   onEdit: (item: any) => void;
@@ -34,6 +39,17 @@ export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit,
     if (actual <= 0) return { label: 'Agotado', style: 'bg-red-50 text-red-700 border-red-100' };
     if (actual <= minimo) return { label: 'Bajo Stock', style: 'bg-amber-50 text-amber-700 border-amber-100' };
     return { label: 'Óptimo', style: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+  };
+
+  // Formateador visual para transformar los valores del ENUM de la Base de Datos a etiquetas limpias
+  const formatTipoLabel = (tipo: string) => {
+    switch (tipo) {
+      case "materia_prima": return "Materia Prima";
+      case "avio": return "Avío";
+      case "empaque": return "Empaque";
+      case "suministro": return "Suministro";
+      default: return tipo;
+    }
   };
 
   if (loading) {
@@ -52,7 +68,8 @@ export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit,
           <tr className="text-left">
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase">Insumo / Material</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Tipo</th>
-            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Precio Reposición</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Categoría</th>
+            <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Precio Unitario</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Stock</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-center">Estado</th>
             <th className="px-6 py-2 font-black text-[11px] tracking-widest text-slate-400 uppercase text-right">Acciones</th>
@@ -60,50 +77,65 @@ export default function InsumosTable({ data, loading, onEdit, onDelete, canEdit,
         </thead>
         <tbody>
           {data.map((item) => {
-            const status = getStockStatus(Number(item.stock_actual), Number(item.stock_minimo));
+            const stockActualNum = Number(item.stock_actual || 0);
+            const stockMinimoNum = Number(item.stock_minimo || 0);
+            const status = getStockStatus(stockActualNum, stockMinimoNum);
             const precio = item.precio_unitario ? Number(item.precio_unitario) : 0;
 
-            // Aseguramos un ID compatible para la directiva 'key' de React
+            // Aseguramos un ID compatible evitando errores con datos BigInt
             const rowKey = item.id ? item.id.toString() : Math.random().toString();
+
+            // Resolvemos el nombre de la categoría relacionada de forma segura
+            const categoriaLabel = item.categoria_insumo?.nombre || `Cat. #${item.categoria_id}`;
 
             return (
               <tr key={rowKey} className="group transition-all duration-200">
-                {/* Nombre */}
+                {/* Nombre y Descripción */}
                 <td className="bg-white border-y border-l border-slate-100 py-4 px-6 rounded-l-2xl shadow-sm group-hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div>
                       <p className="font-black text-slate-900 text-sm tracking-tight uppercase">{item.nombre}</p>
+                      {item.descripcion && (
+                        <p className="text-[11px] text-slate-500 line-clamp-1 mb-0.5">{item.descripcion}</p>
+                      )}
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.unidad_medida}</p>
                     </div>
                   </div>
                 </td>
 
-                {/* Categoría */}
+                {/* Tipo de Insumo (Enum Formateado) */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 text-[9px] font-black uppercase border border-slate-100">
-                    {item.tipo}
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-50 text-slate-500 text-[9px] font-black uppercase border border-slate-100 raw">
+                    {formatTipoLabel(item.tipo)}
                   </span>
                 </td>
 
-                {/* Precio Reposición */}
+                {/* Categoría Relacionada */}
+                <td className="bg-white border-y border-slate-100 text-center shadow-sm">
+                  <span className="px-2.5 py-1 rounded-lg bg-pink-50/30 text-pink-700 text-[9px] font-black uppercase border border-pink-100/50">
+                    {categoriaLabel}
+                  </span>
+                </td>
+
+                {/* Precio Unitario */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-pink-50/50 rounded-lg border border-pink-100">
-                      <CircleDollarSign size={12} className="text-pink-600" />
-                      <span className="text-sm font-black text-pink-700">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                      <CircleDollarSign size={12} className="text-slate-500" />
+                      <span className="text-sm font-black text-slate-700">
                         S/ {precio.toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </td>
 
-                {/* Stock Numérico */}
+                {/* Stock Numérico Flotante */}
                 <td className="bg-white border-y border-slate-100 text-center shadow-sm">
                   <div className="flex flex-col items-center">
-                    <span className={`text-sm font-black ${Number(item.stock_actual) <= Number(item.stock_minimo) ? 'text-rose-600' : 'text-slate-800'}`}>
-                      {Number(item.stock_actual)}
+                    <span className={`text-sm font-black ${stockActualNum <= stockMinimoNum ? 'text-rose-600' : 'text-slate-800'}`}>
+                      {stockActualNum % 1 === 0 ? stockActualNum : stockActualNum.toFixed(2)}
                     </span>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Cant. Disponible</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Disponible</span>
                   </div>
                 </td>
 

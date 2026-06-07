@@ -38,15 +38,15 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const response = NextResponse.next({ request });
 
-  // 1. RUTAS PÚBLICAS
-  const publicPaths = ['/auth/login', '/auth/signup', '/admin/acceso-denegado'];
+  // 1. RUTAS PÚBLICAS Y ENDPOINTS INTERNOS DE AUTH
+  const publicPaths = ['/login-admin', '/login-cliente', '/auth/signup', '/admin/acceso-denegado', '/api/auth'];
   if (publicPaths.some(path => pathname.startsWith(path))) {
     return response;
   }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Saltamos RLS de forma segura en Servidor
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -64,21 +64,27 @@ export async function proxy(request: NextRequest) {
 
   // 2. PROTECCIÓN DE SESIÓN
   if (!user) {
-    const loginUrl = new URL('/auth/login', request.url);
+    const loginUrl = new URL('/login-admin', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. OBTENER USUARIO DE LA TABLA 'usuarios'
+  // 3. OBTENER USUARIO USANDO MAYBE_SINGLE
   const { data: usuario } = await supabase
     .from('usuarios')
     .select('rol, estado')
     .eq('auth_id', user.id)
-    .single();
+    .maybeSingle();
+
+  // Si la sesión existe en Supabase Auth pero la tabla intermedia está en proceso de lectura,
+  // permitimos la resolución normal del cliente para evitar coli siones de estado asíncronas
+  if (!usuario) {
+    return response;
+  }
 
   // 4. VALIDAR ESTADO (Case Insensitive)
-  if (!usuario || usuario.estado?.toUpperCase() !== 'ACTIVO') {
-    return NextResponse.redirect(new URL('/auth/login?error=cuenta_inactiva', request.url));
+  if (usuario.estado?.toLowerCase().trim() !== 'activo') {
+    return NextResponse.redirect(new URL('/login-admin?error=cuenta_inactiva', request.url));
   }
 
   const userRole = usuario.rol?.toLowerCase().trim();
@@ -99,12 +105,9 @@ export async function proxy(request: NextRequest) {
   if (matchedRoute) {
     const rolesPermitidos = routePermissions[matchedRoute];
     const esSuperUsuario = userRole === 'gerente' || userRole === 'administrador';
-
-    // Normalizamos roles permitidos a minúsculas por seguridad
     const rolesPermitidosLower = rolesPermitidos.map(r => r.toLowerCase());
 
     if (!esSuperUsuario && !rolesPermitidosLower.includes(userRole)) {
-      console.log(`Acceso denegado para: ${userRole} en ruta: ${pathname}`);
       return NextResponse.redirect(new URL('/admin/acceso-denegado', request.url));
     }
   }

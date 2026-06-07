@@ -10,6 +10,7 @@ import {
   crearOrdenCompraSchema,
   listarOrdenesCompraSchema,
 } from '@/lib/schemas/ordenes-compra';
+import type { EstadoOrdenCompra } from '@prisma/client'; // <-- Asegúrate de que tu tipo se llame así o impórtalo desde donde lo tengas definido
 
 const ORDENES_COMPRA_ROLES: RolUsuario[] = [
   'administrador',
@@ -25,9 +26,21 @@ export async function GET(req: Request) {
 
   try {
     const { searchParams } = new URL(req.url);
+
+    // Soportar estado con múltiples valores separados por coma
+    const estadoRaw = searchParams.get('estado') ?? undefined;
+    let estadoFilter: string | EstadoOrdenCompra[] | undefined; // <-- Cambiado string[] por EstadoOrdenCompra[]
+
+    if (estadoRaw && estadoRaw.includes(',')) {
+      // <-- CORRECCIÓN: Se añade 'as EstadoOrdenCompra' en el map
+      estadoFilter = estadoRaw.split(',').map(s => s.trim() as EstadoOrdenCompra);
+    } else {
+      estadoFilter = estadoRaw;
+    }
+
     const parsed = listarOrdenesCompraSchema.safeParse({
       proveedor_id: searchParams.get('proveedor_id') ?? undefined,
-      estado: searchParams.get('estado') ?? undefined,
+      estado: Array.isArray(estadoFilter) ? undefined : estadoFilter,
       estado_pago: searchParams.get('estado_pago') ?? undefined,
       cotizacion_proveedor_id: searchParams.get('cotizacion_proveedor_id') ?? undefined,
     });
@@ -39,7 +52,12 @@ export async function GET(req: Request) {
       );
     }
 
-    const ordenes = await ordenesCompraService.listar(parsed.data);
+    // Si se pasaron múltiples estados, usar filtro `in` directamente
+    const filtros = Array.isArray(estadoFilter)
+      ? { ...parsed.data, estado_in: estadoFilter }
+      : parsed.data;
+
+    const ordenes = await ordenesCompraService.listar(filtros);
     const conPdf = ordenes.map((o) => ({
       ...o,
       pdf_url: getOrdenCompraPdfPublicUrl(String(o.id)),

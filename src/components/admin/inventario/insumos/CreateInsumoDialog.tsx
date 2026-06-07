@@ -1,8 +1,8 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { PackagePlus } from "lucide-react";
-import type { Database } from "@/types/database";
-type Categoria = Database['public']['Tables']['categorias']['Row'];
+import { TipoInsumo, UnidadMedida, Prisma } from "@prisma/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,13 @@ interface Props {
 
 export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categorias, setCategorias] = useState<Prisma.categoria_insumoGetPayload<{}>[]>([]);
+
+  // SOLUCIÓN: Definimos las propiedades de los selectores como string para máxima compatibilidad con componentes UI
   const [formData, setFormData] = useState({
     nombre: "",
-    tipo: "Tela",
-    unidad_medida: "Metros",
+    tipo: TipoInsumo.materia_prima as string,
+    unidad_medida: UnidadMedida.unidades as string,
     stock_actual: "",
     stock_minimo: "",
     categoria_id: "",
@@ -35,9 +37,11 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
           if (!res.ok) throw new Error();
           return res.json();
         })
-        .then((data) => setCategorias(Array.isArray(data) ? data : []))
+        .then((data) => {
+          setCategorias(Array.isArray(data) ? data : []);
+        })
         .catch(() => {
-          toast.error("Error al cargar categorías");
+          toast.error("Error al cargar las categorías de insumos");
           setCategorias([]);
         });
     }
@@ -46,11 +50,12 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
+
+    // Mapeamos de vuelta de forma segura hacia los tipos estrictos de Prisma
     const data = {
       nombre: formData.nombre,
-      tipo: formData.tipo,
-      unidad_medida: formData.unidad_medida,
+      tipo: formData.tipo as TipoInsumo,
+      unidad_medida: formData.unidad_medida as UnidadMedida,
       stock_actual: parseFloat(formData.stock_actual || "0"),
       stock_minimo: parseFloat(formData.stock_minimo || "0"),
       categoria_id: formData.categoria_id ? Number(formData.categoria_id) : null,
@@ -65,7 +70,14 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
 
       if (res.ok) {
         toast.success("Nuevo insumo registrado con éxito");
-        setFormData({ nombre: "", tipo: "Tela", unidad_medida: "Metros", stock_actual: "", stock_minimo: "", categoria_id: "" });
+        setFormData({
+          nombre: "",
+          tipo: TipoInsumo.materia_prima as string,
+          unidad_medida: UnidadMedida.unidades as string,
+          stock_actual: "",
+          stock_minimo: "",
+          categoria_id: ""
+        });
         onSuccess();
         onClose();
       } else {
@@ -79,12 +91,15 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
     }
   };
 
+  const formatEnumText = (text: string) => {
+    return text.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] border-none shadow-2xl bg-white p-0 overflow-hidden max-h-[90vh]">
-        {/* Banner decorativo superior */}
         <div className="h-2 bg-pink-600 w-full" />
-        
+
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-8px)]">
           <DialogHeader className="mb-6">
             <div className="flex items-center gap-3">
@@ -96,7 +111,7 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
                   Nuevo Insumo
                 </DialogTitle>
                 <DialogDescription className="text-slate-500">
-                  Registra un nuevo material o insumo al inventario.
+                  Registra un nuevo material o insumo al inventario físico.
                 </DialogDescription>
               </div>
             </div>
@@ -108,77 +123,80 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
               <Label className="text-[11px] uppercase font-bold text-slate-400">
                 Nombre del Material
               </Label>
-              <Input 
+              <Input
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                placeholder="Ej: Tela Lino Premium" 
-                required 
+                placeholder="Ej: Tela Lino Premium"
+                required
                 disabled={loading}
                 className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
               />
             </div>
 
-            {/* Tipo y Unidad de Medida */}
+            {/* Selects de Enums */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[11px] uppercase font-bold text-slate-400">Tipo</Label>
-                <Select 
-                  value={formData.tipo} 
+                <Label className="text-[11px] uppercase font-bold text-slate-400">Tipo (Enum Prisma)</Label>
+                <Select
+                  value={formData.tipo}
                   onValueChange={(value) => setFormData({ ...formData, tipo: value })}
                   disabled={loading}
                 >
-                  <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
+                  <SelectTrigger className="h-11 bg-slate-50 border-slate-200 text-left capitalize">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    <SelectItem value="Tela">Tela</SelectItem>
-                    <SelectItem value="Hilo">Hilo</SelectItem>
-                    <SelectItem value="Avios">Avíos / Accesorios</SelectItem>
-                    <SelectItem value="Embalaje">Embalaje</SelectItem>
+                    {Object.values(TipoInsumo).map((tipo) => (
+                      <SelectItem key={tipo} value={tipo as string}>
+                        {formatEnumText(tipo)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
                 <Label className="text-[11px] uppercase font-bold text-slate-400">U. Medida</Label>
-                <Select 
-                  value={formData.unidad_medida} 
+                <Select
+                  value={formData.unidad_medida}
                   onValueChange={(value) => setFormData({ ...formData, unidad_medida: value })}
                   disabled={loading}
                 >
-                  <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
+                  <SelectTrigger className="h-11 bg-slate-50 border-slate-200 text-left capitalize">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    <SelectItem value="Metros">Metros</SelectItem>
-                    <SelectItem value="Unidades">Unidades</SelectItem>
-                    <SelectItem value="Conos">Conos</SelectItem>
-                    <SelectItem value="Kg">Kilogramos</SelectItem>
+                    {Object.values(UnidadMedida).map((unidad) => (
+                      <SelectItem key={unidad} value={unidad as string}>
+                        {formatEnumText(unidad)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Stock Actual y Mínimo */}
+            {/* Stock */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[11px] uppercase font-bold text-slate-400">Stock Inicial</Label>
-                <Input 
-                  type="number" 
-                  step="0.01" 
+                <Input
+                  type="number"
+                  step="0.01"
                   min="0"
                   value={formData.stock_actual}
                   onChange={(e) => setFormData({ ...formData, stock_actual: e.target.value })}
                   placeholder="0.00"
-                  required 
+                  required
                   disabled={loading}
                   className="bg-slate-50 border-slate-200 focus:bg-white transition-all h-11"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-[11px] uppercase font-bold text-slate-400">Stock Mínimo</Label>
-                <Input 
-                  type="number" 
-                  step="0.01" 
+                <Input
+                  type="number"
+                  step="0.01"
                   min="0"
                   value={formData.stock_minimo}
                   onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })}
@@ -189,38 +207,40 @@ export default function CreateInsumoDialog({ isOpen, onClose, onSuccess }: Props
               </div>
             </div>
 
-            {/* Categoría */}
+            {/* Categoría Relacionada */}
             <div className="space-y-2">
-              <Label className="text-[11px] uppercase font-bold text-slate-400">Categoría Relacionada</Label>
-              <Select 
-                value={formData.categoria_id} 
+              <Label className="text-[11px] uppercase font-bold text-slate-400">Categoría de Insumo</Label>
+              <Select
+                value={formData.categoria_id}
                 onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
                 disabled={loading}
               >
-                <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
+                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 text-left">
                   <SelectValue placeholder="Seleccionar una categoría..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {categorias.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id.toString()}>{cat.nombre}</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.nombre}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Footer con acciones */}
+            {/* Footer */}
             <DialogFooter className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
-              <Button 
-                type="button" 
-                variant="ghost" 
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={onClose}
                 disabled={loading}
                 className="text-slate-500 hover:bg-slate-100"
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={loading}
                 className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-200 px-8 transition-all"
               >

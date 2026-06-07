@@ -1,14 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import ProductForm from "@/components/admin/productos/form/ProductForm"; 
+import ProductForm from "@/components/admin/productos/form/ProductForm";
 import { ChevronLeft, PackagePlus } from "lucide-react";
 import Link from "next/link";
 
 export default async function NuevoProductoPage() {
   // 1. Obtenemos categorías
-  const categorias = await prisma.categorias.findMany({
+  const categorias = await prisma.categorias_productos.findMany({
     orderBy: { nombre: 'asc' }
   });
-  
+
   // 2. Obtenemos el ID del último producto para el SKU
   const ultimoProducto = await prisma.productos.findFirst({
     orderBy: { id: 'desc' },
@@ -27,11 +27,11 @@ export default async function NuevoProductoPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
-        
+
         {/* ── Breadcrumb y Header ── */}
         <div className="flex flex-col gap-4">
-          <Link 
-            href="/admin/Panel-Administrativo/productos" 
+          <Link
+            href="/admin/Panel-Administrativo/productos"
             className="flex items-center gap-2 text-gray-500 hover:text-pink-600 transition-colors text-sm font-bold w-fit"
           >
             <ChevronLeft size={16} />
@@ -57,7 +57,7 @@ export default async function NuevoProductoPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Decoración superior sutil */}
           <div className="h-1.5 bg-pink-600 w-full" />
-          
+
           <div className="p-6 md:p-10">
             <div className="mb-8">
               <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tight">
@@ -68,10 +68,10 @@ export default async function NuevoProductoPage() {
               </p>
             </div>
 
-            <ProductForm 
-              mode="create" 
-              categorias={categoriasFormateadas} 
-              nextId={nextId} 
+            <ProductForm
+              mode="create"
+              categorias={categoriasFormateadas}
+              nextId={nextId}
             />
           </div>
         </div>

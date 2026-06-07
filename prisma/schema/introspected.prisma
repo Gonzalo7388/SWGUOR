@@ -555,10 +555,7 @@ model almacenes {
   almacen_stock          almacen_stock[]
   almacen_zonas          almacen_zonas[]
   usuarios               usuarios?                @relation(fields: [responsable_id], references: [id], onUpdate: NoAction)
-  insumo                 insumo[]
-  materiales             materiales[]
   movimientos_inventario movimientos_inventario[]
-  productos              productos[]
 
   @@schema("public")
 }
@@ -605,8 +602,20 @@ model auditoria {
   @@schema("public")
 }
 
+model categoria_insumo {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(100)
+  descripcion String?  @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  activo      Boolean?  
+  insumos    insumo[]
+
+  @@schema("public")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model categorias {
+model categorias_productos {
   id               BigInt             @id @default(autoincrement())
   nombre           String             @unique
   descripcion      String?
@@ -1210,7 +1219,7 @@ model insumo {
   id                           BigInt                         @id @default(autoincrement())
   nombre                       String
   tipo                         TipoInsumo
-  categoria_insumo             CategoriaInsumo                @default(otro)
+  categoria_id                 Int
   unidad_medida                UnidadMedida                   @default(unidades)
   stock_actual                 Decimal                        @default(0.00) @db.Decimal(12, 2)
   stock_minimo                 Decimal                        @default(0.00) @db.Decimal(12, 2)
@@ -1221,19 +1230,18 @@ model insumo {
   proveedor_id                 BigInt?
   ubicacion_almacen            String?                        @db.VarChar(100)
   alerta_bajo_stock            Boolean?                       @default(true)
-  almacen_id                   BigInt?
-  almacen_stock                almacen_stock[]
+  categoria_insumo             categoria_insumo             @relation(fields: [categoria_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   cotizaciones_proveedor_items cotizaciones_proveedor_items[]
   detalle_ficha_insumos        detalle_ficha_insumos[]
   devoluciones_proveedor       devoluciones_proveedor[]
   fichas_tecnicas_detalle      fichas_tecnicas_detalle[]
   guias_remision_items         guias_remision_items[]
-  almacenes                    almacenes?                     @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
   proveedores                  proveedores?                   @relation(fields: [proveedor_id], references: [id], onUpdate: NoAction)
   movimientos_inventario       movimientos_inventario[]
   ordenes_compra_items         ordenes_compra_items[]
+  almacen_stock                almacen_stock[]
 
-  @@index([categoria_insumo], map: "idx_insumos_categoria")
+  @@index([categoria_id], map: "idx_insumos_categoria")
   @@index([proveedor_id], map: "idx_insumos_proveedor")
   @@index([stock_actual], map: "idx_insumos_stock")
   @@schema("public")
@@ -1260,15 +1268,13 @@ model materiales {
   alerta_bajo_stock            Boolean?                       @default(true)
   created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
   updated_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
-  almacen_id                   BigInt?
-  almacen_stock                almacen_stock[]
   cotizaciones_proveedor_items cotizaciones_proveedor_items[]
   fichas_tecnicas_detalle      fichas_tecnicas_detalle[]
   guias_remision_items         guias_remision_items[]
   proveedores                  proveedores?                   @relation(fields: [proveedor_id], references: [id], onUpdate: NoAction, map: "material_proveedor_id_fkey")
-  almacenes                    almacenes?                     @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
   movimientos_inventario       movimientos_inventario[]
   ordenes_compra_items         ordenes_compra_items[]
+  almacen_stock                almacen_stock[]
 
   @@index([nombre], map: "idx_material_nombre")
   @@index([stock_actual], map: "idx_material_stock")
@@ -1472,8 +1478,11 @@ model ordenes_produccion_items {
   updated_at          DateTime           @default(now()) @db.Timestamptz(6)
   ordenes_produccion  ordenes_produccion @relation(fields: [orden_produccion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   pedido_items        pedido_items       @relation(fields: [pedido_item_id], references: [id], onUpdate: NoAction)
+  productos           productos          @relation(fields: [producto_id], references: [id], onUpdate: NoAction)
+  variantes_producto  variantes_producto? @relation(fields: [variante_id], references: [id], onUpdate: NoAction)
 
   @@unique([orden_produccion_id, pedido_item_id])
+  @@unique([orden_produccion_id, producto_id])
   @@index([orden_produccion_id], map: "idx_op_items_orden")
   @@index([pedido_item_id], map: "idx_op_items_pedido_item")
   @@schema("public")
@@ -1651,8 +1660,6 @@ model productos {
   colores_disponibles    Json?                    @default("[]")
   tallas_disponibles     Json?                    @default("[]")
   reglas_descuento       Json?
-  almacen_id             BigInt?
-  almacen_stock          almacen_stock[]
   cotizacion_items       cotizacion_items[]
   devoluciones_cliente   devoluciones_cliente[]
   fichas_tecnicas        fichas_tecnicas[]
@@ -1660,10 +1667,10 @@ model productos {
   movimientos_inventario movimientos_inventario[]
   ordenes_produccion     ordenes_produccion[]
   pedido_items           pedido_items[]
-  almacenes              almacenes?               @relation(fields: [almacen_id], references: [id], onUpdate: NoAction)
-  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categorias_productos   categorias_productos?    @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   variantes_producto     variantes_producto[]
-
+  almacen_stock            almacen_stock[]
+  ordenes_produccion_items ordenes_produccion_items[]
   @@index([categoria_id, estado], map: "idx_productos_categoria_estado")
   @@index([estado], map: "idx_productos_estado")
   @@index([nombre], map: "idx_productos_nombre")
@@ -1712,7 +1719,7 @@ model reglas_descuento {
   descuento_aplicaciones descuento_aplicaciones[]
   oferta_reglas          oferta_reglas[]
   promocion_reglas       promocion_reglas[]
-  categorias             categorias?              @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reglas_descuento_categoria_id")
+  categorias_productos   categorias_productos?    @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reglas_descuento_categoria_id")
 
   @@index([activo, fecha_inicio, fecha_fin], map: "idx_reglas_activas_fechas")
   @@schema("public")
@@ -1882,6 +1889,7 @@ model variantes_producto {
   pedido_items         pedido_items[]
   reservas_stock       reservas_stock[]
   productos            productos              @relation(fields: [producto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_variantes_producto_producto_id")
+  ordenes_produccion_items ordenes_produccion_items[]
 
   @@unique([producto_id, talla, color], map: "unique_producto_talla_color")
   @@index([talla, color], map: "idx_variantes_busqueda_cliente", where: raw("(estado = 'activo'::\"EstadoProducto\")"))
@@ -1987,19 +1995,6 @@ enum Cargo {
   representante_taller
   gerente
   almacenero
-
-  @@schema("public")
-}
-
-enum CategoriaInsumo {
-  tela
-  avios
-  empaque
-  hilo
-  etiquetas
-  forro
-  otro
-  accesorios
 
   @@schema("public")
 }
@@ -2354,6 +2349,12 @@ enum ReferenciaNotificacion {
   PAGO
   PEDIDO
   SISTEMA
+  DEVOLUCION
+  DESPACHO
+  CONFECCION
+  CLIENTE
+  INVENTARIO
+  COMPROBANTE
 
   @@schema("public")
 }
@@ -2464,18 +2465,10 @@ enum TipoIncidenciaCliente {
 }
 
 enum TipoInsumo {
-  tela
-  hilo
+  materia_prima
   avio
-  boton
-  cierre
   empaque
-  otro
-  etiqueta
-  cinta
-  elastico
-  forro
-  accesorio
+  suministro
 
   @@schema("public")
 }
@@ -2502,6 +2495,9 @@ enum TipoMovimiento {
   incidencia_taller
   devolucion_a_cliente
   recepcion_devolucion_cliente
+  transferencia_entrada
+  transferencia_salida
+  inventario_inicial
 
   @@schema("public")
 }
@@ -2515,6 +2511,48 @@ enum TipoNotificacion {
   confeccion_completada
   devolucion_solicitada
   sistema
+  cotizacion_aprobada
+  cotizacion_rechazada
+  pedido_confirmado
+  pedido_listo
+  pago_verificado
+  pago_rechazado
+  despacho_en_camino
+  cotizacion_creada
+  cotizacion_modificada
+  pedido_en_revision
+  pedido_modificado
+  pedido_cancelado
+  pedido_parcial
+  pago_parcial
+  nota_credito_emitida
+  orden_produccion_aprobada
+  orden_produccion_iniciada
+  orden_produccion_pausada
+  orden_produccion_cancelada
+  confeccion_iniciada
+  confeccion_en_proceso
+  confeccion_con_retraso
+  confeccion_observacion
+  stock_agotado
+  stock_repuesto
+  ingreso_tela
+  merma_registrada
+  ajuste_inventario
+  despacho_programado
+  despacho_preparando
+  despacho_entregado
+  despacho_fallido
+  despacho_devuelto
+  devolucion_aprobada
+  devolucion_rechazada
+  devolucion_recibida
+  cambio_solicitado
+  cambio_completado
+  cliente_nuevo
+  cuenta_bloqueada
+  cuenta_reactivada
+  documento_requerido
 
   @@schema("public")
 }

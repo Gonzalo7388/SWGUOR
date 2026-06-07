@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { requireServerRole } from '@/lib/auth/server';
 import type { RolUsuario } from '@/lib/constants/roles';
 
-const ROLES_LECTURA = ['administrador', 'gerente', 'representante_taller', 'recepcionista', 'disenador'] as RolUsuario[];
+const ROLES_LECTURA = ['administrador', 'gerente', 'representante_taller', 'recepcionista', 'disenador', 'almacenero'] as RolUsuario[];
 
 export async function GET(req: Request) {
   const auth = await requireServerRole(ROLES_LECTURA);
@@ -40,11 +40,14 @@ export async function GET(req: Request) {
     const limit = rawLimit && !isNaN(Number(rawLimit)) ? Math.max(1, Number(rawLimit)) : 10;
 
     // 5. Consumir el Servicio usando parámetros limpios o undefined (Evita romper los Enums de Prisma)
+    // Si estado contiene valores separados por coma, se pasa como array
+    const estadoParam = estado?.includes(',') ? estado.split(',').map(s => s.trim()) : estado;
+
     const result = await OrdenesProduccionService.listar({
       producto_id,
       taller_id,
       pedido_id,
-      estado, // Si es undefined, el servicio no inyectará la regla strict string al enum nativo
+      estado: estadoParam,
       etapa,  // Pasa limpio como string | undefined resolviendo el sub-where
       search,
       page,

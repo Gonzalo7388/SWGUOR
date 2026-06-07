@@ -79,12 +79,12 @@ export function PedidoModalDetalle({
                 const { data } = await supabase
                     .from('pedido_items')
                     .select(`
-            id,
-            cantidad,
-            especificaciones,
-            productos ( sku, nombre ),
-            variantes_producto ( talla, color )
-          `)
+                        id,
+                        cantidad,
+                        especificaciones,
+                        productos ( sku, nombre ),
+                        variantes_producto ( talla, color )
+                    `)
                     .eq('pedido_id', pedido.id)
                     .order('id');
 

@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   try {
-    const categorias = await prisma.categorias.findMany({
+    const categorias = await prisma.categorias_productos.findMany({
       orderBy: { nombre: 'asc' },
     });
 
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
 
-    const categoria = await prisma.categorias.create({
+    const categoria = await prisma.categorias_productos.create({
       data: {
         nombre: body.nombre,
         descripcion: body.descripcion ?? null,
@@ -74,12 +74,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
-    const existing = await prisma.categorias.findUnique({ where: { id: BigInt(id) } });
+    const existing = await prisma.categorias_productos.findUnique({ where: { id: BigInt(id) } });
     if (!existing) {
       return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
     }
 
-    const categoria = await prisma.categorias.update({
+    const categoria = await prisma.categorias_productos.update({
       where: { id: BigInt(id) },
       data: {
         ...(updates.nombre !== undefined && { nombre: updates.nombre }),
@@ -115,7 +115,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
-    const existing = await prisma.categorias.findUnique({
+    const existing = await prisma.categorias_productos.findUnique({
       where: { id: BigInt(id) },
       select: { id: true, nombre: true },
     });
@@ -124,7 +124,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
     }
 
-    await prisma.categorias.delete({
+    await prisma.categorias_productos.delete({
       where: { id: BigInt(id) },
     });
 
