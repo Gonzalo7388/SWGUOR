@@ -7,17 +7,19 @@ import type { RolUsuario } from '@/lib/constants/roles';
 import { InsumosService } from '@/lib/services/insumos.service';
 import { InventarioService } from '@/lib/services/inventario.service';
 import { auditoriaService } from '@/lib/services/auditoria.service';
-import type { CategoriaInsumo, TipoInsumo, UnidadMedida } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import type { TipoInsumo, UnidadMedida } from '@prisma/client';
 
 const INSUMOS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'almacenero'];
 
-const CATEGORIAS_VALIDAS = new Set<CategoriaInsumo>([
-  'tela', 'avios', 'empaque', 'hilo', 'etiquetas', 'forro', 'otro', 'accesorios',
-]);
 const TIPOS_VALIDOS = new Set<TipoInsumo>([
-  'tela', 'hilo', 'avio', 'boton', 'cierre', 'empaque', 'otro',
-  'etiqueta', 'cinta', 'elastico', 'forro', 'accesorio',
+  'materia_prima', 'avio', 'empaque', 'suministro',
 ]);
+
+async function validarCategoriaId(id: number): Promise<boolean> {
+  const cat = await prisma.categoria_insumo.findUnique({ where: { id } });
+  return cat !== null;
+}
 
 export async function GET(req: NextRequest) {
   const auth = await requireServerRole(INSUMOS_ROLES);
@@ -27,13 +29,20 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const rawCategoria = searchParams.get('categoria_insumo');
+    const rawCategoriaId = searchParams.get('categoria_id');
     const rawTipo = searchParams.get('tipo');
     const rawSort = searchParams.get('sort');
 
-    if (rawCategoria && !CATEGORIAS_VALIDAS.has(rawCategoria as CategoriaInsumo)) {
-      return NextResponse.json({ error: `categoria_insumo inválida: ${rawCategoria}` }, { status: 400 });
+    if (rawCategoriaId) {
+      if (isNaN(Number(rawCategoriaId))) {
+        return NextResponse.json({ error: 'categoria_id debe ser un número' }, { status: 400 });
+      }
+      const existe = await validarCategoriaId(Number(rawCategoriaId));
+      if (!existe) {
+        return NextResponse.json({ error: `categoria_id ${rawCategoriaId} no existe` }, { status: 400 });
+      }
     }
+
     if (rawTipo && !TIPOS_VALIDOS.has(rawTipo as TipoInsumo)) {
       return NextResponse.json({ error: `tipo inválido: ${rawTipo}` }, { status: 400 });
     }
@@ -46,16 +55,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'proveedor_id inválido' }, { status: 400 });
     }
 
-    const insumos = await InsumosService.listar({
-      categoria_insumo: rawCategoria ? (rawCategoria as CategoriaInsumo) : undefined,
-      tipo: rawTipo ? (rawTipo as TipoInsumo) : undefined,
-      busqueda: searchParams.get('busqueda') ?? undefined,
-      bajo_stock: searchParams.get('bajo_stock') === 'true',
-      proveedor_id: proveedorId ?? undefined,
-      sort: rawSort ? (rawSort as 'asc' | 'desc') : undefined,
-    });
+    const [insumos, categorias] = await Promise.all([
+      InsumosService.listar({
+        categoria_id: rawCategoriaId ? Number(rawCategoriaId) : undefined,
+        tipo: rawTipo ? (rawTipo as TipoInsumo) : undefined,
+        busqueda: searchParams.get('busqueda') ?? undefined,
+        bajo_stock: searchParams.get('bajo_stock') === 'true',
+        proveedor_id: proveedorId ?? undefined,
+        sort: rawSort ? (rawSort as 'asc' | 'desc') : undefined,
+      }),
+      prisma.categoria_insumo.findMany({
+        where: { activo: true },
+        select: { id: true, nombre: true },
+        orderBy: { nombre: 'asc' },
+      }),
+    ]);
 
-    return NextResponse.json({ success: true, data: { insumos } });
+    return NextResponse.json({ success: true, data: { insumos, categorias } });
   } catch (error) {
     console.error('[GET /insumos]', error);
     return NextResponse.json(
@@ -81,10 +97,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El tipo es obligatorio y debe ser válido' }, { status: 400 });
     }
 
+    const categoriaId = body.categoria_id != null ? Number(body.categoria_id) : NaN;
+    if (!categoriaId || isNaN(categoriaId)) {
+      return NextResponse.json({ error: 'categoria_id es obligatorio' }, { status: 400 });
+    }
+    if (!(await validarCategoriaId(categoriaId))) {
+      return NextResponse.json({ error: `categoria_id ${categoriaId} no existe` }, { status: 400 });
+    }
+
     const insumo = await InventarioService.crear({
       nombre: body.nombre,
       tipo: body.tipo as TipoInsumo,
-      categoria_insumo: body.categoria_insumo as CategoriaInsumo | undefined,
+      categoria_id: categoriaId,
       unidad_medida: body.unidad_medida as UnidadMedida | undefined,
       stock_actual: typeof body.stock_actual === 'number' ? body.stock_actual : undefined,
       stock_minimo: typeof body.stock_minimo === 'number' ? body.stock_minimo : undefined,

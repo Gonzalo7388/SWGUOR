@@ -1,7 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
-import { DEV_PROV_MATERIAL_MOTIVO_PREFIX } from '@/lib/constants/devoluciones-proveedor';
-import type { CrearDevolucionProveedorInput } from '@/lib/schemas/devoluciones-proveedor';
+import {
+  DEV_PROV_MATERIAL_MOTIVO_PREFIX,
+  TRANSICIONES_DEVOLUCION_PROV,
+} from '@/lib/constants/devoluciones-proveedor';
+import type {
+  ActualizarEstadoDevolucionProveedorInput,
+  CrearDevolucionProveedorInput,
+} from '@/lib/schemas/devoluciones-proveedor';
 import { EstadoDevolucionProv, Prisma } from '@prisma/client';
 
 export class DevolucionProveedorError extends Error {
@@ -449,6 +455,69 @@ export const DevolucionesProveedorService = {
       insumo: null,
       material: movimiento.materiales,
     });
+  },
+
+  async actualizarEstado(
+    id: string | number,
+    input: ActualizarEstadoDevolucionProveedorInput,
+    usuarioId?: number,
+  ) {
+    const idStr = String(id);
+    if (idStr.startsWith('mov-')) {
+      throw new DevolucionProveedorError(
+        'Las devoluciones de material no admiten cambio de estado',
+        'TIPO_NO_EDITABLE',
+        422,
+      );
+    }
+
+    const actual = await prisma.devoluciones_proveedor.findUnique({
+      where: { id: BigInt(id) },
+      select: { id: true, estado: true, observaciones: true },
+    });
+
+    if (!actual) {
+      throw new DevolucionProveedorError('Devolución no encontrada', 'NO_ENCONTRADA', 404);
+    }
+
+    const permitidos = TRANSICIONES_DEVOLUCION_PROV[actual.estado] ?? [];
+    if (!permitidos.includes(input.estado)) {
+      throw new DevolucionProveedorError(
+        `No se puede pasar de "${actual.estado}" a "${input.estado}"`,
+        'TRANSICION_INVALIDA',
+        422,
+      );
+    }
+
+    if (input.estado === EstadoDevolucionProv.en_transito && !input.numero_guia_remision?.trim()) {
+      throw new DevolucionProveedorError(
+        'Indica el número de guía de remisión para marcar en tránsito',
+        'GUIA_REQUERIDA',
+        422,
+      );
+    }
+
+    const observaciones =
+      input.observaciones !== undefined
+        ? input.observaciones
+        : actual.observaciones;
+
+    const updated = await prisma.devoluciones_proveedor.update({
+      where: { id: BigInt(id) },
+      data: {
+        estado: input.estado,
+        ...(input.estado === EstadoDevolucionProv.en_transito && {
+          fecha_salida: new Date(),
+          numero_guia_remision: input.numero_guia_remision?.trim() ?? null,
+        }),
+        ...(observaciones !== undefined && { observaciones }),
+        ...(usuarioId && { usuario_id: BigInt(usuarioId) }),
+        updated_at: new Date(),
+      },
+      include: includeListado,
+    });
+
+    return serializeBigInt({ ...updated, tipo_recurso: 'insumo', material_id: null });
   },
 };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
+  Plus,
   RefreshCw,
   Scissors,
   Search,
@@ -16,6 +17,8 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 
 import ConfeccionesTable from '@/components/admin/confecciones/ConfeccionesTable';
 import ConfeccionesStats from '@/components/admin/confecciones/ConfeccionesStats';
+import { NuevaConfeccionModal } from '@/components/admin/confecciones/NuevaOrdenModal';
+import { CONFECCIONES_ROLES_ESCRITURA, CONFECCIONES_ROLES_VER } from '@/lib/constants/confecciones';
 import { ESTADO_CONFECCION, ESTADO_LABELS } from '@/lib/schemas/confecciones';
 
 import type { ConfeccionRow_T } from '@/components/admin/confecciones/ConfeccionesTable';
@@ -28,11 +31,12 @@ type Taller = {
 const PAGE_SIZE = 10;
 
 export default function ConfeccionesPage() {
-  const { isLoading: authLoading } = usePermissions();
+  const { can, hasRole, isLoading: authLoading } = usePermissions();
 
   const [confecciones, setConfecciones] = useState<ConfeccionRow_T[]>([]);
   const [talleres, setTalleres] = useState<Taller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
@@ -135,6 +139,11 @@ export default function ConfeccionesPage() {
     fetchData();
   };
 
+  const canView =
+    can('view', 'confecciones') || hasRole(CONFECCIONES_ROLES_VER);
+  const canCreate =
+    can('create', 'confecciones') || hasRole(CONFECCIONES_ROLES_ESCRITURA);
+
   if (authLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -142,6 +151,15 @@ export default function ConfeccionesPage() {
         <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">
           Verificando permisos...
         </p>
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center text-center p-6">
+        <h2 className="text-2xl font-black text-slate-900">Acceso restringido</h2>
+        <p className="text-slate-500 mt-2">No tienes permisos para ver confecciones.</p>
       </div>
     );
   }
@@ -161,6 +179,16 @@ export default function ConfeccionesPage() {
               <p className="text-gray-500 text-sm">Gestión de producción con talleres externos</p>
             </div>
           </div>
+          {canCreate && (
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-sm font-bold"
+            >
+              <Plus className="w-4 h-4" />
+              Nueva confección
+            </button>
+          )}
         </div>
 
         {/* Stats */}
@@ -249,6 +277,13 @@ export default function ConfeccionesPage() {
             </div>
           )}
         </div>
+
+        <NuevaConfeccionModal
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          talleres={talleres}
+          onSuccess={fetchData}
+        />
       </div>
     </div>
   );

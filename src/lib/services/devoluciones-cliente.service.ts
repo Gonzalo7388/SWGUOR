@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { ESTADOS_DEVOLUCION_PENDIENTES } from '@/lib/constants/devoluciones-cliente';
 import type { CrearDevolucionClienteInput, ResolverDevolucionClienteInput } from '@/lib/schemas/devoluciones-cliente';
+import type { CrearDevolucionClientePortalInput } from '@/lib/schemas/soporte-portal';
 import { EstadoDevolucion, Prisma } from '@prisma/client';
 
 export class DevolucionClienteError extends Error {
@@ -139,6 +140,67 @@ export const DevolucionesClienteService = {
         notas_internas: input.notas_internas ?? null,
         condicion_recibido: input.condicion_recibido ?? null,
         fotos_url: [],
+      },
+      include: includeListado,
+    });
+
+    return serializeBigInt(created);
+  },
+
+  async crearParaCliente(clienteId: bigint, input: CrearDevolucionClientePortalInput) {
+    const pedido = await prisma.pedidos.findFirst({
+      where: {
+        id: BigInt(input.pedido_id),
+        cliente_id: clienteId,
+        estado: 'entregado',
+      },
+      include: {
+        pedido_items: {
+          where: { id: BigInt(input.pedido_item_id) },
+          include: {
+            productos: { select: { id: true, nombre: true } },
+            variantes_producto: { select: { id: true } },
+          },
+        },
+      },
+    });
+
+    if (!pedido) {
+      throw new DevolucionClienteError(
+        'El pedido no existe, no le pertenece o aún no está entregado',
+        'PEDIDO_NO_ENTREGADO',
+        403,
+      );
+    }
+
+    const item = pedido.pedido_items[0];
+    if (!item) {
+      throw new DevolucionClienteError(
+        'Ítem de pedido no encontrado',
+        'PEDIDO_ITEM_INVALIDO',
+        404,
+      );
+    }
+
+    if (input.cantidad > item.cantidad) {
+      throw new DevolucionClienteError(
+        `La cantidad no puede superar ${item.cantidad} unidades del pedido`,
+        'CANTIDAD_EXCEDIDA',
+        422,
+      );
+    }
+
+    const created = await prisma.devoluciones_cliente.create({
+      data: {
+        cliente_id: clienteId,
+        pedido_id: pedido.id,
+        producto_id: item.producto_id,
+        variante_id: item.variante_id,
+        motivo: input.motivo,
+        cantidad: input.cantidad,
+        estado_solicitud: EstadoDevolucion.pendiente,
+        notas_cliente: input.notas_cliente ?? null,
+        fotos_url: input.fotos_url ?? [],
       },
       include: includeListado,
     });

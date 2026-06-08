@@ -15,6 +15,30 @@ export const DEVOLUCIONES_PROVEEDOR_ROLES_CREAR: RolUsuario[] = [
   'almacenero',
 ];
 
+export const DEVOLUCIONES_PROVEEDOR_ROLES_EDITAR: RolUsuario[] = [
+  'administrador',
+  'gerente',
+  'almacenero',
+];
+
+/** Estados desde los que se puede avanzar el seguimiento logístico (solo insumos en tabla). */
+export const ESTADOS_DEVOLUCION_PROV_EDITABLES: EstadoDevolucionProv[] = [
+  'pendiente_envio',
+  'en_transito',
+  'aceptado_proveedor',
+];
+
+export const TRANSICIONES_DEVOLUCION_PROV: Record<
+  EstadoDevolucionProv,
+  EstadoDevolucionProv[]
+> = {
+  pendiente_envio: ['en_transito'],
+  en_transito: ['aceptado_proveedor', 'rechazado_proveedor', 'completado'],
+  aceptado_proveedor: ['completado'],
+  rechazado_proveedor: [],
+  completado: [],
+};
+
 export const MOTIVO_DEVOLUCION_PROV_LABELS: Record<MotivoDevolucionProv, string> = {
   insumo_defectuoso: 'Insumo defectuoso',
   no_cumple_especificaciones: 'No cumple especificaciones',

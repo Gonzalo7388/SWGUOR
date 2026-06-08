@@ -58,7 +58,11 @@ export const MaterialesService = {
       where: { id: BigInt(id) },
       include: {
         proveedores: { select: { id: true, razon_social: true, ruc: true } },
-        almacenes: { select: { id: true, nombre: true } },
+        almacen_stock: {
+          include: {
+            almacenes: { select: { id: true, nombre: true } },
+          },
+        },
         ordenes_compra_items: {
           include: {
             ordenes_compra: {

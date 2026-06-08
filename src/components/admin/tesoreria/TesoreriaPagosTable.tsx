@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   Table,
   TableBody,
@@ -143,9 +144,12 @@ export function TesoreriaPagosTable({
                   <TableRow key={row.id_uuid} className="group hover:bg-slate-50/50">
                     <TableCell>
                       <div className="flex flex-col min-w-[160px]">
-                        <span className="font-bold text-slate-900">
+                        <Link
+                          href={`/admin/Panel-Administrativo/pedidos/${row.pedido_id}`}
+                          className="font-bold text-slate-900 hover:text-emerald-600 transition-colors w-fit"
+                        >
                           Pedido #{row.pedido_id}
-                        </span>
+                        </Link>
                         <span className="text-[11px] text-slate-500 truncate max-w-[220px]">
                           {nombreCliente(row)}
                         </span>

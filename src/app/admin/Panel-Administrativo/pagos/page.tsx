@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminPageHeader from '@/components/admin/common/AdminPageHeader';
 import PagoFormModal from '@/components/admin/pagos/PagoFormModal';
@@ -16,6 +17,11 @@ import {
 } from '@/components/admin/tesoreria/TesoreriaPagosToolbar';
 import type { EstadoTesoreriaFiltro } from '@/lib/constants/tesoreria-pagos';
 import { TESORERIA_PAGOS_PAGE_SIZE_DEFAULT } from '@/lib/constants/tesoreria-pagos';
+import {
+  rangoFechasUltimosPagos,
+  type UltimosPagosRangoPreset,
+} from '@/lib/helpers/ultimos-pagos-date.helper';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 import type {
   TesoreriaPagoFila,
   TesoreriaPagosStats as TesoreriaStats,
@@ -23,12 +29,13 @@ import type {
 
 type ModalMode = 'create' | 'view' | 'verify' | null;
 
+const RANGO_INICIAL: UltimosPagosRangoPreset = 'mes';
+
 const FILTROS_INICIALES: TesoreriaFiltrosState = {
   busqueda: '',
-  estado: 'todos',
+  estado: 'exitoso',
   metodo_pago: 'todos',
-  fecha_desde: '',
-  fecha_hasta: '',
+  ...rangoFechasUltimosPagos(RANGO_INICIAL),
 };
 
 function mapFilaAModalPago(row: TesoreriaPagoFila): Pago {
@@ -59,7 +66,10 @@ function mapFilaAModalPago(row: TesoreriaPagoFila): Pago {
   };
 }
 
-export default function TesoreriaPagosPage() {
+export default function UltimosPagosPage() {
+  const { can, hasRole, isLoading: authLoading } = usePermissions();
+  const puedeGestionar = hasRole(['administrador', 'gerente', 'recepcionista']);
+
   const [filas, setFilas] = useState<TesoreriaPagoFila[]>([]);
   const [stats, setStats] = useState<TesoreriaStats>({
     total: 0,
@@ -69,6 +79,7 @@ export default function TesoreriaPagosPage() {
     monto_exitoso: 0,
   });
   const [filtros, setFiltros] = useState<TesoreriaFiltrosState>(FILTROS_INICIALES);
+  const [rangoPreset, setRangoPreset] = useState<UltimosPagosRangoPreset>(RANGO_INICIAL);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -96,7 +107,7 @@ export default function TesoreriaPagosPage() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error ?? 'Error al cargar tesorería');
+        throw new Error(json.error ?? 'Error al cargar pagos');
       }
 
       setFilas(json.data ?? []);
@@ -112,7 +123,7 @@ export default function TesoreriaPagosPage() {
       setTotal(json.pagination?.total ?? 0);
       setTotalPages(json.pagination?.totalPages ?? 1);
     } catch (error) {
-      toast.error('Error al cargar el módulo de tesorería');
+      toast.error('Error al cargar los últimos pagos');
       console.error(error);
     } finally {
       setLoading(false);
@@ -128,6 +139,15 @@ export default function TesoreriaPagosPage() {
     setPage(1);
   };
 
+  const handleRangoPresetChange = (preset: UltimosPagosRangoPreset) => {
+    setRangoPreset(preset);
+    setFiltros((prev) => ({
+      ...prev,
+      ...rangoFechasUltimosPagos(preset),
+    }));
+    setPage(1);
+  };
+
   const handleEstadoStatClick = (estado: EstadoTesoreriaFiltro) => {
     setFiltros((prev) => ({ ...prev, estado }));
     setPage(1);
@@ -138,14 +158,39 @@ export default function TesoreriaPagosPage() {
     setSelectedPago(null);
   };
 
+  if (authLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50/50">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gray-400 text-sm font-black uppercase tracking-widest animate-pulse">
+          Cargando pagos...
+        </p>
+      </div>
+    );
+  }
+
+  if (!can('view', 'pagos')) {
+    return (
+      <div className="h-[80vh] flex flex-col items-center justify-center text-center p-6">
+        <ShieldAlert className="w-16 h-16 text-red-500 mb-4 opacity-20" />
+        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+          Acceso Restringido
+        </h2>
+        <p className="text-gray-500 max-w-sm mt-2 font-medium">
+          No cuentas con permisos para consultar los pagos efectuados.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <AdminPageHeader
-          title="Tesorería"
-          description="Gestión centralizada de pagos, pedidos y comprobantes electrónicos"
+          title="Últimos Pagos Efectuados"
+          description="Consulta los abonos y pagos confirmados de pedidos, con soporte de pagos parciales"
           actionLabel="Registrar pago manual"
-          onAction={() => setModalMode('create')}
+          onAction={puedeGestionar ? () => setModalMode('create') : undefined}
         />
 
         <TesoreriaPagosStats
@@ -159,6 +204,8 @@ export default function TesoreriaPagosPage() {
           loading={loading}
           onChange={handleFiltroChange}
           onRefresh={loadPagos}
+          rangoPreset={rangoPreset}
+          onRangoPresetChange={handleRangoPresetChange}
         />
 
         <TesoreriaPagosTable
@@ -169,10 +216,14 @@ export default function TesoreriaPagosPage() {
             setModalMode('view');
           }}
           onViewComprobante={(row) => setComprobanteRow(row)}
-          onVerify={(row) => {
-            setSelectedPago(mapFilaAModalPago(row));
-            setModalMode('verify');
-          }}
+          onVerify={
+            puedeGestionar
+              ? (row) => {
+                  setSelectedPago(mapFilaAModalPago(row));
+                  setModalMode('verify');
+                }
+              : undefined
+          }
         />
 
         <TesoreriaPagosPagination

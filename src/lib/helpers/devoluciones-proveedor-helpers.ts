@@ -1,5 +1,6 @@
 import { DEVOLUCIONES_PROVEEDOR_API } from '@/lib/constants/devoluciones-proveedor';
 import type {
+  ActualizarEstadoDevolucionProveedorInput,
   CrearDevolucionProveedorInput,
   DevolucionProveedorFila,
 } from '@/lib/schemas/devoluciones-proveedor';
@@ -44,6 +45,19 @@ export async function createDevolucionProveedor(
 ): Promise<DevolucionProveedorFila> {
   const res = await fetch(DEVOLUCIONES_PROVEEDOR_API, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const json = await parseResponse<{ success: boolean; data: DevolucionProveedorFila }>(res);
+  return json.data;
+}
+
+export async function updateEstadoDevolucionProveedor(
+  id: string | number,
+  payload: ActualizarEstadoDevolucionProveedorInput,
+): Promise<DevolucionProveedorFila> {
+  const res = await fetch(`${DEVOLUCIONES_PROVEEDOR_API}/${id}`, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });

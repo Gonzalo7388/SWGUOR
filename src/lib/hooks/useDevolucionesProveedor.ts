@@ -6,9 +6,13 @@ import {
   createDevolucionProveedor,
   fetchDevolucionProveedorById,
   fetchDevolucionesProveedor,
+  updateEstadoDevolucionProveedor,
   type ListarDevolucionesProveedorParams,
 } from '@/lib/helpers/devoluciones-proveedor-helpers';
-import type { CrearDevolucionProveedorInput } from '@/lib/schemas/devoluciones-proveedor';
+import type {
+  ActualizarEstadoDevolucionProveedorInput,
+  CrearDevolucionProveedorInput,
+} from '@/lib/schemas/devoluciones-proveedor';
 
 export const DEVOLUCIONES_PROVEEDOR_KEY = 'devoluciones-proveedor';
 
@@ -30,6 +34,21 @@ export function useDevolucionesProveedor(params?: ListarDevolucionesProveedorPar
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const updateEstadoMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string | number;
+      data: ActualizarEstadoDevolucionProveedorInput;
+    }) => updateEstadoDevolucionProveedor(id, data),
+    onSuccess: () => {
+      toast.success('Estado actualizado');
+      queryClient.invalidateQueries({ queryKey: [DEVOLUCIONES_PROVEEDOR_KEY] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return {
     devoluciones: listQuery.data ?? [],
     isLoading: listQuery.isLoading,
@@ -37,5 +56,7 @@ export function useDevolucionesProveedor(params?: ListarDevolucionesProveedorPar
     obtenerPorId: fetchDevolucionProveedorById,
     crear: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    actualizarEstado: updateEstadoMutation.mutateAsync,
+    isUpdatingEstado: updateEstadoMutation.isPending,
   };
 }

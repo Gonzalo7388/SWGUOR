@@ -8,6 +8,11 @@ import {
   METODOS_PAGO_TESORERIA,
   type EstadoTesoreriaFiltro,
 } from '@/lib/constants/tesoreria-pagos';
+import {
+  ULTIMOS_PAGOS_RANGO_LABELS,
+  type UltimosPagosRangoPreset,
+} from '@/lib/helpers/ultimos-pagos-date.helper';
+import { cn } from '@/lib/utils';
 
 export interface TesoreriaFiltrosState {
   busqueda: string;
@@ -22,6 +27,8 @@ interface Props {
   loading: boolean;
   onChange: (patch: Partial<TesoreriaFiltrosState>) => void;
   onRefresh: () => void;
+  rangoPreset?: UltimosPagosRangoPreset;
+  onRangoPresetChange?: (preset: UltimosPagosRangoPreset) => void;
 }
 
 export function TesoreriaPagosToolbar({
@@ -29,9 +36,30 @@ export function TesoreriaPagosToolbar({
   loading,
   onChange,
   onRefresh,
+  rangoPreset,
+  onRangoPresetChange,
 }: Props) {
   return (
     <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      {onRangoPresetChange && rangoPreset && (
+        <div className="flex flex-wrap gap-2">
+          {(Object.keys(ULTIMOS_PAGOS_RANGO_LABELS) as UltimosPagosRangoPreset[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onRangoPresetChange(key)}
+              className={cn(
+                'px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wide border transition-all',
+                rangoPreset === key
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-200 hover:text-emerald-700',
+              )}
+            >
+              {ULTIMOS_PAGOS_RANGO_LABELS[key]}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

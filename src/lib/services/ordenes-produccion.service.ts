@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { Prisma } from '@prisma/client';
+import { SeguimientoProduccionService } from '@/lib/services/seguimiento-produccion.service';
 
 export const OrdenesProduccionService = {
 
@@ -33,14 +34,8 @@ export const OrdenesProduccionService = {
 
     if (pedido_id) where.pedido_id = BigInt(pedido_id);
 
-    // Filtrar por etapa del seguimiento más reciente
     if (etapa && etapa !== 'all') {
-      where.seguimiento_produccion = {
-        some: {
-          etapa: etapa as Prisma.seguimiento_produccionWhereInput['etapa'],
-          activo: true,
-        },
-      };
+      where.etapa = etapa as Prisma.ordenes_produccionWhereInput['etapa'];
     }
 
     if (search) {
@@ -96,7 +91,19 @@ export const OrdenesProduccionService = {
             clientes: { select: { id: true, razon_social: true } },
           },
         },
-        seguimiento_produccion: { orderBy: { created_at: 'desc' } },
+        seguimiento_produccion: {
+          orderBy: { created_at: 'desc' },
+          include: {
+            usuarios: { select: { id: true, email: true, rol: true } },
+          },
+        },
+        ordenes_produccion_items: {
+          include: {
+            pedido_items: { select: { id: true, cantidad: true } },
+            productos: { select: { id: true, nombre: true, sku: true } },
+            variantes_producto: { select: { id: true, talla: true, color: true } },
+          },
+        },
         confecciones: {
           include: {
             talleres: { select: { id: true, nombre: true } },
@@ -112,7 +119,7 @@ export const OrdenesProduccionService = {
     producto_id: string | number;
     taller_id: string | number;
     ficha_id: string | number;
-    pedido_id: string | number;
+    pedido_id?: string | number | null;
     cantidad_solicitada: number;
     fecha_entrega?: string;
     notas?: string;
@@ -124,13 +131,13 @@ export const OrdenesProduccionService = {
           producto_id: BigInt(data.producto_id),
           taller_id: BigInt(data.taller_id),
           ficha_id: BigInt(data.ficha_id),
-          pedido_id: BigInt(data.pedido_id),
+          pedido_id: data.pedido_id ? BigInt(data.pedido_id) : null,
           cantidad_solicitada: data.cantidad_solicitada,
           fecha_entrega: data.fecha_entrega ? new Date(data.fecha_entrega) : null,
           notas: data.notas ?? null,
           creado_por: data.creado_por ? BigInt(data.creado_por) : null,
-          estado: 'borrador',
-          etapa: 'corte',
+          estado: 'confirmada',
+          etapa: 'diseno',
         },
         include: {
           productos: { select: { id: true, nombre: true, sku: true } },
@@ -139,32 +146,45 @@ export const OrdenesProduccionService = {
         },
       });
 
-      // Seguimiento inicial
-      await tx.seguimiento_produccion.create({
-        data: {
-          orden_id: orden.id,
-          etapa: 'corte',
-          observaciones: 'Orden creada — pendiente de inicio',
-          activo: true,
-        },
-      });
+      await SeguimientoProduccionService.crearInicial(orden.id, tx);
 
       return serializeBigInt(orden);
     });
   },
 
   async actualizar(id: string, data: {
-    fecha_entrega?: string;
-    notas?: string;
-    taller_id?: string;
+    producto_id?: string | number;
+    taller_id?: string | number;
+    ficha_id?: string | number;
+    pedido_id?: string | number | null;
+    cantidad_solicitada?: number;
+    fecha_entrega?: string | null;
+    notas?: string | null;
+    estado?: string;
   }) {
     const orden = await prisma.ordenes_produccion.update({
       where: { id: BigInt(id) },
       data: {
-        ...(data.fecha_entrega !== undefined && { fecha_entrega: data.fecha_entrega ? new Date(data.fecha_entrega) : null }),
-        ...(data.notas !== undefined && { notas: data.notas }),
+        ...(data.producto_id !== undefined && { producto_id: BigInt(data.producto_id) }),
         ...(data.taller_id !== undefined && { taller_id: BigInt(data.taller_id) }),
+        ...(data.ficha_id !== undefined && { ficha_id: BigInt(data.ficha_id) }),
+        ...(data.pedido_id !== undefined && {
+          pedido_id: data.pedido_id ? BigInt(data.pedido_id) : null,
+        }),
+        ...(data.cantidad_solicitada !== undefined && { cantidad_solicitada: data.cantidad_solicitada }),
+        ...(data.fecha_entrega !== undefined && {
+          fecha_entrega: data.fecha_entrega ? new Date(data.fecha_entrega) : null,
+        }),
+        ...(data.notas !== undefined && { notas: data.notas }),
+        ...(data.estado !== undefined && {
+          estado: data.estado as Prisma.ordenes_produccionUpdateInput['estado'],
+        }),
         updated_at: new Date(),
+      },
+      include: {
+        productos: { select: { id: true, nombre: true, sku: true } },
+        talleres: { select: { id: true, nombre: true, email: true } },
+        fichas_tecnicas: { select: { id: true, version: true, estado: true } },
       },
     });
     return serializeBigInt(orden);
@@ -176,36 +196,6 @@ export const OrdenesProduccionService = {
     observaciones?: string;
     usuario_id?: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      // Desactivar etapa anterior
-      await tx.seguimiento_produccion.updateMany({
-        where: { orden_id: BigInt(data.orden_id), activo: true },
-        data: { activo: false, completado_en: new Date() },
-      });
-
-      // FIX: Reemplazado 'as any' por la propiedad tipada exacta extraída de los modelos de Prisma
-      const seg = await tx.seguimiento_produccion.create({
-        data: {
-          orden_id: BigInt(data.orden_id),
-          etapa: data.etapa as Prisma.seguimiento_produccionCreateInput['etapa'],
-          observaciones: data.observaciones ?? null,
-          usuario_id: data.usuario_id ? BigInt(data.usuario_id) : null,
-          activo: true,
-        },
-      });
-
-      // Al completar la orden — solo marca estado
-      if (data.etapa === 'completada') {
-        await tx.ordenes_produccion.update({
-          where: { id: BigInt(data.orden_id) },
-          data: {
-            estado: 'completada',
-            updated_at: new Date()
-          },
-        });
-      }
-
-      return serializeBigInt(seg);
-    });
+    return SeguimientoProduccionService.registrarEtapa(data);
   },
 };

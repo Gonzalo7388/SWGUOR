@@ -13,6 +13,7 @@ import {
 } from '@/components/admin/devoluciones-proveedor/DevolucionesProveedorToolbar';
 import {
   DEVOLUCIONES_PROVEEDOR_ROLES_CREAR,
+  DEVOLUCIONES_PROVEEDOR_ROLES_EDITAR,
   DEVOLUCIONES_PROVEEDOR_ROLES_VER,
 } from '@/lib/constants/devoluciones-proveedor';
 import { useDevolucionesProveedor } from '@/lib/hooks/useDevolucionesProveedor';
@@ -39,12 +40,20 @@ export default function DevolucionesProveedorPage() {
     [filtros],
   );
 
-  const { devoluciones, isLoading, crear, obtenerPorId, isCreating } =
-    useDevolucionesProveedor(listParams);
+  const {
+    devoluciones,
+    isLoading,
+    crear,
+    obtenerPorId,
+    actualizarEstado,
+    isCreating,
+    isUpdatingEstado,
+  } = useDevolucionesProveedor(listParams);
 
   const canView =
     can('view', 'devoluciones_proveedor') || hasRole(DEVOLUCIONES_PROVEEDOR_ROLES_VER);
   const canCreate = hasRole(DEVOLUCIONES_PROVEEDOR_ROLES_CREAR);
+  const canEditar = hasRole(DEVOLUCIONES_PROVEEDOR_ROLES_EDITAR);
 
   const stats = useMemo(() => {
     const pendientes = devoluciones.filter((d) => d.estado === 'pendiente_envio').length;
@@ -115,8 +124,11 @@ export default function DevolucionesProveedorPage() {
       <DevolucionProveedorDetailModal
         open={detailOpen}
         devolucionId={selectedId}
+        canEditar={canEditar}
         onClose={() => setDetailOpen(false)}
         onLoad={obtenerPorId}
+        onActualizarEstado={(id, data) => actualizarEstado({ id, data })}
+        isUpdating={isUpdatingEstado}
       />
     </div>
   );

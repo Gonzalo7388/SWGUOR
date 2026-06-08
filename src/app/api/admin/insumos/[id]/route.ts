@@ -7,7 +7,7 @@ import type { RolUsuario } from '@/lib/constants/roles';
 import { InsumosService } from '@/lib/services/insumos.service';
 import { InventarioService } from '@/lib/services/inventario.service';
 import { auditoriaService } from '@/lib/services/auditoria.service';
-import type { CategoriaInsumo, TipoInsumo, UnidadMedida } from '@prisma/client';
+import type { TipoInsumo, UnidadMedida } from '@prisma/client';
 
 const INSUMOS_ROLES: RolUsuario[] = ['administrador', 'gerente', 'almacenero'];
 
@@ -53,10 +53,15 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     const body = await req.json() as Record<string, unknown>;
+    const categoriaId =
+      body.categoria_id != null && body.categoria_id !== ''
+        ? Number(body.categoria_id)
+        : undefined;
+
     const insumo = await InventarioService.actualizar(id, {
       nombre: typeof body.nombre === 'string' ? body.nombre : undefined,
       tipo: body.tipo as TipoInsumo | undefined,
-      categoria_insumo: body.categoria_insumo as CategoriaInsumo | undefined,
+      categoria_id: categoriaId !== undefined && !isNaN(categoriaId) ? categoriaId : undefined,
       unidad_medida: body.unidad_medida as UnidadMedida | undefined,
       stock_minimo: typeof body.stock_minimo === 'number' ? body.stock_minimo : undefined,
       stock_maximo: body.stock_maximo === null ? null : typeof body.stock_maximo === 'number' ? body.stock_maximo : undefined,

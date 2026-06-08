@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FileText, ShoppingBag, Truck,
   ChevronRight, Settings, Package, PackageOpen,
-  ShoppingCart, UserCircle, CreditCard,
+  ShoppingCart, UserCircle, CreditCard, MapPin, LifeBuoy,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -31,13 +31,14 @@ const MENU_GROUPS = [
     items: [
       { href: '/portal/seguimiento-pedido', label: 'Trazabilidad', icon: Truck },
       { href: '/portal/despachos', label: 'Envíos', icon: PackageOpen },
-
+      { href: '/portal/soporte', label: 'Soporte', icon: LifeBuoy },
     ],
   },
   {
     group: 'Cuenta',
     items: [
       { href: '/portal/perfil', label: 'Mi Perfil', icon: UserCircle },
+      { href: '/portal/direcciones', label: 'Mis Direcciones', icon: MapPin },
       { href: '/portal/configuracion', label: 'Ajustes', icon: Settings },
     ],
   },

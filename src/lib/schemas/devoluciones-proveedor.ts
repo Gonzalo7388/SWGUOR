@@ -46,7 +46,16 @@ export const crearDevolucionProveedorSchema = z.discriminatedUnion('tipo_recurso
   }),
 ]);
 
+export const actualizarEstadoDevolucionProveedorSchema = z.object({
+  estado: EstadoDevolucionProvEnum,
+  numero_guia_remision: z.string().trim().max(100).optional(),
+  observaciones: z.string().trim().max(2000).optional(),
+});
+
 export type CrearDevolucionProveedorInput = z.infer<typeof crearDevolucionProveedorSchema>;
+export type ActualizarEstadoDevolucionProveedorInput = z.infer<
+  typeof actualizarEstadoDevolucionProveedorSchema
+>;
 
 export interface DevolucionProveedorFila {
   id: number | string;

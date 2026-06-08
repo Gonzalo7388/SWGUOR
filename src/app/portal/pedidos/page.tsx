@@ -13,7 +13,6 @@ import { PedidoSkeleton } from '@/components/portal/pedidos/PedidoSkeleton';
 import { PedidosEmpty } from '@/components/portal/pedidos/PedidosEmpty';
 import { PedidosError } from '@/components/portal/pedidos/PedidosError';
 import { PedidoAvisoPago } from '@/components/portal/pedidos/PedidoAvisoPago';
-import { PedidoModalDetalle, PedidoConDetalles } from '@/components/portal/pedidos/PedidoModalDetalle';
 import { Pedido, EstadoPedido } from '@/components/portal/pedidos/types';
 
 export default function MisPedidosPage() {
@@ -25,7 +24,6 @@ export default function MisPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoConDetalles | null>(null);
   const router = useRouter();
 
   const kpis = useMemo(() => ({
@@ -72,8 +70,8 @@ export default function MisPedidosPage() {
   }, [fetchPedidos]);
 
   const handleVerDetalle = useCallback((pedido: Pedido) => {
-    setPedidoDetalle(pedido as PedidoConDetalles);
-  }, []);
+    router.push(`/portal/mis-pedidos/${pedido.id}`);
+  }, [router]);
 
   const buildPagoUrl = useCallback((pedido: Pedido) => {
     const saldo =
@@ -91,11 +89,6 @@ export default function MisPedidosPage() {
   }, []);
 
   const handlePagarDesdeCard = useCallback((pedido: Pedido) => {
-    router.push(buildPagoUrl(pedido));
-  }, [router, buildPagoUrl]);
-
-  const handlePagarDesdeDetalle = useCallback((pedido: Pedido) => {
-    setPedidoDetalle(null);
     router.push(buildPagoUrl(pedido));
   }, [router, buildPagoUrl]);
 
@@ -163,13 +156,6 @@ export default function MisPedidosPage() {
           </div>
         )}
       </div>
-
-      <PedidoModalDetalle
-        pedido={pedidoDetalle}
-        isOpen={pedidoDetalle !== null}
-        onClose={() => setPedidoDetalle(null)}
-        onPagar={handlePagarDesdeDetalle}
-      />
     </>
   );
 }
