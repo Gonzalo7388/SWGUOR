@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
 
 const MP_PUBLIC_KEY = getMercadoPagoPublicKeyEnv();
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MP_BRICK_WRAPPER_ID = 'mp-payment-brick-wrapper';
+const MP_CARD_PAYMENT_ID = 'mp-card-payment-brick-container';
 
 let mercadoPagoSdkInicializado = false;
 
@@ -55,31 +57,41 @@ export function MercadoPagoCheckoutPanel({
   const [brickError, setBrickError] = useState('');
   const [procesando, setProcesando] = useState(false);
   const [errorConfig, setErrorConfig] = useState('');
-  const brickActivoRef = useRef(false);
+
+  const onErrorRef = useRef(onError);
+  const onSuccessRef = useRef(onSuccess);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   const montoNumerico = useMemo(
     () => Math.round(Number(montoSoles) * 100) / 100,
     [montoSoles],
   );
 
-  const emailPago = localEmail.trim();
+  const emailPago = useMemo(() => localEmail.trim(), [localEmail]);
 
-  const brickContainerId = useMemo(
-    () => `mp-card-payment-${pedidoId}-${montoNumerico}`,
-    [pedidoId, montoNumerico],
-  );
-
-  const brickMountKey = useMemo(
+  const brickInstanceKey = useMemo(
     () => `mp-payment-${pedidoId}-${montoNumerico}-${emailPago}`,
     [pedidoId, montoNumerico, emailPago],
+  );
+
+  const brickPayer = useMemo(
+    () => ({ email: emailPago }),
+    [emailPago],
   );
 
   const brickInitialization = useMemo(
     () => ({
       amount: montoNumerico,
-      payer: { email: emailPago },
+      payer: brickPayer,
     }),
-    [montoNumerico, emailPago],
+    [montoNumerico, brickPayer],
   );
 
   const brickCustomization = useMemo(
@@ -122,31 +134,20 @@ export function MercadoPagoCheckoutPanel({
     setSdkListo(true);
   }, [isMounted, emailConfirmado]);
 
-  useEffect(() => {
-    setBrickListo(false);
-    setBrickError('');
-    brickActivoRef.current = false;
-  }, [brickMountKey]);
-
   const handleBrickReady = useCallback(() => {
-    brickActivoRef.current = true;
     setBrickListo(true);
     setBrickError('');
   }, []);
 
-  const handleBrickError = useCallback(
-    (brickErrorPayload: { message?: string }) => {
-      brickActivoRef.current = false;
-      setBrickListo(false);
-      const msg =
-        typeof brickErrorPayload?.message === 'string'
-          ? brickErrorPayload.message
-          : 'Error al cargar el formulario de Mercado Pago';
-      setBrickError(msg);
-      onError?.(msg);
-    },
-    [onError],
-  );
+  const handleBrickError = useCallback((brickErrorPayload: { message?: string }) => {
+    setBrickListo(false);
+    const msg =
+      typeof brickErrorPayload?.message === 'string'
+        ? brickErrorPayload.message
+        : 'Error al cargar el formulario de Mercado Pago';
+    setBrickError(msg);
+    onErrorRef.current?.(msg);
+  }, []);
 
   const handleBrickSubmit = useCallback(async () => {
     // Con hidePaymentButton el cobro se dispara desde BotonPagoAccion.
@@ -171,7 +172,7 @@ export function MercadoPagoCheckoutPanel({
       const paymentMethodId = formData.payment_method_id?.trim();
 
       if (!token || !paymentMethodId) {
-        onError?.('Datos de tarjeta incompletos');
+        onErrorRef.current?.('Datos de tarjeta incompletos');
         return;
       }
 
@@ -193,27 +194,27 @@ export function MercadoPagoCheckoutPanel({
       const json = await res.json();
 
       if (res.status === 202) {
-        onError?.(json.message ?? 'Pago en proceso de validación');
+        onErrorRef.current?.(json.message ?? 'Pago en proceso de validación');
         return;
       }
 
       if (!res.ok || !json.success) {
-        onError?.(json.message ?? 'No se pudo procesar el pago');
+        onErrorRef.current?.(json.message ?? 'No se pudo procesar el pago');
         return;
       }
 
       redirigirTrasPagoExitoso(json.data?.redirect_url);
-      onSuccess?.();
+      onSuccessRef.current?.();
     },
-    [pedidoId, emailPago, montoNumerico, datosPagador, onError, onSuccess],
+    [pedidoId, emailPago, montoNumerico, datosPagador],
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (disabled || procesando || montoNumerico <= 0 || !brickListo) return;
 
     const controller = window.cardPaymentBrickController;
     if (!controller?.getFormData) {
-      onError?.('El formulario de tarjeta aún no está listo');
+      onErrorRef.current?.('El formulario de tarjeta aún no está listo');
       return;
     }
 
@@ -222,11 +223,11 @@ export function MercadoPagoCheckoutPanel({
       const payload = await controller.getFormData();
       await procesarCargo(normalizarFormDataTarjeta(payload));
     } catch {
-      onError?.('Revisa los datos de la tarjeta e intenta de nuevo');
+      onErrorRef.current?.('Revisa los datos de la tarjeta e intenta de nuevo');
     } finally {
       setProcesando(false);
     }
-  };
+  }, [brickListo, disabled, montoNumerico, procesando, procesarCargo]);
 
   if (!isMounted) {
     return (
@@ -307,9 +308,9 @@ export function MercadoPagoCheckoutPanel({
           Cargando Mercado Pago...
         </div>
       ) : (
-        <div key={brickMountKey}>
+        <div id={MP_BRICK_WRAPPER_ID} key={brickInstanceKey}>
           <CardPayment
-            id={brickContainerId}
+            id={MP_CARD_PAYMENT_ID}
             initialization={brickInitialization}
             customization={brickCustomization}
             locale="es-PE"
