@@ -112,28 +112,16 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     const cargarSeguimientoYDespachos = useCallback(async (clienteId: number) => {
         if (!clienteId) return;
         setLoadingSeguimiento(true);
-        const supabase = getSupabaseBrowserClient();
 
         try {
-            const { data: pedidosData, error: pedidosError } = await supabase
-                .from('pedidos')
-                .select(`
-                id,
-                codigo_pedido:id,
-                fecha_compra:created_at,
-                monto_total:total,
-                estado_pedido:estado,
-                monto_pagado,
-                saldo_pendiente,
-                pagos ( estado, tipo, monto, fecha_pago ),
-                historial:seguimiento_pedido ( id, pedido_id, status, notas, created_at )
-            `)
-                .eq('cliente_id', clienteId)
-                .order('created_at', { ascending: false })
-                .order('created_at', { referencedTable: 'seguimiento_pedido', ascending: true });
+            const res = await fetch('/api/portal/pedidos?vista=contexto', { cache: 'no-store' });
+            const json = await res.json();
 
-            if (pedidosError) throw pedidosError;
-            setPedidosSeguimiento((pedidosData as any) || []);
+            if (!res.ok || !json.success) {
+                throw new Error(json.error ?? 'Error al cargar pedidos');
+            }
+
+            setPedidosSeguimiento(json.data ?? []);
 
             const despachosFormateados = await fetchDespachosPortal();
             setDespachosActivos(despachosFormateados);

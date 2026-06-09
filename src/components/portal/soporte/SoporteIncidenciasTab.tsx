@@ -24,8 +24,10 @@ export function SoporteIncidenciasTab() {
         </p>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Actualizar
+            <span className="inline-flex items-center">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Actualizar
+            </span>
           </Button>
           <Button
             type="button"
@@ -33,8 +35,10 @@ export function SoporteIncidenciasTab() {
             className="rounded-xl bg-rose-500 hover:bg-rose-600"
             onClick={() => setModalOpen(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Reportar Problema
+            <span className="inline-flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              Reportar Problema
+            </span>
           </Button>
         </div>
       </div>
@@ -56,8 +60,10 @@ export function SoporteIncidenciasTab() {
             className="rounded-xl bg-rose-500 hover:bg-rose-600"
             onClick={() => setModalOpen(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Reportar Problema
+            <span className="inline-flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              Reportar Problema
+            </span>
           </Button>
         </div>
       ) : (

@@ -40,7 +40,7 @@ export default function MisPedidosPage() {
 
     try {
       // ✅ API route — no más browser client
-      const res = await fetch('/api/portal/pedidos/seguimiento?todos=1').then(r => r.json());
+      const res = await fetch('/api/portal/pedidos?todos=1', { cache: 'no-store' }).then(r => r.json());
 
       if (!res.success) throw new Error(res.error ?? 'Error al cargar pedidos');
 

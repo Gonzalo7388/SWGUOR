@@ -265,8 +265,10 @@ export function DireccionClienteFormModal({
               className="rounded-xl bg-rose-500 hover:bg-rose-600"
               disabled={isSubmitting}
             >
-              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isEditing ? 'Guardar cambios' : 'Registrar dirección'}
+              <span className="inline-flex items-center">
+                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isEditing ? 'Guardar cambios' : 'Registrar dirección'}
+              </span>
             </Button>
           </DialogFooter>
         </form>

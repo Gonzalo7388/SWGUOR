@@ -87,12 +87,14 @@ export function DireccionClienteCard({
               onClick={() => onMarcarPrincipal(direccion.id)}
               className="justify-start h-9 text-slate-600 hover:text-rose-600 hover:bg-rose-50"
             >
-              {isUpdating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Star className="w-4 h-4 mr-2" />
-              )}
-              Marcar como principal
+              <span className="inline-flex items-center">
+                {isUpdating ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Star className="w-4 h-4 mr-2" />
+                )}
+                Marcar como principal
+              </span>
             </Button>
           )}
 
@@ -105,8 +107,10 @@ export function DireccionClienteCard({
               onClick={() => onEditar(direccion)}
               className="flex-1 h-9 rounded-xl"
             >
-              <Pencil className="w-4 h-4 mr-2" />
-              Editar
+              <span className="inline-flex items-center">
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar
+              </span>
             </Button>
 
             <Button
@@ -127,12 +131,14 @@ export function DireccionClienteCard({
                   : 'Eliminar dirección'
               }
             >
-              {isDeleting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Eliminar
+              <span className="inline-flex items-center">
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Eliminar
+              </span>
             </Button>
           </div>
         </div>
@@ -143,8 +149,10 @@ export function DireccionClienteCard({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar esta dirección?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará permanentemente la sede <strong>{direccion.alias}</strong>.
-              Esta acción no se puede deshacer.
+              <span>
+                Se eliminará permanentemente la sede <strong>{direccion.alias}</strong>.
+                Esta acción no se puede deshacer.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -156,8 +164,10 @@ export function DireccionClienteCard({
               disabled={isDeleting}
               onClick={handleConfirmDelete}
             >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Sí, eliminar
+              <span className="inline-flex items-center">
+                {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Sí, eliminar
+              </span>
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

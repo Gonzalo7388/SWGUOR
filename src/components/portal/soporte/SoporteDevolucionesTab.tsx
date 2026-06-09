@@ -38,8 +38,10 @@ export function SoporteDevolucionesTab() {
         </p>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => refetch()}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Actualizar
+            <span className="inline-flex items-center">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Actualizar
+            </span>
           </Button>
           <Button
             type="button"
@@ -47,8 +49,10 @@ export function SoporteDevolucionesTab() {
             className="rounded-xl bg-rose-500 hover:bg-rose-600"
             onClick={abrirModal}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Solicitar Devolución
+            <span className="inline-flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              Solicitar Devolución
+            </span>
           </Button>
         </div>
       </div>
@@ -66,8 +70,10 @@ export function SoporteDevolucionesTab() {
             Puede solicitar la devolución de productos de pedidos entregados.
           </p>
           <Button type="button" className="rounded-xl bg-rose-500 hover:bg-rose-600" onClick={abrirModal}>
-            <Plus className="w-4 h-4 mr-2" />
-            Solicitar Devolución
+            <span className="inline-flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              Solicitar Devolución
+            </span>
           </Button>
         </div>
       ) : (

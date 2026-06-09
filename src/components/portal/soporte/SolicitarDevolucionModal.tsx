@@ -285,7 +285,7 @@ export function SolicitarDevolucionModal({
             {error && (
               <div className="flex items-start gap-2 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2 text-sm text-rose-700">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                {error}
+                <span>{error}</span>
               </div>
             )}
 
@@ -294,8 +294,10 @@ export function SolicitarDevolucionModal({
                 Cancelar
               </Button>
               <Button type="submit" className="rounded-xl bg-rose-500 hover:bg-rose-600" disabled={busy}>
-                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Enviar solicitud
+                <span className="inline-flex items-center">
+                  {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Enviar solicitud
+                </span>
               </Button>
             </DialogFooter>
           </form>

@@ -88,16 +88,20 @@ export default function MisDireccionesPage() {
               onClick={() => refetch()}
               disabled={isLoading}
             >
-              <RefreshCw className={`size-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Actualizar
+              <span className="inline-flex items-center">
+                <RefreshCw className={`size-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Actualizar
+              </span>
             </Button>
             <Button
               type="button"
               className="h-10 rounded-xl bg-rose-500 hover:bg-rose-600"
               onClick={abrirCrear}
             >
-              <Plus className="size-4 mr-2" />
-              Agregar Nueva Dirección
+              <span className="inline-flex items-center">
+                <Plus className="size-4 mr-2" />
+                Agregar Nueva Dirección
+              </span>
             </Button>
           </div>
         </div>
@@ -121,8 +125,10 @@ export default function MisDireccionesPage() {
               className="rounded-xl bg-rose-500 hover:bg-rose-600"
               onClick={abrirCrear}
             >
-              <Plus className="size-4 mr-2" />
-              Agregar Nueva Dirección
+              <span className="inline-flex items-center">
+                <Plus className="size-4 mr-2" />
+                Agregar Nueva Dirección
+              </span>
             </Button>
           </div>
         ) : (
