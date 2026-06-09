@@ -2,13 +2,16 @@
 
 import { CulqiCheckoutButton } from '@/components/payments/CulqiCheckoutButton';
 import { toCulqiAmountCents } from '@/lib/constants/culqi';
+import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
+import type { DatosPagadorPago } from '@/lib/schemas/datos-pagador-pago';
 
 type CheckoutImplementProps = {
   /** Monto a cobrar hoy en soles */
   montoSoles: number;
   pedidoId: number;
   email?: string;
+  datosPagador: DatosPagadorPago;
   disabled?: boolean;
   onSuccess?: () => void;
   onError?: (message: string) => void;
@@ -18,6 +21,7 @@ const CheckoutImplement = ({
   montoSoles,
   pedidoId,
   email = 'cliente@guor.com',
+  datosPagador,
   disabled = false,
   onSuccess,
   onError,
@@ -41,7 +45,11 @@ const CheckoutImplement = ({
         email={email}
         orderId={String(pedidoId)}
         title={`Pedido #${pedidoId}`}
-        chargePayload={{ pedido_id: pedidoId, monto_a_pagar: montoSoles }}
+        chargePayload={{
+          pedido_id: pedidoId,
+          monto_a_pagar: montoSoles,
+          ...toDatosPagadorCheckoutPayload(datosPagador),
+        }}
         buttonLabel={`Pagar ${labelMonto}`}
         disabled={disabled || montoSoles <= 0}
         onSuccess={() => onSuccess?.()}

@@ -8,7 +8,18 @@ import { MONTO_MINIMO_PAGO_PARCIAL_SOLES } from '@/lib/constants/culqi-checkout'
 import type { PagoGatewayId } from '@/lib/constants/pago-gateway';
 import { usePortal } from '@/lib/hooks/usePortal';
 import { PagoDireccionEntregaForm } from '@/components/portal/pago/PagoDireccionEntregaForm';
+import { PagoDatosPagadorForm } from '@/components/portal/pago/PagoDatosPagadorForm';
 import { PagoMetodoPagoSection } from '@/components/portal/pago/PagoMetodoPagoSection';
+import {
+  buildDatosPagadorIniciales,
+  formatDireccionEntregaTexto,
+  splitRazonSocialParaPagador,
+  validarDatosPagadorPago,
+} from '@/lib/helpers/datos-pagador-pago.helper';
+import {
+  DATOS_PAGADOR_PAGO_INICIAL,
+  type DatosPagadorPago,
+} from '@/lib/schemas/datos-pagador-pago';
 import {
   extraerResumenPagoPedido,
   formatearSoles,
@@ -46,6 +57,10 @@ export default function PagoPage() {
   const [datosEntrega, setDatosEntrega] = useState<DatosEntregaPago>(
     DATOS_ENTREGA_PAGO_INICIAL,
   );
+  const [datosPagador, setDatosPagador] = useState<DatosPagadorPago>(
+    DATOS_PAGADOR_PAGO_INICIAL,
+  );
+  const [errorDatosPagador, setErrorDatosPagador] = useState('');
 
   const [toast, setToast] = useState({
     show: false,
@@ -90,13 +105,35 @@ export default function PagoPage() {
     };
   }, [pedidoId]);
 
+  useEffect(() => {
+    if (!cliente) return;
+
+    const { nombres, apellidos } = splitRazonSocialParaPagador(cliente.razon_social);
+
+    setDatosPagador((prev) =>
+      buildDatosPagadorIniciales({
+        nombres: prev.nombres || nombres,
+        apellidos: prev.apellidos || apellidos,
+        telefono: prev.telefono || (cliente.telefono ? String(cliente.telefono) : ''),
+        usuarioId: cliente.usuario_id,
+        direccion: prev.direccion || cliente.direccion_fiscal || '',
+        countryCode: datosEntrega.paisCode,
+      }),
+    );
+  }, [cliente, datosEntrega.paisCode]);
+
   const montoNumerico = Number(montoAPagar);
   const validacionMonto = validarMontoPagoParcial(montoNumerico, resumen.saldoPendiente);
   const montoFinal = validacionMonto.valido
     ? Math.max(montoNumerico - descuento, 0)
     : 0;
   const emailPago = cliente?.email?.trim() || 'cliente@guor.com';
-  const pagoHabilitado = validacionMonto.valido && montoFinal > 0 && !loadingPedido;
+  const validacionPagador = validarDatosPagadorPago(datosPagador);
+  const pagoHabilitado =
+    validacionMonto.valido &&
+    montoFinal > 0 &&
+    !loadingPedido &&
+    validacionPagador.valido;
 
   const mostrarToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ show: true, message, type });
@@ -130,6 +167,21 @@ export default function PagoPage() {
 
   const handlePagoError = (msg: string) => {
     mostrarToast(msg, 'error');
+  };
+
+  const handleUsarDireccionEntregaEnPagador = () => {
+    setDatosPagador((prev) => ({
+      ...prev,
+      direccion: formatDireccionEntregaTexto(datosEntrega),
+      countryCode: datosEntrega.paisCode,
+    }));
+    setErrorDatosPagador('');
+  };
+
+  const handleDatosPagadorChange = (value: DatosPagadorPago) => {
+    setDatosPagador(value);
+    const check = validarDatosPagadorPago(value);
+    setErrorDatosPagador(check.valido ? '' : check.mensaje ?? '');
   };
 
   const porcentajePagado =
@@ -170,6 +222,14 @@ export default function PagoPage() {
             disabled={loadingPedido}
           />
 
+          <PagoDatosPagadorForm
+            value={datosPagador}
+            onChange={handleDatosPagadorChange}
+            disabled={loadingPedido}
+            error={errorDatosPagador}
+            onUsarDireccionEntrega={handleUsarDireccionEntregaEnPagador}
+          />
+
           <div className="rounded-2xl border border-[#e4c28a]/20 bg-white p-6 shadow-sm shadow-[#231e1d]/5">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 rounded-xl bg-[#fffdf8] border border-[#e4c28a]/30 text-[#b5854b]">
@@ -208,6 +268,7 @@ export default function PagoPage() {
             email={emailPago}
             montoSoles={montoFinal}
             saldoPendiente={resumen.saldoPendiente}
+            datosPagador={datosPagador}
             disabled={!pagoHabilitado}
             loadingPedido={loadingPedido}
             errorPedido={errorPedido}

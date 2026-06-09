@@ -6,6 +6,7 @@ import {
   CODIGO_CHECKOUT_COMPLETADO,
   MENSAJE_CHECKOUT_COMPLETADO,
 } from '@/lib/constants/culqi-checkout';
+import { buildNotasPagoCulqi } from '@/lib/constants/cierre-venta';
 import {
   jsonCheckoutError,
   mapCheckoutRouteError,
@@ -15,7 +16,10 @@ import {
   type CulqiCheckoutSuccessResponse,
 } from '@/lib/schemas/culqi-checkout';
 import { ejecutarCierreVentaPostCulqi } from '@/lib/services/cierre-venta-culqi.service';
-import { validarIdempotenciaPagoPedido } from '@/lib/services/pago-idempotencia.service';
+import {
+  obtenerPagoRegistradoPorCulqiChargeId,
+  validarIdempotenciaPagoPedido,
+} from '@/lib/services/pago-idempotencia.service';
 import type { IPaymentGateway } from '@/lib/services/payments/ipayment-gateway';
 import { createPaymentGateway } from '@/lib/services/payments/payment-gateway.factory';
 
@@ -46,13 +50,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { pedido_id, email, token, source_id, description, monto_a_pagar } = parsed.data;
+    const { pedido_id, email, token, source_id, description, monto_a_pagar, pagador } =
+      parsed.data;
 
     // 1) El pedido debe existir y tener saldo pendiente
     await validarIdempotenciaPagoPedido(pedido_id);
 
     const gateway: IPaymentGateway = createPaymentGateway('culqi');
-    const metadata = { pedido_id, email, description };
+    const metadata = {
+      pedido_id,
+      email,
+      description,
+      ...pagador,
+    };
 
     // 2) Intención de pago — valida monto contra saldo en BD
     const intencion = await gateway.crearIntencionPago(
@@ -80,12 +90,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const pagoExistente = await obtenerPagoRegistradoPorCulqiChargeId(cargo.transactionId);
+    if (pagoExistente?.pedidos) {
+      const comprobanteExistente = pagoExistente.comprobantes[0];
+      const montoPagadoExistente = Number(pagoExistente.pedidos.monto_pagado ?? 0);
+      const saldoPendienteExistente = Number(pagoExistente.pedidos.saldo_pendiente ?? 0);
+
+      const idempotentPayload: CulqiCheckoutSuccessResponse = {
+        success: true,
+        message: 'Pago ya registrado correctamente',
+        code: CODIGO_CHECKOUT_COMPLETADO,
+        data: {
+          pedido_id,
+          pago_id: pagoExistente.id_uuid,
+          comprobante_id: comprobanteExistente?.id_uuid ?? '',
+          numero_comprobante: comprobanteExistente?.numero_completo ?? null,
+          pedido_estado: pagoExistente.pedidos.estado,
+          culqi_charge_id: cargo.transactionId,
+          redirect_url: comprobanteExistente
+            ? buildCheckoutConfirmacionUrl(pedido_id, comprobanteExistente.id_uuid)
+            : buildCheckoutConfirmacionUrl(pedido_id, pagoExistente.id_uuid),
+          monto_cobrado: cargo.monto.amountSoles,
+          monto_pagado: montoPagadoExistente,
+          saldo_pendiente: saldoPendienteExistente,
+          pago_completo: saldoPendienteExistente <= 0,
+        },
+      };
+
+      return NextResponse.json(idempotentPayload, { status: 200 });
+    }
+
     // 4) Cierre atómico post-pasarela: pagos + actualización pedidos + comprobante
     const cierre = await ejecutarCierreVentaPostCulqi({
       pedidoId: pedido_id,
       monto: cargo.monto.amountSoles,
       metodoPago: cargo.metodoPago,
       culqiChargeId: cargo.transactionId,
+      notas: buildNotasPagoCulqi(cargo.transactionId, pagador),
     });
 
     const montoPagado = Number(cierre.pedido.monto_pagado ?? 0);

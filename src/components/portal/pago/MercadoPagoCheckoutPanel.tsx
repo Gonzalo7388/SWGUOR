@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { Loader2 } from 'lucide-react';
 import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
+import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { redirigirTrasPagoExitoso } from '@/lib/helpers/checkout-redirect.helper';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
 
@@ -22,6 +23,7 @@ export function MercadoPagoCheckoutPanel({
   email,
   montoSoles,
   saldoPendiente,
+  datosPagador,
   disabled,
   onSuccess,
   onError,
@@ -71,6 +73,7 @@ export function MercadoPagoCheckoutPanel({
           installments: formData.installments ?? 1,
           issuer_id: formData.issuer_id,
           monto_a_pagar: montoSoles,
+          ...toDatosPagadorCheckoutPayload(datosPagador),
         }),
       });
 

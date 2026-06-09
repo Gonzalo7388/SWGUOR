@@ -24,3 +24,15 @@ export function getTipoComprobanteLabel(tipo?: string | null): string {
   if (!tipo) return 'Comprobante';
   return TIPO_COMPROBANTE_PORTAL_LABELS[tipo] ?? tipo;
 }
+
+export const TIPO_PAGO_PORTAL_LABELS: Record<string, string> = {
+  adelanto: 'Adelanto',
+  cuota: 'Cuota / abono',
+  saldo_final: 'Saldo final',
+  pago_completo: 'Pago completo',
+};
+
+export function getTipoPagoLabel(tipo?: string | null): string {
+  if (!tipo) return 'Pago';
+  return TIPO_PAGO_PORTAL_LABELS[tipo] ?? tipo.replace(/_/g, ' ');
+}

@@ -1,34 +1,23 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CreditCard, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ComprobantePdfSimuladoModal } from '@/components/portal/pago/ComprobantePdfSimuladoModal';
-import {
-  PedidoModalDetalle,
-  type PedidoConDetalles,
-} from '@/components/portal/pedidos/PedidoModalDetalle';
-import type { EstadoPedido } from '@/components/portal/pedidos/types';
 import { HistorialPagosTable } from '@/components/portal/pagos/HistorialPagosTable';
+import { HistorialPagosRecientesList } from '@/components/portal/pagos/HistorialPagosRecientesList';
+import { MisPagosVistaSelector } from '@/components/portal/pagos/MisPagosVistaSelector';
 import { usePortal } from '@/lib/hooks/usePortal';
+import type { MisPagosVista } from '@/lib/constants/portal-mis-pagos';
+import { parseMisPagosVistaParam } from '@/lib/constants/portal-pedido-detalle';
+import { buildHistorialTransaccionesRecientes } from '@/lib/helpers/portal-historial-pagos.helper';
 import type { PagoConfirmacionResumen } from '@/lib/schemas/pago-confirmacion';
 import type { HistorialPagoFila } from '@/lib/schemas/portal-historial-pagos';
 
-function mapHistorialAPedidoDetalle(fila: HistorialPagoFila): PedidoConDetalles {
-  return {
-    id: fila.pedido_id,
-    total: fila.monto_total,
-    estado: fila.estado_pedido as EstadoPedido,
-    estado_pago: fila.estado_pago === 'pagado' ? 'verificado' : 'pendiente',
-    created_at: fila.fecha,
-    total_unidades: fila.total_unidades,
-    moneda: fila.moneda,
-    monto_pagado: fila.monto_pagado,
-    saldo_pendiente: fila.saldo_pendiente,
-  };
-}
-
 export default function MisPagosPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { cliente, loading: authLoading } = usePortal() as {
     cliente: { id: string } | null;
     loading: boolean;
@@ -37,17 +26,33 @@ export default function MisPagosPage() {
   const [filas, setFilas] = useState<HistorialPagoFila[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoConDetalles | null>(null);
   const [resumenComprobante, setResumenComprobante] = useState<PagoConfirmacionResumen | null>(
     null,
   );
   const [modalComprobanteOpen, setModalComprobanteOpen] = useState(false);
+  const [vista, setVista] = useState<MisPagosVista>(() =>
+    parseMisPagosVistaParam(searchParams.get('vista')),
+  );
+
+  useEffect(() => {
+    setVista(parseMisPagosVistaParam(searchParams.get('vista')));
+  }, [searchParams]);
 
   const resumenFiltrado = useMemo(
     () =>
       filas.filter(
         (f) => f.estado_pago === 'pagado' || f.estado_pago === 'parcial' || f.monto_pagado > 0,
       ).length,
+    [filas],
+  );
+
+  const transaccionesRecientes = useMemo(
+    () => buildHistorialTransaccionesRecientes(filas),
+    [filas],
+  );
+
+  const filasPorPedido = useMemo(
+    () => new Map(filas.map((fila) => [fila.pedido_id, fila])),
     [filas],
   );
 
@@ -76,9 +81,15 @@ export default function MisPagosPage() {
     fetchHistorial();
   }, [fetchHistorial]);
 
-  const handleVerDetalle = useCallback((fila: HistorialPagoFila) => {
-    setPedidoDetalle(mapHistorialAPedidoDetalle(fila));
-  }, []);
+  const handleCambioVista = useCallback(
+    (nuevaVista: MisPagosVista) => {
+      setVista(nuevaVista);
+      const url =
+        nuevaVista === 'historico' ? '/portal/pagos?vista=historico' : '/portal/pagos';
+      router.replace(url, { scroll: false });
+    },
+    [router],
+  );
 
   const abrirComprobante = useCallback(async (pedidoId: number, comprobanteId: string) => {
     try {
@@ -146,9 +157,11 @@ export default function MisPagosPage() {
             </div>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">
-                Con movimiento de pago
+                {vista === 'historico' ? 'Transacciones' : 'Con movimiento de pago'}
               </p>
-              <p className="text-2xl font-black text-emerald-700 mt-1">{resumenFiltrado}</p>
+              <p className="text-2xl font-black text-emerald-700 mt-1">
+                {vista === 'historico' ? transaccionesRecientes.length : resumenFiltrado}
+              </p>
             </div>
             <div className="rounded-xl border border-[#e4c28a]/30 bg-[#fffdf8] px-4 py-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#b5854b]/70">
@@ -161,26 +174,43 @@ export default function MisPagosPage() {
           </div>
         )}
 
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <MisPagosVistaSelector
+            value={vista}
+            onChange={handleCambioVista}
+            disabled={loading || authLoading}
+          />
+          <p className="text-xs text-slate-500">
+            {vista === 'pedidos'
+              ? 'Agrupa los abonos dentro de cada pedido.'
+              : 'Listado cronológico de pagos, del más reciente al más antiguo.'}
+          </p>
+        </div>
+
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <HistorialPagosTable
-          filas={filas}
-          loading={loading || authLoading}
-          onVerDetalle={handleVerDetalle}
-          onVerComprobante={handleVerComprobante}
-        />
+        {vista === 'pedidos' ? (
+          <HistorialPagosTable
+            filas={filas}
+            loading={loading || authLoading}
+            vista={vista}
+            onVerComprobante={handleVerComprobante}
+            onVerComprobanteAbono={abrirComprobante}
+          />
+        ) : (
+          <HistorialPagosRecientesList
+            transacciones={transaccionesRecientes}
+            filasPorPedido={filasPorPedido}
+            loading={loading || authLoading}
+            vista={vista}
+            onVerComprobanteAbono={abrirComprobante}
+          />
+        )}
       </div>
-
-      <PedidoModalDetalle
-        pedido={pedidoDetalle}
-        isOpen={pedidoDetalle !== null}
-        onClose={() => setPedidoDetalle(null)}
-        onVerComprobante={abrirComprobante}
-      />
 
       {resumenComprobante && (
         <ComprobantePdfSimuladoModal

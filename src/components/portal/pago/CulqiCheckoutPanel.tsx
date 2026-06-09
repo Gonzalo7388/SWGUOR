@@ -9,6 +9,7 @@ export function CulqiCheckoutPanel({
   email,
   montoSoles,
   saldoPendiente,
+  datosPagador,
   disabled,
   onSuccess,
   onError,
@@ -30,6 +31,7 @@ export function CulqiCheckoutPanel({
         montoSoles={montoSoles}
         pedidoId={pedidoId}
         email={email}
+        datosPagador={datosPagador}
         disabled={disabled}
         onSuccess={onSuccess}
         onError={onError}

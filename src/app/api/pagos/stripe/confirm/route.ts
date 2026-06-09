@@ -6,6 +6,7 @@ import {
   CODIGO_CHECKOUT_COMPLETADO,
   MENSAJE_CHECKOUT_COMPLETADO,
 } from '@/lib/constants/culqi-checkout';
+import { appendDatosPagadorEnNotas } from '@/lib/helpers/datos-pagador-pago.helper';
 import { mapStripeIntentRouteError } from '@/lib/helpers/stripe-intent-route.helper';
 import { stripeConfirmRequestSchema } from '@/lib/schemas/stripe-confirm';
 import { ejecutarCierreVentaPostCulqi } from '@/lib/services/cierre-venta-culqi.service';
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { pedido_id, email, payment_intent_id, monto_a_pagar, description } =
+    const { pedido_id, email, payment_intent_id, monto_a_pagar, description, pagador } =
       parsed.data;
 
     await validarIdempotenciaPagoPedido(pedido_id);
@@ -72,7 +73,10 @@ export async function POST(request: NextRequest) {
       metodoPago: cargo.metodoPago,
       culqiChargeId: cargo.transactionId,
       estadoPago: cargo.estadoPago,
-      notas: `Pago automático Stripe | payment_intent=${cargo.transactionId}`,
+      notas: appendDatosPagadorEnNotas(
+        `Pago automático Stripe | payment_intent=${cargo.transactionId}`,
+        pagador,
+      ),
     });
 
     const montoPagado = Number(cierre.pedido.monto_pagado ?? 0);

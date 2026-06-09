@@ -6,6 +6,8 @@ import {
   type CulqiCurrencyCode,
 } from '@/lib/constants/culqi';
 import { getCulqiWebhookMetadataPedidoKey } from '@/lib/constants/culqi-webhook';
+import { toCulqiAntifraudDetails } from '@/lib/helpers/datos-pagador-pago.helper';
+import type { DatosPagadorCheckout } from '@/lib/schemas/datos-pagador-pago';
 import {
   mapCulqiChargeHttpResponse,
   type CulqiChargeSuccessBody,
@@ -35,6 +37,31 @@ function resolverPedidoId(metadata: PagoMetadata): number {
     throw new CulqiPedidoPagoError('ID de pedido inválido', 'PEDIDO_INVALIDO', 400);
   }
   return pedidoId;
+}
+
+function resolverDatosPagador(metadata: PagoMetadata): DatosPagadorCheckout | null {
+  const nombres = String(metadata.pagador_nombres ?? '').trim();
+  const apellidos = String(metadata.pagador_apellidos ?? '').trim();
+  const telefono = String(metadata.pagador_telefono ?? '').trim();
+  const direccion = String(metadata.pagador_direccion ?? '').trim();
+  const ubicacion = String(metadata.pagador_ubicacion ?? '').trim();
+
+  if (!nombres || !apellidos || !telefono || !direccion || !ubicacion) {
+    return null;
+  }
+
+  return {
+    pagador_nombres: nombres,
+    pagador_apellidos: apellidos,
+    pagador_telefono: telefono,
+    pagador_usuario_id:
+      metadata.pagador_usuario_id != null
+        ? Number(metadata.pagador_usuario_id)
+        : undefined,
+    pagador_direccion: direccion,
+    pagador_ubicacion: ubicacion,
+    pagador_country_code: String(metadata.pagador_country_code ?? 'PE'),
+  };
 }
 
 function resolverEmail(metadata: PagoMetadata): string {
@@ -121,6 +148,7 @@ export class CulqiAdapter implements IPaymentGateway {
       amountCents: montoValidado.amountCents,
       currencyCode,
       description: metadata.description,
+      pagador: resolverDatosPagador(metadata),
     });
 
     if (!culqiResult.success || !culqiResult.data) {
@@ -168,9 +196,17 @@ export class CulqiAdapter implements IPaymentGateway {
     amountCents: number;
     currencyCode: CulqiCurrencyCode;
     description?: string;
+    pagador?: DatosPagadorCheckout | null;
   }) {
     const secretKey = getCulqiSecretKey();
     const metadataKey = getCulqiWebhookMetadataPedidoKey();
+    const culqiMetadata: Record<string, string> = {
+      [metadataKey]: String(input.pedidoId),
+    };
+
+    if (input.pagador?.pagador_usuario_id) {
+      culqiMetadata.usuario_id = String(input.pagador.pagador_usuario_id);
+    }
 
     const response = await fetch(CULQI_CHARGES_ENDPOINT, {
       method: 'POST',
@@ -183,7 +219,10 @@ export class CulqiAdapter implements IPaymentGateway {
         currency_code: input.currencyCode,
         email: input.email.trim(),
         source_id: input.sourceId,
-        metadata: { [metadataKey]: String(input.pedidoId) },
+        metadata: culqiMetadata,
+        ...(input.pagador
+          ? { antifraud_details: toCulqiAntifraudDetails(input.pagador) }
+          : {}),
         ...(input.description ? { description: input.description } : {}),
       }),
     });

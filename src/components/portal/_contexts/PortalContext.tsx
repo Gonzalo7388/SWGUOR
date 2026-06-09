@@ -8,6 +8,7 @@ import type { ProductoBase } from '@/types/portal';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useQuotationStore } from '@/lib/store/useQuotationStore';
 import { toast } from 'sonner';
+import { fetchDespachosPortal } from '@/lib/helpers/despachos-helpers';
 
 // ── Interfaces y Tipos Existentes ───────────────────────────────────────────
 export interface ClientePortal { id: number; usuario_id: number; ruc: number; razon_social: string; nombre_comercial: string; direccion_fiscal?: string; email: string | null; telefono: number | null; tipo_cliente: string; }
@@ -134,11 +135,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
             if (pedidosError) throw pedidosError;
             setPedidosSeguimiento((pedidosData as any) || []);
 
-            const resDespachos = await fetch('/api/portal/despachos').then(r => r.json());
-            const despachosFormateados = (Array.isArray(resDespachos) ? resDespachos : []).map((d: any) => ({
-                ...d,
-                historial_grupo: d.seguimiento_despachos || []
-            }));
+            const despachosFormateados = await fetchDespachosPortal();
             setDespachosActivos(despachosFormateados);
 
         } catch (error) {
@@ -199,10 +196,8 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                     };
                     setCliente(clientObj);
 
-                    const resDespachos = await fetch('/api/portal/despachos').then(r => r.json());
-                    const despachoCount = Array.isArray(resDespachos)
-                        ? resDespachos.filter((d: any) => d.estado === 'en_ruta').length
-                        : 0;
+                    const despachosFormateados = await fetchDespachosPortal().catch(() => []);
+                    const despachoCount = despachosFormateados.filter((d) => d.estado === 'en_ruta').length;
 
                     setStats({
                         cotizaciones_activas: resPerfil.data.stats.cotizaciones ?? 0,

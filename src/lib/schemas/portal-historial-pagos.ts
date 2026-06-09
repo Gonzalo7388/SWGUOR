@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { abonoPedidoSchema } from '@/lib/schemas/portal-pedido-pagos';
 
 export const historialPagoComprobanteSchema = z.object({
   id: z.string().uuid(),
@@ -21,6 +22,7 @@ export const historialPagoFilaSchema = z.object({
   total_unidades: z.number().int().nonnegative(),
   comprobante: historialPagoComprobanteSchema.nullable(),
   pago_id: z.string().uuid().nullable(),
+  abonos: z.array(abonoPedidoSchema),
 });
 
 export type HistorialPagoFila = z.infer<typeof historialPagoFilaSchema>;

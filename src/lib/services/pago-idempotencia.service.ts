@@ -55,17 +55,45 @@ async function existePagoConfirmado(
   return Boolean(pago);
 }
 
+function buildCulqiChargeIdNeedle(culqiChargeId: string): string {
+  return buildNotasPagoCulqi(culqiChargeId);
+}
+
 /** Idempotencia por charge_id de Culqi (reintentos de webhook o doble vía checkout). */
 export async function existePagoPorCulqiChargeId(
   db: Tx | typeof prisma,
   culqiChargeId: string,
 ): Promise<boolean> {
-  const needle = buildNotasPagoCulqi(culqiChargeId);
   const pago = await db.pagos.findFirst({
-    where: { notas: { contains: needle } },
+    where: { notas: { contains: buildCulqiChargeIdNeedle(culqiChargeId) } },
     select: { id_uuid: true },
   });
   return Boolean(pago);
+}
+
+/** Recupera pago + pedido + comprobante ya persistidos para un charge Culqi. */
+export async function obtenerPagoRegistradoPorCulqiChargeId(culqiChargeId: string) {
+  return prisma.pagos.findFirst({
+    where: { notas: { contains: buildCulqiChargeIdNeedle(culqiChargeId) } },
+    include: {
+      pedidos: {
+        select: {
+          id: true,
+          estado: true,
+          monto_pagado: true,
+          saldo_pendiente: true,
+        },
+      },
+      comprobantes: {
+        take: 1,
+        orderBy: { created_at: 'desc' },
+        select: {
+          id_uuid: true,
+          numero_completo: true,
+        },
+      },
+    },
+  });
 }
 
 /**

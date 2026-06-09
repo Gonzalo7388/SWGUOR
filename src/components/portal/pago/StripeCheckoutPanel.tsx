@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
+import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { redirigirTrasPagoExitoso } from '@/lib/helpers/checkout-redirect.helper';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
 
@@ -25,6 +26,7 @@ function StripePaymentForm({
   pedidoId,
   email,
   montoSoles,
+  datosPagador,
   paymentIntentId,
   disabled,
   onSuccess,
@@ -65,6 +67,7 @@ function StripePaymentForm({
           email,
           payment_intent_id: intentId,
           monto_a_pagar: montoSoles,
+          ...toDatosPagadorCheckoutPayload(datosPagador),
         }),
       });
 
@@ -124,7 +127,7 @@ function StripePaymentForm({
 }
 
 export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
-  const { pedidoId, email, montoSoles, saldoPendiente, disabled } = props;
+  const { pedidoId, email, montoSoles, saldoPendiente, datosPagador, disabled } = props;
   const [intentData, setIntentData] = useState<StripeIntentData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

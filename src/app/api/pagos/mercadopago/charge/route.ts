@@ -8,6 +8,7 @@ import {
   MENSAJE_CHECKOUT_COMPLETADO,
 } from '@/lib/constants/culqi-checkout';
 import { buildNotasPagoMercadoPago } from '@/lib/constants/mercadopago';
+import { appendDatosPagadorEnNotas } from '@/lib/helpers/datos-pagador-pago.helper';
 import { esMercadoPagoAprobado } from '@/lib/helpers/mercadopago-status.helper';
 import { mapMercadoPagoChargeRouteError } from '@/lib/helpers/mercadopago-charge-route.helper';
 import {
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
       issuer_id,
       monto_a_pagar,
       description,
+      pagador,
     } = parsed.data;
 
     await validarIdempotenciaPagoPedido(pedido_id);
@@ -112,7 +114,10 @@ export async function POST(request: NextRequest) {
       metodoPago: cargo.metodoPago,
       culqiChargeId: cargo.transactionId,
       estadoPago: cargo.estadoPago,
-      notas: buildNotasPagoMercadoPago(cargo.transactionId),
+      notas: appendDatosPagadorEnNotas(
+        buildNotasPagoMercadoPago(cargo.transactionId),
+        pagador,
+      ),
     });
 
     const montoPagado = Number(cierre.pedido.monto_pagado ?? 0);

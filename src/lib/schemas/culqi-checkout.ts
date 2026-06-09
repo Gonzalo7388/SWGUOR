@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { datosPagadorCheckoutSchema } from '@/lib/schemas/datos-pagador-pago';
 
 const montoSolesField = z
   .union([z.number(), z.string()])
@@ -17,6 +18,16 @@ export const culqiCheckoutRequestSchema = z
     monto_a_pagar: montoSolesField,
     /** Alias retrocompatible */
     monto: montoSolesField,
+    pagador_nombres: z.string().trim().min(2, 'Nombres del pagador requeridos'),
+    pagador_apellidos: z.string().trim().min(2, 'Apellidos del pagador requeridos'),
+    pagador_telefono: z.string().trim().min(9, 'Teléfono del pagador requerido'),
+    pagador_usuario_id: z
+      .union([z.number(), z.string()])
+      .transform((v) => Number(v))
+      .optional(),
+    pagador_direccion: z.string().trim().min(5, 'Dirección del pagador requerida'),
+    pagador_ubicacion: z.string().trim().min(2, 'Ubicación del pagador requerida'),
+    pagador_country_code: z.string().length(2).optional(),
   })
   .refine((data) => Boolean(data.token || data.source_id), {
     message: 'Token o source_id de Culqi requerido',
@@ -33,6 +44,15 @@ export const culqiCheckoutRequestSchema = z
     source_id: data.source_id,
     description: data.description,
     monto_a_pagar: data.monto_a_pagar ?? data.monto,
+    pagador: datosPagadorCheckoutSchema.parse({
+      pagador_nombres: data.pagador_nombres,
+      pagador_apellidos: data.pagador_apellidos,
+      pagador_telefono: data.pagador_telefono,
+      pagador_usuario_id: data.pagador_usuario_id,
+      pagador_direccion: data.pagador_direccion,
+      pagador_ubicacion: data.pagador_ubicacion,
+      pagador_country_code: data.pagador_country_code,
+    }),
   }));
 
 export type CulqiCheckoutRequest = z.infer<typeof culqiCheckoutRequestSchema>;
