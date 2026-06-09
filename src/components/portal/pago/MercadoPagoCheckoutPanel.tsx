@@ -16,6 +16,7 @@ import { BotonPagoAccion } from '@/components/portal/pago/BotonPagoAccion';
 import type { MercadoPagoCardFormData } from '@/types/mercadopago-brick';
 
 const MP_PUBLIC_KEY = getMercadoPagoPublicKeyEnv();
+const MP_PAYMENT_CONTAINER_ID = 'mp-payment-brick-container';
 
 function normalizarFormDataTarjeta(
   payload: MercadoPagoCardFormData | { formData: MercadoPagoCardFormData },
@@ -41,6 +42,7 @@ export function MercadoPagoCheckoutPanel({
   onSuccess,
   onError,
 }: CheckoutGatewayPanelProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [sdkListo, setSdkListo] = useState(false);
   const [brickListo, setBrickListo] = useState(false);
   const [procesando, setProcesando] = useState(false);
@@ -52,6 +54,12 @@ export function MercadoPagoCheckoutPanel({
   );
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     if (!MP_PUBLIC_KEY) {
       setErrorConfig('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY no está configurada');
       setSdkListo(false);
@@ -94,7 +102,7 @@ export function MercadoPagoCheckoutPanel({
       cancelado = true;
       window.paymentBrickController?.unmount?.();
     };
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
     setBrickListo(false);
@@ -163,6 +171,15 @@ export function MercadoPagoCheckoutPanel({
     }
   };
 
+  if (!isMounted) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Preparando checkout...
+      </div>
+    );
+  }
+
   if (errorConfig) {
     return (
       <p className="text-sm text-red-600 py-4 text-center">{errorConfig}</p>
@@ -174,15 +191,6 @@ export function MercadoPagoCheckoutPanel({
       <p className="text-sm text-slate-500 py-4 text-center">
         Ingresa un monto válido en el resumen de pago para cargar Mercado Pago.
       </p>
-    );
-  }
-
-  if (!sdkListo) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
-        <Loader2 className="w-4 h-4 animate-spin" />
-        Cargando Mercado Pago...
-      </div>
     );
   }
 
@@ -204,8 +212,16 @@ export function MercadoPagoCheckoutPanel({
         </p>
       </div>
 
-      {sdkListo && (
-        <div key={`mp-${pedidoId}-${montoNumerico}`}>
+      {!sdkListo ? (
+        <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Cargando Mercado Pago...
+        </div>
+      ) : (
+        <div
+          id={MP_PAYMENT_CONTAINER_ID}
+          key={`mp-payment-${montoNumerico}`}
+        >
           <Payment
             initialization={{
               amount: montoNumerico,
