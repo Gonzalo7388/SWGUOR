@@ -9,12 +9,11 @@ import {
   useStripe,
 } from '@stripe/react-stripe-js';
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
 import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { redirigirTrasPagoExitoso } from '@/lib/helpers/checkout-redirect.helper';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
+import { BotonPagoAccion } from '@/components/portal/pago/BotonPagoAccion';
 
 interface StripeIntentData {
   client_secret: string;
@@ -34,14 +33,13 @@ function StripePaymentForm({
 }: CheckoutGatewayPanelProps & { paymentIntentId: string }) {
   const stripe = useStripe();
   const elements = useElements();
-  const [processing, setProcessing] = useState(false);
+  const [procesando, setProcesando] = useState(false);
   const [localError, setLocalError] = useState('');
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!stripe || !elements || disabled || processing) return;
+  const handleSubmit = async () => {
+    if (!stripe || !elements || disabled || procesando || montoSoles <= 0) return;
 
-    setProcessing(true);
+    setProcesando(true);
     setLocalError('');
 
     try {
@@ -87,12 +85,12 @@ function StripePaymentForm({
       setLocalError(msg);
       onError?.(msg);
     } finally {
-      setProcessing(false);
+      setProcesando(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
       <PaymentElement
         options={{
           layout: 'tabs',
@@ -105,29 +103,20 @@ function StripePaymentForm({
         </p>
       )}
 
-      <Button
-        type="submit"
-        disabled={!stripe || !elements || disabled || processing || montoSoles <= 0}
-        className={cn(
-          'w-full h-12 rounded-xl font-black tracking-wide',
-          'bg-[#635bff] hover:bg-[#5851ea] text-white',
-        )}
-      >
-        {processing ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Procesando...
-          </>
-        ) : (
-          `Pagar ${formatearSoles(montoSoles)} con Stripe`
-        )}
-      </Button>
-    </form>
+      <BotonPagoAccion
+        onPagar={handleSubmit}
+        procesando={procesando}
+        deshabilitado={disabled || !stripe || !elements}
+        montoSoles={montoSoles}
+        pasarela="Stripe"
+        tema="stripe"
+      />
+    </div>
   );
 }
 
 export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
-  const { pedidoId, email, montoSoles, saldoPendiente, datosPagador, disabled } = props;
+  const { pedidoId, email, montoSoles, saldoPendiente, disabled } = props;
   const [intentData, setIntentData] = useState<StripeIntentData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -185,6 +174,14 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
     [intentData?.publishable_key],
   );
 
+  if (montoSoles <= 0) {
+    return (
+      <p className="text-sm text-slate-500 py-4 text-center">
+        Ingresa un monto válido en el resumen de pago para cargar Stripe.
+      </p>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
@@ -203,9 +200,7 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
   if (!intentData?.client_secret || !stripePromise) {
     return (
       <p className="text-sm text-slate-500 py-4 text-center">
-        {montoSoles <= 0
-          ? 'Ingresa un monto válido en el resumen de pago para cargar Stripe.'
-          : 'No se pudo preparar el formulario de Stripe.'}
+        No se pudo preparar el formulario de Stripe.
       </p>
     );
   }

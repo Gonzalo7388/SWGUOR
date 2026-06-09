@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
+import { useCallback, useEffect, useState } from 'react';
+import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react';
 import { Loader2 } from 'lucide-react';
 import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
 import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { redirigirTrasPagoExitoso } from '@/lib/helpers/checkout-redirect.helper';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
-import { cn } from '@/lib/utils';
+import { BotonPagoAccion } from '@/components/portal/pago/BotonPagoAccion';
+import type { MercadoPagoCardFormData } from '@/types/mercadopago-brick';
 
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() ?? '';
 
@@ -30,6 +31,7 @@ export function MercadoPagoCheckoutPanel({
   onError,
 }: CheckoutGatewayPanelProps) {
   const [sdkListo, setSdkListo] = useState(false);
+  const [brickListo, setBrickListo] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [errorConfig, setErrorConfig] = useState('');
 
@@ -42,19 +44,12 @@ export function MercadoPagoCheckoutPanel({
     setSdkListo(true);
   }, []);
 
-  const handleSubmit = async (param: {
-    formData: {
-      token?: string;
-      payment_method_id?: string;
-      installments?: number;
-      issuer_id?: string;
-    };
-  }) => {
-    if (disabled || procesando || montoSoles <= 0) return;
+  useEffect(() => {
+    setBrickListo(false);
+  }, [pedidoId, montoSoles]);
 
-    setProcesando(true);
-    try {
-      const { formData } = param;
+  const procesarCargo = useCallback(
+    async (formData: MercadoPagoCardFormData) => {
       const token = formData.token?.trim();
       const paymentMethodId = formData.payment_method_id?.trim();
 
@@ -94,8 +89,25 @@ export function MercadoPagoCheckoutPanel({
 
       redirigirTrasPagoExitoso(json.data?.redirect_url);
       onSuccess?.();
+    },
+    [pedidoId, email, montoSoles, datosPagador, onError, onSuccess],
+  );
+
+  const handleSubmit = async () => {
+    if (disabled || procesando || montoSoles <= 0) return;
+
+    const controller = window.cardPaymentBrickController;
+    if (!controller?.getFormData) {
+      onError?.('El formulario de tarjeta aún no está listo');
+      return;
+    }
+
+    setProcesando(true);
+    try {
+      const formData = await controller.getFormData();
+      await procesarCargo(formData);
     } catch {
-      onError?.('Error de conexión al procesar el pago');
+      onError?.('Revisa los datos de la tarjeta e intenta de nuevo');
     } finally {
       setProcesando(false);
     }
@@ -107,20 +119,20 @@ export function MercadoPagoCheckoutPanel({
     );
   }
 
+  if (montoSoles <= 0) {
+    return (
+      <p className="text-sm text-slate-500 py-4 text-center">
+        Ingresa un monto válido en el resumen de pago para cargar Mercado Pago.
+      </p>
+    );
+  }
+
   if (!sdkListo) {
     return (
       <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
         <Loader2 className="w-4 h-4 animate-spin" />
         Cargando Mercado Pago...
       </div>
-    );
-  }
-
-  if (montoSoles <= 0) {
-    return (
-      <p className="text-sm text-slate-500 py-4 text-center">
-        Ingresa un monto válido en el resumen de pago para cargar Mercado Pago.
-      </p>
     );
   }
 
@@ -142,39 +154,54 @@ export function MercadoPagoCheckoutPanel({
         </p>
       </div>
 
-      {procesando && (
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          Registrando pago...
-        </div>
-      )}
-
-      <div
-        key={`mp-${pedidoId}-${montoSoles}`}
-        className={cn(
-          (procesando || disabled) && 'pointer-events-none opacity-60',
-        )}
-      >
-        <Payment
+      <div key={`mp-${pedidoId}-${montoSoles}`}>
+        <CardPayment
           initialization={{
             amount: montoSoles,
             payer: { email },
           }}
           customization={{
             visual: {
+              hidePaymentButton: true,
               style: {
                 theme: 'default',
               },
             },
             paymentMethods: {
-              creditCard: 'all',
-              debitCard: 'all',
               maxInstallments: 1,
             },
           }}
-          onSubmit={handleSubmit}
+          onSubmit={async (formData) => {
+            if (disabled || procesando) return;
+            setProcesando(true);
+            try {
+              await procesarCargo(formData);
+            } finally {
+              setProcesando(false);
+            }
+          }}
+          onReady={() => setBrickListo(true)}
+          onError={(brickError) => {
+            const msg =
+              typeof brickError === 'object' &&
+              brickError !== null &&
+              'message' in brickError &&
+              typeof brickError.message === 'string'
+                ? brickError.message
+                : 'Error al cargar el formulario de Mercado Pago';
+            onError?.(msg);
+          }}
         />
       </div>
+
+      <BotonPagoAccion
+        onPagar={handleSubmit}
+        procesando={procesando}
+        deshabilitado={disabled || !brickListo}
+        montoSoles={montoSoles}
+        pasarela="Mercado Pago"
+        tema="mercadopago"
+      />
     </div>
   );
 }
