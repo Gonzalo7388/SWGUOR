@@ -61,6 +61,7 @@ function StripePaymentForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          metodo_pago: 'stripe',
           pedido_id: pedidoId,
           email,
           payment_intent_id: intentId,
@@ -136,6 +137,7 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        metodo_pago: 'stripe',
         pedido_id: pedidoId,
         email,
         monto_a_pagar: montoSoles,

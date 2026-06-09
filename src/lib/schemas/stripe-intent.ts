@@ -7,6 +7,7 @@ const montoField = z
 
 export const stripeIntentRequestSchema = z
   .object({
+    metodo_pago: z.literal('stripe').optional().default('stripe'),
     pedido_id: z.union([z.number(), z.string()]).transform((v) => Number(v)),
     email: z.string().trim().email('Correo del cliente inválido'),
     monto_a_pagar: montoField,
@@ -18,6 +19,7 @@ export const stripeIntentRequestSchema = z
     path: ['pedido_id'],
   })
   .transform((data) => ({
+    metodo_pago: 'stripe' as const,
     pedido_id: data.pedido_id,
     email: data.email,
     monto_a_pagar: data.monto_a_pagar ?? data.monto,

@@ -8,6 +8,7 @@ const montoSolesField = z
 
 export const culqiCheckoutRequestSchema = z
   .object({
+    metodo_pago: z.literal('culqi').optional().default('culqi'),
     pedido_id: z.union([z.number(), z.string()]).transform((v) => Number(v)),
     email: z.string().trim().email('Correo del cliente inválido'),
     /** Token de tarjeta/Yape generado por Culqi Checkout */
@@ -38,6 +39,7 @@ export const culqiCheckoutRequestSchema = z
     path: ['pedido_id'],
   })
   .transform((data) => ({
+    metodo_pago: 'culqi' as const,
     pedido_id: data.pedido_id,
     email: data.email,
     token: data.token,

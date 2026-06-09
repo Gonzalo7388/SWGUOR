@@ -1,6 +1,10 @@
 import type { CulqiChargeSuccessBody } from '@/lib/helpers/culqi-response.helper';
 import type { MetodoPago } from '@prisma/client';
-import { createPaymentGateway } from '@/lib/services/payments/payment-gateway.factory';
+import {
+  assertMetodoPagoEsperado,
+  ejecutarCargoCheckout,
+  ejecutarIntencionCheckout,
+} from '@/lib/services/payments/payment-checkout.orchestrator';
 import type { MontoCobroValidado } from '@/lib/services/payments/payment-gateway.types';
 import {
   CulqiPedidoPagoError,
@@ -46,18 +50,22 @@ export type EjecutarCargoCulqiPedidoResult =
 export async function ejecutarCargoCulqiPedido(
   input: EjecutarCargoCulqiPedidoInput,
 ): Promise<EjecutarCargoCulqiPedidoResult> {
-  const gateway = createPaymentGateway('culqi');
+  const gateway = 'culqi' as const;
   const paymentSource = input.sourceId ?? input.token;
 
   const metadata = {
     pedido_id: input.pedidoId,
     email: input.email,
     description: input.description,
+    metodo_pago: gateway,
   };
 
-  await gateway.crearIntencionPago(input.montoSoles ?? 0, 'PEN', metadata);
+  assertMetodoPagoEsperado(gateway, 'culqi');
 
-  const cargo = await gateway.procesarCargo(
+  await ejecutarIntencionCheckout('culqi', input.montoSoles ?? 0, 'PEN', metadata);
+
+  const cargo = await ejecutarCargoCheckout(
+    'culqi',
     paymentSource ?? '',
     input.montoSoles ?? 0,
     'PEN',

@@ -46,6 +46,7 @@ const CheckoutImplement = ({
         orderId={String(pedidoId)}
         title={`Pedido #${pedidoId}`}
         chargePayload={{
+          metodo_pago: 'culqi',
           pedido_id: pedidoId,
           monto_a_pagar: montoSoles,
           ...toDatosPagadorCheckoutPayload(datosPagador),

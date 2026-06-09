@@ -5,14 +5,18 @@ export interface MercadoPagoCardFormData {
   issuer_id?: string;
 }
 
-export interface MercadoPagoCardPaymentBrickController {
-  getFormData: () => Promise<MercadoPagoCardFormData>;
+export interface MercadoPagoBrickController {
+  getFormData: () => Promise<
+    MercadoPagoCardFormData | { formData: MercadoPagoCardFormData }
+  >;
   unmount?: () => void;
 }
 
 declare global {
   interface Window {
-    cardPaymentBrickController?: MercadoPagoCardPaymentBrickController;
+    MercadoPago?: new (publicKey: string, options?: { locale?: string }) => unknown;
+    paymentBrickController?: MercadoPagoBrickController;
+    cardPaymentBrickController?: MercadoPagoBrickController;
   }
 }
 

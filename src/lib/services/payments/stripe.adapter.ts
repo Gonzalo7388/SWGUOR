@@ -9,6 +9,10 @@ import {
   toStripeAmount,
   toStripeCurrencyCode,
 } from '@/lib/helpers/stripe-amount.helper';
+import {
+  convertPenToUsd,
+  getUsdToPenExchangeRate,
+} from '@/lib/services/exchange-rate.service';
 import type { IPaymentGateway } from '@/lib/services/payments/ipayment-gateway';
 import { PaymentGatewayError } from '@/lib/services/payments/payment-gateway.error';
 import { obtenerMontoCobroPedidoDesdeBd } from '@/lib/services/payments/payment-order-amount.service';
@@ -46,9 +50,6 @@ function resolverEmail(metadata: PagoMetadata): string {
   return email;
 }
 
-function mapStripeCurrencyToMoneda(currency: string): MonedaPago {
-  return currency.toUpperCase() === 'USD' ? 'USD' : 'PEN';
-}
 
 async function inferirMetodoPagoDesdeStripeIntent(
   stripe: Stripe,
@@ -87,10 +88,22 @@ export class StripeAdapter implements IPaymentGateway {
       monto > 0 ? monto : undefined,
     );
 
-    const currency = toStripeCurrencyCode(
-      moneda || montoValidado.currencyCode || STRIPE_DEFAULT_CURRENCY,
-    );
-    const amountStripe = toStripeAmount(montoValidado.amountSoles, currency);
+    const sourceCurrency = (
+      moneda ||
+      montoValidado.currencyCode ||
+      STRIPE_DEFAULT_CURRENCY
+    ).toUpperCase();
+
+    const stripeCurrency = 'usd';
+    let stripeAmountMajor = montoValidado.amountSoles;
+    let exchangeRateUsed: number | undefined;
+
+    if (sourceCurrency === 'PEN') {
+      exchangeRateUsed = await getUsdToPenExchangeRate();
+      stripeAmountMajor = await convertPenToUsd(montoValidado.amountSoles);
+    }
+
+    const amountStripe = toStripeAmount(stripeAmountMajor, stripeCurrency);
 
     const stripe = getStripeClient();
 
@@ -98,11 +111,16 @@ export class StripeAdapter implements IPaymentGateway {
     try {
       paymentIntent = await stripe.paymentIntents.create({
         amount: amountStripe,
-        currency,
+        currency: stripeCurrency,
         receipt_email: email,
         automatic_payment_methods: { enabled: true },
         metadata: {
           pedido_id: String(pedidoId),
+          monto_pen_soles: String(montoValidado.amountSoles),
+          monto_usd: String(stripeAmountMajor),
+          ...(exchangeRateUsed
+            ? { exchange_rate_usd_pen: String(exchangeRateUsed) }
+            : {}),
           ...(metadata.description ? { description: metadata.description } : {}),
         },
         description:
@@ -133,7 +151,7 @@ export class StripeAdapter implements IPaymentGateway {
       gateway: this.gatewayId,
       intentId: paymentIntent.id,
       monto: montoValidado.amountSoles,
-      moneda: mapStripeCurrencyToMoneda(currency),
+      moneda: 'PEN',
       amountCents: montoValidado.amountCents,
       metadata: {
         ...metadata,
@@ -145,7 +163,9 @@ export class StripeAdapter implements IPaymentGateway {
         payment_intent_id: paymentIntent.id,
         publishable_key: getStripePublishableKey(),
         amount_stripe: amountStripe,
-        currency,
+        currency: stripeCurrency,
+        monto_usd: stripeAmountMajor,
+        exchange_rate: exchangeRateUsed,
       },
     };
   }
@@ -233,16 +253,53 @@ export class StripeAdapter implements IPaymentGateway {
     }
 
     const currency = intent.currency ?? toStripeCurrencyCode(moneda);
-    const amountSoles = fromStripeAmount(intent.amount_received ?? intent.amount, currency);
+    const chargedMinor = intent.amount_received ?? intent.amount;
+    const metaMontoPen = Number(intent.metadata?.monto_pen_soles);
+    const metaMontoUsd = Number(intent.metadata?.monto_usd);
 
-    if (Math.abs(amountSoles - montoValidado.amountSoles) > 0.01) {
-      return {
-        success: false,
-        gateway: this.gatewayId,
-        httpStatus: 400,
-        message: 'El monto cobrado no coincide con el monto validado',
-        code: 'STRIPE_MONTO_INCONSISTENTE',
-      };
+    let amountSoles = montoValidado.amountSoles;
+
+    if (currency.toLowerCase() === 'usd') {
+      const chargedUsd = fromStripeAmount(chargedMinor, currency);
+      const expectedUsd = Number.isFinite(metaMontoUsd)
+        ? metaMontoUsd
+        : await convertPenToUsd(montoValidado.amountSoles);
+
+      if (Math.abs(chargedUsd - expectedUsd) > 0.01) {
+        return {
+          success: false,
+          gateway: this.gatewayId,
+          httpStatus: 400,
+          message: 'El monto cobrado en USD no coincide con el monto validado',
+          code: 'STRIPE_MONTO_INCONSISTENTE',
+        };
+      }
+
+      amountSoles = Number.isFinite(metaMontoPen)
+        ? metaMontoPen
+        : montoValidado.amountSoles;
+
+      if (Math.abs(amountSoles - montoValidado.amountSoles) > 0.01) {
+        return {
+          success: false,
+          gateway: this.gatewayId,
+          httpStatus: 400,
+          message: 'El monto en soles no coincide con el monto validado',
+          code: 'STRIPE_MONTO_INCONSISTENTE',
+        };
+      }
+    } else {
+      amountSoles = fromStripeAmount(chargedMinor, currency);
+
+      if (Math.abs(amountSoles - montoValidado.amountSoles) > 0.01) {
+        return {
+          success: false,
+          gateway: this.gatewayId,
+          httpStatus: 400,
+          message: 'El monto cobrado no coincide con el monto validado',
+          code: 'STRIPE_MONTO_INCONSISTENTE',
+        };
+      }
     }
 
     return {
@@ -252,7 +309,7 @@ export class StripeAdapter implements IPaymentGateway {
       monto: {
         ...montoValidado,
         amountSoles,
-        currencyCode: mapStripeCurrencyToMoneda(currency),
+        currencyCode: 'PEN',
       },
       metodoPago: await inferirMetodoPagoDesdeStripeIntent(stripe, intent),
       estadoPago: EstadoPago.pagado,
