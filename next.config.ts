@@ -57,6 +57,7 @@ const nextConfig: NextConfig = {
                 'https://js.stripe.com',
                 'https://hooks.stripe.com',
                 'https://sdk.mercadopago.com',
+                'https://http2.mlstatic.com',
               ].join(' '),
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
