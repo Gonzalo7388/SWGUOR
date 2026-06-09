@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const intencion = await gateway.crearIntencionPago(
       monto_a_pagar ?? 0,
-      'PEN',
+      'USD',
       metadata,
     );
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         payment_intent_id: String(paymentIntentId),
         amount: intencion.monto,
         amount_stripe: Number(intencion.clientData?.amount_stripe ?? intencion.amountCents),
-        currency: String(intencion.clientData?.currency ?? 'pen'),
+        currency: String(intencion.clientData?.currency ?? 'usd'),
         publishable_key: getStripePublishableKey(),
         pedido_id,
       },

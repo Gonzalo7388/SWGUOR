@@ -204,7 +204,7 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
       </p>
     );
   }
-
+  console.log("Stripe Params -> Monto:", montoSoles, "ClientSecret:", intentData.client_secret);
   return (
     <div className="space-y-4">
       {disabled && (
