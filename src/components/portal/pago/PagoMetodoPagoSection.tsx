@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { CreditCard, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -8,8 +9,23 @@ import {
 } from '@/lib/constants/pago-gateway';
 import { CulqiCheckoutPanel } from '@/components/portal/pago/CulqiCheckoutPanel';
 import { StripeCheckoutPanel } from '@/components/portal/pago/StripeCheckoutPanel';
-import { MercadoPagoCheckoutPanel } from '@/components/portal/pago/MercadoPagoCheckoutPanel';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
+
+const MercadoPagoCheckoutPanel = dynamic(
+  () =>
+    import('@/components/portal/pago/MercadoPagoCheckoutPanel').then(
+      (mod) => mod.MercadoPagoCheckoutPanel,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Cargando Mercado Pago...
+      </div>
+    ),
+  },
+);
 
 interface Props extends CheckoutGatewayPanelProps {
   gateway: PagoGatewayId;

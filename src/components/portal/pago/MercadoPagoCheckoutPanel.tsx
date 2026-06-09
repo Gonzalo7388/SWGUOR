@@ -1,24 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react';
 import { Loader2 } from 'lucide-react';
 import { getMercadoPagoPublicKeyEnv } from '@/lib/constants/mercadopago';
 import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
 import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { redirigirTrasPagoExitoso } from '@/lib/helpers/checkout-redirect.helper';
-import {
-  isMercadoPagoSdkReady,
-  loadMercadoPagoSdkScript,
-} from '@/lib/helpers/mercadopago-sdk-loader.helper';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
 import { BotonPagoAccion } from '@/components/portal/pago/BotonPagoAccion';
 import type { MercadoPagoCardFormData } from '@/types/mercadopago-brick';
 import { cn } from '@/lib/utils';
 
 const MP_PUBLIC_KEY = getMercadoPagoPublicKeyEnv();
-const MP_PAYMENT_CONTAINER_ID = 'mp-payment-brick-container';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+let mercadoPagoSdkInicializado = false;
 
 function normalizarFormDataTarjeta(
   payload: MercadoPagoCardFormData | { formData: MercadoPagoCardFormData },
@@ -48,14 +45,17 @@ export function MercadoPagoCheckoutPanel({
   onSuccess,
   onError,
 }: CheckoutGatewayPanelProps) {
+  const emailInicial = email?.trim() ?? '';
   const [isMounted, setIsMounted] = useState(false);
-  const [localEmail, setLocalEmail] = useState(email || '');
-  const [emailConfirmado, setEmailConfirmado] = useState(!!email);
+  const [localEmail, setLocalEmail] = useState(emailInicial);
+  const [emailConfirmado, setEmailConfirmado] = useState(Boolean(emailInicial));
   const [emailError, setEmailError] = useState('');
   const [sdkListo, setSdkListo] = useState(false);
   const [brickListo, setBrickListo] = useState(false);
+  const [brickError, setBrickError] = useState('');
   const [procesando, setProcesando] = useState(false);
   const [errorConfig, setErrorConfig] = useState('');
+  const brickActivoRef = useRef(false);
 
   const montoNumerico = useMemo(
     () => Math.round(Number(montoSoles) * 100) / 100,
@@ -64,12 +64,48 @@ export function MercadoPagoCheckoutPanel({
 
   const emailPago = localEmail.trim();
 
+  const brickContainerId = useMemo(
+    () => `mp-card-payment-${pedidoId}-${montoNumerico}`,
+    [pedidoId, montoNumerico],
+  );
+
+  const brickMountKey = useMemo(
+    () => `mp-payment-${pedidoId}-${montoNumerico}-${emailPago}`,
+    [pedidoId, montoNumerico, emailPago],
+  );
+
+  const brickInitialization = useMemo(
+    () => ({
+      amount: montoNumerico,
+      payer: { email: emailPago },
+    }),
+    [montoNumerico, emailPago],
+  );
+
+  const brickCustomization = useMemo(
+    () => ({
+      visual: {
+        hidePaymentButton: true,
+        style: {
+          theme: 'default' as const,
+        },
+      },
+      paymentMethods: {
+        maxInstallments: 1,
+      },
+    }),
+    [],
+  );
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isMounted || !emailConfirmado) return;
+    if (!isMounted || !emailConfirmado) {
+      setSdkListo(false);
+      return;
+    }
 
     if (!MP_PUBLIC_KEY) {
       setErrorConfig('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY no está configurada');
@@ -77,49 +113,44 @@ export function MercadoPagoCheckoutPanel({
       return;
     }
 
-    let cancelado = false;
-    setSdkListo(false);
-    setBrickListo(false);
+    if (!mercadoPagoSdkInicializado) {
+      initMercadoPago(MP_PUBLIC_KEY, { locale: 'es-PE' });
+      mercadoPagoSdkInicializado = true;
+    }
 
-    const prepararSdk = async () => {
-      try {
-        await loadMercadoPagoSdkScript();
-
-        if (cancelado) return;
-
-        if (!isMercadoPagoSdkReady()) {
-          throw new Error('Mercado Pago SDK no disponible en window.MercadoPago');
-        }
-
-        initMercadoPago(MP_PUBLIC_KEY, { locale: 'es-PE' });
-
-        if (cancelado) return;
-
-        setSdkListo(true);
-        setErrorConfig('');
-      } catch (error) {
-        if (cancelado) return;
-
-        setSdkListo(false);
-        setErrorConfig(
-          error instanceof Error
-            ? error.message
-            : 'No se pudo inicializar Mercado Pago',
-        );
-      }
-    };
-
-    void prepararSdk();
-
-    return () => {
-      cancelado = true;
-      window.paymentBrickController?.unmount?.();
-    };
-  }, [isMounted, emailConfirmado, emailPago]);
+    setErrorConfig('');
+    setSdkListo(true);
+  }, [isMounted, emailConfirmado]);
 
   useEffect(() => {
     setBrickListo(false);
-  }, [pedidoId, montoNumerico, emailPago]);
+    setBrickError('');
+    brickActivoRef.current = false;
+  }, [brickMountKey]);
+
+  const handleBrickReady = useCallback(() => {
+    brickActivoRef.current = true;
+    setBrickListo(true);
+    setBrickError('');
+  }, []);
+
+  const handleBrickError = useCallback(
+    (brickErrorPayload: { message?: string }) => {
+      brickActivoRef.current = false;
+      setBrickListo(false);
+      const msg =
+        typeof brickErrorPayload?.message === 'string'
+          ? brickErrorPayload.message
+          : 'Error al cargar el formulario de Mercado Pago';
+      setBrickError(msg);
+      onError?.(msg);
+    },
+    [onError],
+  );
+
+  const handleBrickSubmit = useCallback(async () => {
+    // Con hidePaymentButton el cobro se dispara desde BotonPagoAccion.
+  }, []);
 
   const handleConfirmarEmail = () => {
     const valor = localEmail.trim();
@@ -178,9 +209,9 @@ export function MercadoPagoCheckoutPanel({
   );
 
   const handleSubmit = async () => {
-    if (disabled || procesando || montoNumerico <= 0) return;
+    if (disabled || procesando || montoNumerico <= 0 || !brickListo) return;
 
-    const controller = window.paymentBrickController;
+    const controller = window.cardPaymentBrickController;
     if (!controller?.getFormData) {
       onError?.('El formulario de tarjeta aún no está listo');
       return;
@@ -261,9 +292,7 @@ export function MercadoPagoCheckoutPanel({
               emailError ? 'border-red-300 bg-red-50/40' : 'border-slate-200 bg-white',
             )}
           />
-          {emailError && (
-            <p className="text-xs text-red-600">{emailError}</p>
-          )}
+          {emailError && <p className="text-xs text-red-600">{emailError}</p>}
           <button
             type="button"
             onClick={handleConfirmarEmail}
@@ -278,43 +307,21 @@ export function MercadoPagoCheckoutPanel({
           Cargando Mercado Pago...
         </div>
       ) : (
-        <div
-          id={MP_PAYMENT_CONTAINER_ID}
-          key={`mp-payment-${montoNumerico}-${emailPago}`}
-        >
-          <Payment
-            initialization={{
-              amount: montoNumerico,
-              payer: { email: emailPago },
-            }}
-            customization={{
-              visual: {
-                hidePaymentButton: true,
-                style: {
-                  theme: 'default',
-                },
-              },
-              paymentMethods: {
-                creditCard: 'all',
-                debitCard: 'all',
-                maxInstallments: 1,
-              },
-            }}
-            onSubmit={async () => {
-              // Con hidePaymentButton el cobro se dispara desde BotonPagoAccion.
-            }}
-            onReady={() => setBrickListo(true)}
-            onError={(brickError) => {
-              const msg =
-                typeof brickError === 'object' &&
-                brickError !== null &&
-                'message' in brickError &&
-                typeof brickError.message === 'string'
-                  ? brickError.message
-                  : 'Error al cargar el formulario de Mercado Pago';
-              onError?.(msg);
-            }}
+        <div key={brickMountKey}>
+          <CardPayment
+            id={brickContainerId}
+            initialization={brickInitialization}
+            customization={brickCustomization}
+            locale="es-PE"
+            onReady={handleBrickReady}
+            onError={handleBrickError}
+            onSubmit={handleBrickSubmit}
           />
+          {brickError && (
+            <p className="mt-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {brickError}
+            </p>
+          )}
         </div>
       )}
 
@@ -322,7 +329,7 @@ export function MercadoPagoCheckoutPanel({
         <BotonPagoAccion
           onPagar={handleSubmit}
           procesando={procesando}
-          deshabilitado={disabled || !brickListo}
+          deshabilitado={disabled || !brickListo || Boolean(brickError)}
           montoSoles={montoNumerico}
           pasarela="Mercado Pago"
           tema="mercadopago"
