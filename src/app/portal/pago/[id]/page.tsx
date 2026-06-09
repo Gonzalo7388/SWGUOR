@@ -37,6 +37,9 @@ interface PedidoPagoData {
   saldo_pendiente: number;
   total_unidades?: number;
   moneda?: string;
+  direccion_despacho?: string | null;
+  estado?: string;
+  puede_editar_direccion?: boolean;
 }
 
 export default function PagoPage() {
@@ -124,14 +127,14 @@ export default function PagoPage() {
 
   const montoNumerico = Number(montoAPagar);
   const validacionMonto = validarMontoPagoParcial(montoNumerico, resumen.saldoPendiente);
-  const montoFinal = validacionMonto.valido
+  const montoSolesCheckout = validacionMonto.valido
     ? Math.max(montoNumerico - descuento, 0)
     : 0;
   const emailPago = cliente?.email?.trim() || 'cliente@guor.com';
   const validacionPagador = validarDatosPagadorPago(datosPagador);
   const pagoHabilitado =
     validacionMonto.valido &&
-    montoFinal > 0 &&
+    montoSolesCheckout > 0 &&
     !loadingPedido &&
     validacionPagador.valido;
 
@@ -189,6 +192,10 @@ export default function PagoPage() {
       ? Math.min(100, Math.round((resumen.montoPagado / resumen.total) * 100))
       : 0;
 
+  const direccionRegistrada = Boolean(pedido?.direccion_despacho?.trim());
+  const direccionSoloLectura =
+    direccionRegistrada || pedido?.puede_editar_direccion === false;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#faf8f5] to-[#f0ebe3] px-4 py-8 md:px-8">
       {toast.show && (
@@ -220,6 +227,8 @@ export default function PagoPage() {
             value={datosEntrega}
             onChange={setDatosEntrega}
             disabled={loadingPedido}
+            readOnly={direccionSoloLectura}
+            readOnlyText={pedido?.direccion_despacho}
           />
 
           <PagoDatosPagadorForm
@@ -266,7 +275,7 @@ export default function PagoPage() {
             onGatewayChange={setGateway}
             pedidoId={pedidoId}
             email={emailPago}
-            montoSoles={montoFinal}
+            montoSoles={montoSolesCheckout}
             saldoPendiente={resumen.saldoPendiente}
             datosPagador={datosPagador}
             disabled={!pagoHabilitado}
@@ -375,7 +384,7 @@ export default function PagoPage() {
 
               <div className="flex justify-between font-black text-xl text-[#231e1d]">
                 <span>Cargo de hoy</span>
-                <span className="text-[#b5854b]">{formatearSoles(montoFinal)}</span>
+                <span className="text-[#b5854b]">{formatearSoles(montoSolesCheckout)}</span>
               </div>
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">

@@ -133,8 +133,9 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (disabled || montoSoles <= 0) {
+    if (montoSoles <= 0) {
       setIntentData(null);
+      setError('');
       return;
     }
 
@@ -174,7 +175,7 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
     return () => {
       mounted = false;
     };
-  }, [pedidoId, email, montoSoles, disabled]);
+  }, [pedidoId, email, montoSoles]);
 
   const stripePromise = useMemo(
     () =>
@@ -202,13 +203,20 @@ export function StripeCheckoutPanel(props: CheckoutGatewayPanelProps) {
   if (!intentData?.client_secret || !stripePromise) {
     return (
       <p className="text-sm text-slate-500 py-4 text-center">
-        Ingresa un monto válido para cargar el formulario de Stripe.
+        {montoSoles <= 0
+          ? 'Ingresa un monto válido en el resumen de pago para cargar Stripe.'
+          : 'No se pudo preparar el formulario de Stripe.'}
       </p>
     );
   }
 
   return (
     <div className="space-y-4">
+      {disabled && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          Complete los datos del pagador para habilitar el cobro con Stripe.
+        </p>
+      )}
       <div className="rounded-xl border border-[#635bff]/20 bg-[#f8f7ff] px-3.5 py-2.5">
         <p className="text-[10px] font-bold uppercase tracking-wider text-[#635bff]/70">
           Resumen Stripe

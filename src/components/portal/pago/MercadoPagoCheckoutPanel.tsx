@@ -7,6 +7,7 @@ import { formatearSoles } from '@/lib/helpers/pago-parcial.helper';
 import { toDatosPagadorCheckoutPayload } from '@/lib/helpers/datos-pagador-pago.helper';
 import { redirigirTrasPagoExitoso } from '@/lib/helpers/checkout-redirect.helper';
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
+import { cn } from '@/lib/utils';
 
 const MP_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() ?? '';
 
@@ -115,16 +116,21 @@ export function MercadoPagoCheckoutPanel({
     );
   }
 
-  if (disabled || montoSoles <= 0) {
+  if (montoSoles <= 0) {
     return (
       <p className="text-sm text-slate-500 py-4 text-center">
-        Ingresa un monto válido para cargar Mercado Pago.
+        Ingresa un monto válido en el resumen de pago para cargar Mercado Pago.
       </p>
     );
   }
 
   return (
     <div className="space-y-4">
+      {disabled && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          Complete los datos del pagador para habilitar el cobro con Mercado Pago.
+        </p>
+      )}
       <div className="rounded-xl border border-[#009ee3]/25 bg-[#f0f9ff] px-3.5 py-2.5">
         <p className="text-[10px] font-bold uppercase tracking-wider text-[#009ee3]/80">
           Resumen Mercado Pago
@@ -145,7 +151,9 @@ export function MercadoPagoCheckoutPanel({
 
       <div
         key={`mp-${pedidoId}-${montoSoles}`}
-        className={procesando ? 'pointer-events-none opacity-60' : ''}
+        className={cn(
+          (procesando || disabled) && 'pointer-events-none opacity-60',
+        )}
       >
         <Payment
           initialization={{

@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, Lock, MapPin } from 'lucide-react';
+import { formatearVistaDireccionDespacho } from '@/lib/helpers/direccion-despacho-peru.helper';
 import { cn } from '@/lib/utils';
 import {
   TIPOS_REFERENCIA_ENTREGA,
@@ -22,6 +23,8 @@ interface Props {
   value: DatosEntregaPago;
   onChange: (value: DatosEntregaPago) => void;
   disabled?: boolean;
+  readOnly?: boolean;
+  readOnlyText?: string | null;
   className?: string;
 }
 
@@ -117,7 +120,14 @@ function CampoTexto({
   );
 }
 
-export function PagoDireccionEntregaForm({ value, onChange, disabled, className }: Props) {
+export function PagoDireccionEntregaForm({
+  value,
+  onChange,
+  disabled,
+  readOnly,
+  readOnlyText,
+  className,
+}: Props) {
   const esPeru = value.paisCode === 'PE';
   const etiquetas = obtenerEtiquetasUbicacionPais(value.paisCode);
 
@@ -166,6 +176,11 @@ export function PagoDireccionEntregaForm({ value, onChange, disabled, className 
     name: t.label,
   }));
 
+  const soloLectura = Boolean(readOnly);
+  const textoRegistrado = readOnlyText?.trim()
+    ? formatearVistaDireccionDespacho(readOnlyText)
+    : '';
+
   return (
     <div
       className={cn(
@@ -177,14 +192,34 @@ export function PagoDireccionEntregaForm({ value, onChange, disabled, className 
         <div className="p-2.5 rounded-xl bg-[#231e1d] text-[#e4c28a]">
           <MapPin size={18} />
         </div>
-        <div>
-          <h2 className="font-black text-lg text-[#231e1d]">Dirección de entrega</h2>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-black text-lg text-[#231e1d]">Dirección de entrega</h2>
+            {soloLectura && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <Lock className="w-3 h-3" />
+                Solo lectura
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Seleccione país, ubicación y datos de la vía desde los catálogos disponibles.
+            {soloLectura
+              ? 'La dirección ya fue registrada en el pedido y no puede modificarse aquí.'
+              : 'Seleccione país, ubicación y datos de la vía desde los catálogos disponibles.'}
           </p>
         </div>
       </div>
 
+      {soloLectura ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">
+            Dirección registrada
+          </p>
+          <p className="text-sm font-medium text-slate-800 leading-relaxed">
+            {textoRegistrado || 'Sin dirección registrada en el pedido.'}
+          </p>
+        </div>
+      ) : (
       <div className="space-y-4">
         <CampoSelect
           label="País"
@@ -325,6 +360,7 @@ export function PagoDireccionEntregaForm({ value, onChange, disabled, className 
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
