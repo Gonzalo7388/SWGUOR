@@ -14,9 +14,11 @@ import {
 import type { CheckoutGatewayPanelProps } from '@/components/portal/pago/checkout-gateway.types';
 import { BotonPagoAccion } from '@/components/portal/pago/BotonPagoAccion';
 import type { MercadoPagoCardFormData } from '@/types/mercadopago-brick';
+import { cn } from '@/lib/utils';
 
 const MP_PUBLIC_KEY = getMercadoPagoPublicKeyEnv();
 const MP_PAYMENT_CONTAINER_ID = 'mp-payment-brick-container';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizarFormDataTarjeta(
   payload: MercadoPagoCardFormData | { formData: MercadoPagoCardFormData },
@@ -32,6 +34,10 @@ function normalizarFormDataTarjeta(
   return payload as MercadoPagoCardFormData;
 }
 
+function esEmailValido(valor: string): boolean {
+  return EMAIL_REGEX.test(valor.trim());
+}
+
 export function MercadoPagoCheckoutPanel({
   pedidoId,
   email,
@@ -43,6 +49,9 @@ export function MercadoPagoCheckoutPanel({
   onError,
 }: CheckoutGatewayPanelProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [localEmail, setLocalEmail] = useState(email || '');
+  const [emailConfirmado, setEmailConfirmado] = useState(!!email);
+  const [emailError, setEmailError] = useState('');
   const [sdkListo, setSdkListo] = useState(false);
   const [brickListo, setBrickListo] = useState(false);
   const [procesando, setProcesando] = useState(false);
@@ -53,12 +62,14 @@ export function MercadoPagoCheckoutPanel({
     [montoSoles],
   );
 
+  const emailPago = localEmail.trim();
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !emailConfirmado) return;
 
     if (!MP_PUBLIC_KEY) {
       setErrorConfig('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY no está configurada');
@@ -67,6 +78,8 @@ export function MercadoPagoCheckoutPanel({
     }
 
     let cancelado = false;
+    setSdkListo(false);
+    setBrickListo(false);
 
     const prepararSdk = async () => {
       try {
@@ -102,11 +115,24 @@ export function MercadoPagoCheckoutPanel({
       cancelado = true;
       window.paymentBrickController?.unmount?.();
     };
-  }, [isMounted]);
+  }, [isMounted, emailConfirmado, emailPago]);
 
   useEffect(() => {
     setBrickListo(false);
-  }, [pedidoId, montoNumerico]);
+  }, [pedidoId, montoNumerico, emailPago]);
+
+  const handleConfirmarEmail = () => {
+    const valor = localEmail.trim();
+
+    if (!esEmailValido(valor)) {
+      setEmailError('Ingresa un correo electrónico válido');
+      return;
+    }
+
+    setEmailError('');
+    setLocalEmail(valor);
+    setEmailConfirmado(true);
+  };
 
   const procesarCargo = useCallback(
     async (formData: MercadoPagoCardFormData) => {
@@ -123,7 +149,7 @@ export function MercadoPagoCheckoutPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pedido_id: pedidoId,
-          email,
+          email: emailPago,
           token,
           payment_method_id: paymentMethodId,
           installments: formData.installments ?? 1,
@@ -148,7 +174,7 @@ export function MercadoPagoCheckoutPanel({
       redirigirTrasPagoExitoso(json.data?.redirect_url);
       onSuccess?.();
     },
-    [pedidoId, email, montoNumerico, datosPagador, onError, onSuccess],
+    [pedidoId, emailPago, montoNumerico, datosPagador, onError, onSuccess],
   );
 
   const handleSubmit = async () => {
@@ -196,7 +222,7 @@ export function MercadoPagoCheckoutPanel({
 
   return (
     <div className="space-y-4">
-      {disabled && (
+      {disabled && emailConfirmado && (
         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
           Complete los datos del pagador para habilitar el cobro con Mercado Pago.
         </p>
@@ -212,7 +238,41 @@ export function MercadoPagoCheckoutPanel({
         </p>
       </div>
 
-      {!sdkListo ? (
+      {!emailConfirmado ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+          <label
+            htmlFor="mp-checkout-email"
+            className="block text-sm font-semibold text-slate-700"
+          >
+            Correo Electrónico
+          </label>
+          <input
+            id="mp-checkout-email"
+            type="email"
+            value={localEmail}
+            onChange={(e) => {
+              setLocalEmail(e.target.value);
+              if (emailError) setEmailError('');
+            }}
+            placeholder="tu@correo.com"
+            className={cn(
+              'w-full h-11 px-4 rounded-xl border text-sm text-slate-800',
+              'focus:outline-none focus:ring-2 focus:ring-[#009ee3]/30 focus:border-[#009ee3]',
+              emailError ? 'border-red-300 bg-red-50/40' : 'border-slate-200 bg-white',
+            )}
+          />
+          {emailError && (
+            <p className="text-xs text-red-600">{emailError}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleConfirmarEmail}
+            className="w-full h-11 rounded-xl bg-[#009ee3] hover:bg-[#008ecf] text-white text-sm font-bold transition-colors"
+          >
+            Confirmar
+          </button>
+        </div>
+      ) : !sdkListo ? (
         <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
           <Loader2 className="w-4 h-4 animate-spin" />
           Cargando Mercado Pago...
@@ -220,12 +280,12 @@ export function MercadoPagoCheckoutPanel({
       ) : (
         <div
           id={MP_PAYMENT_CONTAINER_ID}
-          key={`mp-payment-${montoNumerico}`}
+          key={`mp-payment-${montoNumerico}-${emailPago}`}
         >
           <Payment
             initialization={{
               amount: montoNumerico,
-              payer: { email },
+              payer: { email: emailPago },
             }}
             customization={{
               visual: {
@@ -258,14 +318,16 @@ export function MercadoPagoCheckoutPanel({
         </div>
       )}
 
-      <BotonPagoAccion
-        onPagar={handleSubmit}
-        procesando={procesando}
-        deshabilitado={disabled || !brickListo}
-        montoSoles={montoNumerico}
-        pasarela="Mercado Pago"
-        tema="mercadopago"
-      />
+      {emailConfirmado && (
+        <BotonPagoAccion
+          onPagar={handleSubmit}
+          procesando={procesando}
+          deshabilitado={disabled || !brickListo}
+          montoSoles={montoNumerico}
+          pasarela="Mercado Pago"
+          tema="mercadopago"
+        />
+      )}
     </div>
   );
 }
