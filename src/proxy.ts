@@ -6,7 +6,7 @@ const routePermissions: Record<string, string[]> = {
   '/admin/Panel-Administrativo/usuarios': ['administrador', 'gerente'],
   '/admin/Panel-Administrativo/personal': ['administrador', 'gerente'],
   '/admin/Panel-Administrativo/clientes': ['administrador', 'recepcionista', 'gerente'],
-  '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'disenador', 'cortador', 'gerente', 'representante_taller', 'almacenero'],
+  '/admin/Panel-Administrativo/pedidos': ['administrador', 'recepcionista', 'disenador', 'cortador', 'gerente', 'representante_taller', 'almacenero', 'ayudante'],
   '/admin/Panel-Administrativo/productos': ['administrador', 'disenador', 'gerente', 'recepcionista', 'representante_taller', 'almacenero'],
   '/admin/Panel-Administrativo/fichas-tecnicas': ['administrador', 'gerente', 'disenador', 'cortador'],
   '/admin/Panel-Administrativo/inventario': ['administrador', 'disenador', 'gerente', 'cortador', 'ayudante', 'representante_taller', 'almacenero'],

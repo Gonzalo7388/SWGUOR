@@ -26,6 +26,7 @@ import {
   resolverTipoPagoCulqi,
   validarMontoPagoParcial,
 } from '@/lib/helpers/pago-parcial.helper';
+import { generarYAlmacenarPdfComprobante } from '@/lib/services/comprobante-documento.service';
 import {
   assertIdempotenciaPagoPedidoEnTx,
   PedidoNoEncontradoPagoError,
@@ -117,7 +118,7 @@ export async function ejecutarCierreVentaPostCulqi(
     );
   }
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await assertIdempotenciaPagoPedidoEnTx(tx, pedidoId);
 
     const pedido = await tx.pedidos.findUnique({
@@ -209,6 +210,14 @@ export async function ejecutarCierreVentaPostCulqi(
       comprobante,
     };
   });
+
+  try {
+    await generarYAlmacenarPdfComprobante(result.comprobante.id_uuid);
+  } catch (pdfErr) {
+    console.error('[cierre-venta] PDF comprobante no generado:', pdfErr);
+  }
+
+  return result;
 }
 
 export function isCierreVentaCulqiError(error: unknown): error is CierreVentaCulqiError {
