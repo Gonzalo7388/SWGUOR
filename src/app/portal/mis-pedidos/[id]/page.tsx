@@ -8,7 +8,13 @@ export default function PedidoDetallePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const pedidoId = String(params.id ?? '');
-  const tabInicial = searchParams.get('tab') === 'documentos' ? 'documentos' : 'resumen';
+  const tabParam = searchParams.get('tab');
+  const tabInicial =
+    tabParam === 'documentos'
+      ? 'documentos'
+      : tabParam === 'asistencia'
+        ? 'asistencia'
+        : 'resumen';
 
   const { pedido, loading, error } = usePortalPedidoDetalle(pedidoId);
 

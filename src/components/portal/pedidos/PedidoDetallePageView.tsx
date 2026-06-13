@@ -14,7 +14,7 @@ interface Props {
   error: string | null;
   backHref: string;
   backLabel: string;
-  defaultTab?: 'resumen' | 'documentos';
+  defaultTab?: 'resumen' | 'documentos' | 'asistencia';
   maxWidthClass?: string;
   showPagarButton?: boolean;
   onVerComprobante?: (pedidoId: number, comprobanteId: string) => void;

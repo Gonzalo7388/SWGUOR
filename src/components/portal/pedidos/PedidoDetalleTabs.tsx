@@ -2,12 +2,13 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PedidoDetalleDocumentosTab } from '@/components/portal/pedidos/PedidoDetalleDocumentosTab';
+import { ChatAsistenciaCliente } from '@/components/portal/pedidos/ChatAsistenciaCliente';
 import { cn } from '@/lib/utils';
 
 interface PedidoDetalleTabsProps {
   pedidoId: number | string;
   resumen: React.ReactNode;
-  defaultTab?: 'resumen' | 'documentos';
+  defaultTab?: 'resumen' | 'documentos' | 'asistencia';
   className?: string;
 }
 
@@ -32,6 +33,12 @@ export function PedidoDetalleTabs({
         >
           Documentos
         </TabsTrigger>
+        <TabsTrigger
+          value="asistencia"
+          className="rounded-lg px-5 py-2 text-xs font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-[#231e1d]"
+        >
+          Asistencia
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="resumen" className="mt-5 focus-visible:outline-none">
@@ -40,6 +47,10 @@ export function PedidoDetalleTabs({
 
       <TabsContent value="documentos" className="mt-5 focus-visible:outline-none">
         <PedidoDetalleDocumentosTab pedidoId={pedidoId} />
+      </TabsContent>
+
+      <TabsContent value="asistencia" className="mt-5 focus-visible:outline-none">
+        <ChatAsistenciaCliente pedidoId={pedidoId} />
       </TabsContent>
     </Tabs>
   );
