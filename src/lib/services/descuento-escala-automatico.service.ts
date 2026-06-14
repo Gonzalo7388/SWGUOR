@@ -41,7 +41,6 @@ type ReglaVigente = {
   id: bigint;
   cantidad_min: number;
   valor_descuento: Prisma.Decimal;
-  categoria_id?: bigint | null;
   oferta_reglas: Array<{
     ofertas: { activo: boolean; fecha_inicio: Date; fecha_fin: Date | null };
   }>;
@@ -113,7 +112,6 @@ function seleccionarReglaPorCantidad(
       reglaAplicaEnCompra(
         {
           id: regla.id,
-          categoria_id: regla.categoria_id ?? null,
           descuento_aplicaciones: regla.descuento_aplicaciones,
         },
         productoId,

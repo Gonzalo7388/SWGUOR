@@ -20,7 +20,6 @@ const INCLUDE_REGLAS = {
     include: {
       reglas_descuento: {
         include: {
-          categorias_productos: { select: { id: true, nombre: true } },
           descuento_aplicaciones: {
             where: { estado: { not: 'anulado' } },
           },

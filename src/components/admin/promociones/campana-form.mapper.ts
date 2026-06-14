@@ -40,10 +40,16 @@ function inferirAlcance(regla?: ReglaDescuentoRow): {
     };
   }
 
-  if (regla.categoria_id) {
+  const categoriaApp = apps.find(
+    (a) =>
+      a.aplicable_tipo === ENTIDAD_DESCUENTO.CATEGORIA &&
+      a.estado !== 'anulado',
+  );
+
+  if (categoriaApp) {
     return {
       alcance: 'categoria',
-      categoria_id: regla.categoria_id,
+      categoria_id: categoriaApp.aplicable_id,
       producto_id: null,
     };
   }

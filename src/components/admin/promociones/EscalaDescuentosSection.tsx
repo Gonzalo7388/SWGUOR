@@ -3,9 +3,18 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ALCANCE_CAMPANA_OPCIONES } from '@/lib/constants/promociones';
 import { type AlcanceCampanaValue } from '@/lib/constants/promociones';
 import type { EscalaCampanaForm } from '@/lib/schemas/promociones-ofertas';
+import { cn } from '@/lib/utils';
 
 interface CategoriaOpt {
   id: number | string;
@@ -30,6 +39,10 @@ interface Props {
   onProductoChange: (id: string | number | null) => void;
   onEscalasChange: (escalas: EscalaCampanaForm[]) => void;
 }
+
+const fieldLabelClass = 'text-xs font-semibold text-slate-600 uppercase tracking-wide';
+const fieldSelectClass =
+  'w-full h-11 bg-slate-50 border-slate-200 text-slate-900 [&_svg]:text-slate-500 focus:bg-white';
 
 export function EscalaDescuentosSection({
   alcance,
@@ -75,57 +88,70 @@ export function EscalaDescuentosSection({
         </p>
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Alcance</label>
-        <select
-          className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-600"
-          value={alcance}
-          onChange={(e) => onAlcanceChange(e.target.value as AlcanceCampanaValue)}
-        >
-          {ALCANCE_CAMPANA_OPCIONES.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+      <div className="space-y-1.5">
+        <Label className={fieldLabelClass}>Alcance</Label>
+        <Select value={alcance} onValueChange={(v) => onAlcanceChange(v as AlcanceCampanaValue)}>
+          <SelectTrigger className={fieldSelectClass}>
+            <SelectValue placeholder="Seleccionar alcance" />
+          </SelectTrigger>
+          <SelectContent className="z-[100]">
+            {ALCANCE_CAMPANA_OPCIONES.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {alcance === 'categoria' && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Categoría *</label>
-          <select
-            className={`w-full h-10 rounded-lg border px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-600 ${
-              errors.categoria_id ? 'border-red-400' : 'border-gray-200'
-            }`}
-            value={categoriaId ?? ''}
-            onChange={(e) => onCategoriaChange(e.target.value ? e.target.value : null)}
+        <div className="space-y-1.5">
+          <Label className={fieldLabelClass}>Categoría *</Label>
+          <Select
+            value={categoriaId != null ? String(categoriaId) : undefined}
+            onValueChange={(v) => onCategoriaChange(v)}
           >
-            <option value="">Seleccionar categoría...</option>
-            {categorias.map((c) => (
-              <option key={c.id} value={String(c.id)}>{c.nombre}</option>
-            ))}
-          </select>
+            <SelectTrigger
+              className={cn(fieldSelectClass, errors.categoria_id && 'border-red-400 aria-invalid:border-destructive')}
+            >
+              <SelectValue placeholder="Seleccionar categoría..." />
+            </SelectTrigger>
+            <SelectContent className="z-[100]">
+              {categorias.map((c) => (
+                <SelectItem key={String(c.id)} value={String(c.id)}>
+                  {c.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.categoria_id && (
-            <p className="text-xs text-red-500 mt-1 font-medium">{errors.categoria_id}</p>
+            <p className="text-xs text-red-500 font-medium">{errors.categoria_id}</p>
           )}
         </div>
       )}
 
       {alcance === 'producto' && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Producto *</label>
-          <select
-            className={`w-full h-10 rounded-lg border px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-600 ${
-              errors.producto_id ? 'border-red-400' : 'border-gray-200'
-            }`}
-            value={productoId ?? ''}
-            onChange={(e) => onProductoChange(e.target.value ? e.target.value : null)}
+        <div className="space-y-1.5">
+          <Label className={fieldLabelClass}>Producto *</Label>
+          <Select
+            value={productoId != null ? String(productoId) : undefined}
+            onValueChange={(v) => onProductoChange(v)}
           >
-            <option value="">Seleccionar producto...</option>
-            {productos.map((p) => (
-              <option key={p.id} value={String(p.id)}>{p.nombre}</option>
-            ))}
-          </select>
+            <SelectTrigger
+              className={cn(fieldSelectClass, errors.producto_id && 'border-red-400 aria-invalid:border-destructive')}
+            >
+              <SelectValue placeholder="Seleccionar producto..." />
+            </SelectTrigger>
+            <SelectContent className="z-[100]">
+              {productos.map((p) => (
+                <SelectItem key={String(p.id)} value={String(p.id)}>
+                  {p.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.producto_id && (
-            <p className="text-xs text-red-500 mt-1 font-medium">{errors.producto_id}</p>
+            <p className="text-xs text-red-500 font-medium">{errors.producto_id}</p>
           )}
         </div>
       )}
@@ -133,7 +159,7 @@ export function EscalaDescuentosSection({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Escalas</p>
-          <Button type="button" size="sm" variant="outline" onClick={addEscala}>
+          <Button type="button" size="sm" variant="outline" onClick={addEscala} className="border-slate-200">
             <Plus className="w-4 h-4 mr-1" /> Agregar escala
           </Button>
         </div>
@@ -143,10 +169,10 @@ export function EscalaDescuentosSection({
             key={`escala-${idx}`}
             className="flex gap-3 items-end bg-white p-3 rounded-lg border border-slate-100"
           >
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <div className="flex-1 space-y-1">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Cantidad mínima
-              </label>
+              </Label>
               <Input
                 type="number"
                 min={1}
@@ -154,13 +180,13 @@ export function EscalaDescuentosSection({
                 onChange={(e) =>
                   updateEscala(idx, { cantidad_min: Number(e.target.value) || 1 })
                 }
-                className="h-10"
+                className="h-11 bg-slate-50 border-slate-200 focus:bg-white"
               />
             </div>
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <div className="flex-1 space-y-1">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 % descuento
-              </label>
+              </Label>
               <Input
                 type="number"
                 min={0}
@@ -170,7 +196,7 @@ export function EscalaDescuentosSection({
                 onChange={(e) =>
                   updateEscala(idx, { valor_descuento: Number(e.target.value) || 0 })
                 }
-                className="h-10"
+                className="h-11 bg-slate-50 border-slate-200 focus:bg-white"
               />
             </div>
             <Button
@@ -179,7 +205,7 @@ export function EscalaDescuentosSection({
               size="icon"
               disabled={escalas.length <= 1}
               onClick={() => removeEscala(idx)}
-              className="h-10 w-10 text-red-500 hover:bg-red-50 shrink-0"
+              className="h-11 w-11 text-red-500 hover:bg-red-50 shrink-0"
             >
               <Trash2 className="w-4 h-4" />
             </Button>

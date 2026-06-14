@@ -213,18 +213,19 @@ export function CampanasPanel({ tipo, canCreate, canEdit, canArchive }: Props) {
         </div>
       )}
 
-      {showForm && (
-        <CampanaFormModal
-          tipo={tipo}
-          campana={editing}
-          isSaving={isSaving}
-          onClose={() => {
+      <CampanaFormModal
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) {
             setShowForm(false);
             setEditing(null);
-          }}
-          onSave={handleSave}
-        />
-      )}
+          }
+        }}
+        tipo={tipo}
+        campana={editing}
+        isSaving={isSaving}
+        onSave={handleSave}
+      />
     </div>
   );
 }

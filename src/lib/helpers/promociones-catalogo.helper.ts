@@ -2,7 +2,6 @@ import { ENTIDAD_DESCUENTO } from '@/lib/constants/promociones';
 
 type ReglaAlcance = {
   id?: bigint;
-  categoria_id?: bigint | null;
   descuento_aplicaciones?: Array<{
     aplicable_tipo: string;
     aplicable_id: bigint;
@@ -18,7 +17,7 @@ export function reglaAplicaProductoCatalogo(
   return reglaAplicaEnCompra(regla, productoId, categoriaId);
 }
 
-/** CUS_27 — alcance por producto, categoría (aplicaciones o categoria_id) o catálogo completo */
+/** CUS_27 — alcance por producto, categoría o catálogo (global) vía descuento_aplicaciones */
 export function reglaAplicaEnCompra(
   regla: ReglaAlcance,
   productoId: bigint,
@@ -42,10 +41,12 @@ export function reglaAplicaEnCompra(
     return catApps.some((a) => a.aplicable_id === categoriaId);
   }
 
-  if (regla.categoria_id) {
-    if (!categoriaId) return false;
-    return regla.categoria_id === categoriaId;
-  }
+  const globalApps = apps.filter(
+    (a) =>
+      a.aplicable_tipo === ENTIDAD_DESCUENTO.GLOBAL ||
+      a.aplicable_tipo === ENTIDAD_DESCUENTO.CATALOGO,
+  );
+  if (globalApps.length > 0) return true;
 
   return apps.length === 0;
 }

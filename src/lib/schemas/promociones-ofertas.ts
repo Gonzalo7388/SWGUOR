@@ -39,6 +39,19 @@ export const reglaDescuentoSchema = z
 
 const alcanceValues = ['catalogo', 'categoria', 'producto'] as const;
 
+const campanaCamposBase = {
+  id: z.union([z.string(), z.number()]).optional(),
+  nombre: z.string().min(1, 'Nombre obligatorio').max(150),
+  descripcion: z.string().max(500).nullable().optional(),
+  activo: z.boolean().optional().default(true),
+  fecha_inicio: z.string().min(1, 'Fecha inicio obligatoria'),
+  fecha_fin: z.string().nullable().optional(),
+};
+
+function campanaFechasValidas(d: { fecha_inicio: string; fecha_fin?: string | null }) {
+  return !d.fecha_fin || new Date(d.fecha_fin) >= new Date(d.fecha_inicio);
+}
+
 export const escalaCampanaSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
   cantidad_min: z.coerce.number().int().min(1, 'Cantidad mínima obligatoria'),
@@ -47,28 +60,27 @@ export const escalaCampanaSchema = z.object({
 
 export const campanaSchema = z
   .object({
-    id: z.union([z.string(), z.number()]).optional(),
-    nombre: z.string().min(1, 'Nombre obligatorio').max(150),
-    descripcion: z.string().max(500).nullable().optional(),
-    activo: z.boolean().optional().default(true),
-    fecha_inicio: z.string().min(1, 'Fecha inicio obligatoria'),
-    fecha_fin: z.string().nullable().optional(),
+    ...campanaCamposBase,
     reglas: z.array(reglaVinculoSchema).default([]),
   })
-  .refine(
-    (d) => !d.fecha_fin || new Date(d.fecha_fin) >= new Date(d.fecha_inicio),
-    { message: 'La fecha fin debe ser posterior o igual a la de inicio', path: ['fecha_fin'] },
-  );
+  .refine(campanaFechasValidas, {
+    message: 'La fecha fin debe ser posterior o igual a la de inicio',
+    path: ['fecha_fin'],
+  });
 
-export const campanaConEscalasSchema = campanaSchema
-  .omit({ reglas: true })
-  .extend({
+export const campanaConEscalasSchema = z
+  .object({
+    ...campanaCamposBase,
     alcance: z.enum(alcanceValues),
     categoria_id: z.union([z.string(), z.number()]).nullable().optional(),
     producto_id: z.union([z.string(), z.number()]).nullable().optional(),
     escalas: z
       .array(escalaCampanaSchema)
       .min(1, 'Agrega al menos una escala de descuento'),
+  })
+  .refine(campanaFechasValidas, {
+    message: 'La fecha fin debe ser posterior o igual a la de inicio',
+    path: ['fecha_fin'],
   })
   .refine(
     (d) => d.alcance !== 'categoria' || d.categoria_id != null,

@@ -36,6 +36,7 @@ export const ALCANCE_CAMPANA_OPCIONES = [
 
 export const ENTIDAD_DESCUENTO = {
   CATALOGO: 'catalogo',
+  GLOBAL: 'global',
   CATEGORIA: 'categoria',
   PRODUCTO: 'producto',
 } as const;

@@ -165,7 +165,6 @@ export async function obtenerMatrizDescuentos(busqueda?: string): Promise<Matriz
       reglaAplicaProductoCatalogo(
         {
           id: regla.id,
-          categoria_id: (regla as { categoria_id?: bigint | null }).categoria_id ?? null,
           descuento_aplicaciones: regla.descuento_aplicaciones,
         },
         producto.id,

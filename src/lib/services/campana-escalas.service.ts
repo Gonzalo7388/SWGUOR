@@ -33,6 +33,34 @@ function fechaFinRegla(fechaFin: Date | null, fechaInicio: Date): Date {
   return fechaFin ?? new Date(fechaInicio.getTime() + 365 * 86400000);
 }
 
+function resolverAlcanceAplicacion(input: SyncCampanaEscalasInput): {
+  aplicable_tipo: string;
+  aplicable_id: bigint;
+  descripcion: string;
+} {
+  if (input.alcance === 'producto' && input.productoId) {
+    return {
+      aplicable_tipo: ENTIDAD_DESCUENTO.PRODUCTO,
+      aplicable_id: input.productoId,
+      descripcion: 'Alcance por producto específico',
+    };
+  }
+
+  if (input.alcance === 'categoria' && input.categoriaId) {
+    return {
+      aplicable_tipo: ENTIDAD_DESCUENTO.CATEGORIA,
+      aplicable_id: input.categoriaId,
+      descripcion: 'Alcance por categoría',
+    };
+  }
+
+  return {
+    aplicable_tipo: ENTIDAD_DESCUENTO.GLOBAL,
+    aplicable_id: BigInt(0),
+    descripcion: 'Alcance catálogo completo',
+  };
+}
+
 async function desactivarReglasAnteriores(
   tx: Prisma.TransactionClient,
   reglaIds: bigint[],
@@ -98,6 +126,7 @@ export async function syncCampanaEscalas(
 
   const sortedEscalas = [...input.escalas].sort((a, b) => a.cantidad_min - b.cantidad_min);
   const reglaFin = fechaFinRegla(input.fechaFin, input.fechaInicio);
+  const alcanceAplicacion = resolverAlcanceAplicacion(input);
 
   for (let idx = 0; idx < sortedEscalas.length; idx += 1) {
     const escala = sortedEscalas[idx];
@@ -107,18 +136,13 @@ export async function syncCampanaEscalas(
       data: {
         nombre: nombreRegla,
         cantidad_min: escala.cantidad_min,
-        monto_min_compra: null,
         tipo_beneficio: 'porcentaje_subtotal',
         valor_descuento: escala.valor_descuento,
         fecha_inicio: input.fechaInicio,
         fecha_fin: reglaFin,
-        categoria_id:
-          input.alcance === ENTIDAD_DESCUENTO.CATEGORIA && input.categoriaId
-            ? input.categoriaId
-            : null,
         tipo_conteo: 'modelos_distintos',
         activo: true,
-      } as Prisma.reglas_descuentoCreateInput,
+      },
     });
 
     const vinculo = { regla_id: regla.id, prioridad: idx + 1 };
@@ -133,22 +157,20 @@ export async function syncCampanaEscalas(
       });
     }
 
-    if (input.alcance === ENTIDAD_DESCUENTO.PRODUCTO && input.productoId) {
-      await tx.descuento_aplicaciones.create({
-        data: {
-          aplicable_tipo: ENTIDAD_DESCUENTO.PRODUCTO,
-          aplicable_id: input.productoId,
-          regla_id: regla.id,
-          fuente_tipo: fuente,
-          fuente_id: input.campanaId,
-          nombre: nombreRegla,
-          descripcion: 'Alcance por producto específico',
-          base_calculo: 'subtotal',
-          porcentaje_aplicado: escala.valor_descuento,
-          monto_descuento: 0,
-          estado: ESTADO_DESCUENTO_APLICACION.ACTIVO,
-        },
-      });
-    }
+    await tx.descuento_aplicaciones.create({
+      data: {
+        aplicable_tipo: alcanceAplicacion.aplicable_tipo,
+        aplicable_id: alcanceAplicacion.aplicable_id,
+        regla_id: regla.id,
+        fuente_tipo: fuente,
+        fuente_id: input.campanaId,
+        nombre: nombreRegla,
+        descripcion: alcanceAplicacion.descripcion,
+        base_calculo: 'subtotal',
+        porcentaje_aplicado: escala.valor_descuento,
+        monto_descuento: 0,
+        estado: ESTADO_DESCUENTO_APLICACION.ACTIVO,
+      },
+    });
   }
 }
