@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Tag, Percent, Gift } from 'lucide-react';
+import { Tag, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { ReglasDescuentoPanel } from '@/components/admin/promociones/ReglasDescuentoPanel';
 import { CampanasPanel } from '@/components/admin/promociones/CampanasPanel';
 
 const TABS = [
-  { id: 'reglas', label: 'Reglas de descuento', icon: Percent },
   { id: 'promociones', label: 'Promociones', icon: Tag },
   { id: 'ofertas', label: 'Ofertas', icon: Gift },
 ] as const;
@@ -17,7 +15,7 @@ type TabId = (typeof TABS)[number]['id'];
 
 export default function PromocionesPage() {
   const { can, isLoading: authLoading } = usePermissions();
-  const [tab, setTab] = useState<TabId>('reglas');
+  const [tab, setTab] = useState<TabId>('promociones');
 
   const canView = can('view', 'promociones');
   const canCreate = can('create', 'promociones');
@@ -48,7 +46,7 @@ export default function PromocionesPage() {
           Promociones y Ofertas
         </h1>
         <p className="text-sm text-slate-500">
-          Reglas de descuento, campañas promocionales y ofertas comerciales
+          Campañas promocionales y ofertas comerciales con escalas de descuento integradas
         </p>
       </header>
 
@@ -71,13 +69,6 @@ export default function PromocionesPage() {
         ))}
       </nav>
 
-      {tab === 'reglas' && (
-        <ReglasDescuentoPanel
-          canCreate={canCreate}
-          canEdit={canEdit}
-          canArchive={canArchive}
-        />
-      )}
       {tab === 'promociones' && (
         <CampanasPanel
           tipo="promocion"
@@ -97,4 +88,3 @@ export default function PromocionesPage() {
     </div>
   );
 }
-

@@ -13,6 +13,7 @@ import {
   ChevronRight, Layers,
   ShoppingBag,
   Tag,
+  Percent,
 } from 'lucide-react';
 import type { usuarios } from '@prisma/client';
 import { usePermissions } from '@/lib/hooks/usePermissions';
@@ -114,6 +115,7 @@ const GESTION_OPERATIVA: NavGroup = {
         { title: 'Categorías', href: '/admin/Panel-Administrativo/categorias', icon: Grid3x3, resource: 'categorias' as RecursoKey },
         { title: 'Fichas Técnicas', href: '/admin/Panel-Administrativo/fichas-tecnicas', icon: FileText, resource: 'fichas_tecnicas' as RecursoKey },
         { title: 'Promociones y Ofertas', href: '/admin/Panel-Administrativo/promociones', icon: Tag, resource: 'promociones' as RecursoKey },
+        { title: 'Matriz de Precios', href: '/admin/Panel-Administrativo/matriz-descuentos', icon: Percent, resource: 'promociones' as RecursoKey },
       ],
     },
     {

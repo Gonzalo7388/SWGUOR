@@ -27,3 +27,18 @@ export const ESTADO_DESCUENTO_APLICACION = {
   ACTIVO: 'activo',
   ANULADO: 'anulado',
 } as const;
+
+export const ALCANCE_CAMPANA_OPCIONES = [
+  { value: 'catalogo', label: 'Todo el catálogo' },
+  { value: 'categoria', label: 'Por categoría' },
+  { value: 'producto', label: 'Por producto específico' },
+] as const;
+
+export const ENTIDAD_DESCUENTO = {
+  CATALOGO: 'catalogo',
+  CATEGORIA: 'categoria',
+  PRODUCTO: 'producto',
+} as const;
+
+export type AlcanceCampanaValue =
+  (typeof ALCANCE_CAMPANA_OPCIONES)[number]['value'];
