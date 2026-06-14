@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { ESTADO_DESCUENTO_APLICACION } from '@/lib/constants/promociones';
 import { REGLAS_NEGOCIO } from '@/lib/constants/estados';
 import { reglaAplicaEnCompra } from '@/lib/helpers/promociones-catalogo.helper';
 import { multiplyMoney, roundMoney } from '@/lib/helpers/money.helper';
@@ -51,6 +52,7 @@ type ReglaVigente = {
     aplicable_tipo: string;
     aplicable_id: bigint;
     estado: string;
+    descripcion?: string | null;
   }>;
 };
 
@@ -90,7 +92,7 @@ async function cargarReglasVigentes(now: Date): Promise<ReglaVigente[]> {
     },
     include: {
       descuento_aplicaciones: {
-        where: { estado: { notIn: ['anulado'] } },
+        where: { estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO } },
       },
       oferta_reglas: { include: { ofertas: true } },
       promocion_reglas: { include: { promociones: true } },

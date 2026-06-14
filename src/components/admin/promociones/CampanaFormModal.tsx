@@ -51,6 +51,8 @@ interface Props {
 }
 
 const fieldLabelClass = 'text-xs font-semibold text-slate-600 uppercase tracking-wide';
+// Clase unificada para asegurar visibilidad del texto en inputs
+const inputBaseClass = 'bg-slate-50 border-slate-200 h-11 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-amber-600/30 focus:border-amber-600';
 
 export function CampanaFormModal({
   open,
@@ -216,7 +218,7 @@ export function CampanaFormModal({
                 <Input
                   value={form.nombre}
                   onChange={(e) => setField('nombre', e.target.value)}
-                  className={`bg-slate-50 border-slate-200 h-11 focus:bg-white ${errors.nombre ? 'border-red-400' : ''}`}
+                  className={`${inputBaseClass} ${errors.nombre ? 'border-red-400' : ''}`}
                 />
                 {errors.nombre && (
                   <p className="text-xs text-red-500 font-medium">{errors.nombre}</p>
@@ -226,7 +228,7 @@ export function CampanaFormModal({
               <div className="space-y-1.5">
                 <Label className={fieldLabelClass}>Descripción</Label>
                 <textarea
-                  className="w-full min-h-[72px] rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 focus:bg-white"
+                  className={`w-full min-h-[72px] rounded-md border p-3 text-sm focus:outline-none focus:ring-2 ${inputBaseClass}`}
                   value={form.descripcion ?? ''}
                   onChange={(e) => setField('descripcion', e.target.value || null)}
                 />
@@ -239,7 +241,7 @@ export function CampanaFormModal({
                     type="datetime-local"
                     value={toInputDateTimeLocal(form.fecha_inicio)}
                     onChange={(e) => handleDateChange('fecha_inicio', e.target.value)}
-                    className={`bg-slate-50 border-slate-200 h-11 focus:bg-white ${errors.fecha_inicio ? 'border-red-400' : ''}`}
+                    className={`${inputBaseClass} ${errors.fecha_inicio ? 'border-red-400' : ''}`}
                   />
                   {errors.fecha_inicio && (
                     <p className="text-xs text-red-500 font-medium">{errors.fecha_inicio}</p>
@@ -251,7 +253,7 @@ export function CampanaFormModal({
                     type="datetime-local"
                     value={toInputDateTimeLocal(form.fecha_fin ?? undefined)}
                     onChange={(e) => handleDateChange('fecha_fin', e.target.value)}
-                    className="bg-slate-50 border-slate-200 h-11 focus:bg-white"
+                    className={inputBaseClass}
                   />
                 </div>
               </div>

@@ -24,8 +24,8 @@ export const APLICABLE_DESCUENTO = {
 } as const;
 
 export const ESTADO_DESCUENTO_APLICACION = {
-  ACTIVO: 'activo',
-  ANULADO: 'anulado',
+  APLICADO: 'aplicado',
+  REVERTIDO: 'revertido',
 } as const;
 
 export const ALCANCE_CAMPANA_OPCIONES = [

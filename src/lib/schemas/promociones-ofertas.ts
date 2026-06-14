@@ -71,7 +71,9 @@ export const campanaSchema = z
 export const campanaConEscalasSchema = z
   .object({
     ...campanaCamposBase,
-    alcance: z.enum(alcanceValues),
+    alcance: z
+      .enum(alcanceValues)
+      .transform((value) => value.trim().toLowerCase() as typeof alcanceValues[number]),
     categoria_id: z.union([z.string(), z.number()]).nullable().optional(),
     producto_id: z.union([z.string(), z.number()]).nullable().optional(),
     escalas: z

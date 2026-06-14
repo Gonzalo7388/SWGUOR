@@ -1,4 +1,4 @@
-import { ENTIDAD_DESCUENTO, type AlcanceCampanaValue } from '@/lib/constants/promociones';
+import { inferirAlcanceDesdeAplicacion } from '@/lib/helpers/descuento-aplicaciones.helper';
 import type {
   CampanaConEscalasForm,
   CampanaRow,
@@ -17,7 +17,7 @@ type CampanaDetalle = CampanaRow & {
 };
 
 function inferirAlcance(regla?: ReglaDescuentoRow): {
-  alcance: AlcanceCampanaValue;
+  alcance: CampanaConEscalasForm['alcance'];
   categoria_id: string | number | null;
   producto_id: string | number | null;
 } {
@@ -26,35 +26,24 @@ function inferirAlcance(regla?: ReglaDescuentoRow): {
   }
 
   const apps = regla.descuento_aplicaciones ?? [];
-  const productoApp = apps.find(
-    (a) =>
-      a.aplicable_tipo === ENTIDAD_DESCUENTO.PRODUCTO &&
-      a.estado !== 'anulado',
+  const appActiva = apps.find(
+    (a) => inferirAlcanceDesdeAplicacion(a) !== null,
   );
 
-  if (productoApp) {
-    return {
-      alcance: 'producto',
-      categoria_id: null,
-      producto_id: productoApp.aplicable_id,
-    };
+  if (!appActiva) {
+    return { alcance: 'catalogo', categoria_id: null, producto_id: null };
   }
 
-  const categoriaApp = apps.find(
-    (a) =>
-      a.aplicable_tipo === ENTIDAD_DESCUENTO.CATEGORIA &&
-      a.estado !== 'anulado',
-  );
-
-  if (categoriaApp) {
-    return {
-      alcance: 'categoria',
-      categoria_id: categoriaApp.aplicable_id,
-      producto_id: null,
-    };
+  const alcanceInfo = inferirAlcanceDesdeAplicacion(appActiva);
+  if (!alcanceInfo) {
+    return { alcance: 'catalogo', categoria_id: null, producto_id: null };
   }
 
-  return { alcance: 'catalogo', categoria_id: null, producto_id: null };
+  return {
+    alcance: alcanceInfo.alcance,
+    categoria_id: alcanceInfo.categoria_id,
+    producto_id: alcanceInfo.producto_id,
+  };
 }
 
 export function emptyCampanaConEscalasForm(): CampanaConEscalasForm {

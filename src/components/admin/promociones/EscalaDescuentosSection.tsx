@@ -41,8 +41,9 @@ interface Props {
 }
 
 const fieldLabelClass = 'text-xs font-semibold text-slate-600 uppercase tracking-wide';
-const fieldSelectClass =
-  'w-full h-11 bg-slate-50 border-slate-200 text-slate-900 [&_svg]:text-slate-500 focus:bg-white';
+// Aseguramos que el texto sea oscuro (slate-900) y visible
+const fieldInputClass = 'h-11 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-amber-600/30 focus:border-amber-600';
+const fieldSelectClass = 'w-full h-11 bg-white border-slate-200 text-slate-900 [&_svg]:text-slate-500 focus:bg-white';
 
 export function EscalaDescuentosSection({
   alcance,
@@ -112,7 +113,7 @@ export function EscalaDescuentosSection({
             onValueChange={(v) => onCategoriaChange(v)}
           >
             <SelectTrigger
-              className={cn(fieldSelectClass, errors.categoria_id && 'border-red-400 aria-invalid:border-destructive')}
+              className={cn(fieldSelectClass, errors.categoria_id && 'border-red-400')}
             >
               <SelectValue placeholder="Seleccionar categoría..." />
             </SelectTrigger>
@@ -124,9 +125,7 @@ export function EscalaDescuentosSection({
               ))}
             </SelectContent>
           </Select>
-          {errors.categoria_id && (
-            <p className="text-xs text-red-500 font-medium">{errors.categoria_id}</p>
-          )}
+          {errors.categoria_id && <p className="text-xs text-red-500 font-medium">{errors.categoria_id}</p>}
         </div>
       )}
 
@@ -138,7 +137,7 @@ export function EscalaDescuentosSection({
             onValueChange={(v) => onProductoChange(v)}
           >
             <SelectTrigger
-              className={cn(fieldSelectClass, errors.producto_id && 'border-red-400 aria-invalid:border-destructive')}
+              className={cn(fieldSelectClass, errors.producto_id && 'border-red-400')}
             >
               <SelectValue placeholder="Seleccionar producto..." />
             </SelectTrigger>
@@ -150,16 +149,14 @@ export function EscalaDescuentosSection({
               ))}
             </SelectContent>
           </Select>
-          {errors.producto_id && (
-            <p className="text-xs text-red-500 font-medium">{errors.producto_id}</p>
-          )}
+          {errors.producto_id && <p className="text-xs text-red-500 font-medium">{errors.producto_id}</p>}
         </div>
       )}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Escalas</p>
-          <Button type="button" size="sm" variant="outline" onClick={addEscala} className="border-slate-200">
+          <Button type="button" size="sm" variant="outline" onClick={addEscala} className="border-slate-200" >
             <Plus className="w-4 h-4 mr-1" /> Agregar escala
           </Button>
         </div>
@@ -177,10 +174,8 @@ export function EscalaDescuentosSection({
                 type="number"
                 min={1}
                 value={escala.cantidad_min}
-                onChange={(e) =>
-                  updateEscala(idx, { cantidad_min: Number(e.target.value) || 1 })
-                }
-                className="h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                onChange={(e) => updateEscala(idx, { cantidad_min: Number(e.target.value) || 1 })}
+                className={fieldInputClass}
               />
             </div>
             <div className="flex-1 space-y-1">
@@ -193,10 +188,8 @@ export function EscalaDescuentosSection({
                 max={100}
                 step="0.01"
                 value={escala.valor_descuento}
-                onChange={(e) =>
-                  updateEscala(idx, { valor_descuento: Number(e.target.value) || 0 })
-                }
-                className="h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                onChange={(e) => updateEscala(idx, { valor_descuento: Number(e.target.value) || 0 })}
+                className={fieldInputClass}
               />
             </div>
             <Button
@@ -211,9 +204,6 @@ export function EscalaDescuentosSection({
             </Button>
           </div>
         ))}
-        {errors.escalas && (
-          <p className="text-xs text-red-500 font-medium">{errors.escalas}</p>
-        )}
       </div>
     </div>
   );

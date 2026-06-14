@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { ENTIDAD_DESCUENTO } from '@/lib/constants/promociones';
+import { ESTADO_DESCUENTO_APLICACION } from '@/lib/constants/promociones';
 import type { ReglaDescuentoForm } from '@/lib/schemas/promociones-ofertas';
 
 export interface ReglasDescuentoFilters {
@@ -13,7 +13,7 @@ export interface ReglasDescuentoFilters {
 
 const INCLUDE_APLICACIONES = {
   descuento_aplicaciones: {
-    where: { estado: { not: 'anulado' } },
+    where: { estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO } },
   },
 } as const;
 
@@ -45,9 +45,9 @@ export const reglasDescuentoService = {
     if (filters.categoria_id) {
       where.descuento_aplicaciones = {
         some: {
-          aplicable_tipo: ENTIDAD_DESCUENTO.CATEGORIA,
           aplicable_id: filters.categoria_id,
-          estado: { not: 'anulado' },
+          descripcion: { startsWith: 'alcance:categoria' },
+          estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO },
         },
       };
     }

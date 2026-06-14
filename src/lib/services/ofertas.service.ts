@@ -6,6 +6,7 @@ import {
   obtenerReglaIdsCampana,
   syncCampanaEscalas,
 } from '@/lib/services/campana-escalas.service';
+import { ESTADO_DESCUENTO_APLICACION } from '@/lib/constants/promociones';
 
 export interface CampanaFilters {
   activo?: boolean;
@@ -21,7 +22,7 @@ const INCLUDE_REGLAS = {
       reglas_descuento: {
         include: {
           descuento_aplicaciones: {
-            where: { estado: { not: 'anulado' } },
+            where: { estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO } },
           },
         },
       },

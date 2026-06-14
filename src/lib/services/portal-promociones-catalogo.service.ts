@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { ESTADO_DESCUENTO_APLICACION } from '@/lib/constants/promociones';
 import { reglaAplicaProductoCatalogo } from '@/lib/helpers/promociones-catalogo.helper';
 
 export type TipoCampanaPortal = 'promocion' | 'oferta';
@@ -58,7 +59,7 @@ export async function obtenerCatalogoPromocionesPortal() {
             reglas_descuento: {
               include: {
                 descuento_aplicaciones: {
-                  where: { estado: { not: 'anulado' } },
+                  where: { estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO } },
                 },
               },
             },
@@ -75,7 +76,7 @@ export async function obtenerCatalogoPromocionesPortal() {
             reglas_descuento: {
               include: {
                 descuento_aplicaciones: {
-                  where: { estado: { not: 'anulado' } },
+                  where: { estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO } },
                 },
               },
             },

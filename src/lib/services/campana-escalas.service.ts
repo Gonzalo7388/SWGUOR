@@ -1,10 +1,14 @@
 import type { Prisma } from '@prisma/client';
 import {
-  ENTIDAD_DESCUENTO,
   ESTADO_DESCUENTO_APLICACION,
   FUENTE_DESCUENTO,
   type AlcanceCampanaValue,
 } from '@/lib/constants/promociones';
+import {
+  normalizarAplicableTipo,
+  normalizarEstadoDescuento,
+  resolverAlcanceAplicacion,
+} from '@/lib/helpers/descuento-aplicaciones.helper';
 import type { EscalaCampanaForm } from '@/lib/schemas/promociones-ofertas';
 
 export type CampanaEscalasTipo = 'oferta' | 'promocion';
@@ -33,34 +37,6 @@ function fechaFinRegla(fechaFin: Date | null, fechaInicio: Date): Date {
   return fechaFin ?? new Date(fechaInicio.getTime() + 365 * 86400000);
 }
 
-function resolverAlcanceAplicacion(input: SyncCampanaEscalasInput): {
-  aplicable_tipo: string;
-  aplicable_id: bigint;
-  descripcion: string;
-} {
-  if (input.alcance === 'producto' && input.productoId) {
-    return {
-      aplicable_tipo: ENTIDAD_DESCUENTO.PRODUCTO,
-      aplicable_id: input.productoId,
-      descripcion: 'Alcance por producto específico',
-    };
-  }
-
-  if (input.alcance === 'categoria' && input.categoriaId) {
-    return {
-      aplicable_tipo: ENTIDAD_DESCUENTO.CATEGORIA,
-      aplicable_id: input.categoriaId,
-      descripcion: 'Alcance por categoría',
-    };
-  }
-
-  return {
-    aplicable_tipo: ENTIDAD_DESCUENTO.GLOBAL,
-    aplicable_id: BigInt(0),
-    descripcion: 'Alcance catálogo completo',
-  };
-}
-
 async function desactivarReglasAnteriores(
   tx: Prisma.TransactionClient,
   reglaIds: bigint[],
@@ -80,7 +56,7 @@ async function desactivarReglasAnteriores(
       fuente_tipo: fuente,
       fuente_id: campanaId,
     },
-    data: { estado: ESTADO_DESCUENTO_APLICACION.ANULADO },
+    data: { estado: ESTADO_DESCUENTO_APLICACION.REVERTIDO },
   });
 }
 
@@ -126,7 +102,29 @@ export async function syncCampanaEscalas(
 
   const sortedEscalas = [...input.escalas].sort((a, b) => a.cantidad_min - b.cantidad_min);
   const reglaFin = fechaFinRegla(input.fechaFin, input.fechaInicio);
-  const alcanceAplicacion = resolverAlcanceAplicacion(input);
+  const alcanceAplicacion = resolverAlcanceAplicacion({
+    alcance: input.alcance,
+    categoriaId: input.categoriaId,
+    productoId: input.productoId,
+  });
+
+  const aplicableTipo = normalizarAplicableTipo(
+    alcanceAplicacion.aplicable_tipo,
+    input.alcance,
+  );
+  const estadoAplicacion = normalizarEstadoDescuento(
+    ESTADO_DESCUENTO_APLICACION.APLICADO,
+  );
+
+  console.info('[syncCampanaEscalas] descuento_aplicaciones payload', {
+    campanaTipo: input.campanaTipo,
+    campanaId: String(input.campanaId),
+    alcanceFormulario: input.alcance,
+    aplicable_tipo: aplicableTipo,
+    aplicable_id: String(alcanceAplicacion.aplicable_id),
+    estado: estadoAplicacion,
+    fuente_tipo: fuente,
+  });
 
   for (let idx = 0; idx < sortedEscalas.length; idx += 1) {
     const escala = sortedEscalas[idx];
@@ -159,7 +157,7 @@ export async function syncCampanaEscalas(
 
     await tx.descuento_aplicaciones.create({
       data: {
-        aplicable_tipo: alcanceAplicacion.aplicable_tipo,
+        aplicable_tipo: aplicableTipo,
         aplicable_id: alcanceAplicacion.aplicable_id,
         regla_id: regla.id,
         fuente_tipo: fuente,
@@ -169,7 +167,7 @@ export async function syncCampanaEscalas(
         base_calculo: 'subtotal',
         porcentaje_aplicado: escala.valor_descuento,
         monto_descuento: 0,
-        estado: ESTADO_DESCUENTO_APLICACION.ACTIVO,
+        estado: estadoAplicacion,
       },
     });
   }

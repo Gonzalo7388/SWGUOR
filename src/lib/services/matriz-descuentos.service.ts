@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { reglaAplicaProductoCatalogo } from '@/lib/helpers/promociones-catalogo.helper';
-import { FUENTE_DESCUENTO } from '@/lib/constants/promociones';
+import { FUENTE_DESCUENTO, ESTADO_DESCUENTO_APLICACION } from '@/lib/constants/promociones';
 
 export interface DescuentoActivoMatriz {
   regla_id: string;
@@ -151,7 +151,7 @@ export async function obtenerMatrizDescuentos(busqueda?: string): Promise<Matriz
     },
     include: {
       descuento_aplicaciones: {
-        where: { estado: { notIn: ['anulado'] } },
+        where: { estado: { not: ESTADO_DESCUENTO_APLICACION.REVERTIDO } },
       },
       oferta_reglas: { include: { ofertas: true } },
       promocion_reglas: { include: { promociones: true } },

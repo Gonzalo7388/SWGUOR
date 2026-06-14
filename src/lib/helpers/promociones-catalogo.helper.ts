@@ -1,4 +1,8 @@
-import { ENTIDAD_DESCUENTO } from '@/lib/constants/promociones';
+import { ESTADO_DESCUENTO_APLICACION } from '@/lib/constants/promociones';
+import {
+  inferirAlcanceDesdeAplicacion,
+  parseAlcanceDescripcion,
+} from '@/lib/helpers/descuento-aplicaciones.helper';
 
 type ReglaAlcance = {
   id?: bigint;
@@ -6,6 +10,7 @@ type ReglaAlcance = {
     aplicable_tipo: string;
     aplicable_id: bigint;
     estado: string;
+    descripcion?: string | null;
   }>;
 };
 
@@ -17,36 +22,32 @@ export function reglaAplicaProductoCatalogo(
   return reglaAplicaEnCompra(regla, productoId, categoriaId);
 }
 
-/** CUS_27 — alcance por producto, categoría o catálogo (global) vía descuento_aplicaciones */
+/** CUS_27 — alcance por producto, categoría o catálogo vía descuento_aplicaciones */
 export function reglaAplicaEnCompra(
   regla: ReglaAlcance,
   productoId: bigint,
   categoriaId: bigint | null,
 ): boolean {
   const apps =
-    regla.descuento_aplicaciones?.filter((a) => a.estado !== 'anulado') ?? [];
+    regla.descuento_aplicaciones?.filter(
+      (a) => a.estado !== ESTADO_DESCUENTO_APLICACION.REVERTIDO,
+    ) ?? [];
 
-  const productApps = apps.filter(
-    (a) => a.aplicable_tipo === ENTIDAD_DESCUENTO.PRODUCTO,
-  );
-  if (productApps.length > 0) {
-    return productApps.some((a) => a.aplicable_id === productoId);
-  }
+  if (apps.length === 0) return true;
 
-  const catApps = apps.filter(
-    (a) => a.aplicable_tipo === ENTIDAD_DESCUENTO.CATEGORIA,
-  );
-  if (catApps.length > 0) {
-    if (!categoriaId) return false;
-    return catApps.some((a) => a.aplicable_id === categoriaId);
-  }
+  return apps.some((app) => {
+    const alcance =
+      parseAlcanceDescripcion(app.descripcion) ??
+      inferirAlcanceDesdeAplicacion(app)?.alcance ??
+      'catalogo';
 
-  const globalApps = apps.filter(
-    (a) =>
-      a.aplicable_tipo === ENTIDAD_DESCUENTO.GLOBAL ||
-      a.aplicable_tipo === ENTIDAD_DESCUENTO.CATALOGO,
-  );
-  if (globalApps.length > 0) return true;
-
-  return apps.length === 0;
+    if (alcance === 'producto') {
+      return BigInt(app.aplicable_id) === productoId;
+    }
+    if (alcance === 'categoria') {
+      if (!categoriaId) return false;
+      return BigInt(app.aplicable_id) === categoriaId;
+    }
+    return true;
+  });
 }
