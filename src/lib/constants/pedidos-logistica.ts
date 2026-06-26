@@ -26,3 +26,18 @@ export const ROLES_PEDIDOS_CONSULTA: RolUsuario[] = [
   'representante_taller',
   'ayudante',
 ];
+
+/** Estados de despacho que bloquean el formulario de empaque (ya empacado o en ruta). */
+export const DESPACHO_ESTADOS_BLOQUEAN_EMPAQUE = ['preparando', 'en_ruta'] as const;
+
+/** Indica si el pedido puede abrir el flujo de empaque y despacho. */
+export function puedeRegistrarEmpaquePedido(
+  pedidoEstado: string | null | undefined,
+  despachoEstado?: string | null,
+): boolean {
+  if (pedidoEstado !== 'listo_para_despacho') return false;
+  if (!despachoEstado) return true;
+  return !DESPACHO_ESTADOS_BLOQUEAN_EMPAQUE.includes(
+    despachoEstado as (typeof DESPACHO_ESTADOS_BLOQUEAN_EMPAQUE)[number],
+  );
+}

@@ -1,5 +1,9 @@
 import type { EstadoConfeccion } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import {
+  crearSeguimientoConfeccionPorCambioEstado,
+  listarSeguimientoConfeccion,
+} from '@/lib/helpers/seguimiento-confeccion-db.helper';
 
 const TRANSICIONES_CONFECCION: Partial<
   Record<EstadoConfeccion, EstadoConfeccion[]>
@@ -43,17 +47,20 @@ export async function obtenerOrdenRepresentante(ordenId: bigint) {
           },
         },
       },
-      confecciones: {
-        include: {
-          seguimiento_confeccion: {
-            orderBy: { created_at: 'asc' },
-          },
-        },
-      },
+      confecciones: true,
     },
   });
 
   if (!orden) return null;
+
+  const confeccionesConSeguimiento = await Promise.all(
+    orden.confecciones.map(async (conf) => ({
+      ...conf,
+      seguimiento_confeccion: await listarSeguimientoConfeccion(conf.id),
+    })),
+  );
+
+  const ordenConSeguimiento = { ...orden, confecciones: confeccionesConSeguimiento };
 
   const talleresActivos = await prisma.talleres.findMany({
     where: { estado: 'activo' },
@@ -67,7 +74,7 @@ export async function obtenerOrdenRepresentante(ordenId: bigint) {
     },
   });
 
-  return { orden, talleresActivos };
+  return { orden: ordenConSeguimiento, talleresActivos };
 }
 
 export async function reasignarTallerOrden(params: {
@@ -105,14 +112,12 @@ export async function reasignarTallerOrden(params: {
         data: { taller_id: params.tallerId, updated_at: new Date() },
       });
 
-      await tx.seguimiento_confeccion.create({
-        data: {
-          confeccion_id: conf.id,
-          estado_anterior: conf.estado,
-          estado_nuevo: conf.estado,
-          notas: `Taller reasignado a ${taller.nombre}`,
-          responsable_id: params.usuarioId,
-        },
+      await crearSeguimientoConfeccionPorCambioEstado(tx, {
+        confeccion_id: conf.id,
+        estado_anterior: conf.estado,
+        estado_nuevo: conf.estado,
+        notas: `Taller reasignado a ${taller.nombre}`,
+        responsable_id: params.usuarioId,
       });
     }
   });
@@ -158,14 +163,12 @@ export async function avanzarEstadoConfeccion(params: {
       },
     });
 
-    await tx.seguimiento_confeccion.create({
-      data: {
-        confeccion_id: conf.id,
-        estado_anterior: conf.estado,
-        estado_nuevo: params.nuevoEstado,
-        notas: params.notas?.trim() || null,
-        responsable_id: params.usuarioId,
-      },
+    await crearSeguimientoConfeccionPorCambioEstado(tx, {
+      confeccion_id: conf.id,
+      estado_anterior: conf.estado,
+      estado_nuevo: params.nuevoEstado,
+      notas: params.notas?.trim() || null,
+      responsable_id: params.usuarioId,
     });
 
     if (params.nuevoEstado === 'completada') {

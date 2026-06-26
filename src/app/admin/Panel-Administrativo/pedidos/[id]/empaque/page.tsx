@@ -47,7 +47,7 @@ export default async function PedidoEmpaquePage({ params }: PageProps) {
   const despachoActivo = await prisma.despachos.findFirst({
     where: {
       pedido_id: pedido.id,
-      estado: { in: ['preparando', 'en_ruta', 'pendiente'] },
+      estado: { in: ['preparando', 'en_ruta'] },
     },
   });
 

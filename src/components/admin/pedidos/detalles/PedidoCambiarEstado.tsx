@@ -39,7 +39,9 @@ export function PedidoCambiarEstado({
   const [notas, setNotas] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const opciones = obtenerEstadosSiguientes(estadoActual);
+  const opciones = obtenerEstadosSiguientes(estadoActual).filter(
+    (estado) => estado !== 'entregado',
+  );
 
   if (opciones.length === 0) return null;
 

@@ -5,6 +5,10 @@ import {
 } from '@/lib/helpers/crear-notificacion.helper';
 import { precargarDireccionDespachoPedido } from '@/lib/helpers/pedido-direccion.helper';
 import { validarTransicionEstadoPedido } from '@/lib/helpers/pedido-transiciones.helper';
+import {
+  crearSeguimientoConfeccion,
+  obtenerEtapaConfeccion,
+} from '@/lib/helpers/seguimiento-confeccion-db.helper';
 
 const NOTA_CONFORMIDAD = 'Conformidad aprobada por ayudante';
 
@@ -86,6 +90,8 @@ export async function aprobarConformidadConfeccion(params: {
   validarTransicionEstadoPedido(pedido.estado, 'listo_para_despacho');
 
   await prisma.$transaction(async (tx) => {
+    const etapaAnterior = await obtenerEtapaConfeccion(tx, params.confeccionId);
+
     await tx.confecciones.update({
       where: { id: params.confeccionId },
       data: {
@@ -95,14 +101,18 @@ export async function aprobarConformidadConfeccion(params: {
       },
     });
 
-    await tx.seguimiento_confeccion.create({
-      data: {
-        confeccion_id: params.confeccionId,
-        estado_anterior: conf.estado,
-        estado_nuevo: 'completada',
-        notas: NOTA_CONFORMIDAD,
-        responsable_id: params.usuarioId,
-      },
+    await tx.$executeRaw`
+      UPDATE public.confecciones
+      SET etapa = ${'entregado_a_guor'}::"EtapaConfeccion"
+      WHERE id = ${params.confeccionId}
+    `;
+
+    await crearSeguimientoConfeccion(tx, {
+      confeccion_id: params.confeccionId,
+      etapa_anterior: etapaAnterior,
+      etapa_nueva: 'entregado_a_guor',
+      notas: NOTA_CONFORMIDAD,
+      responsable_id: params.usuarioId,
     });
 
     if (conf.orden_produccion_id) {

@@ -11,6 +11,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
+import { puedeRegistrarEmpaquePedido } from '@/lib/constants/pedidos-logistica';
 import { COMPANY_PALETTE } from '@/components/admin/dashboards/widgets/DashboardUtils';
 import { Badge } from './PedidoDetalleUI';
 import {
@@ -75,7 +76,7 @@ export function PedidoDetalleHeader({ pedido }: PedidoDetalleHeaderProps) {
 
         {(puedeEmpaque || puedeConfirmarEntrega) && (
           <div className="flex flex-wrap gap-2 sm:justify-end">
-            {puedeEmpaque && pedido.estado === 'listo_para_despacho' && pedido.despacho_estado !== 'preparando' && pedido.despacho_estado !== 'en_ruta' && (
+            {puedeEmpaque && puedeRegistrarEmpaquePedido(pedido.estado, pedido.despacho_estado) && (
               <Link
                 href={`/admin/Panel-Administrativo/pedidos/${pedido.id}/empaque`}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-violet-600 text-white hover:bg-violet-700 transition-colors"

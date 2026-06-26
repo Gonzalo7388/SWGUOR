@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ESTADO_LABELS } from "@/lib/schemas/confecciones";
+import { ETAPA_CONFECCION_LABELS } from "@/lib/constants/confecciones-etapas";
 import { useSeguimientoConfeccion } from "@/lib/hooks/useSeguimientoConfeccion";
 import { nombreResponsableSeguimiento } from "@/lib/helpers/seguimiento-confeccion-helpers";
 import type { SeguimientoConfeccionRow } from "@/lib/schemas/seguimiento-confeccion";
@@ -95,6 +96,7 @@ export default function ConfeccionSeguimientoTab({
   };
 
   const getLabel = (key?: string | null) =>
+    (key && ETAPA_CONFECCION_LABELS[key as keyof typeof ETAPA_CONFECCION_LABELS]) ??
     (key && ESTADO_LABELS[key as keyof typeof ESTADO_LABELS]) ??
     (key ? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—");
 

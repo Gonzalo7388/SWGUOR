@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { SeguimientoConfeccionService } from '@/lib/services/seguimiento-confeccion.service';
+import { listarSeguimientoConfeccion } from '@/lib/helpers/seguimiento-confeccion-db.helper';
 import { EstadoConfeccion, Prisma } from '@prisma/client';
 
 export const ConfeccionesService = {
@@ -104,10 +105,12 @@ export const ConfeccionesService = {
           },
         },
         usuarios: { select: { id: true, email: true } },
-        seguimiento_confeccion: { orderBy: { created_at: 'desc' } },
       },
     });
-    return confeccion ? serializeBigInt(confeccion) : null;
+    if (!confeccion) return null;
+
+    const seguimiento_confeccion = await listarSeguimientoConfeccion(confeccion.id);
+    return serializeBigInt({ ...confeccion, seguimiento_confeccion });
   },
 
   async crear(data: {

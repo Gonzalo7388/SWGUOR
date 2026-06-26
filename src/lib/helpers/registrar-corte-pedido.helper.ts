@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { crearNotificacion } from '@/lib/helpers/crear-notificacion.helper';
 import { parseDescripcionDetallada } from '@/lib/helpers/ficha-tecnica-descripcion.helper';
+import {
+  crearSeguimientoConfeccionInicial,
+} from '@/lib/helpers/seguimiento-confeccion-db.helper';
 
 export interface MedidaCorteData {
   id: string;
@@ -285,13 +288,10 @@ export async function registrarCortePedidoCompletado(params: {
         },
       });
 
-      await tx.seguimiento_confeccion.create({
-        data: {
-          confeccion_id: confeccion.id,
-          estado_nuevo: 'pendiente',
-          notas: 'Orden de confección generada automáticamente tras el corte.',
-          responsable_id: representanteId,
-        },
+      await crearSeguimientoConfeccionInicial(tx, {
+        confeccion_id: confeccion.id,
+        notas: 'Orden de confección generada automáticamente tras el corte.',
+        responsable_id: representanteId,
       });
     }
 

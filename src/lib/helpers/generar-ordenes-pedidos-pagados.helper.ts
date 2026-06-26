@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { crearNotificacion, notificarTransicionEstadoPedido } from '@/lib/helpers/crear-notificacion.helper';
+import { crearSeguimientoConfeccionInicial } from '@/lib/helpers/seguimiento-confeccion-db.helper';
 import { EtapaProduccion } from '@prisma/client'; // <-- CORRECCIÓN: Importar el Enum desde Prisma
 
 async function seleccionarTallerConfeccion() {
@@ -142,13 +143,10 @@ export async function generarOrdenesParaPedidosPagados(params?: { limite?: numbe
           },
         });
 
-        await tx.seguimiento_confeccion.create({
-          data: {
-            confeccion_id: confeccion.id,
-            estado_nuevo: 'pendiente',
-            notas: 'Orden de confección generada automáticamente tras pago verificado.',
-            responsable_id: representanteId,
-          },
+        await crearSeguimientoConfeccionInicial(tx, {
+          confeccion_id: confeccion.id,
+          notas: 'Orden de confección generada automáticamente tras pago verificado.',
+          responsable_id: representanteId,
         });
 
         // además transicionamos el pedido a 'en_produccion' y registramos seguimiento
@@ -276,13 +274,10 @@ export async function generarOrdenParaPedido(pedidoId: bigint) {
       },
     });
 
-    await tx.seguimiento_confeccion.create({
-      data: {
-        confeccion_id: confeccion.id,
-        estado_nuevo: 'pendiente',
-        notes: 'Orden de confección generada automáticamente tras pago verificado.',
-        responsable_id: representanteId,
-      } as any, // Corrección de fallback ortográfico por si tu esquema requiere 'notas' o 'notes'
+    await crearSeguimientoConfeccionInicial(tx, {
+      confeccion_id: confeccion.id,
+      notas: 'Orden de confección generada automáticamente tras pago verificado.',
+      responsable_id: representanteId,
     });
 
     // transicionar pedido a en_produccion y crear seguimiento

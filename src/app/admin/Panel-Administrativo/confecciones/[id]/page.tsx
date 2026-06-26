@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import ConfeccionDetalle from '@/components/admin/confecciones/detalle/ConfeccionDetalle';
+import { listarSeguimientoConfeccion } from '@/lib/helpers/seguimiento-confeccion-db.helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,22 +54,14 @@ export default async function ConfeccionDetallePage({ params }: PageProps) {
           },
         },
       },
-      seguimiento_confeccion: {
-        orderBy: { created_at: 'desc' },
-        select: {
-          id: true,
-          estado_anterior: true,
-          estado_nuevo: true,
-          notas: true,
-          created_at: true,
-        },
-      },
     },
   });
 
   if (!conf) notFound();
 
-  const raw = serializeBigInt(conf) as any;
+  const seguimiento_confeccion = await listarSeguimientoConfeccion(conf.id);
+
+  const raw = serializeBigInt({ ...conf, seguimiento_confeccion }) as Record<string, unknown>;
 
   const confeccion = {
     ...raw,

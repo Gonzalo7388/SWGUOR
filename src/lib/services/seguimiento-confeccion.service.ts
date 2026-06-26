@@ -2,10 +2,12 @@ import { prisma } from '@/lib/prisma';
 import { serializeBigInt } from '@/lib/utils/serialize';
 import { Prisma } from '@prisma/client';
 import type { EstadoConfeccion } from '@prisma/client';
-
-const SEGUIMIENTO_INCLUDE = {
-  usuarios: { select: { id: true, email: true, rol: true } },
-} as const;
+import {
+  actualizarNotasSeguimientoConfeccion,
+  crearSeguimientoConfeccionPorCambioEstado,
+  listarSeguimientoConfeccion,
+  obtenerSeguimientoConfeccionPorId,
+} from '@/lib/helpers/seguimiento-confeccion-db.helper';
 
 async function asegurarConfeccionExiste(confeccion_id: string) {
   const conf = await prisma.confecciones.findUnique({
@@ -20,21 +22,12 @@ export const SeguimientoConfeccionService = {
 
   async obtenerPorConfeccion(confeccion_id: string) {
     await asegurarConfeccionExiste(confeccion_id);
-
-    const seguimientos = await prisma.seguimiento_confeccion.findMany({
-      where: { confeccion_id: BigInt(confeccion_id) },
-      include: SEGUIMIENTO_INCLUDE,
-      orderBy: { created_at: 'desc' },
-    });
-
+    const seguimientos = await listarSeguimientoConfeccion(BigInt(confeccion_id));
     return serializeBigInt(seguimientos);
   },
 
   async obtenerPorId(id: string) {
-    const seg = await prisma.seguimiento_confeccion.findUnique({
-      where: { id: BigInt(id) },
-      include: SEGUIMIENTO_INCLUDE,
-    });
+    const seg = await obtenerSeguimientoConfeccionPorId(BigInt(id));
     return seg ? serializeBigInt(seg) : null;
   },
 
@@ -46,7 +39,7 @@ export const SeguimientoConfeccionService = {
     responsable_id?: string;
   }) {
     const conf = await asegurarConfeccionExiste(data.confeccion_id);
-    const estadoAnterior = (data.estado_anterior ?? conf.estado) as EstadoConfeccion | null;
+    const estadoAnterior = data.estado_anterior ?? conf.estado;
     const estadoNuevo = data.estado_nuevo as EstadoConfeccion;
 
     return prisma.$transaction(async (tx) => {
@@ -63,34 +56,28 @@ export const SeguimientoConfeccionService = {
         },
       });
 
-      const seg = await tx.seguimiento_confeccion.create({
-        data: {
-          confeccion_id: BigInt(data.confeccion_id),
-          estado_anterior: estadoAnterior,
-          estado_nuevo: estadoNuevo,
-          notas: data.notas ?? null,
-          responsable_id: data.responsable_id ? BigInt(data.responsable_id) : null,
-        },
-        include: SEGUIMIENTO_INCLUDE,
+      await crearSeguimientoConfeccionPorCambioEstado(tx, {
+        confeccion_id: BigInt(data.confeccion_id),
+        estado_anterior: estadoAnterior ?? 'pendiente',
+        estado_nuevo: estadoNuevo,
+        notas: data.notas ?? null,
+        responsable_id: data.responsable_id ? BigInt(data.responsable_id) : null,
       });
 
-      return serializeBigInt(seg);
+      const seguimientos = await listarSeguimientoConfeccion(
+        BigInt(data.confeccion_id),
+        tx,
+      );
+
+      return serializeBigInt(seguimientos[0] ?? null);
     });
   },
 
   async actualizarNotas(id: string, notas: string | null) {
-    const existente = await prisma.seguimiento_confeccion.findUnique({
-      where: { id: BigInt(id) },
-      select: { id: true },
-    });
+    const existente = await obtenerSeguimientoConfeccionPorId(BigInt(id));
     if (!existente) throw new Error('Registro de seguimiento no encontrado');
 
-    const updated = await prisma.seguimiento_confeccion.update({
-      where: { id: BigInt(id) },
-      data: { notas },
-      include: SEGUIMIENTO_INCLUDE,
-    });
-
+    const updated = await actualizarNotasSeguimientoConfeccion(BigInt(id), notas);
     return serializeBigInt(updated);
   },
 };

@@ -4,12 +4,14 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import type { 
+import {
+  crearSeguimientoConfeccionPorCambioEstado,
+} from '@/lib/helpers/seguimiento-confeccion-db.helper';
+import type {
   TipoMovimiento, 
   ReferenciaMovimiento, 
   ReferenciaNotificacion, 
   TipoNotificacion,
-  EstadoConfeccion,
 } from "@prisma/client";
 
 type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
@@ -226,14 +228,13 @@ export async function registrarCambioEstadoConfeccion(
   notasCambio?: string
 ): Promise<void> {
   try {
-    // FIX: Se asocian aserciones explícitas al enum EstadoConfeccion importado de Prisma
-    await prisma.seguimiento_confeccion.create({
-      data: {
-        confeccion_id: confeccionId,
-        estado_anterior: estadoAnterior as EstadoConfeccion, 
-        estado_nuevo: estadoNuevo as EstadoConfeccion,
-        notas: notasCambio,
-      },
+    await prisma.$transaction(async (tx) => {
+      await crearSeguimientoConfeccionPorCambioEstado(tx, {
+        confeccion_id: BigInt(confeccionId),
+        estado_anterior: estadoAnterior,
+        estado_nuevo: estadoNuevo,
+        notas: notasCambio ?? null,
+      });
     });
   } catch (error) {
     console.error("Error en registrarCambioEstadoConfeccion:", error instanceof Error ? error.message : error);
