@@ -28,6 +28,10 @@ export async function POST(req: Request, { params }: Params) {
       fichaId: BigInt(id),
       pedidoId: BigInt(String(pedidoId)),
       usuarioId: BigInt(auth.user.id),
+      ficha_url: body.ficha_url ?? body.fichaUrl ?? undefined,
+      imagen_geometral: body.imagen_geometral ?? body.imagenGeometral ?? undefined,
+      descripcion_detallada:
+        body.descripcion_detallada ?? body.descripcionDetallada ?? undefined,
     });
 
     return NextResponse.json({

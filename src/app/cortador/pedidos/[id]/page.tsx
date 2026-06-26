@@ -76,7 +76,9 @@ export default async function CortadorPedidoPage({ params }: PageProps) {
 
   if (!pedido) notFound();
 
-  const itemsConFicha = await obtenerItemsConFichaParaCorte(pedido.pedido_items);
+  const itemsConFicha = serializeBigInt(
+    await obtenerItemsConFichaParaCorte(pedido.pedido_items),
+  );
 
   const productoPrincipalId = resolverProductoPrincipalId(pedido.pedido_items);
   const fichaPrincipal = await obtenerDatosFichaParaCorte(productoPrincipalId);

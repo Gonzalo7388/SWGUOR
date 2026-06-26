@@ -150,9 +150,14 @@ export const fmt = (n: number, moneda = 'PEN') =>
     minimumFractionDigits: 2,
   }).format(n);
 
-export const fmtDate = (s: string | null) =>
-  s
-    ? new Date(s).toLocaleDateString('es-PE', {
-        day: '2-digit', month: 'short', year: 'numeric',
-      })
-    : '—';
+export const fmtDate = (s: string | null) => {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return '—';
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const months = [
+    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+  ];
+  return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+};

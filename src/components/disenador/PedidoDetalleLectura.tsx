@@ -97,9 +97,7 @@ export function PedidoDetalleLectura({ pedido }: Props) {
         <SectionCard title="Resumen del pedido">
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              {EstadoIcon && (
-                <Badge label={estadoLabel} color={estadoColor} icon={EstadoIcon} />
-              )}
+              <Badge label={estadoLabel} color={estadoColor} icon={EstadoIcon} />
               <Badge label={prioridadCfg.label} color={prioridadCfg.color} />
             </div>
             <p className="text-sm text-stone-700">

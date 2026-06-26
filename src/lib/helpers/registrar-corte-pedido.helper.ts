@@ -344,14 +344,6 @@ export async function obtenerDatosFichaParaCorte(productoId: bigint) {
               unidad_medida: true,
             },
           },
-          insumo: {
-            select: {
-              id: true,
-              nombre: true,
-              tipo: true,
-              unidad_medida: true,
-            },
-          },
         },
         orderBy: { id: 'asc' },
       },
@@ -359,6 +351,29 @@ export async function obtenerDatosFichaParaCorte(productoId: bigint) {
   });
 
   if (!ficha) return null;
+
+  const insumoIds = [
+    ...new Set(
+      ficha.fichas_tecnicas_detalle
+        .map((d) => d.insumo_id)
+        .filter((id): id is bigint => id != null),
+    ),
+  ];
+
+  const insumosPorId = new Map<
+    string,
+    { nombre: string; tipo: string; unidad_medida: string }
+  >();
+
+  if (insumoIds.length > 0) {
+    const insumos = await prisma.insumo.findMany({
+      where: { id: { in: insumoIds } },
+      select: { id: true, nombre: true, tipo: true, unidad_medida: true },
+    });
+    for (const insumo of insumos) {
+      insumosPorId.set(String(insumo.id), insumo);
+    }
+  }
 
   const descripcion = parseDescripcionDetallada(ficha.descripcion_detallada);
 
@@ -384,12 +399,17 @@ export async function obtenerDatosFichaParaCorte(productoId: bigint) {
           unidad: d.materiales.unidad_medida,
         }
         : null,
-      insumo: d.insumo
-        ? {
-          nombre: d.insumo.nombre,
-          tipo: d.insumo.tipo,
-          unidad: d.insumo.unidad_medida,
-        }
+      insumo: d.insumo_id
+        ? (() => {
+            const row = insumosPorId.get(String(d.insumo_id));
+            return row
+              ? {
+                  nombre: row.nombre,
+                  tipo: row.tipo,
+                  unidad: row.unidad_medida,
+                }
+              : null;
+          })()
         : null,
       observaciones: d.observaciones,
     })),

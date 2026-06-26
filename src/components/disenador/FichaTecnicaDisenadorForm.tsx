@@ -201,10 +201,29 @@ export function FichaTecnicaDisenadorForm({
 
     setAprobando(true);
     try {
+      const descripcion_detallada = buildDescripcionDetallada(texto, evidencias);
+      const documentosPayload = {
+        ficha_url: fichaUrl || null,
+        imagen_geometral: imagenGeometral || null,
+        descripcion_detallada,
+        version: version.trim() || '1.0',
+        pedido_id: pedidoId,
+      };
+
+      const patchRes = await fetch(`/api/fichas-tecnicas/${fichaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(documentosPayload),
+      });
+      const patchJson = await patchRes.json().catch(() => ({}));
+      if (!patchRes.ok) {
+        throw new Error(patchJson.error ?? 'No se pudieron guardar los documentos');
+      }
+
       const res = await fetch(`/api/fichas-tecnicas/${fichaId}/aprobar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pedido_id: pedidoId }),
+        body: JSON.stringify(documentosPayload),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {

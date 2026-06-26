@@ -155,6 +155,9 @@ export async function aprobarFichaItemPedido(params: {
   fichaId: bigint;
   pedidoId: bigint;
   usuarioId: bigint;
+  ficha_url?: string | null;
+  imagen_geometral?: string | null;
+  descripcion_detallada?: string | null;
 }): Promise<{ pedidoEnProduccion: boolean; progreso: ProgresoFichasPedido }> {
   const pedido = await prisma.pedidos.findUnique({
     where: { id: params.pedidoId },
@@ -194,9 +197,26 @@ export async function aprobarFichaItemPedido(params: {
     return { pedidoEnProduccion: pedido.estado === 'en_produccion', progreso };
   }
 
+  const datosDocumentos: {
+    ficha_url?: string | null;
+    imagen_geometral?: string | null;
+    descripcion_detallada?: string | null;
+  } = {};
+
+  if (params.ficha_url !== undefined) datosDocumentos.ficha_url = params.ficha_url;
+  if (params.imagen_geometral !== undefined) {
+    datosDocumentos.imagen_geometral = params.imagen_geometral;
+  }
+  if (params.descripcion_detallada !== undefined) {
+    datosDocumentos.descripcion_detallada = params.descripcion_detallada;
+  }
+
   await prisma.fichas_tecnicas.update({
     where: { id: params.fichaId },
-    data: { estado: 'aprobada' },
+    data: {
+      estado: 'aprobada',
+      ...datosDocumentos,
+    },
   });
 
   await registrarDisenoFichaAprobada({
